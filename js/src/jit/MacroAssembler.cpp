@@ -3927,25 +3927,42 @@ void MacroAssembler::loadJitCodeRaw(Register func, Register dest) {
   loadPtr(Address(dest, BaseScript::offsetOfJitCodeRaw()), dest);
 }
 
-void MacroAssembler::loadBaselineJitCodeRaw(Register func, Register dest,
-                                            Label* failure) {
-  // Load JitScript
+void MacroAssembler::loadJitCodeRawNoIon(Register func, Register dest,
+                                         Register scratch) {
+  // This is used when calling a trial-inlined script using a private
+  // ICScript to collect callsite-specific CacheIR. Ion doesn't use
+  // the baseline ICScript, so we want to enter at the highest
+  // available non-Ion tier.
+
+  Label useJitCodeRaw, done;
   loadPrivate(Address(func, JSFunction::offsetOfJitInfoOrScript()), dest);
-  if (failure) {
-    branchIfScriptHasNoJitScript(dest, failure);
-  }
-  loadJitScript(dest, dest);
+  branchIfScriptHasNoJitScript(dest, &useJitCodeRaw);
+  loadJitScript(dest, scratch);
 
-  // Load BaselineScript
-  loadPtr(Address(dest, JitScript::offsetOfBaselineScript()), dest);
-  if (failure) {
-    static_assert(DisabledScript < CompilingScript);
-    branchPtr(Assembler::BelowOrEqual, dest, ImmWord(CompilingScript), failure);
-  }
+  // If we have an IonScript, jitCodeRaw_ will point to it, so we have
+  // to load the baseline entry out of the BaselineScript.
+  branchPtr(Assembler::BelowOrEqual,
+            Address(scratch, JitScript::offsetOfIonScript()),
+            ImmPtr(IonCompilingScriptPtr), &useJitCodeRaw);
+  loadPtr(Address(scratch, JitScript::offsetOfBaselineScript()), scratch);
 
-  // Load Baseline jitcode
-  loadPtr(Address(dest, BaselineScript::offsetOfMethod()), dest);
-  loadPtr(Address(dest, JitCode::offsetOfCode()), dest);
+#ifdef DEBUG
+  // If we have an IonScript, we must also have a BaselineScript.
+  Label hasBaselineScript;
+  branchPtr(Assembler::Above, scratch, ImmPtr(BaselineCompilingScriptPtr),
+            &hasBaselineScript);
+  assumeUnreachable("JitScript has IonScript without BaselineScript");
+  bind(&hasBaselineScript);
+#endif
+
+  loadPtr(Address(scratch, BaselineScript::offsetOfMethod()), scratch);
+  loadPtr(Address(scratch, JitCode::offsetOfCode()), dest);
+  jump(&done);
+
+  // If there's no IonScript, we can just use jitCodeRaw_.
+  bind(&useJitCodeRaw);
+  loadPtr(Address(dest, BaseScript::offsetOfJitCodeRaw()), dest);
+  bind(&done);
 }
 
 void MacroAssembler::loadBaselineFramePtr(Register framePtr, Register dest) {
