@@ -54,14 +54,16 @@ GtkCompositorWidget::GtkCompositorWidget(
 
 GtkCompositorWidget::~GtkCompositorWidget() {
   LOG("GtkCompositorWidget::~GtkCompositorWidget [%p]\n", (void*)mWidget.get());
-  AssertIsOnMainThread();
   CleanupResources();
 #ifdef MOZ_WAYLAND
   if (mNativeLayerRoot) {
-    mNativeLayerRoot->Shutdown();
+    NS_DispatchToMainThread(NS_NewRunnableFunction(
+        "~GtkCompositorWidget::NativeLayerRootWayland::Shutdown()",
+        [root = RefPtr{mNativeLayerRoot}]() -> void { root->Shutdown(); }));
   }
 #endif
-  mWidget = nullptr;
+  RefPtr<nsIWidget> widget = mWidget.forget();
+  NS_ReleaseOnMainThread("GtkCompositorWidget::mWidget", widget.forget());
 }
 
 already_AddRefed<gfx::DrawTarget> GtkCompositorWidget::StartRemoteDrawing() {
