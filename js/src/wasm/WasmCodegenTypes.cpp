@@ -48,7 +48,7 @@ bool TrapSitesForKind::lookup(uint32_t trapInstructionOffset,
     TrapSite site;
     site.bytecodeOffset = bytecodeOffsets_[match];
     if (auto inlinedCallerOffsetsIndex =
-            inlinedCallerOffsetsMap_.lookup(match)) {
+            inlinedCallerOffsetsMap_.readonlyThreadsafeLookup(match)) {
       site.inlinedCallerOffsets =
           inliningContext[inlinedCallerOffsetsIndex->value()];
     } else {
