@@ -204,7 +204,7 @@ class Components(private val context: Context) {
             browserStore = core.store,
             storage = DefaultPrivateBrowsingLockStorage(
                 preferences = settings.preferences,
-                privateBrowsingLockPrefKey = context.getString(R.string.pref_key_private_browsing_locked_enabled),
+                privateBrowsingLockPrefKey = context.getString(R.string.pref_key_private_browsing_locked),
             ),
         )
     }
