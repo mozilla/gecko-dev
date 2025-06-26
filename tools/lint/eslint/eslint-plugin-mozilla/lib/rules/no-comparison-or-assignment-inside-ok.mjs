@@ -39,7 +39,15 @@ export default {
     const exprs = new Set(["BinaryExpression", "AssignmentExpression"]);
     return {
       CallExpression(node) {
-        if (node.callee.type != "Identifier" || node.callee.name != "ok") {
+        // Support both ok() and Assert.ok()
+        let isOk =
+          (node.callee.type === "Identifier" && node.callee.name === "ok") ||
+          (node.callee.type === "MemberExpression" &&
+            node.callee.object.type === "Identifier" &&
+            node.callee.object.name === "Assert" &&
+            node.callee.property.type === "Identifier" &&
+            node.callee.property.name === "ok");
+        if (!isOk) {
           return;
         }
         let firstArg = node.arguments[0];
@@ -65,13 +73,13 @@ export default {
             fix: fixer => {
               let left = context.sourceCode.getText(firstArg.left);
               let right = context.sourceCode.getText(firstArg.right);
-              return [
-                fixer.replaceText(firstArg, left + ", " + right),
-                fixer.replaceText(
-                  node.callee,
-                  operatorToAssertionMap[firstArg.operator]
-                ),
-              ];
+              let message =
+                node.arguments.length > 1
+                  ? ", " + context.sourceCode.getText(node.arguments[1])
+                  : "";
+              // Replace the whole call with the correct Assert method
+              let assertion = `${operatorToAssertionMap[firstArg.operator]}(${left}, ${right}${message})`;
+              return fixer.replaceText(node, assertion);
             },
           });
         }
