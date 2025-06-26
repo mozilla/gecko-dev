@@ -4278,6 +4278,30 @@ nsresult QuotaManager::InitializeOrigin(
     fullOriginMetadata.mOriginUsage = usage.value();
     fullOriginMetadata.mClientUsages = clientUsages;
 
+    if (StaticPrefs::
+            dom_quotaManager_originInitialization_updateOriginMetadata() &&
+        !fullOriginMetadata.Equals(aFullOriginMetadata)) {
+      // If the pref is enabled and the current metadata differs from what's
+      // stored, update the metadata file to reflect the most recent state.
+      // This is essential for ensuring correctness of the L2 quota info cache.
+
+      if (fullOriginMetadata.EqualsIgnoringOriginState(aFullOriginMetadata)) {
+        // If only the OriginStateMetadata (header) differs, we can perform a
+        // fast, crash-safe in-place update of just the header.
+
+        QM_TRY(MOZ_TO_RESULT(
+            SaveDirectoryMetadataHeader(*aDirectory, fullOriginMetadata)));
+
+      } else {
+        // Otherwise, we fall back to recreating the full metadata file using a
+        // temporary file and atomic rename, which is slower but safe for
+        // structural changes.
+
+        QM_TRY(MOZ_TO_RESULT(
+            CreateDirectoryMetadata2(*aDirectory, fullOriginMetadata)));
+      }
+    }
+
     InitQuotaForOrigin(fullOriginMetadata);
   }
 
