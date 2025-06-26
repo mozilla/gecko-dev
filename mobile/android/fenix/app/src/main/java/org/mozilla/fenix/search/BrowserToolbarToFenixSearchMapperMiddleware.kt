@@ -44,7 +44,7 @@ class BrowserToolbarToFenixSearchMapperMiddleware(
     private var isSyncingUserQueryInProgress = false
 
     /**
-     * Updates the lifecycle [LifecycleDependencies].
+     * Updates the [LifecycleDependencies] of this middleware.
      *
      * @param dependencies The new [LifecycleDependencies].
      */

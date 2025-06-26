@@ -40,6 +40,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
+import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware
 import org.mozilla.fenix.search.BrowserToolbarSearchStatusSyncMiddleware
 import org.mozilla.fenix.utils.Settings
 
@@ -75,11 +76,12 @@ internal class HomeToolbarComposable(
     private var showDivider by mutableStateOf(true)
 
     private val displayMiddleware = getOrCreate<BrowserToolbarMiddleware>()
+    private val searchMiddleware = getOrCreate<BrowserToolbarSearchMiddleware>()
     private val searchSyncMiddleware = getOrCreate<BrowserToolbarSearchStatusSyncMiddleware>()
     private val store = StoreProvider.get(lifecycleOwner) {
         BrowserToolbarStore(
             initialState = BrowserToolbarState(),
-            middleware = listOf(displayMiddleware, searchSyncMiddleware),
+            middleware = listOf(displayMiddleware, searchMiddleware, searchSyncMiddleware),
         )
     }
 
@@ -195,6 +197,20 @@ internal class HomeToolbarComposable(
                 it.updateLifecycleDependencies(
                     BrowserToolbarSearchStatusSyncMiddleware.LifecycleDependencies(
                         lifecycleOwner = lifecycleOwner,
+                    ),
+                )
+            } as T
+
+        BrowserToolbarSearchMiddleware::class.java ->
+            ViewModelProvider(
+                lifecycleOwner,
+                BrowserToolbarSearchMiddleware.viewModelFactory(appStore, browserStore),
+            ).get(BrowserToolbarSearchMiddleware::class.java).also {
+                it.updateLifecycleDependencies(
+                    BrowserToolbarSearchMiddleware.LifecycleDependencies(
+                        lifecycleOwner = lifecycleOwner,
+                        navController = navController,
+                        resources = context.resources,
                     ),
                 )
             } as T

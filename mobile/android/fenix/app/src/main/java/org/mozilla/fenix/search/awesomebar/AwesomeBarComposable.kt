@@ -41,6 +41,7 @@ import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.search.BrowserStoreToFenixSearchMapperMiddleware
 import org.mozilla.fenix.search.BrowserToolbarToFenixSearchMapperMiddleware
 import org.mozilla.fenix.search.FenixSearchMiddleware
 import org.mozilla.fenix.search.SearchDialogFragmentStore
@@ -77,7 +78,8 @@ class AwesomeBarComposable(
 ) {
     private val toolbarQueryMapper = getOrCreate<BrowserToolbarToFenixSearchMapperMiddleware>()
     private val searchMiddleware = getOrCreate<FenixSearchMiddleware>()
-    private val store = getOrCreate<SearchDialogFragmentStore>()
+    private val browserSearchStateSyncDelegate = getOrCreate<BrowserStoreToFenixSearchMapperMiddleware>()
+    private val searchStore = getOrCreate<SearchDialogFragmentStore>()
 
     /**
      * [Composable] fully integrated with [BrowserStore] and [BrowserToolbarStore]
@@ -87,10 +89,10 @@ class AwesomeBarComposable(
     @Composable
     fun SearchSuggestions() {
         val isSearchActive = appStore.observeAsComposableState { it.isSearchActive }.value
-        val state = store.observeAsComposableState { it }.value
+        val state = searchStore.observeAsComposableState { it }.value
         val orientation by remember(state.searchSuggestionsOrientedAtBottom) {
             derivedStateOf {
-                when (store.state.searchSuggestionsOrientedAtBottom) {
+                when (searchStore.state.searchSuggestionsOrientedAtBottom) {
                     true -> AwesomeBarOrientation.BOTTOM
                     false -> AwesomeBarOrientation.TOP
                 }
@@ -108,12 +110,12 @@ class AwesomeBarComposable(
         }
 
         BackHandler {
-            store.dispatch(SearchSuggestionsVisibilityUpdated(false))
+            searchStore.dispatch(SearchSuggestionsVisibilityUpdated(false))
             toolbarStore.dispatch(ToggleEditMode(false))
             browserStore.dispatch(AwesomeBarAction.EngagementFinished(abandoned = true))
         }
 
-        if (state.shouldShowSearchSuggestions) {
+        if (isSearchActive && state.shouldShowSearchSuggestions) {
             Box(
                 modifier = Modifier
                     .background(AcornTheme.colors.layer1)
@@ -137,10 +139,10 @@ class AwesomeBarComposable(
                         groupTitle = FirefoxTheme.colors.textSecondary,
                     ),
                     onSuggestionClicked = { suggestion ->
-                        store.dispatch(SuggestionClicked(suggestion))
+                        searchStore.dispatch(SuggestionClicked(suggestion))
                     },
                     onAutoComplete = { suggestion ->
-                        store.dispatch(SuggestionSelected(suggestion))
+                        searchStore.dispatch(SuggestionSelected(suggestion))
                     },
                     onVisibilityStateUpdated = {},
                     onScroll = { keyboardController?.hide() },
@@ -172,6 +174,7 @@ class AwesomeBarComposable(
                     tabsUseCases = components.useCases.tabsUseCases,
                     nimbusComponents = components.nimbus,
                     settings = components.settings,
+                    appStore = appStore,
                     browserStore = browserStore,
                     toolbarStore = toolbarStore,
                     includeSelectedTab = includeSelectedTab,
@@ -180,6 +183,7 @@ class AwesomeBarComposable(
                 it.updateLifecycleDependencies(
                     FenixSearchMiddleware.LifecycleDependencies(
                         context = activity,
+                        lifecycleOwner = activity,
                         browsingModeManager = activity.browsingModeManager,
                         navController = navController,
                         fenixBrowserUseCases = activity.components.useCases.fenixBrowserUseCases,
@@ -200,6 +204,19 @@ class AwesomeBarComposable(
                     middleware = listOf(
                         toolbarQueryMapper,
                         searchMiddleware,
+                        browserSearchStateSyncDelegate,
+                    ),
+                )
+            } as T
+
+        BrowserStoreToFenixSearchMapperMiddleware::class.java ->
+            ViewModelProvider(
+                lifecycleOwner,
+                BrowserStoreToFenixSearchMapperMiddleware.viewModelFactory(browserStore),
+            ).get(BrowserStoreToFenixSearchMapperMiddleware::class.java).also {
+                it.updateLifecycleDependencies(
+                    BrowserStoreToFenixSearchMapperMiddleware.LifecycleDependencies(
+                        lifecycleOwner = lifecycleOwner,
                     ),
                 )
             } as T

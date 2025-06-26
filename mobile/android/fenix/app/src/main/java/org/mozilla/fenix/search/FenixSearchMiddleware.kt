@@ -6,9 +6,17 @@ package org.mozilla.fenix.search
 
 import android.content.Context
 import androidx.annotation.VisibleForTesting
+import androidx.lifecycle.Lifecycle.State.RESUMED
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.store.BrowserStore
@@ -23,6 +31,9 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.feature.tabs.TabsUseCases.SelectTabUseCase
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.State
+import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.ext.flow
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.GleanMetrics.Events
@@ -30,7 +41,9 @@ import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.UnifiedSearch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.NimbusComponents
+import org.mozilla.fenix.components.appstate.AppAction.SearchEngineSelected
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
@@ -50,6 +63,7 @@ import org.mozilla.fenix.search.SearchFragmentAction.UpdateQuery
 import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder
 import org.mozilla.fenix.search.awesomebar.toSearchProviderState
 import org.mozilla.fenix.utils.Settings
+import mozilla.components.lib.state.Action as MVIAction
 
 /**
  * [SearchFragmentStore] [Middleware] that will handle the setup of the search UX and related user interactions.
@@ -58,21 +72,25 @@ import org.mozilla.fenix.utils.Settings
  * @param tabsUseCases [TabsUseCases] used for operations related to current open tabs.
  * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
  * @param settings [Settings] application settings.
- * @param browserStore [BrowserStore] used for updating search related data.
+ * @param appStore [AppStore] to sync search related data with.
+ * @param browserStore [BrowserStore] to sync search related data with.
  * @param toolbarStore [BrowserToolbarStore] used for querying and updating the toolbar state.
  * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
  */
+@Suppress("LongParameterList")
 class FenixSearchMiddleware(
     private val engine: Engine,
     private val tabsUseCases: TabsUseCases,
     private val nimbusComponents: NimbusComponents,
     private val settings: Settings,
+    private val appStore: AppStore,
     private val browserStore: BrowserStore,
     private val toolbarStore: BrowserToolbarStore,
     private val includeSelectedTab: Boolean = false,
 ) : Middleware<SearchFragmentState, SearchFragmentAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     internal lateinit var searchStore: SearchFragmentStore
+    private var observeSearchEnginesChangeJob: Job? = null
 
     @VisibleForTesting
     internal lateinit var suggestionsProvidersBuilder: SearchSuggestionsProvidersBuilder
@@ -115,22 +133,26 @@ class FenixSearchMiddleware(
                 engine.speculativeCreateSession(action.inPrivateMode)
                 suggestionsProvidersBuilder = buildSearchSuggestionsProvider()
                 setSearchEngine(action.selectedSearchEngine)
+                observeSearchEngineSelection()
             }
 
             is UpdateQuery -> {
                 next(action)
 
-                val shouldShowSuggestions = with(searchStore.state) {
-                    url != action.query && action.query.isNotBlank() || showSearchShortcuts
-                }
-                searchStore.dispatch(SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
+                maybeShowSearchSuggestions(action.query)
             }
 
             is SearchEnginesSelectedActions -> {
                 next(action)
 
                 updateSearchProviders()
-                maybeShowSearchSuggestions()
+                maybeShowFxSuggestions()
+            }
+
+            is SearchProvidersUpdated -> {
+                next(action)
+
+                maybeShowSearchSuggestions(searchStore.state.query)
             }
 
             is SuggestionClicked -> {
@@ -159,6 +181,22 @@ class FenixSearchMiddleware(
     }
 
     /**
+     * Observe when the user changes the search engine to use for the current in-progress search
+     * and update the suggestions providers used and shown suggestions accordingly.
+     */
+    private fun observeSearchEngineSelection() {
+        observeSearchEnginesChangeJob?.cancel()
+        observeSearchEnginesChangeJob = appStore.observeWhileActive(dependencies.lifecycleOwner) {
+            distinctUntilChangedBy { it.shortcutSearchEngine }
+                .collect {
+                    it.shortcutSearchEngine?.let {
+                        handleSearchShortcutEngineSelectedByUser(it)
+                    }
+                }
+        }
+    }
+
+    /**
      * Update the search engine to the one selected by the user or fallback to the default search engine.
      *
      * @param searchEngine The new [SearchEngine] to be used for new searches or `null` to fallback to
@@ -171,7 +209,11 @@ class FenixSearchMiddleware(
                 ?.let { handleSearchShortcutEngineSelected(it) }
     }
 
-    private fun maybeShowSearchSuggestions() {
+    /**
+     * Check if new firefox suggestions (trending, recent searches or search engines suggestions)
+     * should be shown based on the current search query.
+     */
+    private fun maybeShowFxSuggestions() {
         val shouldShowSuggestions = with(searchStore.state) {
             (showTrendingSearches || showRecentSearches || showShortcutsSuggestions) &&
                 (query.isNotEmpty() || FxNimbus.features.searchSuggestionsOnHomepage.value().enabled)
@@ -180,18 +222,18 @@ class FenixSearchMiddleware(
     }
 
     /**
-     * Handle a search shortcut engine being selected by the user.
-     *
-     * @param searchEngine The [SearchEngine] to be used for new searches.
+     * Check if new search suggestions should be shown based on the current search query.
      */
-    private fun handleSearchShortcutEngineSelectedByUser(
-        searchEngine: SearchEngine,
-    ) {
-        handleSearchShortcutEngineSelected(searchEngine)
-
-        UnifiedSearch.engineSelected.record(UnifiedSearch.EngineSelectedExtra(searchEngine.telemetryName()))
+    private fun maybeShowSearchSuggestions(query: String) {
+        val shouldShowSuggestions = with(searchStore.state) {
+            url != query && query.isNotBlank() || showSearchShortcuts
+        }
+        searchStore.dispatch(SearchSuggestionsVisibilityUpdated(shouldShowSuggestions))
     }
 
+    /**
+     * Update the search providers used and shown suggestions based on the current search state.
+     */
     private fun updateSearchProviders() {
         searchStore.dispatch(
             SearchProvidersUpdated(
@@ -312,6 +354,29 @@ class FenixSearchMiddleware(
         )
     }
 
+    /**
+     * Handle a search shortcut engine being selected by the user.
+     * This will result in using a different set of suggestions providers and showing different search suggestions.
+     * The difference between this and [handleSearchShortcutEngineSelected] is that this also
+     * records the appropriate telemetry for the user interaction.
+     *
+     * @param searchEngine The [SearchEngine] to be used for the current in-progress search.
+     */
+    @VisibleForTesting
+    internal fun handleSearchShortcutEngineSelectedByUser(
+        searchEngine: SearchEngine,
+    ) {
+        handleSearchShortcutEngineSelected(searchEngine)
+
+        UnifiedSearch.engineSelected.record(UnifiedSearch.EngineSelectedExtra(searchEngine.telemetryName()))
+    }
+
+    /**
+     * Update what search engine to use for the current in-progress search.
+     * This will result in using a different set of suggestions providers and showing different search suggestions.
+     *
+     * @param searchEngine The [SearchEngine] to be used for the current in-progress search.
+     */
     private fun handleSearchShortcutEngineSelected(searchEngine: SearchEngine) {
         when {
             searchEngine.type == SearchEngine.Type.APPLICATION && searchEngine.id == HISTORY_SEARCH_ENGINE_ID -> {
@@ -342,13 +407,10 @@ class FenixSearchMiddleware(
                 )
             }
         }
-
-        updateSearchProviders()
     }
 
-    @VisibleForTesting
-    internal fun handleSearchEngineSuggestionClicked(searchEngine: SearchEngine) {
-        handleSearchShortcutEngineSelectedByUser(searchEngine)
+    private fun handleSearchEngineSuggestionClicked(searchEngine: SearchEngine) {
+        appStore.dispatch(SearchEngineSelected(searchEngine))
     }
 
     @VisibleForTesting
@@ -358,16 +420,34 @@ class FenixSearchMiddleware(
         browserStore.dispatch(AwesomeBarAction.EngagementFinished(abandoned = true))
     }
 
+    private inline fun <S : State, A : MVIAction> Store<S, A>.observeWhileActive(
+        lifecycleOwner: LifecycleOwner,
+        crossinline observe: suspend (Flow<S>.() -> Unit),
+    ): Job = with(lifecycleOwner) {
+        lifecycleScope.launch {
+            repeatOnLifecycle(RESUMED) {
+                flow().observe()
+            }
+        }
+    }
+
+    override fun onCleared() {
+        observeSearchEnginesChangeJob?.cancel()
+        super.onCleared()
+    }
+
     /**
      * Lifecycle dependencies for the [FenixSearchMiddleware].
      *
      * @property context Activity [Context] used for various system interactions.
+     * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
      * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
      * @property navController [NavController] used to navigate to other destinations.
      * @property fenixBrowserUseCases [FenixBrowserUseCases] used for loading new URLs.
      */
     data class LifecycleDependencies(
         val context: Context,
+        val lifecycleOwner: LifecycleOwner,
         val browsingModeManager: BrowsingModeManager,
         val navController: NavController,
         val fenixBrowserUseCases: FenixBrowserUseCases,
@@ -384,15 +464,18 @@ class FenixSearchMiddleware(
          * @param tabsUseCases [TabsUseCases] used for operations related to current open tabs.
          * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
          * @param settings [Settings] application settings.
+         * @param appStore [AppStore] used for querying application's state related to search.
          * @param browserStore [BrowserStore] used for updating search related data.
          * @param toolbarStore [BrowserToolbarStore] used for querying and updating the toolbar state.
          * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
          */
+        @Suppress("LongParameterList")
         fun viewModelFactory(
             engine: Engine,
             tabsUseCases: TabsUseCases,
             nimbusComponents: NimbusComponents,
             settings: Settings,
+            appStore: AppStore,
             browserStore: BrowserStore,
             toolbarStore: BrowserToolbarStore,
             includeSelectedTab: Boolean,
@@ -403,6 +486,7 @@ class FenixSearchMiddleware(
                 tabsUseCases = tabsUseCases,
                 nimbusComponents = nimbusComponents,
                 settings = settings,
+                appStore = appStore,
                 browserStore = browserStore,
                 toolbarStore = toolbarStore,
                 includeSelectedTab = includeSelectedTab,

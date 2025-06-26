@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.appstate
 
 import io.mockk.mockk
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
@@ -12,6 +13,7 @@ import mozilla.components.lib.crash.Crash.NativeCodeCrash
 import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mozilla.fenix.components.AppStore
@@ -99,6 +101,35 @@ class AppStoreReducerTest {
         )
 
         assertFalse(updatedState.isSearchActive)
+    }
+
+    @Test
+    fun `WHEN search is aborted THEN reset the user selected search engine`() {
+        val initialState = AppState(
+            shortcutSearchEngine = mockk(),
+        )
+
+        val updatedState = AppStoreReducer.reduce(
+            initialState,
+            AppAction.UpdateSearchBeingActiveState(isSearchActive = false),
+        )
+
+        assertNull(updatedState.shortcutSearchEngine)
+    }
+
+    @Test
+    fun `WHEN a new search engine is selected THEN update state to reflect it`() {
+        val initialState = AppState()
+
+        assertNull(initialState.shortcutSearchEngine)
+
+        val newSearchEngineSelection: SearchEngine = mockk()
+        val updatedState = AppStoreReducer.reduce(
+            initialState,
+            AppAction.SearchEngineSelected(newSearchEngineSelection),
+        )
+
+        assertEquals(newSearchEngineSelection, updatedState.shortcutSearchEngine)
     }
 
     @Test
