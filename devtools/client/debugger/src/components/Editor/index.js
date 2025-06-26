@@ -92,7 +92,6 @@ class Editor extends PureComponent {
       isPaused: PropTypes.bool.isRequired,
       addBreakpointAtLine: PropTypes.func.isRequired,
       continueToHere: PropTypes.func.isRequired,
-      updateCursorPosition: PropTypes.func.isRequired,
       jumpToMappedLocation: PropTypes.func.isRequired,
       selectedLocation: PropTypes.object,
       startPanelSize: PropTypes.number.isRequired,
@@ -587,23 +586,20 @@ class Editor extends PureComponent {
   };
 
   onClick(e, line, ch) {
-    const { selectedSource, updateCursorPosition, jumpToMappedLocation } =
-      this.props;
+    const { selectedSource, jumpToMappedLocation } = this.props;
 
-    const { editor } = this.state;
+    if (!selectedSource) {
+      return;
+    }
 
-    if (selectedSource) {
-      const sourceLocation = createLocation({
-        source: selectedSource,
-        line: fromEditorLine(selectedSource, line),
-        column: editor.isWasm ? 0 : ch + 1,
-      });
+    const sourceLocation = createLocation({
+      source: selectedSource,
+      line: fromEditorLine(selectedSource, line),
+      column: this.state.editor.isWasm ? 0 : ch + 1,
+    });
 
-      if (e.metaKey && e.altKey) {
-        jumpToMappedLocation(sourceLocation);
-      }
-
-      updateCursorPosition(sourceLocation);
+    if (e.metaKey && e.altKey) {
+      jumpToMappedLocation(sourceLocation);
     }
   }
 
@@ -838,7 +834,6 @@ const mapDispatchToProps = dispatch => ({
       addBreakpointAtLine: actions.addBreakpointAtLine,
       jumpToMappedLocation: actions.jumpToMappedLocation,
       updateViewport: actions.updateViewport,
-      updateCursorPosition: actions.updateCursorPosition,
       closeTab: actions.closeTab,
       showEditorContextMenu: actions.showEditorContextMenu,
       showEditorGutterContextMenu: actions.showEditorGutterContextMenu,

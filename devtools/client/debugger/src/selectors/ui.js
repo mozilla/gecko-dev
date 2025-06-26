@@ -56,10 +56,6 @@ export function getViewport(state) {
   return state.ui.viewport;
 }
 
-export function getCursorPosition(state) {
-  return state.ui.cursorPosition;
-}
-
 export function getInlinePreview(state) {
   return state.ui.inlinePreviewEnabled;
 }
