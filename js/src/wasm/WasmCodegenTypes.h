@@ -1165,7 +1165,7 @@ class CallSites {
   CallSite get(size_t index, const InliningContext& inliningContext) const {
     InlinedCallerOffsetIndex inlinedCallerOffsetsIndex;
     const InlinedCallerOffsets* inlinedCallerOffsets = nullptr;
-    if (auto entry = inlinedCallerOffsetsMap_.lookup(index)) {
+    if (auto entry = inlinedCallerOffsetsMap_.readonlyThreadsafeLookup(index)) {
       inlinedCallerOffsetsIndex = entry->value();
       inlinedCallerOffsets = inliningContext[entry->value()];
     }
