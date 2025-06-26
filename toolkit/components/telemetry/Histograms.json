@@ -9496,17 +9496,6 @@
     "releaseChannelCollection": "opt-out",
     "description": "If certificate verification failed in a TLS handshake, what was the error? (see MapCertErrorToProbeValue in security/manager/ssl/SSLServerCertVerification.cpp and the values in security/pkix/include/pkix/Result.h)"
   },
-  "SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["seceng-telemetry@mozilla.com", "dkeeler@mozilla.com"],
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 256,
-    "bug_numbers": [1320567, 1909978],
-    "releaseChannelCollection": "opt-out",
-    "description": "Number of successfully established TLS connections NOT compliant with the Certificate Transparency Policy, by CA. See https://searchfox.org/mozilla-central/source/security/manager/ssl/RootHashes.inc for names of CAs. Bucket zero holds CAs not present in the list."
-  },
   "SSL_PERMANENT_CERT_ERROR_OVERRIDES": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
@@ -9562,28 +9551,6 @@
     "kind": "enumerated",
     "n_values": 10,
     "description": "EV status of a certificate, recorded on each TLS connection. 0=invalid, 1=DV, 2=EV"
-  },
-  "CERT_VALIDATION_SUCCESS_BY_CA_2": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "expires_in_version": "never",
-    "alert_emails": ["seceng-telemetry@mozilla.com", "dkeeler@mozilla.com"],
-    "releaseChannelCollection": "opt-out",
-    "bug_numbers": [1364159, 1369747, 1441550, 1909978],
-    "kind": "enumerated",
-    "n_values": 256,
-    "description": "Successful SSL server cert validations by CA (see RootHashes.inc for names of CAs)"
-  },
-  "CERT_PINNING_FAILURES_BY_CA_2": {
-    "record_in_processes": ["main"],
-    "products": ["firefox"],
-    "alert_emails": ["pinning@mozilla.org", "dkeeler@mozilla.com"],
-    "bug_numbers": [1862062, 1909978],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "n_values": 256,
-    "description": "Pinning failures by CA (see RootHashes.inc for names of CAs)"
   },
   "CERT_PINNING_RESULTS": {
     "record_in_processes": ["main"],

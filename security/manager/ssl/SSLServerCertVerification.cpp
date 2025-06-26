@@ -505,7 +505,7 @@ void GatherCertificateTransparencyTelemetry(
       *info.policyCompliance != ct::CTPolicyCompliance::Compliant) {
     int32_t binId = RootCABinNumber(rootCert);
     if (binId != ROOT_CERTIFICATE_HASH_FAILURE) {
-      glean::ssl::ct_policy_non_compliant_connections_by_ca
+      glean::ssl::ct_policy_non_compliant_connections_by_ca_2
           .AccumulateSingleSample(binId);
     }
   }
@@ -537,7 +537,7 @@ static void CollectCertTelemetry(
   }
 
   if (aPinningTelemetryInfo.accumulateForRoot) {
-    glean::cert_pinning::failures_by_ca.AccumulateSingleSample(
+    glean::cert_pinning::failures_by_ca_2.AccumulateSingleSample(
         aPinningTelemetryInfo.rootBucket);
   }
 
@@ -569,7 +569,7 @@ static void CollectCertTelemetry(
     const nsTArray<uint8_t>& rootCert = aBuiltCertChain.LastElement();
     int32_t binId = RootCABinNumber(rootCert);
     if (binId != ROOT_CERTIFICATE_HASH_FAILURE) {
-      glean::cert::validation_success_by_ca.AccumulateSingleSample(binId);
+      glean::cert::validation_success_by_ca_2.AccumulateSingleSample(binId);
     }
 
     mozilla::glean::tls::certificate_verifications.Add(1);

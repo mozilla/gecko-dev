@@ -532,14 +532,11 @@ cert:
     expires: never
     telemetry_mirror: CERT_EV_STATUS
 
-  validation_success_by_ca:
+  validation_success_by_ca_2:
     type: custom_distribution
     description: >
-      Successful SSL server cert validations by CA (see RootHashes.inc for names
-      of CAs)
-
-      This metric was generated to correspond to the Legacy Telemetry enumerated
-      histogram CERT_VALIDATION_SUCCESS_BY_CA_2.
+      Successful SSL server cert validations by CA (see KnownRootHashes.txt for
+      names of CAs).
     range_min: 0
     range_max: 256
     bucket_count: 257
@@ -549,16 +546,17 @@ cert:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1369747
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1441550
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972339
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1364159
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1369747
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1441550
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972339
     notification_emails:
       - seceng-telemetry@mozilla.com
       - dkeeler@mozilla.com
     expires: never
-    telemetry_mirror: CERT_VALIDATION_SUCCESS_BY_CA_2
 
   chain_key_size_status:
     type: custom_distribution
@@ -602,13 +600,10 @@ cert:
     telemetry_mirror: CERT_VALIDATION_HTTP_REQUEST_RESULT
 
 cert_pinning:
-  failures_by_ca:
+  failures_by_ca_2:
     type: custom_distribution
     description: >
-      Pinning failures by CA (see RootHashes.inc for names of CAs)
-
-      This metric was generated to correspond to the Legacy Telemetry enumerated
-      histogram CERT_PINNING_FAILURES_BY_CA_2.
+      Pinning failures by CA (see KnownRootHashes.txt for names of CAs).
     range_min: 0
     range_max: 256
     bucket_count: 257
@@ -616,14 +611,15 @@ cert_pinning:
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972339
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972339
     notification_emails:
       - pinning@mozilla.org
       - dkeeler@mozilla.com
     expires: never
-    telemetry_mirror: CERT_PINNING_FAILURES_BY_CA_2
 
   results:
     type: labeled_counter
@@ -1495,26 +1491,28 @@ ssl:
     expires: never
     telemetry_mirror: SSL_CERT_VERIFICATION_ERRORS
 
-  ct_policy_non_compliant_connections_by_ca:
+  ct_policy_non_compliant_connections_by_ca_2:
     type: custom_distribution
-    description: |
-      Number of successfully established TLS connections NOT compliant with the Certificate Transparency Policy, by CA. See https://searchfox.org/mozilla-central/source/security/manager/ssl/RootHashes.inc for names of CAs. Bucket zero holds CAs not present in the list.
-      This metric was generated to correspond to the Legacy Telemetry enumerated histogram SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2.
-    range_min: 0
+    description: >
+      Number of successfully established TLS connections NOT compliant with the
+      Certificate Transparency Policy, by CA. See KnownRootHashes.txt for names
+      of CAs.
+      range_min: 0
     range_max: 256
     bucket_count: 257
     histogram_type: linear
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1320567
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972339
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1320567
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909978
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972339
     notification_emails:
       - seceng-telemetry@mozilla.com
       - dkeeler@mozilla.com
     expires: never
-    telemetry_mirror: SSL_CT_POLICY_NON_COMPLIANT_CONNECTIONS_BY_CA_2
 
   permanent_cert_error_overrides:
     type: custom_distribution

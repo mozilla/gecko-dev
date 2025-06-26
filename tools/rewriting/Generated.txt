@@ -211,7 +211,6 @@ mobile/locales/l10n-onchange-changesets.json
 docs/mots/index.rst
 node_modules/
 python/mozperftest/mozperftest/tests/data/
-security/manager/tools/KnownRootHashes.json
 security/manager/tools/PreloadedHPKPins.json
 services/settings/dumps/
 toolkit/components/nimbus/schemas/ExperimentFeature.schema.json
