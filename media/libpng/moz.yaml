@@ -40,6 +40,7 @@ vendoring:
     - loongarch
     - mips
     - powerpc
+    - riscv
     - ANNOUNCE
     - AUTHORS
     - CHANGES
