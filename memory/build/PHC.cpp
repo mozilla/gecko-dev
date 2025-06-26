@@ -591,7 +591,7 @@ class PHCRegion {
 
  public:
   // Allocates the allocation pages and the guard pages, contiguously.
-  void AllocVirtualAddresses() {
+  bool AllocVirtualAddresses() {
     MOZ_ASSERT(!mPagesStart || !mPagesLimit);
 
     // The memory allocated here is never freed, because it would happen at
@@ -605,24 +605,25 @@ class PHCRegion {
     // use kAllPagesJemallocSize which subtracts jemalloc's guard page.
     void* pages = MozJemalloc::memalign(kPhcAlign, kAllPagesJemallocSize);
     if (!pages) {
-      MOZ_CRASH();
+      return false;
     }
 
     // Make the pages inaccessible.
 #ifdef XP_WIN
     if (!VirtualFree(pages, kAllPagesJemallocSize, MEM_DECOMMIT)) {
-      MOZ_CRASH("VirtualFree failed");
+      return false;
     }
 #else
     if (mmap(pages, kAllPagesJemallocSize, PROT_NONE,
              MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1, 0) == MAP_FAILED) {
-      MOZ_CRASH("mmap failed");
+      return false;
     }
 #endif
 
     mPagesStart = static_cast<uint8_t*>(pages);
     mPagesLimit = mPagesStart + kAllPagesSize;
     Log("AllocVirtualAddresses at %p..%p\n", mPagesStart, mPagesLimit);
+    return true;
   }
 
   constexpr PHCRegion() {}
@@ -1372,7 +1373,9 @@ static bool phc_init() {
     return false;
   }
 
-  PHC::sRegion.AllocVirtualAddresses();
+  if (!PHC::sRegion.AllocVirtualAddresses()) {
+    return false;
+  }
 
   // sPHC is never freed. It lives for the life of the process.
   PHC::sPHC = InfallibleAllocPolicy::new_<PHC>();
