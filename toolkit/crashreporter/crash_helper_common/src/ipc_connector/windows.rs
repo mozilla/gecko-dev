@@ -200,7 +200,9 @@ impl IPCConnector {
         }
 
         self.overlapped = Some(OverlappedOperation::sched_recv(
-            self.as_raw(),
+            self.handle
+                .try_clone()
+                .map_err(IPCError::CloneHandleFailed)?,
             self.event_raw_handle(),
             messages::HEADER_SIZE,
         )?);
@@ -216,14 +218,24 @@ impl IPCConnector {
     }
 
     pub fn send(&self, buff: &[u8]) -> Result<(), IPCError> {
-        let overlapped =
-            OverlappedOperation::sched_send(self.as_raw(), self.event_raw_handle(), buff.to_vec())?;
+        let overlapped = OverlappedOperation::sched_send(
+            self.handle
+                .try_clone()
+                .map_err(IPCError::CloneHandleFailed)?,
+            self.event_raw_handle(),
+            buff.to_vec(),
+        )?;
         overlapped.complete_send(/* wait */ false)
     }
 
     pub fn recv(&self, expected_size: usize) -> Result<(Vec<u8>, Option<AncillaryData>), IPCError> {
-        let overlapped =
-            OverlappedOperation::sched_recv(self.as_raw(), self.event_raw_handle(), expected_size)?;
+        let overlapped = OverlappedOperation::sched_recv(
+            self.handle
+                .try_clone()
+                .map_err(IPCError::CloneHandleFailed)?,
+            self.event_raw_handle(),
+            expected_size,
+        )?;
         let buffer = overlapped.collect_recv(/* wait */ true)?;
         Ok((buffer, None))
     }
