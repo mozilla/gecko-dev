@@ -1563,9 +1563,6 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
     otherContent->SendDiscardWindowContext(InnerWindowId(), callback, callback);
   });
 
-  // Note that our WindowContext has become discarded.
-  WindowContext::Discard();
-
   // Report content blocking log when destroyed.
   // There shouldn't have any content blocking log when a document is loaded in
   // the parent process(See NotifyContentBlockingEvent), so we could skip
@@ -1593,6 +1590,9 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
       }
     }
   }
+
+  // Note that our WindowContext has become discarded.
+  WindowContext::Discard();
 
   // Destroy our JSWindowActors, and reject any pending queries.
   JSActorDidDestroy();
