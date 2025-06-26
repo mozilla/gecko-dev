@@ -8,6 +8,8 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
+  EveryWindow: "resource:///modules/EveryWindow.sys.mjs",
   Log: "resource://gre/modules/Log.sys.mjs",
 });
 
@@ -49,11 +51,54 @@ export const AsanReporter = {
 
     logger.info("Starting up...");
 
+    // Notify that ASan Reporter builds are not receiving any updates
+    this.notifyDeprecation();
+
     // Install a handler to observe tab crashes, so we can report those right
     // after they happen instead of relying on the user to restart the browser.
     Services.obs.addObserver(this, "ipc:content-shutdown");
 
     processDirectory();
+  },
+
+  notifyDeprecation() {
+    function showNotification(window) {
+      // Eslint thinks DocumentFragment is available here but that's a lie.
+      // eslint-disable-next-line no-shadow
+      let { DocumentFragment, gNotificationBox, document } = window;
+      let frag = new DocumentFragment();
+      frag.append(
+        "The ASAN Nightly project is being discontinued and this build " +
+          "will soon receive "
+      );
+      let noUpdates = document.createElement("strong");
+      noUpdates.append("no more updates");
+      frag.append(noUpdates);
+      frag.append(". Please switch to a supported build.");
+      gNotificationBox.appendNotification(
+        "asan-nightly-deprecation",
+        {
+          priority: gNotificationBox.PRIORITY_CRITICAL_HIGH,
+          label: frag,
+        },
+        [
+          {
+            label: "Learn more\u2026",
+            link: "https://firefox-source-docs.mozilla.org/tools/sanitizer/asan_nightly.html#deprecation-faq",
+          },
+        ],
+        false,
+        false
+      );
+    }
+    lazy.EveryWindow.registerCallback(
+      "asan-reporter",
+      showNotification,
+      // We have to provide an uninit function to avoid EveryWindow complaining.
+      // But we don't actually need to do anything:
+      () => {},
+      false // don't care about clickjacking the learn more link.
+    );
   },
 
   observe(aSubject, aTopic) {

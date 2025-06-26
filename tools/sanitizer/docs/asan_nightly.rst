@@ -1,6 +1,11 @@
 ASan Nightly
 ============
 
+.. warning::
+
+   As of July 2025, the ASan Nightly Project has been **deprecated**.
+   Please see the :ref:`Deprecation FAQ <Deprecation FAQ>` section for more information.
+
 The **ASan Nightly Project** involves building a Firefox Nightly browser
 with the popular
 `AddressSanitizer <https://github.com/google/sanitizers/wiki/AddressSanitizer>`__
@@ -202,3 +207,27 @@ have no ASan CI coverage on Mac due to hardware constraints. If you work
 on Release Engineering and would like to help make e.g. Mac happen
 earlier, feel free to `contact
 me <mailto:choller@mozilla.com?subject=%5BASan%20Nightly%20Project%5D%20>`__.
+
+.. _Deprecation FAQ:
+
+Deprecation FAQ
+~~~~~~~~~~~~~~~
+
+I received the deprecation warning in my browser, what do I need to do?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Please `download <https://www.mozilla.org/firefox/channel/desktop/>`__ the
+regular Nightly version of Firefox and install it instead.
+
+Why are you deprecating the ASan Nightly Program?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+While the ASan Nightly Program was a crucial improvement at the time it was
+started, it has since been replaced by Probabilistic Heap Checker (PHC), which
+is a memory sampling approach deployed in all eligible Firefox release
+installations. Instead of checking all memory accesses, it only tracks the
+lifetime of a small number of randomly selected allocations and enhances the
+information submitted in regular crash reports if such a memory allocation is
+involved in a crash. Overall, this approach scales much better as it can be
+deployed to most Firefox installations without a significant performance
+impact.
