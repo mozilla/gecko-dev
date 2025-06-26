@@ -705,7 +705,9 @@ class PHC {
   }
 
   // The total fragmentation in PHC
-  size_t FragmentationBytes() const MOZ_REQUIRES(mMutex) {
+  size_t FragmentationBytes() MOZ_EXCLUDES(mMutex) {
+    MutexAutoLock lock(mMutex);
+
     size_t sum = 0;
     for (const auto& page : mAllocPages) {
       sum += page.FragmentationBytes();
@@ -878,7 +880,7 @@ class PHC {
 #endif
   }
 
-  phc::PHCStats GetPageStats() MOZ_REQUIRES(mMutex) {
+  phc::PHCStats GetPageStatsLocked() MOZ_REQUIRES(mMutex) {
     phc::PHCStats stats;
 
     for (const auto& page : mAllocPages) {
@@ -889,6 +891,11 @@ class PHC {
         kNumAllocPages - stats.mSlotsAllocated - stats.mSlotsFreed;
 
     return stats;
+  }
+
+  phc::PHCStats GetPageStats() MOZ_EXCLUDES(mMutex) {
+    MutexAutoLock lock(mMutex);
+    return GetPageStatsLocked();
   }
 
 #if PHC_LOGGING
@@ -1170,13 +1177,13 @@ class PHC {
 
   void Crash(const char* aMessage);
 
+ private:
   // To improve locality we try to order this file by how frequently different
   // fields are modified and place all the modified-together fields early and
   // ideally within a single cache line.
   // The mutex that protects the other members.
   alignas(kCacheLineSize) Mutex mMutex MOZ_UNANNOTATED;
 
- private:
   // The current time. We use ReleaseAcquire semantics since we attempt to
   // update this by larger increments and don't want to lose an entire update.
   Atomic<Time, ReleaseAcquire> mNow;
@@ -1421,7 +1428,7 @@ void PHC::LogNoAlloc(size_t aReqSize, size_t aAlignment, Delay newAllocDelay)
     MOZ_REQUIRES(mMutex) {
   // No pages are available, or VirtualAlloc/mprotect failed.
 #if PHC_LOGGING
-  phc::PHCStats stats = GetPageStats();
+  phc::PHCStats stats = GetPageStatsLocked();
   Log("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
       "hits %zu/%zu (%zu%%)\n",
       aReqSize, aAlignment, size_t(newAllocDelay), stats.mSlotsAllocated,
@@ -1532,7 +1539,7 @@ void* PHC::MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 
   IncPageAllocHits();
 #if PHC_LOGGING
-  phc::PHCStats stats = GetPageStats();
+  phc::PHCStats stats = GetPageStatsLocked();
   Log("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
       "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
       aReqSize, aAlignment, pagePtr, index, ptr, usableSize,
@@ -1797,7 +1804,7 @@ void PHC::PageFree(const Maybe<arena_id_t>& aArenaId, void* aPtr)
   FreePage(index, aArenaId, freeStack, reuseDelay);
 
 #if PHC_LOGGING
-  phc::PHCStats stats = GetPageStats();
+  phc::PHCStats stats = GetPageStatsLocked();
   Log("PageFree(%p[%zu]), %zu delay, reuse at ~%zu, fullness %zu/%zu/%zu\n",
       aPtr, index, size_t(reuseDelay), size_t(Now()) + reuseDelay,
       stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages);
@@ -2076,7 +2083,6 @@ void PHCMemoryUsage(MemoryUsage& aMemoryUsage) {
 
   aMemoryUsage.mMetadataBytes = metadata_size();
   if (PHC::sPHC) {
-    MutexAutoLock lock(PHC::sPHC->mMutex);
     aMemoryUsage.mFragmentationBytes = PHC::sPHC->FragmentationBytes();
   } else {
     aMemoryUsage.mFragmentationBytes = 0;
@@ -2088,8 +2094,6 @@ void GetPHCStats(PHCStats& aStats) {
     aStats = PHCStats();
     return;
   }
-
-  MutexAutoLock lock(PHC::sPHC->mMutex);
 
   aStats = PHC::sPHC->GetPageStats();
 }
