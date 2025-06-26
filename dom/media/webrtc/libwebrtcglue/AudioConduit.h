@@ -188,6 +188,9 @@ class WebrtcAudioConduit : public AudioSessionConduit,
   static webrtc::SdpAudioFormat CodecConfigToLibwebrtcFormat(
       const AudioCodecConfig& aConfig);
 
+  // Call thread only, called before DeleteSendStream if streams need recreation
+  void MemoSendStreamStats();
+
   void CreateSendStream();
   void DeleteSendStream();
   void CreateRecvStream();
@@ -291,6 +294,14 @@ class WebrtcAudioConduit : public AudioSessionConduit,
   // Written only on the main thread.  Guarded by mLock, except for
   // reads on the main thread.
   std::vector<webrtc::RtpSource> mRtpSources;
+
+  // Stores stats between a call to DeleteSendStream and CreateSendStream so
+  // that we can continue to report outbound-rtp stats while waiting for codec
+  // initialization.
+  // It is mutable because we want to be able to invalidate the cache when a
+  // GetStats call is made.
+  // Call thread only.
+  mutable Maybe<webrtc::AudioSendStream::Stats> mTransitionalSendStreamStats;
 
   // Thread safe
   Atomic<bool> mTransportActive = Atomic<bool>(false);

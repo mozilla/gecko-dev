@@ -255,6 +255,9 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // Video Latency Test averaging filter
   void VideoLatencyUpdate(uint64_t aNewSample);
 
+  // Call thread only, called before DeleteSendStream if streams need recreation
+  void MemoSendStreamStats();
+
   void CreateSendStream();
   void DeleteSendStream();
   void CreateRecvStream();
@@ -496,6 +499,16 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // Written only on the main thread.  Guarded by mMutex, except for
   // reads on the main thread.
   std::vector<webrtc::RtpSource> mRtpSources;
+
+  // Cache of stats that holds the send stream stats during the stream
+  // recreation process. After DeleteSendStream() then CreateSendStream() and
+  // before the codecs are initialized there is a gap where the send stream
+  // stats have no substreams. This holds onto the stats until the codecs are
+  // initialized and the send stream is recreated.
+  // It is mutable because we want to be able to invalidate the cache when a
+  // GetStats call is made.
+  // Call thread only.
+  mutable Maybe<webrtc::VideoSendStream::Stats> mTransitionalSendStreamStats;
 
   // Thread safe
   Atomic<bool> mTransportActive = Atomic<bool>(false);

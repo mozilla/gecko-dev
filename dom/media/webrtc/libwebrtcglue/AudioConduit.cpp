@@ -148,6 +148,8 @@ RefPtr<GenericPromise> WebrtcAudioConduit::Shutdown() {
           DeleteSendStream();
           DeleteRecvStream();
         }
+        // Clear the stats send stream stats cache
+        mTransitionalSendStreamStats = Nothing();
 
         return GenericPromise::CreateAndResolve(
             true, "WebrtcAudioConduit::Shutdown (call thread)");
@@ -391,6 +393,9 @@ void WebrtcAudioConduit::OnControlConfigChange() {
       CreateRecvStream();
     }
     if (sendStreamRecreationNeeded) {
+      if (mControl.mTransmitting) {
+        MemoSendStreamStats();
+      }
       DeleteSendStream();
     }
     if (mControl.mTransmitting) {
@@ -480,8 +485,11 @@ Maybe<webrtc::AudioSendStream::Stats> WebrtcAudioConduit::GetSenderStats()
     const {
   MOZ_ASSERT(mCallThread->IsOnCurrentThread());
   if (!mSendStream) {
-    return Nothing();
+    // Might be nothing
+    return mTransitionalSendStreamStats;
   }
+  // Successfully got stats, so clear the transitional stats.
+  mTransitionalSendStreamStats = Nothing();
   return Some(mSendStream->GetStats());
 }
 
@@ -963,6 +971,16 @@ void WebrtcAudioConduit::DeleteSendStream() {
 
   // Reset base_seqs in case ssrcs get re-used.
   mRtpSendBaseSeqs.clear();
+}
+
+void WebrtcAudioConduit::MemoSendStreamStats() {
+  MOZ_ASSERT(mCallThread->IsOnCurrentThread());
+  // If we are going to be recreating the send stream, we hold onto stats until
+  // libwebrtc stats collection catches up.
+  if (mControl.mTransmitting && mSendStream) {
+    const auto stats = mSendStream->GetStats();
+    mTransitionalSendStreamStats = Some(stats);
+  }
 }
 
 void WebrtcAudioConduit::CreateSendStream() {
