@@ -814,7 +814,13 @@
         "Pocket": {
           "type": "boolean"
         },
+        "Stories": {
+          "type": "boolean"
+        },
         "SponsoredPocket": {
+          "type": "boolean"
+        },
+        "SponsoredStories": {
           "type": "boolean"
         },
         "Snippets": {

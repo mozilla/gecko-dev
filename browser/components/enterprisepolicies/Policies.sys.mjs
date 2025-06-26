@@ -1506,6 +1506,44 @@ export var Policies = {
           param.Locked
         );
       }
+      if ("Pocket" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.feeds.system.topstories",
+          param.Pocket,
+          param.Locked
+        );
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.feeds.section.topstories",
+          param.Pocket,
+          param.Locked
+        );
+      }
+      if ("Stories" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.feeds.system.topstories",
+          param.Stories,
+          param.Locked
+        );
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.feeds.section.topstories",
+          param.Stories,
+          param.Locked
+        );
+      }
+      if ("SponsoredPocket" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.showSponsored",
+          param.SponsoredPocket,
+          param.Locked
+        );
+      }
+      if ("SponsoredStories" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.newtabpage.activity-stream.showSponsored",
+          param.SponsoredStories,
+          param.Locked
+        );
+      }
     },
   },
 
