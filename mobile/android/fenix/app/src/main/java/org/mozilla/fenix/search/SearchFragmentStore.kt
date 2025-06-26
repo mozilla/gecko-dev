@@ -10,24 +10,37 @@ import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
+import mozilla.components.concept.awesomebar.AwesomeBar.SuggestionProvider
 import mozilla.components.lib.state.Action
+import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.search.SearchFragmentAction.Init
 import org.mozilla.fenix.utils.Settings
 
 /**
  * The [Store] for holding the [SearchFragmentState] and applying [SearchFragmentAction]s.
+ *
+ * @param initialState The initial state of the store.
+ * @param middleware The [Middleware]s to apply to the store.
  */
 class SearchFragmentStore(
     initialState: SearchFragmentState,
-) : Store<SearchFragmentState, SearchFragmentAction>(
-    initialState,
-    ::searchStateReducer,
-)
+    middleware: List<Middleware<SearchFragmentState, SearchFragmentAction>> = emptyList(),
+) : UiStore<SearchFragmentState, SearchFragmentAction>(
+    initialState = initialState,
+    reducer = ::searchStateReducer,
+    middleware = middleware,
+) {
+    init {
+        dispatch(Init)
+    }
+}
 
 /**
  * Wraps a `SearchEngine` to give consumers the context that it was selected as a shortcut
@@ -77,6 +90,7 @@ sealed class SearchEngineSource {
  * @property searchTerms The search terms used to search previously in this tab (if this fragment is shown
  * for an already existing tab).
  * @property searchEngineSource The current selected search engine with the context of how it was selected.
+ * @property searchSuggestionsProviders The list of search suggestions providers that the user can choose from.
  * @property defaultEngine The current default search engine (or null if none is available yet).
  * @property showSearchSuggestions Whether or not to show search suggestions from the search engine in the AwesomeBar.
  * @property showSearchSuggestionsHint Whether or not to show search suggestions in private hint panel.
@@ -118,6 +132,7 @@ data class SearchFragmentState(
     val url: String,
     val searchTerms: String,
     val searchEngineSource: SearchEngineSource,
+    val searchSuggestionsProviders: List<SuggestionProvider>,
     val defaultEngine: SearchEngine?,
     val showSearchSuggestions: Boolean,
     val showSearchSuggestionsHint: Boolean,
@@ -173,6 +188,7 @@ fun createInitialSearchFragmentState(
         url = url,
         searchTerms = tab?.content?.searchTerms.orEmpty(),
         searchEngineSource = searchEngineSource,
+        searchSuggestionsProviders = emptyList(),
         defaultEngine = null,
         showSearchSuggestions = shouldShowSearchSuggestions(
             browsingMode = activity.browsingModeManager.mode,
@@ -215,6 +231,32 @@ fun createInitialSearchFragmentState(
  * Actions to dispatch through the `SearchStore` to modify `SearchState` through the reducer.
  */
 sealed class SearchFragmentAction : Action {
+    /**
+     * Automated action for when the [SearchFragmentStore] is created to trigger all needed setup.
+     */
+    data object Init : SearchFragmentAction()
+
+    /**
+     * Action for when a new search is started.
+     *
+     * @property selectedSearchEngine The user selected search engine to use for the new search
+     * or `null` if the default search engine should be used.
+     * @property inPrivateMode Whether or not the search is started in private browsing mode.
+     */
+    data class SearchStarted(
+        val selectedSearchEngine: SearchEngine?,
+        val inPrivateMode: Boolean,
+    ) : SearchFragmentAction()
+
+    /**
+     * Action to update the search suggestions providers.
+     *
+     * @property providers The new search suggestions providers.
+     */
+    data class SearchProvidersUpdated(
+        val providers: List<SuggestionProvider>,
+    ) : SearchFragmentAction()
+
     /**
      * Action to enable or disable search suggestions.
      */
@@ -281,6 +323,11 @@ sealed class SearchFragmentAction : Action {
 @Suppress("LongMethod")
 private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmentAction): SearchFragmentState {
     return when (action) {
+        is Init -> {
+            // no-op. Expected to be handled in middlewares.
+            state
+        }
+
         is SearchFragmentAction.SearchDefaultEngineSelected ->
             state.copy(
                 searchEngineSource = SearchEngineSource.Default(action.engine),
@@ -447,6 +494,17 @@ private fun searchStateReducer(state: SearchFragmentState, action: SearchFragmen
             state.copy(
                 clipboardHasUrl = action.hasUrl,
             )
+        }
+
+        is SearchFragmentAction.SearchProvidersUpdated -> {
+            state.copy(
+                searchSuggestionsProviders = action.providers,
+            )
+        }
+
+        is SearchFragmentAction.SearchStarted -> {
+            // no-op. Expected to be handled in middlewares.
+            state
         }
     }
 }

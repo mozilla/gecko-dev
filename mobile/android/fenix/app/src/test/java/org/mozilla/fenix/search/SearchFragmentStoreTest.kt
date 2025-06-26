@@ -17,8 +17,10 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.concept.awesomebar.AwesomeBar.SuggestionProvider
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -26,16 +28,24 @@ import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.search.SearchFragmentAction.SearchProvidersUpdated
+import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
 import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class SearchFragmentStoreTest {
+    @get:Rule
+    val mainCoroutineRule = MainCoroutineRule()
 
     @MockK private lateinit var searchEngine: SearchEngine
 
@@ -1310,6 +1320,27 @@ class SearchFragmentStoreTest {
 
         assertTrue(shouldShowTrendingSearchSuggestions(BrowsingMode.Private, settings, true))
         assertTrue(shouldShowTrendingSearchSuggestions(BrowsingMode.Normal, settings, true))
+    }
+
+    @Test
+    fun `WHEN search providers are updated THEN persist this in state`() {
+        val newSearchProviders = listOf(mockk<SuggestionProvider>())
+        val store = SearchFragmentStore(emptyDefaultState())
+
+        store.dispatch(SearchProvidersUpdated(newSearchProviders)).joinBlocking()
+
+        assertEquals(newSearchProviders, store.state.searchSuggestionsProviders)
+    }
+
+    @Test
+    fun `WHEN search is started THEN don't update any state`() {
+        val selectedSearchEngine = mockk<SearchEngine>()
+        val initialState = emptyDefaultState()
+        val store = SearchFragmentStore(initialState)
+
+        store.dispatch(SearchStarted(selectedSearchEngine, true)).joinBlocking()
+
+        assertEquals(initialState, store.state)
     }
 
     private fun emptyDefaultState(

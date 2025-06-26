@@ -16,6 +16,7 @@ val EMPTY_SEARCH_FRAGMENT_STATE = SearchFragmentState(
     url = "",
     searchTerms = "",
     searchEngineSource = SearchEngineSource.None,
+    searchSuggestionsProviders = emptyList(),
     defaultEngine = null,
     showSearchSuggestions = false,
     showSearchSuggestionsHint = false,
