@@ -58,7 +58,8 @@ IdentityCredentialRequestManager::GetTokenFromPopup(
             result->Reject(NS_ERROR_DOM_NETWORK_ERR, __func__);
           }
           // Transform the BC ID into its top-chrome-window-bc, so we have
-          // something stable through navigation and can listen for the popup's close.
+          // something stable through navigation and can listen for the popup's
+          // close.
           dom::CanonicalBrowsingContext* chromeBC =
               bc->TopCrossChromeBoundary();
           if (!chromeBC) {
