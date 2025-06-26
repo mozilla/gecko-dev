@@ -135,6 +135,7 @@ support-files = [
 ["browser_outline_refocus.js"]
 
 ["browser_page_load_event_telemetry.js"]
+skip-if = ["!nightly_build"] # Page load events are only consistently sent in nightly.
 
 ["browser_pagehide_on_tab_close.js"]
 skip-if = ["true"] # this tests non-e10s behavior.

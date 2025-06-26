@@ -2074,9 +2074,14 @@ void Document::RecordPageLoadEventTelemetry() {
     return;
   }
 
-  auto pageloadEventType =
-      mozilla::performance::pageload_event::GetPageloadEventType();
+  // Don't send any event telemetry for private browsing.
+  if (IsInPrivateBrowsing()) {
+    return;
+  }
 
+  auto pageloadEventType = performance::pageload_event::GetPageloadEventType();
+
+  // Return if we are not sending an event for this pageload.
   if (pageloadEventType == mozilla::PageloadEventType::kNone) {
     return;
   }
@@ -2122,17 +2127,45 @@ void Document::RecordPageLoadEventTelemetry() {
 
   nsCOMPtr<nsIEffectiveTLDService> tldService =
       mozilla::components::EffectiveTLD::Service();
-  if (tldService && mReferrerInfo &&
-      (docshell->GetLoadType() & nsIDocShell::LOAD_CMD_NORMAL)) {
-    nsAutoCString currentBaseDomain, referrerBaseDomain;
-    nsCOMPtr<nsIURI> referrerURI = mReferrerInfo->GetComputedReferrer();
-    if (referrerURI) {
-      auto result = NS_SUCCEEDED(
-          tldService->GetBaseDomain(referrerURI, 0, referrerBaseDomain));
-      if (result) {
-        bool sameOrigin = false;
-        NodePrincipal()->IsSameOrigin(referrerURI, &sameOrigin);
-        mPageloadEventData.set_sameOriginNav(sameOrigin);
+
+  nsresult rv = NS_OK;
+  if (tldService) {
+    if (mReferrerInfo &&
+        (docshell->GetLoadType() & nsIDocShell::LOAD_CMD_NORMAL)) {
+      nsAutoCString currentBaseDomain, referrerBaseDomain;
+      nsCOMPtr<nsIURI> referrerURI = mReferrerInfo->GetComputedReferrer();
+      if (referrerURI) {
+        rv = tldService->GetBaseDomain(referrerURI, 0, referrerBaseDomain);
+        if (NS_SUCCEEDED(rv)) {
+          bool sameOrigin = false;
+          NodePrincipal()->IsSameOrigin(referrerURI, &sameOrigin);
+          mPageloadEventData.set_sameOriginNav(sameOrigin);
+        }
+      }
+    }
+
+    // If the event type is kDomain, then collect etld+1 field of the data
+    // struct.
+    if (pageloadEventType == PageloadEventType::kDomain) {
+      // Only record events for domains that have suffixes from the public
+      // suffix list.
+      nsCOMPtr<nsIURI> currentURI = GetDomainURI();
+      bool hasKnownPublicSuffix = false;
+      rv = tldService->HasKnownPublicSuffix(currentURI, &hasKnownPublicSuffix);
+      if (NS_FAILED(rv) || !hasKnownPublicSuffix) {
+        return;
+      }
+
+      // Get ETLD+1 domain info, or return on failure.
+      nsAutoCString currentBaseDomain;
+      rv = tldService->GetBaseDomain(currentURI, 0, currentBaseDomain);
+      if (NS_FAILED(rv)) {
+        return;
+      }
+
+      // Do not record anything if we failed to assign the domain.
+      if (!mPageloadEventData.MaybeSetDomain(currentBaseDomain)) {
+        return;
       }
     }
   }
@@ -17050,6 +17083,12 @@ void Document::ReportShadowedHTMLDocumentProperties() {
 }
 
 void Document::ReportLCP() {
+  // Do not record LCP in any histogram if the same value is being recorded
+  // in the domain pageload event.
+  if (mPageloadEventData.HasDomain()) {
+    return;
+  }
+
   const nsDOMNavigationTiming* timing = GetNavigationTiming();
 
   if (!ShouldIncludeInTelemetry() || !IsTopLevelContentDocument() || !timing ||

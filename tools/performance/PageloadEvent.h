@@ -18,8 +18,12 @@ struct ParamTraits;
 
 namespace mozilla::glean::perf {
 struct PageLoadExtra;
-}
+struct PageLoadDomainExtra;
+}  // namespace mozilla::glean::perf
 
+// This is a list of metrics that exist in either PageloadExtra or
+// PageloadDomainExtra. The only exclusion is the domain field since it
+// requires some special handling.
 #define FOR_EACH_PAGELOAD_METRIC(_) \
   _(dnsLookupTime, uint32_t)        \
   _(documentFeatures, uint32_t)     \
@@ -53,9 +57,12 @@ enum DocumentFeature : uint32_t { FETCH_PRIORITY_IMAGES = 1 << 0 };
 // Type of pageload event that will fire after loading has finished.
 // - kNormal:  Default pageload event type which contains non-sensitive
 // information.
+// - kDomain: Pageload event type which contains minimal metric information and
+// the ETLD+1 (i.e. example.com) of the page visited.  Sent with ohttp.
 // - kNone: No pageload event is sent.
-enum class PageloadEventType { kNormal, kNone };
+enum class PageloadEventType { kNormal, kDomain, kNone };
 
+// Randomly decides what type of pageload event to send.
 extern PageloadEventType GetPageloadEventType();
 
 // Pageload event data is stored in this struct and converted to the
@@ -71,9 +78,15 @@ class PageloadEventData {
   // Define each member.
   FOR_EACH_PAGELOAD_METRIC(DEFINE_METRIC)
 
+  // Define ETLD separately since we want a special setter for it.
+  mozilla::Maybe<nsCString> mDomain;
+
  public:
   // Define a setter for every member.
   FOR_EACH_PAGELOAD_METRIC(DEFINE_SETTER)
+
+  bool MaybeSetDomain(nsCString& aDomain);
+  bool HasDomain() { return mDomain.isSome() && !mDomain.value().IsEmpty(); }
 
   bool HasLoadTime() { return loadTime.isSome(); }
 
@@ -82,6 +95,7 @@ class PageloadEventData {
   void SetDocumentFeature(DocumentFeature aFeature);
 
   mozilla::glean::perf::PageLoadExtra ToPageLoadExtra() const;
+  mozilla::glean::perf::PageLoadDomainExtra ToPageLoadDomainExtra() const;
 };
 #undef DEFINE_METRIC
 #undef ASSIGN_METRIC
