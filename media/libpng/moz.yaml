@@ -13,7 +13,7 @@ origin:
 
   release: v1.6.49 (2025-06-12T20:05:46+03:00).
 
-  revision: "v1.6.43"
+  revision: "v1.6.49"
 
   license-file: LICENSE
 
@@ -25,7 +25,7 @@ updatebot:
       enabled: True
 
 vendoring:
-  url: https://github.com/glennrp/libpng
+  url: https://github.com/pnggroup/libpng
   source-hosting: github
   tracking: tag
 
