@@ -62,6 +62,17 @@ private const val FADE_LENGTH_PX = 20
 private const val END_SCROLL_OFFSET = 1
 
 /**
+ * The LTR mark character which will force all other characters following it to be rendered from left to right.
+ * See bug 1973915 and related for the context of why we need this.
+ */
+private const val LTR_MARK = "\u200E"
+
+/**
+ * Character count of [LTR_MARK].
+ */
+private const val LTR_MARK_OFFSET = 1
+
+/**
  * Composable for rendering in URL and highlighting the domain name it contains.
  *
  * @param url The URL to show. It can have any syntax and not necessarily contain a domain name.
@@ -80,11 +91,15 @@ fun HighlightedDomainUrl(
     modifier: Modifier = Modifier,
     fadeLength: Dp = FADE_LENGTH_PX.dp,
 ) {
+    val registrableDomainIndexRange = registrableDomainIndexRange?.let {
+        it.first + LTR_MARK_OFFSET to it.second + LTR_MARK_OFFSET
+    }
+
     val annotatedUrl = remember(url, registrableDomainIndexRange) {
         buildAnnotatedString {
             if (registrableDomainIndexRange != null) {
                 withStyle(style = fadedTextStyle.toSpanStyle()) {
-                    append(url)
+                    append(LTR_MARK + url)
                 }
 
                 addStyle(
@@ -94,7 +109,7 @@ fun HighlightedDomainUrl(
                 )
             } else {
                 withStyle(style = boldedTextStyle.toSpanStyle()) {
-                    append(url)
+                    append(LTR_MARK + url)
                 }
             }
         }
@@ -145,50 +160,53 @@ private fun Modifier.focusTextIndexRange(
                     scrollState.scrollTo(endOffset)
                 }
             }
-        }.thenConditional(
-            Modifier.graphicsLayer { alpha = FADE_EFFECT_LAYER_ALPHA }
-                .drawWithContent {
-                    drawContent()
+        }
+            .thenConditional(
+                Modifier
+                    .graphicsLayer { alpha = FADE_EFFECT_LAYER_ALPHA }
+                    .drawWithContent {
+                        drawContent()
 
-                    val brush = when {
-                        // Don't fade the start if the highlight is also at the start of the text.
-                        highlightRange?.first == 0 -> Brush.horizontalGradient(
-                            (1f - fadeFraction) to Color.Black,
-                            1f to Color.Transparent,
-                        )
-
-                        // Don't fade the end if the highlight is also at the end of the text.
-                        (highlightRange?.second ?: 0) > text.lastIndex -> Brush.horizontalGradient(
-                            0f to Color.Transparent,
-                            fadeFraction to Color.Black,
-                        )
-
-                        else -> Brush.horizontalGradient(
-                            colorStops = arrayOf(
-                                0f to Color.Transparent,
-                                fadeFraction to Color.Black,
+                        val brush = when {
+                            // Don't fade the start if the highlight is also at the start of the text.
+                            highlightRange?.first == LTR_MARK_OFFSET -> Brush.horizontalGradient(
                                 (1f - fadeFraction) to Color.Black,
                                 1f to Color.Transparent,
-                            ),
-                        )
-                    }
+                            )
 
-                    drawRect(
-                        brush = brush,
-                        blendMode = BlendMode.DstIn,
-                    )
-                },
-        ) {
-            textLayoutState?.didOverflowWidth == true
-        }.thenConditional(
-            Modifier.horizontalScroll(
-                state = scrollState,
-                enabled = false,
-                reverseScrolling = LocalLayoutDirection.current == LayoutDirection.Rtl,
-            ),
-        ) {
-            textLayoutState?.didOverflowWidth == true
-        }
+                            // Don't fade the end if the highlight is also at the end of the text.
+                            (highlightRange?.second ?: 0) >= text.lastIndex -> Brush.horizontalGradient(
+                                0f to Color.Transparent,
+                                fadeFraction to Color.Black,
+                            )
+
+                            else -> Brush.horizontalGradient(
+                                colorStops = arrayOf(
+                                    0f to Color.Transparent,
+                                    fadeFraction to Color.Black,
+                                    (1f - fadeFraction) to Color.Black,
+                                    1f to Color.Transparent,
+                                ),
+                            )
+                        }
+
+                        drawRect(
+                            brush = brush,
+                            blendMode = BlendMode.DstIn,
+                        )
+                    },
+            ) {
+                textLayoutState?.didOverflowWidth == true
+            }
+            .thenConditional(
+                Modifier.horizontalScroll(
+                    state = scrollState,
+                    enabled = false,
+                    reverseScrolling = LocalLayoutDirection.current == LayoutDirection.Rtl,
+                ),
+            ) {
+                textLayoutState?.didOverflowWidth == true
+            }
     },
     inspectorInfo = {
         name = "highlight text"
