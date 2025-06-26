@@ -80,7 +80,6 @@ class CompileRuntime {
   const void* addressOfJitActivation();
   const void* addressOfJitStackLimit();
   const void* addressOfInterruptBits();
-  const void* addressOfInlinedICScript();
   const void* addressOfRealm();
   const void* addressOfZone();
   const void* addressOfMegamorphicCache();
