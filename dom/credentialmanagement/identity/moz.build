@@ -12,7 +12,6 @@ EXPORTS.mozilla.dom += [
     "IdentityCredential.h",
     "IdentityCredentialSerializationHelpers.h",
     "IdentityNetworkHelpers.h",
-    "IdentityProvider.h",
     "NavigatorLogin.h",
     "WebIdentityChild.h",
     "WebIdentityHandler.h",
@@ -26,7 +25,6 @@ IPDL_SOURCES += [
 UNIFIED_SOURCES += [
     "IdentityCredential.cpp",
     "IdentityNetworkHelpers.cpp",
-    "IdentityProvider.cpp",
     "NavigatorLogin.cpp",
     "WebIdentityChild.cpp",
     "WebIdentityHandler.cpp",

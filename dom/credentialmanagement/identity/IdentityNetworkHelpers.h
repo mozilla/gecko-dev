@@ -34,7 +34,7 @@ class IdentityNetworkHelpers {
   FetchAccountsHelper(nsIURI* aAccountsEndpoint,
                       nsIPrincipal* aTriggeringPrincipal);
 
-  static RefPtr<MozPromise<IdentityAssertionResponse, nsresult, true>>
+  static RefPtr<MozPromise<IdentityProviderToken, nsresult, true>>
   FetchTokenHelper(nsIURI* aAccountsEndpoint, const nsCString& aBody,
                    nsIPrincipal* aTriggeringPrincipal);
 

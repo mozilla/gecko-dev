@@ -9,12 +9,10 @@
 #include "mozilla/dom/IdentityNetworkHelpers.h"
 #include "mozilla/dom/WebIdentityParent.h"
 #include "mozilla/dom/WindowGlobalParent.h"
-#include "mozilla/IdentityCredentialRequestManager.h"
 #include "nsIEffectiveTLDService.h"
 #include "nsIIdentityCredentialPromptService.h"
 #include "nsIIdentityCredentialStorageService.h"
 #include "nsIXPConnect.h"
-#include "nsScriptSecurityManager.h"
 #include "nsURLHelper.h"
 
 namespace mozilla::dom {
@@ -37,8 +35,8 @@ mozilla::ipc::IPCResult WebIdentityParent::RecvGetIdentityCredential(
     aResolver(NS_ERROR_FAILURE);
   }
   identity::GetCredentialInMainProcess(
-      manager->DocumentPrincipal(), this, std::move(aOptions),
-      aMediationRequirement, aHasUserActivation)
+      manager->DocumentPrincipal(), manager->BrowsingContext(),
+      std::move(aOptions), aMediationRequirement, aHasUserActivation)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aResolver](const IPCIdentityCredential& aResult) {
@@ -101,34 +99,6 @@ mozilla::ipc::IPCResult WebIdentityParent::RecvSetLoginStatus(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult WebIdentityParent::RecvResolveContinuationWindow(
-    nsCString&& aToken, IdentityResolveOptions&& aOptions,
-    const ResolveContinuationWindowResolver& aResolver) {
-  // Pass the resolution on to the ICRM to handle it.
-  // Faithfully convey its error in resolution.
-  IdentityCredentialRequestManager* requestManager =
-      IdentityCredentialRequestManager::GetInstance();
-  if (!requestManager) {
-    aResolver(NS_ERROR_NOT_AVAILABLE);
-    return IPC_OK();
-  }
-  nsresult rv = requestManager->MaybeResolvePopup(this, aToken, aOptions);
-  aResolver(rv);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult WebIdentityParent::RecvIsActiveContinuationWindow(
-    const IsActiveContinuationWindowResolver& aResolver) {
-  IdentityCredentialRequestManager* requestManager =
-      IdentityCredentialRequestManager::GetInstance();
-  if (!requestManager) {
-    aResolver(false);
-    return IPC_OK();
-  }
-  aResolver(requestManager->IsActivePopup(this));
-  return IPC_OK();
-}
-
 namespace identity {
 
 nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
@@ -162,12 +132,18 @@ nsresult CanSilentlyCollect(nsIPrincipal* aPrincipal,
 
 // static
 RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
+    nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
     IdentityCredentialRequestOptions&& aOptions,
     const CredentialMediationRequirement& aMediationRequirement,
     bool aHasUserActivation) {
   MOZ_ASSERT(aPrincipal);
-  MOZ_ASSERT(aRelyingParty);
+  MOZ_ASSERT(aBrowsingContext);
+
+  WindowContext* wc = aBrowsingContext->GetCurrentWindowContext();
+  if (!wc) {
+    return GetIPCIdentityCredentialPromise::CreateAndReject(
+        NS_ERROR_NOT_AVAILABLE, __func__);
+  }
 
   if (aOptions.mMode == IdentityCredentialRequestOptionsMode::Active) {
     // If the site is operating in "Active Mode" we need user activation  to
@@ -220,9 +196,11 @@ RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
         NS_ERROR_NOT_AVAILABLE, __func__);
   }
 
+  RefPtr<nsIPrincipal> principal = aPrincipal;
+  RefPtr<CanonicalBrowsingContext> cbc = aBrowsingContext;
   RefPtr<GetIPCIdentityCredentialPromise::Private> result =
       new GetIPCIdentityCredentialPromise::Private(__func__);
-  DiscoverFromExternalSourceInMainProcess(aPrincipal, aRelyingParty, aOptions,
+  DiscoverFromExternalSourceInMainProcess(principal, cbc, aOptions,
                                           aMediationRequirement)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
@@ -235,12 +213,12 @@ RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
 
 // static
 RefPtr<GetIPCIdentityCredentialPromise> DiscoverFromExternalSourceInMainProcess(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
+    nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
     const IdentityCredentialRequestOptions& aOptions,
     const CredentialMediationRequirement& aMediationRequirement) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(aPrincipal);
-  MOZ_ASSERT(aRelyingParty);
+  MOZ_ASSERT(aBrowsingContext);
 
   // Make sure we have providers.
   if (aOptions.mProviders.Length() < 1) {
@@ -248,17 +226,11 @@ RefPtr<GetIPCIdentityCredentialPromise> DiscoverFromExternalSourceInMainProcess(
         NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
   }
 
-  nsCOMPtr<nsIPrincipal> principal(aPrincipal);
-  RefPtr<CanonicalBrowsingContext> browsingContext =
-      aRelyingParty->MaybeBrowsingContext();
-  if (!browsingContext) {
-    return GetIPCIdentityCredentialPromise::CreateAndReject(
-        NS_ERROR_DOM_NOT_ALLOWED_ERR, __func__);
-  }
-  RefPtr<WebIdentityParent> relyingParty = aRelyingParty;
-
   RefPtr<GetIPCIdentityCredentialPromise::Private> result =
       new GetIPCIdentityCredentialPromise::Private(__func__);
+
+  nsCOMPtr<nsIPrincipal> principal(aPrincipal);
+  RefPtr<CanonicalBrowsingContext> browsingContext(aBrowsingContext);
 
   RefPtr<nsITimer> timeout;
   if (StaticPrefs::
@@ -327,12 +299,12 @@ RefPtr<GetIPCIdentityCredentialPromise> DiscoverFromExternalSourceInMainProcess(
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [aMediationRequirement, principal,
-           relyingParty](const IdentityProviderRequestOptionsWithManifest&
-                             providerAndManifest) {
+           browsingContext](const IdentityProviderRequestOptionsWithManifest&
+                                providerAndManifest) {
             IdentityProviderAPIConfig manifest;
             IdentityProviderRequestOptions provider;
             std::tie(provider, manifest) = providerAndManifest;
-            return CreateCredentialDuringDiscovery(principal, relyingParty,
+            return CreateCredentialDuringDiscovery(principal, browsingContext,
                                                    provider, manifest,
                                                    aMediationRequirement);
           },
@@ -444,22 +416,16 @@ Maybe<IdentityProviderAccount> FindAccountToReauthenticate(
 
 // static
 RefPtr<GetIPCIdentityCredentialPromise> CreateCredentialDuringDiscovery(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
+    nsIPrincipal* aPrincipal, BrowsingContext* aBrowsingContext,
     const IdentityProviderRequestOptions& aProvider,
     const IdentityProviderAPIConfig& aManifest,
     const CredentialMediationRequirement& aMediationRequirement) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(aPrincipal);
-  MOZ_ASSERT(aRelyingParty);
+  MOZ_ASSERT(aBrowsingContext);
 
   nsCOMPtr<nsIPrincipal> argumentPrincipal = aPrincipal;
-  RefPtr<WebIdentityParent> relyingParty(aRelyingParty);
-  RefPtr<CanonicalBrowsingContext> browsingContext(
-      aRelyingParty->MaybeBrowsingContext());
-  if (!browsingContext) {
-    return GetIPCIdentityCredentialPromise::CreateAndReject(NS_ERROR_FAILURE,
-                                                            __func__);
-  }
+  RefPtr<BrowsingContext> browsingContext(aBrowsingContext);
 
   return FetchAccountList(argumentPrincipal, aProvider, aManifest)
       ->Then(
@@ -561,35 +527,43 @@ RefPtr<GetIPCIdentityCredentialPromise> CreateCredentialDuringDiscovery(
           })
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [argumentPrincipal, aProvider, relyingParty](
+          [argumentPrincipal, browsingContext, aProvider](
               const std::tuple<IdentityProviderAPIConfig,
                                IdentityProviderAccount>& promiseResult) {
             IdentityProviderAPIConfig currentManifest;
             IdentityProviderAccount account;
             std::tie(currentManifest, account) = promiseResult;
-            return FetchToken(argumentPrincipal, relyingParty, aProvider,
-                              currentManifest, account);
+            return PromptUserWithPolicy(browsingContext, argumentPrincipal,
+                                        account, currentManifest, aProvider);
+          },
+          [](nsresult error) {
+            return GetAccountPromise::CreateAndReject(error, __func__);
+          })
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [argumentPrincipal, aProvider](
+              const std::tuple<IdentityProviderAPIConfig,
+                               IdentityProviderAccount>& promiseResult) {
+            IdentityProviderAPIConfig currentManifest;
+            IdentityProviderAccount account;
+            std::tie(currentManifest, account) = promiseResult;
+            return FetchToken(argumentPrincipal, aProvider, currentManifest,
+                              account);
           },
           [](nsresult error) {
             return GetTokenPromise::CreateAndReject(error, __func__);
           })
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [argumentPrincipal,
-           aProvider](const std::tuple<nsCString, nsCString>& promiseResult) {
-            nsCString token;
-            nsCString accountId;
-            std::tie(token, accountId) = promiseResult;
+          [aProvider](
+              const std::tuple<IdentityProviderToken, IdentityProviderAccount>&
+                  promiseResult) {
+            IdentityProviderToken token;
+            IdentityProviderAccount account;
+            std::tie(token, account) = promiseResult;
             IPCIdentityCredential credential;
-            credential.token() = Some(token);
-            credential.id() = NS_ConvertUTF8toUTF16(accountId);
-            // We always make sure accounts are linked after we successfully
-            // fetch a token
-            nsresult rv = LinkAccount(argumentPrincipal, accountId, aProvider);
-            if (NS_FAILED(rv)) {
-              return GetIPCIdentityCredentialPromise::CreateAndReject(rv,
-                                                                      __func__);
-            }
+            credential.token() = Some(token.mToken);
+            credential.id() = account.mId;
             return GetIPCIdentityCredentialPromise::CreateAndResolve(credential,
                                                                      __func__);
           },
@@ -775,8 +749,7 @@ RefPtr<GetAccountListPromise> FetchAccountList(
 
 // static
 RefPtr<GetTokenPromise> FetchToken(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
-    const IdentityProviderRequestOptions& aProvider,
+    nsIPrincipal* aPrincipal, const IdentityProviderRequestOptions& aProvider,
     const IdentityProviderAPIConfig& aManifest,
     const IdentityProviderAccount& aAccount) {
   MOZ_ASSERT(XRE_IsParentProcess());
@@ -811,87 +784,16 @@ RefPtr<GetTokenPromise> FetchToken(
   nsAutoCString bodyCString;
   bodyValue.Serialize(bodyCString, true);
 
-  RefPtr<WebIdentityParent> relyingParty(aRelyingParty);
   return IdentityNetworkHelpers::FetchTokenHelper(idpURI, bodyCString,
                                                   aPrincipal)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [aAccount, idpURI,
-           relyingParty](const IdentityAssertionResponse& response) {
-            // If we were provided a token, resolve with it.
-            if (response.mToken.WasPassed()) {
-              return GetTokenPromise::CreateAndResolve(
-                  std::make_tuple(response.mToken.Value(),
-                                  NS_ConvertUTF16toUTF8(aAccount.mId)),
-                  __func__);
-            }
-            // If we don't have a continuation window to open at this stage,
-            // reject with the appropriate error.
-            if (!response.mContinue_on.WasPassed()) {
-              return GetTokenPromise::CreateAndReject(NS_ERROR_DOM_NETWORK_ERR,
-                                                      __func__);
-            }
-            // Construct the URI we are going to open
-            nsCOMPtr<nsIURI> continueURI;
-            nsCString continueSpec = response.mContinue_on.Value();
-            nsresult rv =
-                NS_NewURI(getter_AddRefs(continueURI), continueSpec.get());
-            if (NS_FAILED(rv)) {
-              return GetTokenPromise::CreateAndReject(NS_ERROR_DOM_NETWORK_ERR,
-                                                      __func__);
-            }
-            // It must be same-origin to the URL used to fetch to identity
-            // assertion
-            if (!nsScriptSecurityManager::SecurityCompareURIs(continueURI,
-                                                              idpURI)) {
-              return GetTokenPromise::CreateAndReject(NS_ERROR_DOM_NETWORK_ERR,
-                                                      __func__);
-            }
-            // Open the popup, and return the result of its interaction
-            return AuthorizationPopupForToken(continueURI, relyingParty,
-                                              aAccount);
+          [aAccount](const IdentityProviderToken& token) {
+            return GetTokenPromise::CreateAndResolve(
+                std::make_tuple(token, aAccount), __func__);
           },
           [](nsresult error) {
             return GetTokenPromise::CreateAndReject(error, __func__);
-          });
-}
-
-RefPtr<GetTokenPromise> AuthorizationPopupForToken(
-    nsIURI* aContinueURI, WebIdentityParent* aRelyingParty,
-    const IdentityProviderAccount& aAccount) {
-  MOZ_ASSERT(aContinueURI);
-  IdentityCredentialRequestManager* requestManager =
-      IdentityCredentialRequestManager::GetInstance();
-  if (!requestManager) {
-    return GetTokenPromise::CreateAndReject(NS_ERROR_DOM_NETWORK_ERR, __func__);
-  }
-  // Start the process of getting a token for the popup.
-  // The request manager opens the popup and holds a ref to the promise
-  // returned. This then gets settles depending on the popup page's behavior (or
-  // rejects on close).
-  return requestManager->GetTokenFromPopup(aRelyingParty, aContinueURI)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aAccount](
-              const std::tuple<nsCString, Maybe<nsCString>>& promiseResult) {
-            // We will resolve either way with our token from here, but
-            // We may have an account ID to override the user's selection in the
-            // account chooser.
-            nsCString token;
-            Maybe<nsCString> overridingAccountId;
-            std::tie(token, overridingAccountId) = promiseResult;
-            if (overridingAccountId.isSome()) {
-              return GetTokenPromise::CreateAndResolve(
-                  std::make_tuple(token, overridingAccountId.value()),
-                  __func__);
-            }
-            return GetTokenPromise::CreateAndResolve(
-                std::make_tuple(token, NS_ConvertUTF16toUTF8(aAccount.mId)),
-                __func__);
-          },
-          [](nsresult rv) {
-            return GetTokenPromise::CreateAndReject(NS_ERROR_DOM_NETWORK_ERR,
-                                                    __func__);
           });
 }
 
@@ -1198,15 +1100,19 @@ RefPtr<GetAccountPromise> PromptUserToSelectAccount(
 }
 
 // static
-nsresult LinkAccount(nsIPrincipal* aPrincipal, const nsCString& aAccountId,
-                     const IdentityProviderRequestOptions& aProvider) {
+RefPtr<GetAccountPromise> PromptUserWithPolicy(
+    BrowsingContext* aBrowsingContext, nsIPrincipal* aPrincipal,
+    const IdentityProviderAccount& aAccount,
+    const IdentityProviderAPIConfig& aManifest,
+    const IdentityProviderRequestOptions& aProvider) {
+  MOZ_ASSERT(aBrowsingContext);
   MOZ_ASSERT(aPrincipal);
 
   nsresult error;
   nsCOMPtr<nsIIdentityCredentialStorageService> icStorageService =
       mozilla::components::IdentityCredentialStorageService::Service(&error);
   if (NS_WARN_IF(!icStorageService)) {
-    return NS_ERROR_NOT_AVAILABLE;
+    return GetAccountPromise::CreateAndReject(error, __func__);
   }
 
   // Check the storage bit
@@ -1214,14 +1120,24 @@ nsresult LinkAccount(nsIPrincipal* aPrincipal, const nsCString& aAccountId,
   nsCOMPtr<nsIURI> idpURI;
   error = NS_NewURI(getter_AddRefs(idpURI), configLocation);
   if (NS_WARN_IF(NS_FAILED(error))) {
-    return error;
+    return GetAccountPromise::CreateAndReject(error, __func__);
   }
+  bool registered = false;
+  bool allowLogout = false;
   nsCOMPtr<nsIPrincipal> idpPrincipal = BasePrincipal::CreateContentPrincipal(
       idpURI, aPrincipal->OriginAttributesRef());
+  error = icStorageService->GetState(aPrincipal, idpPrincipal,
+                                     NS_ConvertUTF16toUTF8(aAccount.mId),
+                                     &registered, &allowLogout);
+  if (NS_WARN_IF(NS_FAILED(error))) {
+    return GetAccountPromise::CreateAndReject(error, __func__);
+  }
 
   // Mark as logged in and return
-  icStorageService->SetState(aPrincipal, idpPrincipal, aAccountId, true, true);
-  return NS_OK;
+  icStorageService->SetState(aPrincipal, idpPrincipal,
+                             NS_ConvertUTF16toUTF8(aAccount.mId), true, true);
+  return GetAccountPromise::CreateAndResolve(
+      std::make_tuple(aManifest, aAccount), __func__);
 }
 
 // static

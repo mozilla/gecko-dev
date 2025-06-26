@@ -9,7 +9,6 @@
 
 #include "mozilla/dom/PWebIdentity.h"
 #include "mozilla/dom/PWebIdentityParent.h"
-#include "mozilla/dom/WindowGlobalParent.h"
 
 namespace mozilla::dom {
 
@@ -19,14 +18,6 @@ class WebIdentityParent final : public PWebIdentityParent {
  public:
   WebIdentityParent() = default;
   virtual void ActorDestroy(ActorDestroyReason aWhy) override;
-
-  CanonicalBrowsingContext* MaybeBrowsingContext() {
-    WindowGlobalParent* manager = static_cast<WindowGlobalParent*>(Manager());
-    if (!manager) {
-      return nullptr;
-    }
-    return manager->BrowsingContext();
-  }
 
   mozilla::ipc::IPCResult RecvGetIdentityCredential(
       IdentityCredentialRequestOptions&& aOptions,
@@ -44,13 +35,6 @@ class WebIdentityParent final : public PWebIdentityParent {
 
   mozilla::ipc::IPCResult RecvPreventSilentAccess(
       const PreventSilentAccessResolver& aResolver);
-
-  mozilla::ipc::IPCResult RecvResolveContinuationWindow(
-      nsCString&& aToken, IdentityResolveOptions&& aOptions,
-      const ResolveContinuationWindowResolver& aResolver);
-
-  mozilla::ipc::IPCResult RecvIsActiveContinuationWindow(
-      const IsActiveContinuationWindowResolver& aResolver);
 
  private:
   ~WebIdentityParent() = default;
@@ -84,11 +68,9 @@ using GetIdentityProviderRequestOptionsWithManifestPromise =
 using GetAccountListPromise = MozPromise<
     std::tuple<IdentityProviderAPIConfig, IdentityProviderAccountList>,
     nsresult, true>;
-using GetIdentityAssertionPromise =
-    MozPromise<std::tuple<IdentityAssertionResponse, IdentityProviderAccount>,
-               nsresult, true>;
 using GetTokenPromise =
-    MozPromise<std::tuple<nsCString, nsCString>, nsresult, true>;
+    MozPromise<std::tuple<IdentityProviderToken, IdentityProviderAccount>,
+               nsresult, true>;
 using GetAccountPromise =
     MozPromise<std::tuple<IdentityProviderAPIConfig, IdentityProviderAccount>,
                nsresult, true>;
@@ -96,7 +78,7 @@ using GetMetadataPromise =
     MozPromise<IdentityProviderClientMetadata, nsresult, true>;
 
 RefPtr<GetIPCIdentityCredentialPromise> GetCredentialInMainProcess(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
+    nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
     IdentityCredentialRequestOptions&& aOptions,
     const CredentialMediationRequirement& aMediationRequirement,
     bool aHasUserActivation);
@@ -127,7 +109,7 @@ Maybe<IdentityProviderRequestOptionsWithManifest> SkipAccountChooser(
 //    Will send network requests to the IDP. The details of which are in the
 //    other methods here.
 RefPtr<GetIPCIdentityCredentialPromise> DiscoverFromExternalSourceInMainProcess(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
+    nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
     const IdentityCredentialRequestOptions& aOptions,
     const CredentialMediationRequirement& aMediationRequirement);
 
@@ -148,7 +130,7 @@ RefPtr<GetIPCIdentityCredentialPromise> DiscoverFromExternalSourceInMainProcess(
 //    Will send network requests to the IDP. The details of which are in the
 //    other methods here.
 RefPtr<GetIPCIdentityCredentialPromise> CreateCredentialDuringDiscovery(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
+    nsIPrincipal* aPrincipal, BrowsingContext* aBrowsingContext,
     const IdentityProviderRequestOptions& aProvider,
     const IdentityProviderAPIConfig& aManifest,
     const CredentialMediationRequirement& aMediationRequirement);
@@ -225,10 +207,27 @@ RefPtr<GetAccountListPromise> FetchAccountList(
 //    credentials and including information about the requesting principal.
 //
 RefPtr<GetTokenPromise> FetchToken(
-    nsIPrincipal* aPrincipal, WebIdentityParent* aRelyingParty,
-    const IdentityProviderRequestOptions& aProvider,
+    nsIPrincipal* aPrincipal, const IdentityProviderRequestOptions& aProvider,
     const IdentityProviderAPIConfig& aManifest,
     const IdentityProviderAccount& aAccount);
+
+// Performs a Fetch for links to legal info about the identity provider.
+// The returned promise resolves with the information in an object.
+//
+//  Arguments:
+//    aPrincipal: the caller of navigator.credentials.get()'s principal
+//    aProvider: the identity provider to get information from
+//    aManfiest: the identity provider's manifest
+//  Return value:
+//    promise that resolves with an object containing legal information for
+//    aProvider
+//  Side effects:
+//    Network request to the provider supplied token endpoint with
+//    credentials and including information about the requesting principal.
+//
+RefPtr<GetMetadataPromise> FetchMetadata(
+    nsIPrincipal* aPrincipal, const IdentityProviderRequestOptions& aProvider,
+    const IdentityProviderAPIConfig& aManifest);
 
 // Show the user a dialog to select what identity provider they would like
 // to try to log in with.
@@ -267,19 +266,27 @@ RefPtr<GetAccountPromise> PromptUserToSelectAccount(
     const IdentityProviderRequestOptions& aProvider,
     const IdentityProviderAPIConfig& aManifest);
 
-// Make a connection between the identity provider, relying party, and the
-// account ID in the persistent database.
+// Show the user a dialog to select what account they would like
+// to try to log in with.
 //
 //   Arguments:
-//    aPrincipal: the principal of the callor of navigator.credentials.get()
-//    aAccountId: the account to be linked
-//    aProvider: the identity provider's requested options
+//    aBrowsingContext: the BC of the caller of navigator.credentials.get()
+//    aAccount: the accounts the user chose
+//    aManifest: the identity provider that was chosen's manifest
+//    aProvider: the identity provider that was chosen
 //  Return value:
-//    Success or failure, as nsresult
+//    a promise resolving to an account that the user agreed to use (and
+//    aManifest). This promise may reject with nsresult errors. This includes
+//    if the user denied the terms and privacy policy
 //  Side effects:
-//    Modifies the IdentityCredentialStorageService state for this account.
-nsresult LinkAccount(nsIPrincipal* aPrincipal, const nsCString& aAccountId,
-                     const IdentityProviderRequestOptions& aProvider);
+//    Will show a dialog to the user. Will send a network request to the
+//    identity provider. Modifies the IdentityCredentialStorageService state
+//    for this account.
+RefPtr<GetAccountPromise> PromptUserWithPolicy(
+    BrowsingContext* aBrowsingContext, nsIPrincipal* aPrincipal,
+    const IdentityProviderAccount& aAccount,
+    const IdentityProviderAPIConfig& aManifest,
+    const IdentityProviderRequestOptions& aProvider);
 
 // Close all dialogs associated with IdentityCredential generation on the
 // provided browsing context
@@ -293,10 +300,6 @@ void CloseUserInterface(BrowsingContext* aBrowsingContext);
 RefPtr<MozPromise<bool, nsresult, true>> DisconnectInMainProcess(
     nsIPrincipal* aDocumentPrincipal,
     const IdentityCredentialDisconnectOptions& aOptions);
-
-RefPtr<GetTokenPromise> AuthorizationPopupForToken(
-    nsIURI* aContinueURI, WebIdentityParent* aRelyingParty,
-    const IdentityProviderAccount& aAccount);
 
 }  // namespace identity
 
