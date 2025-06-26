@@ -10,6 +10,7 @@
 #include "MFTEncoder.h"
 #include "MediaData.h"
 #include "mozilla/Logging.h"
+#include "mozilla/gfx/gfxVars.h"
 
 using mozilla::media::EncodeSupport;
 using mozilla::media::EncodeSupportSet;
@@ -33,6 +34,19 @@ GUID CodecToSubtype(CodecType aCodec) {
   }
 }
 
+static bool CanUseWMFHwEncoder(CodecType aCodec) {
+  switch (aCodec) {
+    case CodecType::H264:
+      return gfx::gfxVars::UseH264HwEncode();
+    case CodecType::VP8:
+      return gfx::gfxVars::UseVP8HwEncode();
+    case CodecType::VP9:
+      return gfx::gfxVars::UseVP9HwEncode();
+    default:
+      return false;
+  }
+}
+
 EncodeSupportSet CanCreateWMFEncoder(
     CodecType aCodec, const gfx::IntSize& aFrameSize,
     const EncoderConfig::CodecSpecific& aCodecSpecific) {
@@ -41,11 +55,14 @@ EncodeSupportSet CanCreateWMFEncoder(
     if (!wmf::MediaFoundationInitializer::HasInitialized()) {
       return;
     }
-    // Try HW encoder.
-    auto hwEnc = MakeRefPtr<MFTEncoder>(MFTEncoder::HWPreference::HardwareOnly);
-    if (SUCCEEDED(hwEnc->Create(CodecToSubtype(aCodec), aFrameSize,
-                                aCodecSpecific))) {
-      supports += EncodeSupport::HardwareEncode;
+    // Try HW encoder if allowed.
+    if (CanUseWMFHwEncoder(aCodec)) {
+      auto hwEnc =
+          MakeRefPtr<MFTEncoder>(MFTEncoder::HWPreference::HardwareOnly);
+      if (SUCCEEDED(hwEnc->Create(CodecToSubtype(aCodec), aFrameSize,
+                                  aCodecSpecific))) {
+        supports += EncodeSupport::HardwareEncode;
+      }
     }
     // Try SW encoder.
     auto swEnc = MakeRefPtr<MFTEncoder>(MFTEncoder::HWPreference::SoftwareOnly);
@@ -157,8 +174,8 @@ already_AddRefed<IMFMediaType> CreateOutputType(EncoderConfig& aConfig) {
     WMF_ENC_LOG("Create output type: set subtype error: %lx", hr);
     return nullptr;
   }
-  // A bitrate need to be set here, attempt to make an educated guess if none is
-  // provided. This could be per codec to have nicer defaults.
+  // A bitrate need to be set here, attempt to make an educated guess if none
+  // is provided. This could be per codec to have nicer defaults.
   size_t longDimension = std::max(aConfig.mSize.width, aConfig.mSize.height);
   if (!aConfig.mBitrate) {
     if (longDimension < 720) {
