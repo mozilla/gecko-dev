@@ -1,0 +1,15 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * votermaps.org - vertically center map icons
+ * Bug #1928605 - https://bugzilla.mozilla.org/show_bug.cgi?id=1928605
+ * WebCompat issue #143427 - https://webcompat.com/issues/143427
+ *
+ * The page tells Firefox to preserve XML space, which causes the icons on their
+ * maps to not vertically center correctly. We can fix that with a touch of CSS.
+ */
+svg {
+  white-space: initial;
+}

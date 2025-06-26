@@ -3233,6 +3233,23 @@
       }
     ]
   },
+  "1928605": {
+    "label": "votermaps.org",
+    "bugs": {
+      "1928605": {
+        "issue": "broken-map",
+        "matches": ["*://votermaps.org/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1928605-votermaps.org-center-map-icons.css"]
+        }
+      }
+    ]
+  },
   "1928941": {
     "label": "oasis.decart.ai",
     "bugs": {
