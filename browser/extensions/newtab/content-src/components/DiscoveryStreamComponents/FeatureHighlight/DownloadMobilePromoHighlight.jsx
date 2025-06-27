@@ -30,7 +30,7 @@ export function DownloadMobilePromoHighlight({
       ac.DiscoveryStreamUserEvent({
         event: "FEATURE_HIGHLIGHT_DISMISS",
         source: "FEATURE_HIGHLIGHT",
-        value: FEATURE_ID,
+        value: { feature: FEATURE_ID },
       })
     );
 
@@ -46,7 +46,7 @@ export function DownloadMobilePromoHighlight({
         ac.DiscoveryStreamUserEvent({
           event: "FEATURE_HIGHLIGHT_IMPRESSION",
           source: "FEATURE_HIGHLIGHT",
-          value: FEATURE_ID,
+          value: { feature: FEATURE_ID },
         })
       );
     }
