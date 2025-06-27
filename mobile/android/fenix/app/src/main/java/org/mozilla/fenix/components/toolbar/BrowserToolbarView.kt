@@ -5,7 +5,6 @@
 package org.mozilla.fenix.components.toolbar
 
 import android.content.Context
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
@@ -235,7 +234,7 @@ class BrowserToolbarView(
         toolbar.display.colors = toolbar.display.colors.copy(
             text = primaryTextColor,
             siteInfoIconSecure = primaryTextColor,
-            siteInfoIconInsecure = Color.TRANSPARENT,
+            siteInfoIconInsecure = primaryTextColor,
             siteInfoIconLocalPdf = primaryTextColor,
             menu = primaryTextColor,
             hint = secondaryTextColor,

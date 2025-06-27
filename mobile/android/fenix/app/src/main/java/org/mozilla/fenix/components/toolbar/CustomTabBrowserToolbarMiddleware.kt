@@ -329,7 +329,7 @@ class CustomTabBrowserToolbarMiddleware(
         } else if (customTab?.content?.securityInfo?.secure == true) {
             add(
                 ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_lock_24,
+                    drawableResId = R.drawable.mozac_ic_shield_checkmark_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = SiteInfoClicked,
                 ),
@@ -337,7 +337,7 @@ class CustomTabBrowserToolbarMiddleware(
         } else {
             add(
                 ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_broken_lock,
+                    drawableResId = R.drawable.mozac_ic_shield_slash_24,
                     contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                     onClick = SiteInfoClicked,
                 ),

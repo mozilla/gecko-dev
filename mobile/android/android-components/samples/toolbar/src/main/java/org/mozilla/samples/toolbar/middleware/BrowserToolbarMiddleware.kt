@@ -206,7 +206,7 @@ internal class BrowserToolbarMiddleware(
             onClick = null,
         ),
         ActionButtonRes(
-            drawableResId = iconsR.drawable.mozac_ic_lock_24,
+            drawableResId = iconsR.drawable.mozac_ic_shield_checkmark_24,
             contentDescription = R.string.browser_action_security_lock_description,
             highlighted = true,
             onClick = SecurityIndicatorClicked,

@@ -1691,7 +1691,7 @@ class BrowserToolbarMiddlewareTest {
         ).updateDependencies()
         every { tab.content.securityInfo.secure } returns true
         val expectedSecurityIndicator = ActionButtonRes(
-            drawableResId = R.drawable.mozac_ic_lock_24,
+            drawableResId = R.drawable.mozac_ic_shield_checkmark_24,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = StartPageActions.SiteInfoClicked,
         )
@@ -1714,7 +1714,7 @@ class BrowserToolbarMiddlewareTest {
         ).updateDependencies()
         every { tab.content.securityInfo.secure } returns false
         val expectedSecurityIndicator = ActionButtonRes(
-            drawableResId = R.drawable.mozac_ic_broken_lock,
+            drawableResId = R.drawable.mozac_ic_shield_slash_24,
             contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
             onClick = StartPageActions.SiteInfoClicked,
         )
@@ -1745,12 +1745,12 @@ class BrowserToolbarMiddlewareTest {
                 useCases = useCases,
             ).updateDependencies()
             val expectedSecureIndicator = ActionButtonRes(
-                drawableResId = R.drawable.mozac_ic_lock_24,
+                drawableResId = R.drawable.mozac_ic_shield_checkmark_24,
                 contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                 onClick = StartPageActions.SiteInfoClicked,
             )
             val expectedInsecureIndicator = ActionButtonRes(
-                drawableResId = R.drawable.mozac_ic_broken_lock,
+                drawableResId = R.drawable.mozac_ic_shield_slash_24,
                 contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
                 onClick = StartPageActions.SiteInfoClicked,
             )
