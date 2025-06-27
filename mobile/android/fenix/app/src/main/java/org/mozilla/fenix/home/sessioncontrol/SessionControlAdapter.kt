@@ -17,7 +17,6 @@ import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.home.BottomSpacerViewHolder
-import org.mozilla.fenix.home.TopPlaceholderViewHolder
 import org.mozilla.fenix.home.bookmarks.view.BookmarksHeaderViewHolder
 import org.mozilla.fenix.home.bookmarks.view.BookmarksViewHolder
 import org.mozilla.fenix.home.collections.CollectionViewHolder
@@ -37,8 +36,6 @@ import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
 sealed class AdapterItem(@LayoutRes val viewType: Int) {
-    object TopPlaceholderItem : AdapterItem(TopPlaceholderViewHolder.LAYOUT_ID)
-
     /**
      * Contains a set of [Pair]s where [Pair.first] is the index of the changed [TopSite] and
      * [Pair.second] is the new [TopSite].
@@ -273,7 +270,6 @@ class SessionControlAdapter(
 
         val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
         return when (viewType) {
-            TopPlaceholderViewHolder.LAYOUT_ID -> TopPlaceholderViewHolder(view)
             TopSitePagerViewHolder.LAYOUT_ID -> TopSitePagerViewHolder(
                 view = view,
                 appStore = components.appStore,
@@ -357,9 +353,6 @@ class SessionControlAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = getItem(position)
         when (holder) {
-            is TopPlaceholderViewHolder -> {
-                holder.bind()
-            }
             is TopSitePagerViewHolder -> {
                 holder.bind((item as AdapterItem.TopSitePager).topSites)
             }

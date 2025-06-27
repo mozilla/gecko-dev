@@ -46,9 +46,6 @@ internal fun normalModeAdapterItems(
 ): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
 
-    // Add a synchronous, unconditional and invisible placeholder so home is anchored to the top when created.
-    items.add(AdapterItem.TopPlaceholderItem)
-
     nimbusMessageCard?.let {
         items.add(AdapterItem.NimbusMessageCard(it))
     }
