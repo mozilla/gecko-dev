@@ -97,7 +97,9 @@ class MediaEngineFakeVideoSource : public MediaEngineSource {
   bool IsFake() const override { return true; }
 
  protected:
-  ~MediaEngineFakeVideoSource() = default;
+  ~MediaEngineFakeVideoSource() {
+    mGeneratedImageListener.DisconnectIfExists();
+  }
 
   void OnGeneratedImage(RefPtr<layers::Image> aImage);
 
