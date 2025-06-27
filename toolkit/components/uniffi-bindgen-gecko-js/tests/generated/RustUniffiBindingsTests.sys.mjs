@@ -4335,7 +4335,7 @@ export class FfiConverterTypeAsyncInterface extends FfiConverter {
 /**
  * Async version of `TestTraitInterface`
  */
-export class AsyncTestTraitInterface {
+export class AsyncTestTraitInterfaceImpl {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
@@ -4445,7 +4445,7 @@ export class FfiConverterTypeAsyncTestTraitInterface extends FfiConverter {
     static lift(value) {
         const opts = {};
         opts[constructUniffiObject] = value;
-        return new AsyncTestTraitInterface(opts);
+        return new AsyncTestTraitInterfaceImpl(opts);
     }
 
     // lower treats value like a callback interface
@@ -4458,7 +4458,7 @@ export class FfiConverterTypeAsyncTestTraitInterface extends FfiConverter {
     static lowerReceiver(value) {
         const ptr = value[uniffiObjectPtr];
         if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a 'AsyncTestTraitInterface' instance");
+            throw new UniFFITypeError("Object is not a 'AsyncTestTraitInterfaceImpl' instance");
         }
         return ptr;
     }
@@ -4647,7 +4647,7 @@ export class FfiConverterTypeComplexMethods extends FfiConverter {
 /**
  * TestTraitInterface
  */
-export class TestTraitInterface {
+export class TestTraitInterfaceImpl {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
@@ -4757,7 +4757,7 @@ export class FfiConverterTypeTestTraitInterface extends FfiConverter {
     static lift(value) {
         const opts = {};
         opts[constructUniffiObject] = value;
-        return new TestTraitInterface(opts);
+        return new TestTraitInterfaceImpl(opts);
     }
 
     // lower treats value like a callback interface
@@ -4770,7 +4770,7 @@ export class FfiConverterTypeTestTraitInterface extends FfiConverter {
     static lowerReceiver(value) {
         const ptr = value[uniffiObjectPtr];
         if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a 'TestTraitInterface' instance");
+            throw new UniFFITypeError("Object is not a 'TestTraitInterfaceImpl' instance");
         }
         return ptr;
     }

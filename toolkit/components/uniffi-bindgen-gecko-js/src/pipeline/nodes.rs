@@ -361,6 +361,7 @@ pub struct Variant {
 #[derive(Debug, Clone, Node)]
 pub struct Interface {
     pub name: String,
+    pub js_class_name: String,
     pub object_id: u64,
     pub constructors: Vec<Constructor>,
     pub methods: Vec<Method>,
