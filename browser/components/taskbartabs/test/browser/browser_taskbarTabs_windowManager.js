@@ -4,6 +4,7 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
 ChromeUtils.defineESModuleGetters(this, {
+  TaskbarTabs: "resource:///modules/taskbartabs/TaskbarTabs.sys.mjs",
   TaskbarTabsUtils: "resource:///modules/taskbartabs/TaskbarTabsUtils.sys.mjs",
 });
 
@@ -196,4 +197,37 @@ add_task(async function test_window_aumid() {
     BrowserTestUtils.closeWindow(winOpen),
     BrowserTestUtils.closeWindow(winReplace),
   ]);
+});
+
+add_task(async function testTaskbarTabCount() {
+  const count = () => TaskbarTabs.getCountForId(taskbarTab1.id);
+
+  is(await count(), 0, "window count starts at 0");
+
+  const window1 = await TaskbarTabs.openWindow(taskbarTab1);
+  is(await count(), 1, "window count increases on first open");
+
+  const window2 = await TaskbarTabs.openWindow(taskbarTab1);
+  is(await count(), 2, "window count increases on second open");
+
+  await BrowserTestUtils.closeWindow(window1);
+  is(await count(), 1, "window count decreases on first close");
+
+  const addedTab = BrowserTestUtils.addTab(gBrowser, url1.spec);
+  const window3 = await TaskbarTabs.replaceTabWithWindow(taskbarTab1, addedTab);
+  is(await count(), 2, "window count increases on replace");
+
+  await TaskbarTabs.ejectWindow(window2);
+  await BrowserTestUtils.windowClosed(window2);
+  is(await count(), 1, "window count decreases on ejection");
+
+  await BrowserTestUtils.closeWindow(window3);
+  is(await count(), 0, "window count decreases on final close");
+
+  const ejected = gBrowser.tabs[gBrowser.tabs.length - 1];
+  const promise = BrowserTestUtils.waitForTabClosing(ejected);
+  gBrowser.removeTab(ejected);
+  await promise;
+
+  TaskbarTabs.removeTaskbarTab(taskbarTab1.id);
 });

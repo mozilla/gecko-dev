@@ -30,8 +30,9 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
  * Manager for the lifetimes of Taskbar Tab windows.
  */
 export class TaskbarTabsWindowManager {
-  // Count of active taskbar tabs associated to an ID.
-  #tabIdCount = new Map();
+  // Map from the taskbar tab ID to a Set of window IDs. Use #trackWindow
+  // and #untrackWindow.
+  #openWindows = new Map();
   // Map from the tab browser permanent key to originating window ID.
   #tabOriginMap = new WeakMap();
 
@@ -41,7 +42,7 @@ export class TaskbarTabsWindowManager {
    * @param {TaskbarTab} aTaskbarTab - The Taskbar Tab to replace the window with.
    * @param {string} aTaskbarTab.id - ID of the Taskbar Tab.
    * @param {MozTabbrowserTab} aTab - The tab to adopt as a Taskbar Tab.
-   * @returns {Promise} Resolves once the tab replacing window has openend.
+   * @returns {Promise<DOMWindow>} The newly created Taskbar Tab window.
    */
   async replaceTabWithWindow({ id }, aTab) {
     let originWindow = aTab.ownerGlobal;
@@ -59,16 +60,15 @@ export class TaskbarTabsWindowManager {
     args.appendElement(aTab);
     args.appendElement(extraOptions);
 
-    await this.#openWindow(id, args);
-
     this.#tabOriginMap.set(tabId, windowId);
+    return await this.#openWindow(id, args);
   }
 
   /**
    * Opens a new Taskbar Tab Window.
    *
    * @param {TaskbarTab} aTaskbarTab - The Taskbar Tab to open.
-   * @returns {Promise} Resolves once the window has opened.
+   * @returns {Promise<DOMWindow>} The newly-created Taskbar Tab window.
    */
   async openWindow(aTaskbarTab) {
     let url = Cc["@mozilla.org/supports-string;1"].createInstance(
@@ -97,7 +97,7 @@ export class TaskbarTabsWindowManager {
     args.appendElement(null);
     args.appendElement(Services.scriptSecurityManager.getSystemPrincipal());
 
-    await this.#openWindow(aTaskbarTab.id, args);
+    return await this.#openWindow(aTaskbarTab.id, args);
   }
 
   /**
@@ -105,8 +105,8 @@ export class TaskbarTabsWindowManager {
    *
    * @param {string} aId - ID of the Taskbar Tab to use as the window AUMID.
    * @param {nsIMutableArray} aArgs - `args` to pass to the opening window.
-   * @returns {Promise} Resolves once window has opened and tab count has been
-   *                    incremented.
+   * @returns {Promise<DOMWindow>} Resolves once window has opened and tab count
+   * has been incremented.
    */
   async #openWindow(aId, aArgs) {
     let win = await lazy.BrowserWindowTracker.promiseOpenWindow({
@@ -114,12 +114,51 @@ export class TaskbarTabsWindowManager {
       features: kTaskbarTabsWindowFeatures,
       all: false,
     });
+    this.#trackWindow(aId, win);
 
     lazy.WinTaskbar.setGroupIdForWindow(win, aId);
     win.focus();
+    return win;
+  }
 
-    let tabIdCount = this.#tabIdCount.get(aId) ?? 0;
-    this.#tabIdCount.set(aId, ++tabIdCount);
+  /**
+   * Adds the window to the set of windows open within the taskbar tab.
+   * The window will automatically be removed when the window closes if
+   * it hasn't been untracked already.
+   *
+   * @param {string} aId Taskbar Tab ID that the window should be assigned to.
+   * @param {DOMWindow} aWindow Window to track.
+   */
+  #trackWindow(aId, aWindow) {
+    let openWindows = this.#openWindows.get(aId);
+    if (typeof openWindows === "undefined") {
+      openWindows = new Set();
+      this.#openWindows.set(aId, openWindows);
+    }
+
+    openWindows.add(getWindowId(aWindow));
+    aWindow.addEventListener("unload", _e => this.#untrackWindow(aId, aWindow));
+  }
+
+  /**
+   * Remove the window from the set of windows open within the taskbar tab.
+   * This function is idempotent.
+   *
+   * @param {string} aId Taskbar Tab ID that the window should be assigned to.
+   * @param {DOMWindow} aWindow Window to track.
+   */
+  #untrackWindow(aId, aWindow) {
+    let openWindows = this.#openWindows.get(aId);
+    if (typeof openWindows === "undefined") {
+      // If it is undefined, the window wasn't being tracked anyways.
+      return;
+    }
+
+    openWindows.delete(getWindowId(aWindow));
+    if (openWindows.size === 0) {
+      // Avoid leaking entries in the map.
+      this.#openWindows.delete(aId);
+    }
   }
 
   /**
@@ -128,7 +167,7 @@ export class TaskbarTabsWindowManager {
    * will use the most recently active window. If no window is avalaible, a new
    * one will be opened.
    *
-   * @param {DOMWindow} aWindow - A Tasbkar Tab window.
+   * @param {DOMWindow} aWindow - A Taskbar Tab window.
    */
   async ejectWindow(aWindow) {
     lazy.logConsole.info("Ejecting window from Taskbar Tabs.");
@@ -190,13 +229,9 @@ export class TaskbarTabsWindowManager {
       win.focus();
 
       this.#tabOriginMap.delete(tabId);
-      let tabIdCount = this.#tabIdCount.get(taskbarTabId);
-      if (tabIdCount > 0) {
-        this.#tabIdCount.set(taskbarTabId, --tabIdCount);
-      } else {
-        lazy.logConsole.error("Tab count should have been greater than 0.");
-      }
     }
+
+    this.#untrackWindow(taskbarTabId, aWindow);
   }
 
   /**
@@ -206,7 +241,7 @@ export class TaskbarTabsWindowManager {
    * @returns {integer} Count of windows associated to the Taskbar Tab ID.
    */
   getCountForId(aId) {
-    return this.#tabIdCount.get(aId) ?? 0;
+    return this.#openWindows.get(aId)?.size ?? 0;
   }
 }
 
