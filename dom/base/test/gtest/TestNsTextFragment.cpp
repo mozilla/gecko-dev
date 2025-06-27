@@ -59,6 +59,110 @@ struct TestData {
   const uint32_t mExpectedOffset;
 };
 
+TEST(nsTextFragmentTest, FindChar1b)
+{
+  const RefPtr<Document> doc = CreateHTMLDoc();
+  const RefPtr<nsTextNode> textNode = doc->CreateTextNode(EmptyString());
+  MOZ_RELEASE_ASSERT(textNode);
+  const nsTextFragment& textFragment = textNode->TextFragment();
+
+  for (const auto& testData : {
+           TestData(u"", u"a", 0, nsTextFragment::kNotFound),
+           TestData(u"abc", u"a", 0, 0),
+           TestData(u"abc", u"A", 0, nsTextFragment::kNotFound),
+           TestData(u"abc", u"b", 0, 1),
+           TestData(u"abc", u"c", 0, 2),
+           TestData(u"abc", u"a", 1, nsTextFragment::kNotFound),
+           TestData(u"abc", u"b", 1, 1),
+           TestData(u"abc", u"c", 2, 2),
+           TestData(u"a\u00A0b", u"\u00A0", 0, 1),
+       }) {
+    textNode->SetData(nsDependentString(testData.mData), IgnoreErrors());
+    MOZ_ASSERT(!textFragment.Is2b());
+    const uint32_t ret =
+        textFragment.FindChar(testData.mScanData[0], testData.mStartOffset);
+    EXPECT_EQ(ret, testData.mExpectedOffset) << testData;
+  }
+}
+
+TEST(nsTextFragmentTest, FindChar2b)
+{
+  const RefPtr<Document> doc = CreateHTMLDoc();
+  const RefPtr<nsTextNode> textNode = doc->CreateTextNode(EmptyString());
+  MOZ_RELEASE_ASSERT(textNode);
+  textNode->MarkAsMaybeModifiedFrequently();
+  const nsTextFragment& textFragment = textNode->TextFragment();
+
+  for (const auto& testData : {
+           TestData(u"abc", u"a", 0, 0),
+           TestData(u"abc", u"A", 0, nsTextFragment::kNotFound),
+           TestData(u"abc", u"b", 0, 1),
+           TestData(u"abc", u"c", 0, 2),
+           TestData(u"abc", u"a", 1, nsTextFragment::kNotFound),
+           TestData(u"abc", u"b", 1, 1),
+           TestData(u"abc", u"c", 2, 2),
+           TestData(u"a\u00A0b", u"\u00A0", 0, 1),
+       }) {
+    textNode->SetData(nsDependentString(testData.mData), IgnoreErrors());
+    MOZ_ASSERT(textFragment.Is2b());
+    const uint32_t ret =
+        textFragment.FindChar(testData.mScanData[0], testData.mStartOffset);
+    EXPECT_EQ(ret, testData.mExpectedOffset) << testData;
+  }
+}
+
+TEST(nsTextFragmentTest, RFindChar1b)
+{
+  const RefPtr<Document> doc = CreateHTMLDoc();
+  const RefPtr<nsTextNode> textNode = doc->CreateTextNode(EmptyString());
+  MOZ_RELEASE_ASSERT(textNode);
+  const nsTextFragment& textFragment = textNode->TextFragment();
+
+  for (const auto& testData : {
+           TestData(u"", u"a", UINT32_MAX, nsTextFragment::kNotFound),
+           TestData(u"abc", u"a", UINT32_MAX, 0),
+           TestData(u"abc", u"A", UINT32_MAX, nsTextFragment::kNotFound),
+           TestData(u"abc", u"b", UINT32_MAX, 1),
+           TestData(u"abc", u"c", UINT32_MAX, 2),
+           TestData(u"abca", u"a", UINT32_MAX, 3),
+           TestData(u"abc", u"a", 0, 0),
+           TestData(u"abc", u"c", 2, 2),
+           TestData(u"a\u00A0b", u"\u00A0", UINT32_MAX, 1),
+       }) {
+    textNode->SetData(nsDependentString(testData.mData), IgnoreErrors());
+    MOZ_ASSERT(!textFragment.Is2b());
+    const uint32_t ret =
+        textFragment.RFindChar(testData.mScanData[0], testData.mStartOffset);
+    EXPECT_EQ(ret, testData.mExpectedOffset) << testData;
+  }
+}
+
+TEST(nsTextFragmentTest, RFindChar2b)
+{
+  const RefPtr<Document> doc = CreateHTMLDoc();
+  const RefPtr<nsTextNode> textNode = doc->CreateTextNode(EmptyString());
+  MOZ_RELEASE_ASSERT(textNode);
+  textNode->MarkAsMaybeModifiedFrequently();
+  const nsTextFragment& textFragment = textNode->TextFragment();
+
+  for (const auto& testData : {
+           TestData(u"abc", u"a", UINT32_MAX, 0),
+           TestData(u"abc", u"A", UINT32_MAX, nsTextFragment::kNotFound),
+           TestData(u"abc", u"b", UINT32_MAX, 1),
+           TestData(u"abc", u"c", UINT32_MAX, 2),
+           TestData(u"abca", u"a", UINT32_MAX, 3),
+           TestData(u"abc", u"a", 0, 0),
+           TestData(u"abc", u"c", 2, 2),
+           TestData(u"a\u00A0b", u"\u00A0", UINT32_MAX, 1),
+       }) {
+    textNode->SetData(nsDependentString(testData.mData), IgnoreErrors());
+    MOZ_ASSERT(textFragment.Is2b());
+    const uint32_t ret =
+        textFragment.RFindChar(testData.mScanData[0], testData.mStartOffset);
+    EXPECT_EQ(ret, testData.mExpectedOffset) << testData;
+  }
+}
+
 TEST(nsTextFragmentTest, FindFirstDifferentCharOffsetIn1b)
 {
   const RefPtr<Document> doc = CreateHTMLDoc();

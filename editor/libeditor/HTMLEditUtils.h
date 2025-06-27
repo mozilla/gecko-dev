@@ -2367,15 +2367,13 @@ class HTMLEditUtils final {
             *aPoint.template ContainerAs<Text>())) {
       return EditorDOMPointType();
     }
-    Text* textNode = aPoint.template ContainerAs<Text>();
-    const nsTextFragment& textFragment = textNode->TextFragment();
-    MOZ_ASSERT(aPoint.Offset() <= textFragment.GetLength());
-    for (uint32_t offset = aPoint.Offset(); offset; --offset) {
-      if (textFragment.CharAt(offset - 1) == HTMLEditUtils::kNewLine) {
-        return EditorDOMPointType(textNode, offset - 1);
-      }
-    }
-    return EditorDOMPointType();
+    const Text& textNode = *aPoint.template ContainerAs<Text>();
+    MOZ_ASSERT(aPoint.Offset() <= textNode.TextFragment().GetLength());
+    const uint32_t previousLineBreakOffset =
+        textNode.TextFragment().RFindChar('\n', aPoint.Offset() - 1u);
+    return previousLineBreakOffset != nsTextFragment::kNotFound
+               ? EditorDOMPointType(&textNode, previousLineBreakOffset)
+               : EditorDOMPointType();
   }
 
   /**

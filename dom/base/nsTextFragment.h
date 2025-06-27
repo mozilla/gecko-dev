@@ -361,6 +361,34 @@ class nsTextFragment final {
     return kNotFound;
   }
 
+  [[nodiscard]] uint32_t RFindChar(char16_t aChar,
+                                   uint32_t aOffset = UINT32_MAX) const {
+    const uint32_t length = GetLength();
+    if (!length) {
+      return kNotFound;
+    }
+    aOffset = std::min(length - 1u, aOffset);
+    if (Is2b()) {
+      const char16_t* end = Get2b() - 1;
+      for (const char16_t* ch = Get2b() + aOffset; ch != end; ch--) {
+        if (*ch == aChar) {
+          return ch - Get2b();
+        }
+      }
+      return kNotFound;
+    }
+    if (aChar > 0xFF) {
+      return kNotFound;
+    }
+    const unsigned char* end = GetUnsigned1b() - 1;
+    for (const unsigned char* ch = GetUnsigned1b() + aOffset; ch != end; ch--) {
+      if (*ch == aChar) {
+        return ch - GetUnsigned1b();
+      }
+    }
+    return kNotFound;
+  }
+
   enum class WhitespaceOption {
     // If set, new lines (\n, U+000A) are treated as significant.
     NewLineIsSignificant,
