@@ -365,7 +365,6 @@ void WaylandSurface::SetFrameCallbackLocked(
     const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
     bool aEmulateFrameCallback) {
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
-  MOZ_DIAGNOSTIC_ASSERT(!mFrameCallbackHandler.IsSet());
 
   LOGWAYLAND("WaylandSurface::SetFrameCallbackLocked()");
 
@@ -601,7 +600,6 @@ void WaylandSurface::UnmapLocked(WaylandSurfaceLock& aSurfaceLock) {
   MozClearPointer(mSubsurface, wl_subsurface_destroy);
   MozClearPointer(mColorSurface, wp_color_management_surface_v1_destroy);
   MozClearPointer(mImageDescription, wp_image_description_v1_destroy);
-  mFrameCallbackHandler.Clear();
   mParentSurface = nullptr;
   mFormats = nullptr;
 
