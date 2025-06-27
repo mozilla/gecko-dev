@@ -15,8 +15,6 @@ MOCHITEST_MANIFESTS += [
     "tests/mochitest/perftest.toml",
 ]
 
-REFTEST_MANIFESTS += ["tests/reftest/reftest.list"]
-
 DIRS += []
 
 h_and_cpp = [

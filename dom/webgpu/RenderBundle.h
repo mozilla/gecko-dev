@@ -7,7 +7,6 @@
 #define GPU_RenderBundle_H_
 
 #include "nsWrapperCache.h"
-#include "CanvasContext.h"
 #include "ObjectModel.h"
 
 namespace mozilla::webgpu {
@@ -19,21 +18,13 @@ class RenderBundle final : public ObjectBase, public ChildOf<Device> {
   GPU_DECL_CYCLE_COLLECTION(RenderBundle)
   GPU_DECL_JS_WRAP(RenderBundle)
 
-  RenderBundle(Device* const aParent, RawId aId,
-               CanvasContextArray&& aCanvasContexts);
+  RenderBundle(Device* const aParent, RawId aId);
 
   const RawId mId;
-
-  mozilla::Span<const WeakPtr<CanvasContext>> GetCanvasContexts() const {
-    return mUsedCanvasContexts;
-  }
 
  private:
   virtual ~RenderBundle();
   void Cleanup();
-
-  // The canvas contexts of any canvas textures used in this render bundle.
-  CanvasContextArray mUsedCanvasContexts;
 };
 
 }  // namespace mozilla::webgpu

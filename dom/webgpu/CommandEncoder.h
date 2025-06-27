@@ -12,7 +12,6 @@
 #include "mozilla/webgpu/ffi/wgpu.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "nsWrapperCache.h"
-#include "CanvasContext.h"
 #include "ObjectModel.h"
 #include "QuerySet.h"
 
@@ -69,9 +68,9 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
   CommandEncoderState mState;
 
   RefPtr<WebGPUChild> mBridge;
-  CanvasContextArray mPresentationContexts;
+  nsTArray<WeakPtr<CanvasContext>> mPresentationContexts;
 
-  void TrackPresentationContext(WeakPtr<CanvasContext> aTargetContext);
+  void TrackPresentationContext(CanvasContext* aTargetContext);
 
  public:
   const auto& GetDevice() const { return mParent; };
@@ -79,10 +78,8 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
 
   CommandEncoderState GetState() const { return mState; };
 
-  void EndComputePass(ffi::WGPURecordedComputePass& aPass,
-                      CanvasContextArray& aCanvasContexts);
-  void EndRenderPass(ffi::WGPURecordedRenderPass& aPass,
-                     CanvasContextArray& aCanvasContexts);
+  void EndComputePass(ffi::WGPURecordedComputePass& aPass);
+  void EndRenderPass(ffi::WGPURecordedRenderPass& aPass);
 
   void CopyBufferToBuffer(const Buffer& aSource, const Buffer& aDestination,
                           const dom::Optional<BufferAddress>& aSize) {

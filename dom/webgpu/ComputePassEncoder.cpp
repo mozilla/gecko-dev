@@ -64,7 +64,6 @@ void ComputePassEncoder::SetBindGroup(uint32_t aSlot,
   RawId bindGroup = 0;
   if (aBindGroup) {
     mUsedBindGroups.AppendElement(aBindGroup);
-    mUsedCanvasContexts.AppendElements(aBindGroup->GetCanvasContexts());
     bindGroup = aBindGroup->mId;
   }
   ffi::wgpu_recorded_compute_pass_set_bind_group(
@@ -160,7 +159,7 @@ void ComputePassEncoder::End() {
     return;
   }
   MOZ_ASSERT(!!mPass);
-  mParent->EndComputePass(*mPass, mUsedCanvasContexts);
+  mParent->EndComputePass(*mPass);
   Cleanup();
 }
 
