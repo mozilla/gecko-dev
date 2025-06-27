@@ -19,11 +19,25 @@ for dir in RELATIVEDIR.split("/"):
     base = base[dir]
 base += ["!reserved-js-words.js"]
 
-GeneratedFile(
-    "reserved-js-words.js",
-    script="GenerateReservedWordsJS.py",
-    inputs=["/js/src/frontend/ReservedWords.h"],
-)
+# Generate reserved-js-words.js from /js/src/frontend/ReservedWords.h
+flags = []
+if CONFIG["ENABLE_DECORATORS"]:
+    flags.append("--enable-decorators")
+if CONFIG["ENABLE_EXPLICIT_RESOURCE_MANAGEMENT"]:
+    flags.append("--enable-explicit-resource-management")
+if flags:
+    GeneratedFile(
+        "reserved-js-words.js",
+        script="GenerateReservedWordsJS.py",
+        inputs=["/js/src/frontend/ReservedWords.h"],
+        flags=flags,
+    )
+else:
+    GeneratedFile(
+        "reserved-js-words.js",
+        script="GenerateReservedWordsJS.py",
+        inputs=["/js/src/frontend/ReservedWords.h"],
+    )
 
 DevToolsModules(
     "analyze-input-string.js",
