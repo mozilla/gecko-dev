@@ -41,6 +41,10 @@ SOURCES += [
     "CubebDeviceEnumerator.cpp",
 ]
 
+LOCAL_INCLUDES += [
+    "/dom/media/systemservices",
+]
+
 if CONFIG["MOZ_WEBRTC"]:
     EXPORTS += [
         "MediaEngineRemoteVideoSource.h",
@@ -62,7 +66,6 @@ if CONFIG["MOZ_WEBRTC"]:
         "PWebrtcGlobal.ipdl",
     ]
     LOCAL_INCLUDES += [
-        "..",
         "/dom/base",
         "/dom/media",
         "/dom/media/webrtc/common",
