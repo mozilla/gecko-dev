@@ -372,7 +372,7 @@ GetPersistentPermissions(uint64_t aWindowId) {
  */
 class DeviceListener : public SupportsWeakPtr {
  public:
-  typedef MozPromise<bool /* aIgnored */, RefPtr<MediaMgrError>, true>
+  typedef MozPromise<bool /* aIgnored */, RefPtr<MediaMgrError>, false>
       DeviceListenerPromise;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING_WITH_DELETE_ON_MAIN_THREAD(
@@ -831,7 +831,14 @@ class LocalTrackSource : public MediaStreamTrackSource {
       return MediaStreamTrackSource::ApplyConstraintsPromise::CreateAndResolve(
           false, __func__);
     }
-    return mListener->ApplyConstraints(aConstraints, aCallerType);
+    auto p = mListener->ApplyConstraints(aConstraints, aCallerType);
+    p->Then(
+        GetCurrentSerialEventTarget(), __func__,
+        [aConstraints, this, self = RefPtr(this)] {
+          ConstraintsChanged(aConstraints);
+        },
+        [] {});
+    return p;
   }
 
   void GetSettings(MediaTrackSettings& aOutSettings) override {
@@ -1821,7 +1828,7 @@ void GetUserMediaStreamTask::PrepareDOMStream() {
             return resolvePromise;
           },
           [audio = mAudioDeviceListener,
-           video = mVideoDeviceListener](RefPtr<MediaMgrError>&& aError) {
+           video = mVideoDeviceListener](const RefPtr<MediaMgrError>& aError) {
             LOG("GetUserMediaStreamTask::PrepareDOMStream: starting failure "
                 "callback following InitializeAsync()");
             if (audio) {
@@ -4354,10 +4361,9 @@ DeviceListener::InitializeAsync() {
             return DeviceListenerPromise::CreateAndResolve(true, __func__);
           },
           [self = RefPtr<DeviceListener>(this),
-           this](RefPtr<MediaMgrError>&& aResult) {
+           this](const RefPtr<MediaMgrError>& aResult) {
             if (mStopped) {
-              return DeviceListenerPromise::CreateAndReject(std::move(aResult),
-                                                            __func__);
+              return DeviceListenerPromise::CreateAndReject(aResult, __func__);
             }
 
             MOZ_DIAGNOSTIC_ASSERT(!mDeviceState->mTrackEnabled);
@@ -4365,8 +4371,7 @@ DeviceListener::InitializeAsync() {
             MOZ_DIAGNOSTIC_ASSERT(!mDeviceState->mStopped);
 
             Stop();
-            return DeviceListenerPromise::CreateAndReject(std::move(aResult),
-                                                          __func__);
+            return DeviceListenerPromise::CreateAndReject(aResult, __func__);
           });
 }
 

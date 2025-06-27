@@ -98,6 +98,13 @@ class MediaStreamTrackSource : public nsISupports {
     virtual void MutedChanged(bool aNewState) = 0;
 
     /**
+     * Called when the constraints of the MediaStreamTrackSource where this sink
+     * is registered has changed.
+     */
+    virtual void ConstraintsChanged(
+        const MediaTrackConstraints& aConstraints) = 0;
+
+    /**
      * Called when the MediaStreamTrackSource where this sink is registered has
      * stopped producing data for good, i.e., it has ended.
      */
@@ -170,7 +177,7 @@ class MediaStreamTrackSource : public nsISupports {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  typedef MozPromise<bool /* aIgnored */, RefPtr<MediaMgrError>, true>
+  typedef MozPromise<bool /* aIgnored */, RefPtr<MediaMgrError>, false>
       ApplyConstraintsPromise;
 
   /**
@@ -305,6 +312,22 @@ class MediaStreamTrackSource : public nsISupports {
         continue;
       }
       sink->MutedChanged(aNewState);
+    }
+  }
+
+  /**
+   * Called by a sub class when the source's applied constraints has changed.
+   * Notifies all sinks.
+   */
+  void ConstraintsChanged(const MediaTrackConstraints& aConstraints) {
+    MOZ_ASSERT(NS_IsMainThread());
+    for (auto& sink : mSinks.Clone()) {
+      if (!sink) {
+        DebugOnly<bool> removed = mSinks.RemoveElement(sink);
+        MOZ_ASSERT(!removed, "Sink was not explicitly removed");
+        continue;
+      }
+      sink->ConstraintsChanged(aConstraints);
     }
   }
 
@@ -598,6 +621,11 @@ class MediaStreamTrack : public DOMEventTargetHelper, public SupportsWeakPtr {
    * Called when mSource's muted state has changed.
    */
   void MutedChanged(bool aNewState);
+
+  /**
+   * Called when mSource's applied constraints has changed.
+   */
+  void ConstraintsChanged(const MediaTrackConstraints& aConstraints);
 
   /**
    * Sets this track's muted state without raising any events.

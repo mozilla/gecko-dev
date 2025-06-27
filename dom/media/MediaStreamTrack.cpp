@@ -167,6 +167,12 @@ class MediaStreamTrack::TrackSink : public MediaStreamTrackSource::Sink {
     }
   }
 
+  void ConstraintsChanged(const MediaTrackConstraints& aConstraints) override {
+    if (mTrack) {
+      mTrack->ConstraintsChanged(aConstraints);
+    }
+  }
+
   void OverrideEnded() override {
     if (mTrack) {
       mTrack->OverrideEnded();
@@ -368,7 +374,6 @@ already_AddRefed<Promise> MediaStreamTrack::ApplyConstraints(
             if (!mWindow || !mWindow->IsCurrentInnerWindow()) {
               return;  // Leave Promise pending after navigation by design.
             }
-            mConstraints = aConstraints;
             promise->MaybeResolve(false);
           },
           [this, self, promise](const RefPtr<MediaMgrError>& aError) {
@@ -468,6 +473,12 @@ void MediaStreamTrack::MutedChanged(bool aNewState) {
 
   nsString eventName = aNewState ? u"mute"_ns : u"unmute"_ns;
   DispatchTrustedEvent(eventName);
+}
+
+void MediaStreamTrack::ConstraintsChanged(
+    const MediaTrackConstraints& aConstraints) {
+  MOZ_ASSERT(NS_IsMainThread());
+  mConstraints = aConstraints;
 }
 
 void MediaStreamTrack::NotifyEnded() {

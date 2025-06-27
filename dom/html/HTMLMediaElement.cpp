@@ -1244,6 +1244,8 @@ class HTMLMediaElement::MediaElementTrackSource
     MediaStreamTrackSource::MutedChanged(Muted());
   }
 
+  void ConstraintsChanged(const MediaTrackConstraints& aConstraints) override {}
+
   void OverrideEnded() override {
     Destroy();
     MediaStreamTrackSource::OverrideEnded();
