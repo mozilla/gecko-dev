@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import sys
+from enum import Enum, auto
 
 from fetch_github_repo import fetch_repo
 from run_operations import get_last_line, run_git, run_hg, run_shell
@@ -17,6 +18,29 @@ from run_operations import get_last_line, run_git, run_hg, run_shell
 # process from the beginning.
 
 
+class RepoType(Enum):
+    HG = auto()
+    GIT = auto()
+
+
+def detect_repo_type():
+    if os.path.exists(".git"):
+        return RepoType.GIT
+    elif os.path.exists(".hg"):
+        return RepoType.HG
+    return None
+
+
+def check_repo_status(repo_type):
+    if not isinstance(repo_type, RepoType):
+        print("check_repo_status requires type RepoType")
+        raise TypeError
+    if repo_type == RepoType.GIT:
+        return run_git("git status -s third_party/libwebrtc", ".")
+    else:
+        return run_hg("hg status third_party/libwebrtc")
+
+
 def restore_patch_stack(
     github_path,
     github_branch,
@@ -24,8 +48,14 @@ def restore_patch_stack(
     state_directory,
     tar_name,
 ):
+    # first, check which repo we're in, git or hg
+    repo_type = detect_repo_type()
+    if repo_type is None:
+        print("Unable to detect repo (git or hg)")
+        sys.exit(1)
+
     # make sure the repo is clean before beginning
-    stdout_lines = run_hg("hg status third_party/libwebrtc")
+    stdout_lines = check_repo_status(repo_type)
     if len(stdout_lines) != 0:
         print("There are modified or untracked files under third_party/libwebrtc")
         print("Please cleanup the repo under third_party/libwebrtc before running")
