@@ -765,8 +765,6 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "IdentityCredential", nightly: true, desktop: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "IdentityProvider", nightly: true, desktop: true },
-  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "IdleDeadline", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "Image", insecureContext: true },

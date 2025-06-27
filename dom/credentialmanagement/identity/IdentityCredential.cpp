@@ -46,10 +46,10 @@ IPCIdentityCredential IdentityCredential::MakeIPCIdentityCredential() const {
   return result;
 }
 
-void IdentityCredential::GetToken(nsACString& aToken) const {
+void IdentityCredential::GetToken(nsAString& aToken) const {
   aToken.Assign(mToken);
 }
-void IdentityCredential::SetToken(const nsACString& aToken) {
+void IdentityCredential::SetToken(const nsAString& aToken) {
   mToken.Assign(aToken);
 }
 
