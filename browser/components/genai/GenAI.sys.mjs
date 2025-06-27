@@ -301,9 +301,9 @@ export const GenAI = {
     updateIgnoredInputs();
 
     // Handle nimbus feature pref setting
-    const featureId = "chatbot";
-    lazy.NimbusFeatures[featureId].onUpdate(() => {
-      const enrollment = lazy.NimbusFeatures[featureId].getEnrollmentMetadata();
+    const feature = lazy.NimbusFeatures.chatbot;
+    feature.onUpdate(() => {
+      const enrollment = feature.getEnrollmentMetadata();
       if (!enrollment) {
         return;
       }
@@ -315,7 +315,7 @@ export const GenAI = {
           // Support betas, e.g., 132.0b1, instead of MOZ_APP_VERSION
           AppConstants.MOZ_APP_VERSION_DISPLAY,
           // Check configured version or compare with unset handled as 0
-          lazy.NimbusFeatures[featureId].getVariable("minVersion")
+          feature.getVariable("minVersion")
         ) < 0
       ) {
         return;
@@ -324,16 +324,19 @@ export const GenAI = {
       // Set prefs on any branch if we have a new enrollment slug, otherwise
       // only set default branch as those only last for the session
       const slug = enrollment.slug + ":" + enrollment.branch;
-      const anyBranch = slug != lazy.chatNimbus;
+      const newEnroll = slug != lazy.chatNimbus;
       const setPref = ([pref, { branch = "user", value = null }]) => {
-        if (anyBranch || branch == "default") {
+        if (newEnroll || branch == "default") {
           lazy.PrefUtils.setPref("browser.ml.chat." + pref, value, { branch });
         }
       };
       setPref(["nimbus", { value: slug }]);
-      Object.entries(
-        lazy.NimbusFeatures[featureId].getVariable("prefs")
-      ).forEach(setPref);
+      Object.entries(feature.getVariable("prefs") ?? {}).forEach(setPref);
+
+      // Show sidebar badge on new enrollment
+      if (feature.getVariable("badgeSidebar") && newEnroll) {
+        Services.prefs.setBoolPref("sidebar.notification.badge.aichat", true);
+      }
     });
 
     // Record glean metrics after applying nimbus prefs

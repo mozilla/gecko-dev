@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   FxAccounts: "resource://gre/modules/FxAccounts.sys.mjs",
+  GenAI: "resource:///modules/GenAI.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
@@ -755,6 +756,10 @@ export const SpecialMessageActions = {
       case "SET_SEARCH_MODE":
         window.gURLBar.searchMode = action.data;
         window.gURLBar.focus();
+        break;
+      case "SUMMARIZE_PAGE":
+        const entry = action.data ?? "message";
+        await lazy.GenAI.summarizeCurrentPage(window, entry);
         break;
     }
     return undefined;
