@@ -416,17 +416,22 @@ class LabeledString(Labeled, String):
 class LabeledCounter(Labeled, Counter):
     typename = "labeled_counter"
 
+
 class LabeledCustomDistribution(Labeled, CustomDistribution):
     typename = "labeled_custom_distribution"
+
 
 class LabeledMemoryDistribution(Labeled, MemoryDistribution):
     typename = "labeled_memory_distribution"
 
+
 class LabeledTimingDistribution(Labeled, TimingDistribution):
     typename = "labeled_timing_distribution"
 
+
 class LabeledQuantity(Labeled, Quantity):
     typename = "labeled_quantity"
+
 
 class Rate(Metric):
     typename = "rate"
@@ -525,6 +530,57 @@ class Object(Metric):
 
         structure = Object._validate_substructure(structure)
         return structure
+
+
+class DualLabeledCounter(Metric):
+    typename = "dual_labeled_counter"
+    dual_labeled = True
+
+    def __init__(self, *args, **kwargs):
+        dual_labels = kwargs.pop("dual_labels", None)
+        if not dual_labels:
+            raise ValueError(
+                "`dual_labeled_counter` is missing required parameter `dual_labels`"
+            )
+        k = dual_labels.get("key", None)
+        if not k:
+            raise ValueError("`dual_labels` is missing required parameter `key`")
+        c = dual_labels.get("category", None)
+        if not c:
+            raise ValueError("`dual_labels` is missing required parameter `categories`")
+        keys = k.get("labels", None)
+        if keys is not None:
+            if not isinstance(keys, list) or not all(isinstance(k, str) for k in keys):
+                raise ValueError("key `labels` must be a list of strings")
+            self.ordered_keys = keys
+            self.keys = set([CowString(key) for key in keys])
+        else:
+            self.ordered_keys = None
+            self.keys = None
+        categories = c.get("labels", None)
+        if categories is not None:
+            if not isinstance(categories, list) or not all(
+                isinstance(c, str) for c in categories
+            ):
+                raise ValueError("category `labels` must be a list of strings")
+            self.ordered_categories = categories
+            self.categories = set([CowString(category) for category in categories])
+        else:
+            self.ordered_categories = None
+            self.categories = None
+        super().__init__(*args, **kwargs)
+
+    def serialize(self) -> Dict[str, util.JSONType]:
+        """
+        Serialize the metric back to JSON object model.
+        """
+        d = super().serialize()
+        d["keys"] = self.ordered_keys
+        d["categories"] = self.ordered_categories
+        del d["ordered_keys"]
+        del d["ordered_categories"]
+        del d["dual_labeled"]
+        return d
 
 
 ObjectTree = Dict[str, Dict[str, Union[Metric, pings.Ping, tags.Tag]]]
