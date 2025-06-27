@@ -576,7 +576,8 @@ class HomeFragment : Fragment() {
                 browsingModeManager = activity.browsingModeManager,
                 settings = activity.settings(),
                 directToSearchConfig = DirectToSearchConfig(
-                    startSearch = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR),
+                    startSearch = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) ||
+                            FxNimbus.features.oneClickSearch.value().enabled,
                     sessionId = args.sessionToStartSearchFor,
                 ),
                 tabStripContent = { TabStrip() },
