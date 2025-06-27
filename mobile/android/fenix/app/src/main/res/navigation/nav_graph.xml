@@ -237,6 +237,11 @@
             app:argType="string"
             app:nullable="true" />
         <argument
+            android:name="sessionToStartSearchFor"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <argument
             android:name="focusOnAddressBar"
             android:defaultValue="false"
             app:argType="boolean" />

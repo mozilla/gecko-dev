@@ -62,7 +62,7 @@ sealed class AppAction : Action {
     /**
      * Updates whether the user is currently performing a search.
      *
-     * @property isSearchActive Whether whether the user is currently performing a search or not.
+     * @property isSearchActive Whether the user is currently performing a search or not.
      */
     data class UpdateSearchBeingActiveState(val isSearchActive: Boolean) : AppAction()
 

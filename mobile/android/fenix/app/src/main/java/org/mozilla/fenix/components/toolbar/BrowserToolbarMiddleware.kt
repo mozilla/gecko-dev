@@ -42,7 +42,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
@@ -88,6 +88,7 @@ import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDismissed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
+import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
@@ -173,7 +174,7 @@ internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
  * @param settings [Settings] for accessing user preferences.
  * @param sessionUseCases [SessionUseCases] for interacting with the current session.
  */
-@Suppress("LongParameterList", "TooManyFunctions")
+@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
     private val browserScreenStore: BrowserScreenStore,
@@ -219,8 +220,10 @@ class BrowserToolbarMiddleware(
         action: BrowserToolbarAction,
     ) {
         when (action) {
-            is BrowserToolbarAction.Init -> {
+            is Init -> {
                 store = context.store as BrowserToolbarStore
+
+                appStore.dispatch(UpdateSearchBeingActiveState(context.store.state.isEditMode()))
 
                 updateStartBrowserActions()
                 updateCurrentPageOrigin()
@@ -309,7 +312,15 @@ class BrowserToolbarMiddleware(
             }
 
             is OriginClicked -> {
-                store?.dispatch(ToggleEditMode(editMode = true))
+                val selectedTab = browserStore.state.selectedTab ?: return
+                if (selectedTab.content.searchTerms.isBlank()) {
+                    dependencies.navController.navigate(
+                        BrowserFragmentDirections.actionGlobalHome(
+                            focusOnAddressBar = true,
+                            sessionToStartSearchFor = selectedTab.id,
+                        ),
+                    )
+                }
             }
             is CopyToClipboardClicked -> {
                 val selectedTab = browserStore.state.selectedTab

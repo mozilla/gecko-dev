@@ -23,11 +23,15 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
+import mozilla.components.browser.state.ext.getUrl
+import mozilla.components.browser.state.selector.findTab
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchQueryUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.support.ktx.android.view.ImeInsetsSynchronizer
@@ -57,6 +61,7 @@ import org.mozilla.fenix.utils.Settings
  * @param browserStore [BrowserStore] to sync from.
  * @param browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
  * @param settings [Settings] for querying various application settings.
+ * @param directToSearchConfig [DirectToSearchConfig] configuration for starting with the toolbar in search mode.
  * @param tabStripContent [Composable] as the tab strip content to be displayed together with this toolbar.
  * @param searchSuggestionsContent [Composable] as the search suggestions content to be displayed
  * together with this toolbar.
@@ -71,6 +76,7 @@ internal class HomeToolbarComposable(
     private val browserStore: BrowserStore,
     private val browsingModeManager: BrowsingModeManager,
     private val settings: Settings,
+    private val directToSearchConfig: DirectToSearchConfig,
     private val tabStripContent: @Composable () -> Unit,
     private val searchSuggestionsContent: @Composable (BrowserToolbarStore, Modifier) -> Unit,
 ) : FenixHomeToolbar {
@@ -125,6 +131,7 @@ internal class HomeToolbarComposable(
         }
 
         updateHomeAppBarIntegration()
+        configureStartingInSearchMode()
     }
 
     override fun updateDividerVisibility(isVisible: Boolean) {
@@ -173,6 +180,22 @@ internal class HomeToolbarComposable(
                         true -> context.resources.getDimensionPixelSize(R.dimen.tab_strip_height)
                         false -> 0
                     }
+            }
+        }
+    }
+
+    private fun configureStartingInSearchMode() {
+        if (!directToSearchConfig.startSearch) return
+        store.dispatch(ToggleEditMode(true))
+
+        if (directToSearchConfig.sessionId != null) {
+            browserStore.state.findTab(directToSearchConfig.sessionId)?.let {
+                store.dispatch(
+                    SearchQueryUpdated(
+                        query = it.getUrl() ?: "",
+                        showAsPreselected = true,
+                    ),
+                )
             }
         }
     }
@@ -232,5 +255,22 @@ internal class HomeToolbarComposable(
             } as T
 
         else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
+    }
+
+    /**
+     * Static configuration and properties of [HomeToolbarComposable].
+     */
+    companion object {
+        /**
+         * Configuration for starting with the toolbar in search mode.
+         *
+         * @property startSearch Whether to start in search mode. Defaults to `false`.
+         * @property sessionId The session ID of the current session with details of which to start search.
+         * Defaults to `null`.
+         */
+        data class DirectToSearchConfig(
+            val startSearch: Boolean = false,
+            val sessionId: String? = null,
+        )
     }
 }

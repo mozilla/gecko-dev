@@ -127,6 +127,7 @@ import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.toolbar.DefaultToolbarController
 import org.mozilla.fenix.home.toolbar.FenixHomeToolbar
 import org.mozilla.fenix.home.toolbar.HomeToolbarComposable
+import org.mozilla.fenix.home.toolbar.HomeToolbarComposable.Companion.DirectToSearchConfig
 import org.mozilla.fenix.home.toolbar.HomeToolbarView
 import org.mozilla.fenix.home.toolbar.SearchSelectorBinding
 import org.mozilla.fenix.home.toolbar.SearchSelectorMenuBinding
@@ -574,6 +575,10 @@ class HomeFragment : Fragment() {
                 browserStore = activity.components.core.store,
                 browsingModeManager = activity.browsingModeManager,
                 settings = activity.settings(),
+                directToSearchConfig = DirectToSearchConfig(
+                    startSearch = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR),
+                    sessionId = args.sessionToStartSearchFor,
+                ),
                 tabStripContent = { TabStrip() },
                 searchSuggestionsContent = { toolbarStore, modifier ->
                     (awesomeBarComposable ?: initializeAwesomeBarComposable(toolbarStore, modifier))
@@ -885,7 +890,7 @@ class HomeFragment : Fragment() {
         val focusOnAddressBar = bundleArgs.getBoolean(FOCUS_ON_ADDRESS_BAR) ||
                 FxNimbus.features.oneClickSearch.value().enabled
 
-        if (focusOnAddressBar) {
+        if (focusOnAddressBar && !requireContext().settings().shouldUseComposableToolbar) {
             // If the fragment gets recreated by the activity, the search fragment might get recreated as well. Changing
             // between browsing modes triggers activity recreation, so when changing modes goes together with navigating
             // home, we should avoid navigating to search twice.

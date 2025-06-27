@@ -70,9 +70,7 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.utils.ClipboardHandler
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -98,6 +96,7 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDismissed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
+import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.OrientationMode.Landscape
 import org.mozilla.fenix.components.appstate.OrientationMode.Portrait
@@ -153,6 +152,18 @@ class BrowserToolbarMiddlewareTest {
     private val cookieBannersStorage: CookieBannersStorage = mockk()
     private val trackingProtectionUseCases: TrackingProtectionUseCases = mockk()
     private val publicSuffixList = PublicSuffixList(testContext)
+
+    @Test
+    fun `WHEN initializing the toolbar THEN update state to display mode`() = runTestOnMain {
+        val appStore: AppStore = mockk(relaxed = true)
+        val middleware = buildMiddleware(appStore = appStore).updateDependencies()
+
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        verify { appStore.dispatch(UpdateSearchBeingActiveState(false)) }
+    }
 
     @Test
     fun `WHEN initializing the toolbar THEN add browser start actions`() = runTestOnMain {
@@ -548,9 +559,16 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
-    fun ` WHEN the page origin is clicked THEN enter is edit mode`() {
+    fun `GIVEN no search terms for the current tab WHEN the page origin is clicked THEN start search in the home screen`() {
         val navController: NavController = mockk(relaxed = true)
         val browsingModeManager = SimpleBrowsingModeManager(Normal)
+        val currentTab = createTab("test.com")
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab),
+                selectedTabId = currentTab.id,
+            ),
+        )
         val middleware = buildMiddleware(browserStore = browserStore).updateDependencies(
             navController = navController,
             browsingModeManager = browsingModeManager,
@@ -558,11 +576,17 @@ class BrowserToolbarMiddlewareTest {
         val toolbarStore = BrowserToolbarStore(
             middleware = listOf(middleware),
         )
-        assertFalse(toolbarStore.state.isEditMode())
 
         toolbarStore.dispatch(toolbarStore.state.displayState.pageOrigin.onClick as BrowserToolbarAction)
 
-        assertTrue(toolbarStore.state.isEditMode())
+        verify {
+            navController.navigate(
+                BrowserFragmentDirections.actionGlobalHome(
+                    focusOnAddressBar = true,
+                    sessionToStartSearchFor = browserStore.state.selectedTabId,
+                ),
+            )
+        }
     }
 
     @Test
@@ -849,7 +873,8 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(Normal, browsingModeManager.mode)
         verify(exactly = 0) {
             tabsUseCases.removeTab(any(), any())
-            appStore.dispatch(any())
+            appStore.dispatch(CurrentTabClosed(true))
+            appStore.dispatch(CurrentTabClosed(false))
         }
         verify {
             navController.navigate(
@@ -893,7 +918,8 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(Private, browsingModeManager.mode)
         verify(exactly = 0) {
             tabsUseCases.removeTab(any(), any())
-            appStore.dispatch(any())
+            appStore.dispatch(CurrentTabClosed(true))
+            appStore.dispatch(CurrentTabClosed(false))
         }
         verify {
             navController.navigate(
@@ -941,7 +967,8 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(Private, browsingModeManager.mode)
         verify(exactly = 0) {
             tabsUseCases.removeTab(any(), any())
-            appStore.dispatch(any())
+            appStore.dispatch(CurrentTabClosed(true))
+            appStore.dispatch(CurrentTabClosed(false))
             navController.navigate(
                 BrowserFragmentDirections.actionGlobalHome(
                     sessionToDelete = currentTab.id,
@@ -995,7 +1022,8 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(Private, browsingModeManager.mode)
         verify(exactly = 0) {
             tabsUseCases.removeTab(any(), any())
-            appStore.dispatch(any())
+            appStore.dispatch(CurrentTabClosed(true))
+            appStore.dispatch(CurrentTabClosed(false))
             browserScreenStore.dispatch(any())
         }
         verify {

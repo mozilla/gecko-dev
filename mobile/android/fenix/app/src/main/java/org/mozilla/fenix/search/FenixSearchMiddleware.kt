@@ -165,9 +165,9 @@ class FenixSearchMiddleware(
                         BookmarksManagement.searchResultTapped.record(NoExtras())
                     }
                 }
-                suggestion.onSuggestionClicked?.invoke()
                 browserStore.dispatch(AwesomeBarAction.SuggestionClicked(suggestion))
                 toolbarStore.dispatch(BrowserEditToolbarAction.SearchQueryUpdated(""))
+                suggestion.onSuggestionClicked?.invoke()
             }
 
             is SuggestionSelected -> {
