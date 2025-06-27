@@ -67,12 +67,14 @@ sealed class WebExtensionPromptRequest {
              * @property extension The [WebExtension] that requested the dialog to be shown.
              * @property permissions The optional permissions to list in the dialog.
              * @property origins The optional host permissions to list in the dialog.
+             * @property dataCollectionPermissions The optional data collection permissions to list in the dialog.
              * @property onConfirm A callback indicating whether the permissions were granted or not.
              */
             data class Optional(
                 override val extension: WebExtension,
                 val permissions: List<String>,
                 val origins: List<String>,
+                val dataCollectionPermissions: List<String>,
                 val onConfirm: (Boolean) -> Unit,
             ) : Permissions(extension)
         }

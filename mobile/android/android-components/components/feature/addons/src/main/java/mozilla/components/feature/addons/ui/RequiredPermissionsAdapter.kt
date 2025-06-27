@@ -25,8 +25,6 @@ private const val VIEW_HOLDER_TYPE_EXTRA_WARNING = 4
 
 private const val DOMAINS_CONTRACTED_SUBLIST_SIZE = 5
 
-private const val VIEW_HOLDER_TYPE_REQUIRED_DATA_COLLECTION_PERMISSIONS = 6
-
 /**
  * Classes of items that can be included in [RequiredPermissionsAdapter]
  */
@@ -54,14 +52,6 @@ sealed class RequiredPermissionsListItem {
      */
     class DomainItem(
         val domain: String,
-    ) : RequiredPermissionsListItem()
-
-    /**
-     * A list item for the required data collection permissions.
-     * @param permissionText - The text to show in the compound textview
-     */
-    class RequiredDataCollectionItem(
-        val permissionText: String,
     ) : RequiredPermissionsListItem()
 
     /**
@@ -103,10 +93,6 @@ private class DiffCallback : DiffUtil.ItemCallback<RequiredPermissionsListItem>(
                 newItem is RequiredPermissionsListItem.DomainItem ->
                 oldItem.domain == newItem.domain
 
-            oldItem is RequiredPermissionsListItem.RequiredDataCollectionItem &&
-                newItem is RequiredPermissionsListItem.RequiredDataCollectionItem ->
-                oldItem.permissionText == newItem.permissionText
-
             oldItem is RequiredPermissionsListItem.ShowHideDomainAction &&
                 newItem is RequiredPermissionsListItem.ShowHideDomainAction ->
                 oldItem.isShowAction == newItem.isShowAction
@@ -136,10 +122,6 @@ private class DiffCallback : DiffUtil.ItemCallback<RequiredPermissionsListItem>(
                 newItem is RequiredPermissionsListItem.DomainItem ->
                 oldItem.domain == newItem.domain
 
-            oldItem is RequiredPermissionsListItem.RequiredDataCollectionItem &&
-                newItem is RequiredPermissionsListItem.RequiredDataCollectionItem ->
-                oldItem.permissionText == newItem.permissionText
-
             oldItem is RequiredPermissionsListItem.ShowHideDomainAction &&
                 newItem is RequiredPermissionsListItem.ShowHideDomainAction ->
                 oldItem.isShowAction == newItem.isShowAction
@@ -162,7 +144,6 @@ private class DiffCallback : DiffUtil.ItemCallback<RequiredPermissionsListItem>(
  * @property domains The list of domains to be displayed as URL's
  * @property domainsHeaderText The text header above the list of domains to display
  * @property extraPermissionWarning The text to display in a warning bar, if any.
- * @property requiredDataCollectionPermissionText The text to display for the required data collection permissions.
  */
 class RequiredPermissionsAdapter(
     private val permissions: List<String>,
@@ -171,7 +152,6 @@ class RequiredPermissionsAdapter(
     private val domains: Set<String>,
     private val domainsHeaderText: String,
     private val extraPermissionWarning: String?,
-    private val requiredDataCollectionPermissionText: String? = null,
 ) :
     ListAdapter<RequiredPermissionsListItem, ViewHolder>(DiffCallback()) {
 
@@ -227,20 +207,6 @@ class RequiredPermissionsAdapter(
          */
         fun bind(item: RequiredPermissionsListItem.DomainItem) {
             domainTv.text = item.domain
-        }
-    }
-
-    /**
-     * ViewHolder for displaying a [RequiredPermissionsListItem.RequiredDataCollectionItem] list item.
-     */
-    class RequiredPermissionsViewHolder(itemView: View) : ViewHolder(itemView) {
-        private val textView: TextView = itemView.findViewById(R.id.required_data_collection_permissions)
-
-        /**
-         * Bind [RequiredPermissionsListItem.RequiredDataCollectionItem] data to view.
-         */
-        fun bind(item: RequiredPermissionsListItem.RequiredDataCollectionItem) {
-            textView.text = item.permissionText
         }
     }
 
@@ -307,8 +273,6 @@ class RequiredPermissionsAdapter(
             is RequiredPermissionsListItem.PermissionItem -> VIEW_HOLDER_TYPE_PERMISSION
             is RequiredPermissionsListItem.OptInPermissionItem -> VIEW_HOLDER_TYPE_OPT_IN_PERMISSION
             is RequiredPermissionsListItem.DomainItem -> VIEW_HOLDER_TYPE_PERMISSION_DOMAIN
-            is RequiredPermissionsListItem.RequiredDataCollectionItem ->
-                VIEW_HOLDER_TYPE_REQUIRED_DATA_COLLECTION_PERMISSIONS
             is RequiredPermissionsListItem.ShowHideDomainAction -> VIEW_HOLDER_TYPE_SHOW_HIDE_SITES
             is RequiredPermissionsListItem.ExtraWarningItem -> VIEW_HOLDER_TYPE_EXTRA_WARNING
         }
@@ -338,15 +302,6 @@ class RequiredPermissionsAdapter(
                 LayoutInflater.from(viewGroup.context)
                     .inflate(
                         R.layout.mozac_feature_addons_permissions_domain_item,
-                        viewGroup,
-                        false,
-                    ),
-            )
-
-            VIEW_HOLDER_TYPE_REQUIRED_DATA_COLLECTION_PERMISSIONS -> RequiredPermissionsViewHolder(
-                LayoutInflater.from(viewGroup.context)
-                    .inflate(
-                        R.layout.mozac_feature_addons_permissions_required_data_collection_permissions_item,
                         viewGroup,
                         false,
                     ),
@@ -391,10 +346,6 @@ class RequiredPermissionsAdapter(
 
             is RequiredPermissionsListItem.DomainItem -> {
                 (viewHolder as DomainViewHolder).bind(item)
-            }
-
-            is RequiredPermissionsListItem.RequiredDataCollectionItem -> {
-                (viewHolder as RequiredPermissionsViewHolder).bind(item)
             }
 
             is RequiredPermissionsListItem.ShowHideDomainAction -> {
@@ -483,12 +434,6 @@ class RequiredPermissionsAdapter(
             permissions.forEach {
                 displayList.add(
                     RequiredPermissionsListItem.PermissionItem(it),
-                )
-            }
-
-            if (requiredDataCollectionPermissionText != null) {
-                displayList.add(
-                    RequiredPermissionsListItem.RequiredDataCollectionItem(requiredDataCollectionPermissionText),
                 )
             }
         }

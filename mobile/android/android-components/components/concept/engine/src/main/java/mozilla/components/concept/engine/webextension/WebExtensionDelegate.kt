@@ -164,14 +164,16 @@ interface WebExtensionDelegate {
      * user needs to grant or revoke these optional permissions.
      *
      * @param extension The [WebExtension].
-     * @param permissions The list of all the optional permissions.
-     * @param origins The list of all the optional host permissions.
+     * @param permissions The list of optional permissions.
+     * @param origins The list of optional host permissions.
+     * @param dataCollectionPermissions The list of optional data collection permissions.
      * @param onPermissionsGranted A callback to indicate if the optional permissions have been granted or not.
      */
     fun onOptionalPermissionsRequest(
         extension: WebExtension,
         permissions: List<String>,
         origins: List<String>,
+        dataCollectionPermissions: List<String>,
         onPermissionsGranted: ((Boolean) -> Unit),
     ) = Unit
 

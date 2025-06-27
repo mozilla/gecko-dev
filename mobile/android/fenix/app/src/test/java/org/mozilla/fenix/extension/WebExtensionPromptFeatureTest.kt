@@ -250,6 +250,7 @@ class WebExtensionPromptFeatureTest {
                     mockk(),
                     mockk(),
                     mockk(),
+                    mockk(),
                 ),
             ),
         ).joinBlocking()
@@ -274,6 +275,7 @@ class WebExtensionPromptFeatureTest {
             extension = mockk(),
             permissions = listOf("tabs"),
             origins = emptyList(),
+            dataCollectionPermissions = emptyList(),
             onConfirm = mockk(),
         )
 
@@ -285,6 +287,8 @@ class WebExtensionPromptFeatureTest {
                 eq(promptRequest),
                 eq(true),
                 eq(promptRequest.permissions),
+                eq(promptRequest.origins),
+                eq(promptRequest.dataCollectionPermissions),
             )
         }
     }
@@ -299,13 +303,14 @@ class WebExtensionPromptFeatureTest {
             // The "scripting" API permission doesn't have a description so we should not show a dialog for it.
             permissions = listOf("scripting"),
             origins = emptyList(),
+            dataCollectionPermissions = emptyList(),
             onConfirm = onConfirm,
         )
 
         webExtensionPromptFeature.handleOptionalPermissionsRequest(addon = addon, promptRequest = promptRequest)
 
         verify(exactly = 0) {
-            webExtensionPromptFeature.showPermissionDialog(any(), any(), any(), any())
+            webExtensionPromptFeature.showPermissionDialog(any(), any(), any(), any(), any(), any())
         }
         verify(exactly = 1) { onConfirm(true) }
     }
@@ -320,6 +325,7 @@ class WebExtensionPromptFeatureTest {
             // The "scripting" API permission doesn't have a description so we should not show a dialog for it.
             permissions = listOf("scripting"),
             origins = listOf("*://developer.mozilla.org/*"),
+            dataCollectionPermissions = emptyList(),
             onConfirm = onConfirm,
         )
 
@@ -332,6 +338,7 @@ class WebExtensionPromptFeatureTest {
                 eq(true),
                 eq(promptRequest.permissions),
                 eq(promptRequest.origins),
+                eq(promptRequest.dataCollectionPermissions),
             )
         }
 
@@ -347,13 +354,14 @@ class WebExtensionPromptFeatureTest {
             extension = mockk(),
             permissions = emptyList(),
             origins = emptyList(),
+            dataCollectionPermissions = emptyList(),
             onConfirm = onConfirm,
         )
 
         webExtensionPromptFeature.handleOptionalPermissionsRequest(addon = addon, promptRequest = promptRequest)
 
         verify(exactly = 0) {
-            webExtensionPromptFeature.showPermissionDialog(any(), any(), any(), any())
+            webExtensionPromptFeature.showPermissionDialog(any(), any(), any(), any(), any(), any())
         }
         verify(exactly = 1) { onConfirm(true) }
     }

@@ -7,6 +7,7 @@ package mozilla.components.feature.addons.ui
 import android.view.Gravity.TOP
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.view.isVisible
@@ -66,14 +67,25 @@ class PermissionsDialogFragmentTest {
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
         val permissionList = fragment.buildPermissionsList(isAllUrlsPermissionFound = false)
-        val optionalOrRequiredText = fragment.buildOptionalOrRequiredText()
         val allowedInPrivateBrowsing =
             dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
-        assertTrue(titleTextView.text.contains(name))
-        assertTrue(optionalOrRequiredText.contains(testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions)))
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions),
+            optionalOrRequiredTextView.text,
+        )
+
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_privacy_description)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_all_urls_description)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_tabs_description)))
@@ -81,7 +93,6 @@ class PermissionsDialogFragmentTest {
         // T&I checkbox is not shown, unless the extension declares it in its manifest.
         assertFalse(technicalAndInteractionDataCheckbox.isVisible)
 
-        assertEquals(optionalOrRequiredTextView.text, optionalOrRequiredText)
         Assert.assertNotNull(recyclerAdapter)
         assertEquals(3, recyclerAdapter.itemCount)
 
@@ -121,8 +132,7 @@ class PermissionsDialogFragmentTest {
     fun `clicking on dialog buttons notifies lambdas`() {
         val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
 
-        val fragment =
-            createPermissionsDialogFragment(addon, permissions = emptyList(), origins = emptyList())
+        val fragment = createPermissionsDialogFragment(addon)
         var allowedWasExecuted = false
         var denyWasExecuted = false
         var learnMoreWasExecuted = false
@@ -162,7 +172,7 @@ class PermissionsDialogFragmentTest {
         val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
 
         val fragment =
-            createPermissionsDialogFragment(addon, permissions = emptyList(), origins = emptyList())
+            createPermissionsDialogFragment(addon)
         var denyWasExecuted = false
 
         fragment.onNegativeButtonClicked = {
@@ -185,12 +195,7 @@ class PermissionsDialogFragmentTest {
     fun `dialog must have all the styles of the feature promptsStyling object`() {
         val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
         val styling = PromptsStyling(TOP, true)
-        val fragment = createPermissionsDialogFragment(
-            addon,
-            permissions = emptyList(),
-            origins = emptyList(),
-            promptsStyling = styling,
-        )
+        val fragment = createPermissionsDialogFragment(addon, promptsStyling = styling)
 
         doReturn(testContext).`when`(fragment).requireContext()
 
@@ -209,8 +214,7 @@ class PermissionsDialogFragmentTest {
             translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"),
             incognito = Addon.Incognito.NOT_ALLOWED,
         )
-        val fragment =
-            createPermissionsDialogFragment(addon, permissions = emptyList(), origins = emptyList())
+        val fragment = createPermissionsDialogFragment(addon)
 
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
@@ -229,12 +233,19 @@ class PermissionsDialogFragmentTest {
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
-        assertTrue(titleTextView.text.contains(name))
-        assertFalse(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+            titleTextView.text,
+        )
+
         assertEquals(0, recyclerAdapter.itemCount)
         assertFalse(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_privacy_description)))
         assertFalse(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_all_urls_description)))
         assertFalse(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_tabs_description)))
+        assertFalse(optionalOrRequiredTextView.isVisible)
         assertFalse(optionalSettingsTitle.isVisible)
         assertFalse(privateBrowsingCheckbox.isVisible)
         assertFalse(technicalAndInteractionDataCheckbox.isVisible)
@@ -268,14 +279,27 @@ class PermissionsDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
         val permissionList = fragment.buildPermissionsList(isAllUrlsPermissionFound = false)
-        val optionalOrRequiredText = fragment.buildOptionalOrRequiredText()
+
+        val name = addon.translateName(testContext)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions),
+            optionalOrRequiredTextView.text,
+        )
 
         // Testing the list sent to the adapter
-        assertTrue(optionalOrRequiredText.contains(testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_privacy_description)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_tabs_description)))
 
@@ -398,15 +422,26 @@ class PermissionsDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
-        val optionalOrRequiredTextView =
-            dialog.findViewById<TextView>(R.id.optional_or_required_text)
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
         val permissionList = fragment.buildPermissionsList(isAllUrlsPermissionFound = false)
-        val optionalOrRequiredText = fragment.buildOptionalOrRequiredText()
 
-        // Testing the list sent to the adapter
-        assertTrue(optionalOrRequiredText.contains(testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions)))
+        val name = addon.translateName(testContext)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions),
+            optionalOrRequiredTextView.text,
+        )
+
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_privacy_description)))
         assertTrue(permissionList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_tabs_description)))
 
@@ -630,38 +665,38 @@ class PermissionsDialogFragmentTest {
             addon,
             forOptionalPermissions = true,
             permissions = addon.permissions,
-            origins = emptyList(),
         )
 
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
-        val addonName = addon.translateName(testContext)
+        val name = addon.translateName(testContext)
         val titleTextView = dialog.findViewById<TextView>(R.id.title)
-        val optionalOrRequiredTextView =
-            dialog.findViewById<TextView>(R.id.optional_or_required_text)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
         val allowButton = dialog.findViewById<Button>(R.id.allow_button)
         val denyButton = dialog.findViewById<Button>(R.id.deny_button)
         val permissionsList = fragment.buildPermissionsList(isAllUrlsPermissionFound = false)
-        val optionalOrRequiredText = fragment.buildOptionalOrRequiredText()
         val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
-        val privateBrowsingCheckbox =
-            dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
+        val privateBrowsingCheckbox = dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
+        assertTrue(titleTextView.isVisible)
         assertEquals(
             titleTextView.text,
             testContext.getString(
-                R.string.mozac_feature_addons_optional_permissions_dialog_title,
-                addonName,
+                R.string.mozac_feature_addons_optional_permissions_with_data_collection_dialog_title,
+                name,
             ),
         )
-
-        assertTrue(optionalOrRequiredText.contains(testContext.getString(R.string.mozac_feature_addons_optional_permissions_dialog_subtitle)))
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_permissions),
+            optionalOrRequiredTextView.text,
+        )
         assertTrue(permissionsList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_privacy_description)))
         assertTrue(
             permissionsList.contains(
@@ -672,8 +707,6 @@ class PermissionsDialogFragmentTest {
             ),
         )
         assertTrue(permissionsList.contains(testContext.getString(R.string.mozac_feature_addons_permissions_tabs_description)))
-
-        assertTrue(optionalOrRequiredTextView.text.contains(testContext.getString(R.string.mozac_feature_addons_optional_permissions_dialog_subtitle)))
 
         val firstItem = recyclerAdapter.getItemAtPosition(0)
         assertTrue(
@@ -740,27 +773,41 @@ class PermissionsDialogFragmentTest {
             // the at_most_one_optional_only_permission_in_request test at:
             // https://searchfox.org/mozilla-central/rev/fcfb558f8946f3648d962576125af46bf6e2910a/toolkit/components/extensions/test/xpcshell/test_ext_permissions_optional_only.js#251-268
             permissions = listOf("userScripts"),
-            origins = emptyList(),
         )
 
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
         val allowButton = dialog.findViewById<Button>(R.id.allow_button)
         val denyButton = dialog.findViewById<Button>(R.id.deny_button)
+
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            titleTextView.text,
+            testContext.getString(
+                R.string.mozac_feature_addons_optional_permissions_with_data_collection_dialog_title,
+                name,
+            ),
+        )
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_permissions),
+            optionalOrRequiredTextView.text,
+        )
 
         assertEquals(recyclerAdapter.itemCount, 2)
 
         val firstItem = recyclerAdapter.getItemAtPosition(0)
         assertTrue(
             firstItem is RequiredPermissionsListItem.OptInPermissionItem &&
-                firstItem.permissionText.equals(
-                    testContext.getString(
-                        R.string.mozac_feature_addons_permissions_user_scripts_description,
-                    ),
+                firstItem.permissionText == testContext.getString(
+                    R.string.mozac_feature_addons_permissions_user_scripts_description,
                 ),
         )
 
@@ -798,10 +845,8 @@ class PermissionsDialogFragmentTest {
         val secondItem = recyclerAdapter.getItemAtPosition(1)
         assertTrue(
             secondItem is RequiredPermissionsListItem.ExtraWarningItem &&
-                secondItem.warningText.equals(
-                    testContext.getString(
-                        R.string.mozac_feature_addons_permissions_user_scripts_extra_warning,
-                    ),
+                secondItem.warningText == testContext.getString(
+                    R.string.mozac_feature_addons_permissions_user_scripts_extra_warning,
                 ),
         )
     }
@@ -809,14 +854,13 @@ class PermissionsDialogFragmentTest {
     @Test
     fun `hide private browsing checkbox when the add-on does not allow running in private windows`() {
         val permissions = listOf("privacy", "<all_urls>", "tabs")
-        val origins = emptyList<String>()
         val addon = Addon(
             "id",
             translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"),
             permissions = permissions,
             incognito = Addon.Incognito.NOT_ALLOWED,
         )
-        val fragment = createPermissionsDialogFragment(addon, permissions, origins)
+        val fragment = createPermissionsDialogFragment(addon, permissions)
 
         assertSame(
             addon,
@@ -869,41 +913,47 @@ class PermissionsDialogFragmentTest {
     fun `build dialog with required data collection permissions`() {
         val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
         val dataCollectionPermissions = listOf("healthInfo", "locationInfo")
-        val fragment = createPermissionsDialogFragment(
-            addon,
-            permissions = emptyList(),
-            origins = emptyList(),
-            dataCollectionPermissions = dataCollectionPermissions,
-        )
+        val fragment = createPermissionsDialogFragment(addon, dataCollectionPermissions = dataCollectionPermissions)
 
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
         val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            titleTextView.text,
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+        )
+
         // There is no required (API or host) permission.
         assertFalse(optionalOrRequiredTextView.isVisible)
+        assertEquals(0, recyclerAdapter.itemCount)
 
-        val firstItem = recyclerAdapter.getItemAtPosition(0)
-        assertTrue(
-            firstItem is RequiredPermissionsListItem.RequiredDataCollectionItem &&
-                firstItem.permissionText.contains(
-                    testContext.getString(
-                        R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
-                        Addon.formatLocalizedDataCollectionPermissions(
-                            Addon.localizeDataCollectionPermissions(
-                                dataCollectionPermissions,
-                                testContext,
-                            ),
-                        ),
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
                     ),
                 ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
         )
 
         assertTrue(optionalSettingsTitle.isVisible)
@@ -914,32 +964,38 @@ class PermissionsDialogFragmentTest {
     fun `build dialog with none data collection permission`() {
         val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
         val dataCollectionPermissions = listOf("none")
-        val fragment = createPermissionsDialogFragment(
-            addon,
-            permissions = emptyList(),
-            origins = emptyList(),
-            dataCollectionPermissions = dataCollectionPermissions,
-        )
+        val fragment = createPermissionsDialogFragment(addon, dataCollectionPermissions = dataCollectionPermissions)
 
         doReturn(testContext).`when`(fragment).requireContext()
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+            titleTextView.text,
+        )
+
         // There is no required (API or host) permission.
         assertFalse(optionalOrRequiredTextView.isVisible)
+        assertEquals(0, recyclerAdapter.itemCount)
 
-        val firstItem = recyclerAdapter.getItemAtPosition(0)
-        assertTrue(
-            firstItem is RequiredPermissionsListItem.RequiredDataCollectionItem &&
-                firstItem.permissionText.contains(
-                    testContext.getString(R.string.mozac_feature_addons_permissions_none_required_data_collection_description),
-                ),
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_none_required_data_collection_description),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
         )
 
         assertFalse(technicalAndInteractionDataCheckbox.isVisible)
@@ -952,7 +1008,6 @@ class PermissionsDialogFragmentTest {
         val fragment = createPermissionsDialogFragment(
             addon,
             permissions = listOf("bookmarks"),
-            origins = emptyList(),
             dataCollectionPermissions = dataCollectionPermissions,
         )
 
@@ -960,14 +1015,30 @@ class PermissionsDialogFragmentTest {
         val dialog = fragment.onCreateDialog(null)
         dialog.show()
 
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            titleTextView.text,
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_dialog_title_2,
+                name,
+            ),
+        )
         assertTrue(optionalOrRequiredTextView.isVisible)
-        // We list the API permissions first, under the `optionalOrRequiredTextView` title.
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions),
+            optionalOrRequiredTextView.text,
+        )
+
+        assertEquals(1, recyclerAdapter.itemCount)
         val firstItem = recyclerAdapter.getItemAtPosition(0)
         assertTrue(
             firstItem is RequiredPermissionsListItem.PermissionItem &&
@@ -975,21 +1046,19 @@ class PermissionsDialogFragmentTest {
                     testContext.getString(R.string.mozac_feature_addons_permissions_bookmarks_description),
             ),
         )
-        // Then, we show the data collection permissions.
-        val secondItem = recyclerAdapter.getItemAtPosition(1)
-        assertTrue(
-            secondItem is RequiredPermissionsListItem.RequiredDataCollectionItem &&
-                secondItem.permissionText.contains(
-                    testContext.getString(
-                        R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
-                        Addon.formatLocalizedDataCollectionPermissions(
-                            Addon.localizeDataCollectionPermissions(
-                                dataCollectionPermissions,
-                                testContext,
-                            ),
-                        ),
+
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
                     ),
                 ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
         )
 
         assertFalse(technicalAndInteractionDataCheckbox.isVisible)
@@ -1002,7 +1071,6 @@ class PermissionsDialogFragmentTest {
         val fragment = createPermissionsDialogFragment(
             addon,
             permissions = listOf("bookmarks"),
-            origins = emptyList(),
             dataCollectionPermissions = dataCollectionPermissions,
         )
 
@@ -1013,6 +1081,9 @@ class PermissionsDialogFragmentTest {
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val optionalOrRequiredDataCollectionTextView =
+            dialog.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
@@ -1025,6 +1096,11 @@ class PermissionsDialogFragmentTest {
                     testContext.getString(R.string.mozac_feature_addons_permissions_bookmarks_description),
                 ),
         )
+
+        // We shouldn't show the data collection item when there is no data collection we can display there. This is the
+        // case because the `technicalAndInteraction` data collection permission is rendered as a checkbox.
+        assertFalse(optionalOrRequiredDataCollectionTextView.isVisible)
+        assertFalse(dataCollectionPermissionsItem.isVisible)
 
         assertTrue(technicalAndInteractionDataCheckbox.isVisible)
         assertTrue(technicalAndInteractionDataCheckbox.isChecked)
@@ -1041,7 +1117,6 @@ class PermissionsDialogFragmentTest {
         val fragment = createPermissionsDialogFragment(
             addon,
             permissions = listOf("bookmarks"),
-            origins = emptyList(),
             dataCollectionPermissions = dataCollectionPermissions,
         )
 
@@ -1052,6 +1127,9 @@ class PermissionsDialogFragmentTest {
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val optionalOrRequiredDataCollectionTextView =
+            dialog.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
         val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
         val privateBrowsingCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
@@ -1068,6 +1146,11 @@ class PermissionsDialogFragmentTest {
                 ),
         )
 
+        // We shouldn't show the data collection item when there is no data collection we can display there. This is the
+        // case because the `technicalAndInteraction` data collection permission is rendered as a checkbox.
+        assertFalse(optionalOrRequiredDataCollectionTextView.isVisible)
+        assertFalse(dataCollectionPermissionsItem.isVisible)
+
         assertTrue(optionalSettingsTitle.isVisible)
         assertFalse(privateBrowsingCheckbox.isVisible)
         assertTrue(technicalAndInteractionDataCheckbox.isVisible)
@@ -1081,9 +1164,8 @@ class PermissionsDialogFragmentTest {
         val fragment = createPermissionsDialogFragment(
             addon,
             permissions = listOf("bookmarks"),
-            origins = emptyList(),
-            // We split the list because we expect only the list of `dataCollectionPermissions` to be shown in the
-            // `RequiredDataCollectionItem`. `technicalAndInteraction` gets its own checkbox instead.
+            // We split the list because we expect only the list of `dataCollectionPermissions` to be shown in
+            // `dataCollectionPermissionsItem`. `technicalAndInteraction` gets its own checkbox instead.
             dataCollectionPermissions = dataCollectionPermissions + listOf("technicalAndInteraction"),
         )
 
@@ -1094,12 +1176,13 @@ class PermissionsDialogFragmentTest {
         val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
         val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
         val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
         val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
         val technicalAndInteractionDataCheckbox =
             dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
 
         assertTrue(optionalOrRequiredTextView.isVisible)
-        // We list the API permissions first, under the `optionalOrRequiredTextView` title.
+        assertEquals(1, recyclerAdapter.itemCount)
         val firstItem = recyclerAdapter.getItemAtPosition(0)
         assertTrue(
             firstItem is RequiredPermissionsListItem.PermissionItem &&
@@ -1107,31 +1190,298 @@ class PermissionsDialogFragmentTest {
                     testContext.getString(R.string.mozac_feature_addons_permissions_bookmarks_description),
                 ),
         )
-        // Then, we show the data collection permissions.
-        val secondItem = recyclerAdapter.getItemAtPosition(1)
-        assertTrue(
-            secondItem is RequiredPermissionsListItem.RequiredDataCollectionItem &&
-                secondItem.permissionText.contains(
-                    testContext.getString(
-                        R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
-                        Addon.formatLocalizedDataCollectionPermissions(
-                            Addon.localizeDataCollectionPermissions(
-                                dataCollectionPermissions,
-                                testContext,
-                            ),
-                        ),
+
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
                     ),
                 ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
         )
 
         assertTrue(optionalSettingsTitle.isVisible)
         assertTrue(technicalAndInteractionDataCheckbox.isVisible)
     }
 
+    @Test
+    fun `build optional dialog with required API, data collection permissions, and technical and interaction data`() {
+        val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
+        // This is similar to "build dialog with required API, data collection permissions, and technical
+        // and interaction data" "build dialog with required API, data collection permissions, and technical
+        // and interaction data" but the expectation is different: the technicalAndInteraction permission
+        // should be listed along with the other data collection permissions in the optional dialog.
+        val dataCollectionPermissions = listOf("bookmarksInfo", "technicalAndInteraction")
+        val fragment = createPermissionsDialogFragment(
+            addon,
+            permissions = listOf("bookmarks"),
+            dataCollectionPermissions = dataCollectionPermissions,
+            forOptionalPermissions = true,
+        )
+
+        doReturn(testContext).`when`(fragment).requireContext()
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
+        val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
+        val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val optionalOrRequiredDataCollectionTextView =
+            dialog.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
+        val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
+        val technicalAndInteractionDataCheckbox =
+            dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
+
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_optional_permissions_with_data_collection_dialog_title,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_permissions),
+            optionalOrRequiredTextView.text,
+        )
+        assertEquals(1, recyclerAdapter.itemCount)
+        val firstItem = recyclerAdapter.getItemAtPosition(0)
+        assertTrue(
+            firstItem is RequiredPermissionsListItem.PermissionItem &&
+                firstItem.permissionText.contains(
+                    testContext.getString(R.string.mozac_feature_addons_permissions_bookmarks_description),
+                ),
+        )
+
+        assertTrue(optionalOrRequiredDataCollectionTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_data_collection),
+            optionalOrRequiredDataCollectionTextView.text,
+        )
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_data_collection_optional_description,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
+                    ),
+                ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
+        )
+
+        assertFalse(optionalSettingsTitle.isVisible)
+        assertFalse(technicalAndInteractionDataCheckbox.isVisible)
+    }
+
+    @Test
+    fun `build optional dialog with required origins and data collection permissions`() {
+        val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
+        val dataCollectionPermissions = listOf("bookmarksInfo")
+        val fragment = createPermissionsDialogFragment(
+            addon,
+            origins = listOf("*://*.mozilla.org/*"),
+            dataCollectionPermissions = dataCollectionPermissions,
+            forOptionalPermissions = true,
+        )
+
+        doReturn(testContext).`when`(fragment).requireContext()
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
+        val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
+        val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val optionalOrRequiredDataCollectionTextView =
+            dialog.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
+        val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
+        val technicalAndInteractionDataCheckbox =
+            dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
+
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_optional_permissions_with_data_collection_dialog_title,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertTrue(optionalOrRequiredTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_permissions),
+            optionalOrRequiredTextView.text,
+        )
+        assertEquals(2, recyclerAdapter.itemCount)
+        val firstItem = recyclerAdapter.getItemAtPosition(0)
+        assertTrue(
+            firstItem is RequiredPermissionsListItem.PermissionItem && firstItem.permissionText.contains(
+                testContext.getString(R.string.mozac_feature_addons_permissions_all_domain_count_description, 1),
+            ),
+        )
+        val secondItem = recyclerAdapter.getItemAtPosition(1)
+        assertTrue(secondItem is RequiredPermissionsListItem.DomainItem && secondItem.domain == "mozilla.org")
+
+        assertTrue(optionalOrRequiredDataCollectionTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_data_collection),
+            optionalOrRequiredDataCollectionTextView.text,
+        )
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_data_collection_optional_description,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
+                    ),
+                ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
+        )
+
+        assertFalse(optionalSettingsTitle.isVisible)
+        assertFalse(technicalAndInteractionDataCheckbox.isVisible)
+    }
+
+    @Test
+    fun `build optional dialog with data collection permissions only`() {
+        val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
+        val dataCollectionPermissions = listOf("bookmarksInfo", "technicalAndInteraction")
+        val fragment = createPermissionsDialogFragment(
+            addon,
+            dataCollectionPermissions = dataCollectionPermissions,
+            forOptionalPermissions = true,
+        )
+
+        doReturn(testContext).`when`(fragment).requireContext()
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
+        val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
+        val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val optionalOrRequiredDataCollectionTextView =
+            dialog.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
+        val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
+        val technicalAndInteractionDataCheckbox =
+            dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
+
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertFalse(optionalOrRequiredTextView.isVisible)
+        assertEquals(0, recyclerAdapter.itemCount)
+
+        assertTrue(optionalOrRequiredDataCollectionTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_data_collection),
+            optionalOrRequiredDataCollectionTextView.text,
+        )
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_data_collection_optional_description,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
+                    ),
+                ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
+        )
+
+        assertFalse(optionalSettingsTitle.isVisible)
+        assertFalse(technicalAndInteractionDataCheckbox.isVisible)
+    }
+
+    @Test
+    fun `build optional dialog with technical and interaction data collection permission only`() {
+        val addon = Addon("id", translatableName = mapOf(Addon.DEFAULT_LOCALE to "my_addon"))
+        val dataCollectionPermissions = listOf("technicalAndInteraction")
+        val fragment = createPermissionsDialogFragment(
+            addon,
+            dataCollectionPermissions = dataCollectionPermissions,
+            forOptionalPermissions = true,
+        )
+
+        doReturn(testContext).`when`(fragment).requireContext()
+        val dialog = fragment.onCreateDialog(null)
+        dialog.show()
+
+        val titleTextView = dialog.findViewById<TextView>(R.id.title)
+        val optionalOrRequiredTextView = dialog.findViewById<TextView>(R.id.optional_or_required_text)
+        val permissionsRecyclerView = dialog.findViewById<RecyclerView>(R.id.permissions)
+        val recyclerAdapter = permissionsRecyclerView.adapter!! as RequiredPermissionsAdapter
+        val optionalOrRequiredDataCollectionTextView =
+            dialog.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionPermissionsItem = dialog.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
+        val optionalSettingsTitle = dialog.findViewById<TextView>(R.id.optional_settings_title)
+        val technicalAndInteractionDataCheckbox =
+            dialog.findViewById<AppCompatCheckBox>(R.id.technical_and_interaction_data)
+
+        val name = addon.translateName(testContext)
+        assertTrue(titleTextView.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title,
+                name,
+            ),
+            titleTextView.text,
+        )
+        assertFalse(optionalOrRequiredTextView.isVisible)
+        assertEquals(0, recyclerAdapter.itemCount)
+
+        assertTrue(optionalOrRequiredDataCollectionTextView.isVisible)
+        assertEquals(
+            testContext.getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_data_collection),
+            optionalOrRequiredDataCollectionTextView.text,
+        )
+        assertTrue(dataCollectionPermissionsItem.isVisible)
+        assertEquals(
+            testContext.getString(
+                R.string.mozac_feature_addons_permissions_data_collection_optional_description,
+                Addon.formatLocalizedDataCollectionPermissions(
+                    Addon.localizeDataCollectionPermissions(
+                        dataCollectionPermissions,
+                        testContext,
+                    ),
+                ),
+            ),
+            dataCollectionPermissionsItem.findViewById<TextView>(R.id.data_collection_permissions).text,
+        )
+
+        assertFalse(optionalSettingsTitle.isVisible)
+        assertFalse(technicalAndInteractionDataCheckbox.isVisible)
+    }
+
     private fun createPermissionsDialogFragment(
         addon: Addon,
-        permissions: List<String>,
-        origins: List<String>,
+        permissions: List<String> = emptyList(),
+        origins: List<String> = emptyList(),
         dataCollectionPermissions: List<String> = emptyList(),
         promptsStyling: PromptsStyling? = null,
         forOptionalPermissions: Boolean = false,

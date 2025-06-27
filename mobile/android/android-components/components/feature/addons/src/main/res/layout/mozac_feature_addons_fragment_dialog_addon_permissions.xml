@@ -78,11 +78,58 @@
                 android:visibility="visible" />
 
             <TextView
-                android:id="@+id/optional_settings_title"
+                android:id="@+id/optional_or_required_data_collection_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_below="@id/permissions"
                 android:layout_alignStart="@id/permissions"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="16dp"
+                android:paddingStart="5dp"
+                android:paddingEnd="5dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary"
+                android:text="@string/mozac_feature_addons_permissions_dialog_heading_required_data_collection" />
+
+            <LinearLayout
+                android:id="@+id/data_collection_permissions_item"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/optional_or_required_data_collection_text"
+                android:layout_alignStart="@id/optional_or_required_data_collection_text"
+                android:layout_alignEnd="@id/optional_or_required_data_collection_text"
+                android:orientation="horizontal"
+                android:paddingStart="9dp"
+                android:paddingEnd="4dp"
+                android:paddingTop="4dp">
+
+                <TextView
+                    android:id="@+id/bullet"
+                    android:layout_width="20dp"
+                    android:layout_height="wrap_content"
+                    android:text="•"
+                    android:textAlignment="center"
+                    android:textColor="?android:attr/textColorPrimary"
+                    tools:ignore="HardcodedText,RtlSymmetry"
+                    android:importantForAccessibility="no" />
+
+                <TextView
+                    android:id="@+id/data_collection_permissions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:textColor="?android:attr/textColorPrimary"
+                    tools:text="The developer says this extension collects: location, health information." />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/optional_settings_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/data_collection_permissions_item"
+                android:layout_alignStart="@id/data_collection_permissions_item"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="16dp"
                 android:paddingStart="5dp"

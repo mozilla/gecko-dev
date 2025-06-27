@@ -17,6 +17,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.LinearLayout.LayoutParams
 import android.widget.TextView
 import android.widget.Toast
@@ -142,6 +143,8 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                 KEY_DATA_COLLECTION_PERMISSIONS,
             ),
         )
+    internal val hasDataCollectionOnly
+        get() = permissions.isEmpty() && origins.isEmpty() && dataCollectionPermissions.isNotEmpty()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val sheetDialog = Dialog(requireContext())
@@ -197,13 +200,9 @@ class PermissionsDialogFragment : AddonDialogFragment() {
 
         loadIcon(addon = addon, iconView = rootView.findViewById(R.id.icon))
 
-        rootView.findViewById<TextView>(R.id.title).text = requireContext().getString(
-            if (forOptionalPermissions) {
-                R.string.mozac_feature_addons_optional_permissions_dialog_title
-            } else {
-                R.string.mozac_feature_addons_permissions_dialog_title_2
-            },
-            addon.translateName(requireContext()),
+        rootView.findViewById<TextView>(R.id.title).text = buildTitleText(
+            forOptionalPermissions = forOptionalPermissions,
+            hasDataCollectionOnly = hasDataCollectionOnly,
         )
 
         val classifyOriginPermissionsResult = Addon.classifyOriginPermissions(origins = origins.toList())
@@ -257,13 +256,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                 .getString(R.string.mozac_feature_addons_permissions_user_scripts_extra_warning)
         }
 
-        val showTechnicalAndInteraction =
-            dataCollectionPermissions.contains(TECHNICAL_AND_INTERACTION_PERM) && !forOptionalPermissions
-        val requiredDataCollectionPermissionText =
-            buildRequiredDataCollectionPermissionsText(
-                dataCollectionPermissions.filter { it != TECHNICAL_AND_INTERACTION_PERM }
-                    .toList(),
-            )
+        renderDataCollectionPermissions(rootView)
 
         permissionsRecyclerView.adapter = RequiredPermissionsAdapter(
             permissions = listPermissions,
@@ -278,7 +271,6 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                     displayDomainList.size,
                 ),
             extraPermissionWarning = extraPermissionWarning,
-            requiredDataCollectionPermissionText = requiredDataCollectionPermissionText,
         )
         permissionsRecyclerView.layoutManager = LinearLayoutManager(context)
 
@@ -296,7 +288,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             allowedInPrivateBrowsing.isVisible = false
         }
 
-        if (showTechnicalAndInteraction) {
+        if (dataCollectionPermissions.contains(TECHNICAL_AND_INTERACTION_PERM) && !forOptionalPermissions) {
             optionalsSettingsTitle.isVisible = true
             technicalAndInteraction.isVisible = true
             // This is an opt-out setting.
@@ -333,6 +325,26 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             onLearnMoreClicked?.invoke()
         }
         return rootView
+    }
+
+    private fun renderDataCollectionPermissions(rootView: View) {
+        val dataCollectionTitle = rootView.findViewById<TextView>(R.id.optional_or_required_data_collection_text)
+        val dataCollectionItem = rootView.findViewById<LinearLayout>(R.id.data_collection_permissions_item)
+
+        if (dataCollectionPermissions.isNotEmpty()) {
+            dataCollectionTitle.text = buildOptionalOrRequiredDataCollectionTitleText()
+
+            val dataCollectionPermissionsView = rootView.findViewById<TextView>(R.id.data_collection_permissions)
+            val text = buildDataCollectionPermissionsText(dataCollectionPermissions.toList(), forOptionalPermissions)
+            dataCollectionPermissionsView.text = text
+
+            // In case we don't have any text to display, let's hide the whole item.
+            dataCollectionTitle.isVisible = !text.isNullOrEmpty()
+            dataCollectionItem.isVisible = !text.isNullOrEmpty()
+        } else {
+            dataCollectionTitle.isVisible = false
+            dataCollectionItem.isVisible = false
+        }
     }
 
     /**
@@ -378,33 +390,74 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         return Addon.localizePermissions(result, requireContext())
     }
 
-    @VisibleForTesting
-    internal fun buildRequiredDataCollectionPermissionsText(permissions: List<String>): String? {
-        if (permissions.isEmpty()) {
+    private fun buildDataCollectionPermissionsText(
+        permissions: List<String>,
+        forOptionalPermissions: Boolean,
+    ): String? {
+        // We shouldn't list the `technicalAndInteraction` permission in the sentence that indicates which (required)
+        // data collection permissions are used in the extension during the installation flow. That's why we filter it
+        // out.
+        // That being said, we are using a variant of the same dialog for optional permission requests. In this case,
+        // we want the `technicalAndInteraction` permission to be listed, hence the condition below.
+        val filteredPermissions = if (forOptionalPermissions) {
+            permissions
+        } else {
+            permissions.filter { it != "technicalAndInteraction" }
+        }
+
+        if (filteredPermissions.isEmpty()) {
             return null
         }
 
-        if (permissions.size == 1 && permissions.contains("none")) {
+        if (filteredPermissions.size == 1 && filteredPermissions.contains("none")) {
             return requireContext().getString(
                 R.string.mozac_feature_addons_permissions_none_required_data_collection_description,
             )
         }
 
-        val localizedPermissions = Addon.localizeDataCollectionPermissions(permissions, requireContext())
+        val localizedPermissions = Addon.localizeDataCollectionPermissions(filteredPermissions, requireContext())
         val formattedList = Addon.formatLocalizedDataCollectionPermissions(localizedPermissions)
 
         return requireContext().getString(
-            R.string.mozac_feature_addons_permissions_required_data_collection_description_2,
+            if (forOptionalPermissions) {
+                R.string.mozac_feature_addons_permissions_data_collection_optional_description
+            } else {
+                R.string.mozac_feature_addons_permissions_required_data_collection_description_2
+            },
             formattedList,
         )
     }
 
-    @VisibleForTesting
-    internal fun buildOptionalOrRequiredText(): String {
+    private fun buildTitleText(forOptionalPermissions: Boolean, hasDataCollectionOnly: Boolean): String {
+        return requireContext().getString(
+            if (forOptionalPermissions) {
+                if (hasDataCollectionOnly) {
+                    R.string.mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title
+                } else {
+                    R.string.mozac_feature_addons_optional_permissions_with_data_collection_dialog_title
+                }
+            } else {
+                R.string.mozac_feature_addons_permissions_dialog_title_2
+            },
+            addon.translateName(requireContext()),
+        )
+    }
+
+    private fun buildOptionalOrRequiredText(): String {
         val optionalOrRequiredText = if (forOptionalPermissions) {
-            getString(R.string.mozac_feature_addons_optional_permissions_dialog_subtitle)
+            getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_permissions)
         } else {
             getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_permissions)
+        }
+
+        return optionalOrRequiredText
+    }
+
+    private fun buildOptionalOrRequiredDataCollectionTitleText(): String {
+        val optionalOrRequiredText = if (forOptionalPermissions) {
+            getString(R.string.mozac_feature_addons_permissions_dialog_heading_optional_data_collection)
+        } else {
+            getString(R.string.mozac_feature_addons_permissions_dialog_heading_required_data_collection)
         }
 
         return optionalOrRequiredText
