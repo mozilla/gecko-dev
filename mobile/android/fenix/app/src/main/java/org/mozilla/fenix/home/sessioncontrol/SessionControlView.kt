@@ -13,7 +13,6 @@ import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.pocket.PocketStory
-import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
@@ -105,10 +104,8 @@ private fun showCollections(
     }
 }
 
-private fun privateModeAdapterItems() = listOf(AdapterItem.PrivateBrowsingDescription)
-
-private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> = when (mode) {
-    BrowsingMode.Normal -> normalModeAdapterItems(
+private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> =
+    normalModeAdapterItems(
         settings,
         topSites,
         collections,
@@ -122,8 +119,6 @@ private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> = when
         recommendationState.pocketStories,
         firstFrameDrawn,
     )
-    BrowsingMode.Private -> privateModeAdapterItems()
-}
 
 private fun collectionTabItems(collection: TabCollection) =
     collection.tabs.mapIndexed { index, tab ->

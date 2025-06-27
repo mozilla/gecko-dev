@@ -23,7 +23,6 @@ import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisitedViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
-import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescriptionViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
 import org.mozilla.fenix.home.setup.ui.SetupChecklistViewHolder
 import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
@@ -85,7 +84,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
         }
     }
 
-    object PrivateBrowsingDescription : AdapterItem(PrivateBrowsingDescriptionViewHolder.LAYOUT_ID)
     object NoCollectionsMessage : AdapterItem(NoCollectionsMessageViewHolder.LAYOUT_ID)
 
     data class CollectionItem(
@@ -184,11 +182,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            PrivateBrowsingDescriptionViewHolder.LAYOUT_ID -> return PrivateBrowsingDescriptionViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             PocketStoriesViewHolder.LAYOUT_ID -> return PocketStoriesViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -251,7 +244,6 @@ class SessionControlAdapter(
             is RecentlyVisitedViewHolder,
             is BookmarksViewHolder,
             is RecentSyncedTabViewHolder,
-            is PrivateBrowsingDescriptionViewHolder,
             is PocketStoriesViewHolder,
             is SetupChecklistViewHolder,
             -> {
