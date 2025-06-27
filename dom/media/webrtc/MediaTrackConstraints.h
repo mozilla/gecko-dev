@@ -24,15 +24,7 @@ class NormalizedConstraintSet {
  protected:
   class BaseRange {
    protected:
-    typedef BaseRange NormalizedConstraintSet::* MemberPtrType;
-
-    BaseRange(MemberPtrType aMemberPtr, const char* aName,
-              nsTArray<MemberPtrType>* aList)
-        : mName(aName) {
-      if (aList) {
-        aList->AppendElement(aMemberPtr);
-      }
-    }
+    BaseRange(const char* aName) : mName(aName) {}
     virtual ~BaseRange() = default;
 
    public:
@@ -42,8 +34,6 @@ class NormalizedConstraintSet {
     const char* mName;
   };
 
-  typedef BaseRange NormalizedConstraintSet::* MemberPtrType;
-
  public:
   template <class ValueType>
   class Range : public BaseRange {
@@ -51,12 +41,8 @@ class NormalizedConstraintSet {
     ValueType mMin, mMax;
     Maybe<ValueType> mIdeal;
 
-    Range(MemberPtrType aMemberPtr, const char* aName, ValueType aMin,
-          ValueType aMax, nsTArray<MemberPtrType>* aList)
-        : BaseRange(aMemberPtr, aName, aList),
-          mMin(aMin),
-          mMax(aMax),
-          mMergeDenominator(0) {}
+    Range(const char* aName, ValueType aMin, ValueType aMax)
+        : BaseRange(aName), mMin(aMin), mMax(aMax), mMergeDenominator(0) {}
     virtual ~Range() = default;
 
     template <class ConstrainRange>
@@ -131,41 +117,31 @@ class NormalizedConstraintSet {
   };
 
   struct LongRange final : public Range<int32_t> {
-    typedef LongRange NormalizedConstraintSet::* LongPtrType;
-
-    LongRange(LongPtrType aMemberPtr, const char* aName,
+    LongRange(const char* aName,
               const dom::Optional<dom::OwningLongOrConstrainLongRange>& aOther,
-              bool advanced, nsTArray<MemberPtrType>* aList);
+              bool advanced);
   };
 
   struct LongLongRange final : public Range<int64_t> {
-    typedef LongLongRange NormalizedConstraintSet::* LongLongPtrType;
-
-    LongLongRange(LongLongPtrType aMemberPtr, const char* aName,
-                  const long long& aOther, nsTArray<MemberPtrType>* aList);
+    LongLongRange(const char* aName, const long long& aOther);
   };
 
   struct DoubleRange final : public Range<double> {
-    typedef DoubleRange NormalizedConstraintSet::* DoublePtrType;
-
     DoubleRange(
-        DoublePtrType aMemberPtr, const char* aName,
+        const char* aName,
         const dom::Optional<dom::OwningDoubleOrConstrainDoubleRange>& aOther,
-        bool advanced, nsTArray<MemberPtrType>* aList);
+        bool advanced);
   };
 
   struct BooleanRange final : public Range<bool> {
-    typedef BooleanRange NormalizedConstraintSet::* BooleanPtrType;
-
     BooleanRange(
-        BooleanPtrType aMemberPtr, const char* aName,
+        const char* aName,
         const dom::Optional<dom::OwningBooleanOrConstrainBooleanParameters>&
             aOther,
-        bool advanced, nsTArray<MemberPtrType>* aList);
+        bool advanced);
 
-    BooleanRange(BooleanPtrType aMemberPtr, const char* aName,
-                 const bool& aOther, nsTArray<MemberPtrType>* aList)
-        : Range<bool>((MemberPtrType)aMemberPtr, aName, false, true, aList) {
+    BooleanRange(const char* aName, const bool& aOther)
+        : Range<bool>(aName, false, true) {
       mIdeal.emplace(aOther);
     }
   };
@@ -174,19 +150,15 @@ class NormalizedConstraintSet {
     typedef std::set<nsString> ValueType;
     ValueType mExact, mIdeal;
 
-    typedef StringRange NormalizedConstraintSet::* StringPtrType;
-
     StringRange(
-        StringPtrType aMemberPtr, const char* aName,
+        const char* aName,
         const dom::Optional<
             dom::OwningStringOrStringSequenceOrConstrainDOMStringParameters>&
             aOther,
-        bool advanced, nsTArray<MemberPtrType>* aList);
+        bool advanced);
 
-    StringRange(StringPtrType aMemberPtr, const char* aName,
-                const dom::Optional<nsString>& aOther,
-                nsTArray<MemberPtrType>* aList)
-        : BaseRange((MemberPtrType)aMemberPtr, aName, aList) {
+    StringRange(const char* aName, const dom::Optional<nsString>& aOther)
+        : BaseRange(aName) {
       if (aOther.WasPassed()) {
         mIdeal.insert(aOther.Value());
       }
@@ -223,46 +195,30 @@ class NormalizedConstraintSet {
   BooleanRange mEchoCancellation, mNoiseSuppression, mAutoGainControl;
   LongRange mChannelCount;
 
- private:
-  typedef NormalizedConstraintSet T;
-
  public:
   NormalizedConstraintSet(const dom::MediaTrackConstraintSet& aOther,
-                          bool advanced,
-                          nsTArray<MemberPtrType>* aList = nullptr)
-      : mWidth(&T::mWidth, "width", aOther.mWidth, advanced, aList),
-        mHeight(&T::mHeight, "height", aOther.mHeight, advanced, aList),
-        mFrameRate(&T::mFrameRate, "frameRate", aOther.mFrameRate, advanced,
-                   aList),
-        mFacingMode(&T::mFacingMode, "facingMode", aOther.mFacingMode, advanced,
-                    aList),
-        mResizeMode(&T::mResizeMode, "resizeMode", aOther.mResizeMode, advanced,
-                    aList),
-        mMediaSource(&T::mMediaSource, "mediaSource", aOther.mMediaSource,
-                     aList),
-        mBrowserWindow(&T::mBrowserWindow, "browserWindow",
-                       aOther.mBrowserWindow.WasPassed()
-                           ? aOther.mBrowserWindow.Value()
-                           : 0,
-                       aList),
-        mDeviceId(&T::mDeviceId, "deviceId", aOther.mDeviceId, advanced, aList),
-        mGroupId(&T::mGroupId, "groupId", aOther.mGroupId, advanced, aList),
-        mViewportOffsetX(&T::mViewportOffsetX, "viewportOffsetX",
-                         aOther.mViewportOffsetX, advanced, aList),
-        mViewportOffsetY(&T::mViewportOffsetY, "viewportOffsetY",
-                         aOther.mViewportOffsetY, advanced, aList),
-        mViewportWidth(&T::mViewportWidth, "viewportWidth",
-                       aOther.mViewportWidth, advanced, aList),
-        mViewportHeight(&T::mViewportHeight, "viewportHeight",
-                        aOther.mViewportHeight, advanced, aList),
-        mEchoCancellation(&T::mEchoCancellation, "echoCancellation",
-                          aOther.mEchoCancellation, advanced, aList),
-        mNoiseSuppression(&T::mNoiseSuppression, "noiseSuppression",
-                          aOther.mNoiseSuppression, advanced, aList),
-        mAutoGainControl(&T::mAutoGainControl, "autoGainControl",
-                         aOther.mAutoGainControl, advanced, aList),
-        mChannelCount(&T::mChannelCount, "channelCount", aOther.mChannelCount,
-                      advanced, aList) {}
+                          bool advanced)
+      : mWidth("width", aOther.mWidth, advanced),
+        mHeight("height", aOther.mHeight, advanced),
+        mFrameRate("frameRate", aOther.mFrameRate, advanced),
+        mFacingMode("facingMode", aOther.mFacingMode, advanced),
+        mResizeMode("resizeMode", aOther.mResizeMode, advanced),
+        mMediaSource("mediaSource", aOther.mMediaSource),
+        mBrowserWindow("browserWindow", aOther.mBrowserWindow.WasPassed()
+                                            ? aOther.mBrowserWindow.Value()
+                                            : 0),
+        mDeviceId("deviceId", aOther.mDeviceId, advanced),
+        mGroupId("groupId", aOther.mGroupId, advanced),
+        mViewportOffsetX("viewportOffsetX", aOther.mViewportOffsetX, advanced),
+        mViewportOffsetY("viewportOffsetY", aOther.mViewportOffsetY, advanced),
+        mViewportWidth("viewportWidth", aOther.mViewportWidth, advanced),
+        mViewportHeight("viewportHeight", aOther.mViewportHeight, advanced),
+        mEchoCancellation("echoCancellation", aOther.mEchoCancellation,
+                          advanced),
+        mNoiseSuppression("noiseSuppression", aOther.mNoiseSuppression,
+                          advanced),
+        mAutoGainControl("autoGainControl", aOther.mAutoGainControl, advanced),
+        mChannelCount("channelCount", aOther.mChannelCount, advanced) {}
 };
 
 template <>
@@ -272,8 +228,7 @@ void NormalizedConstraintSet::Range<bool>::FinalizeMerge();
 
 // Used instead of MediaTrackConstraints in lower-level code.
 struct NormalizedConstraints : public NormalizedConstraintSet {
-  explicit NormalizedConstraints(const dom::MediaTrackConstraints& aOther,
-                                 nsTArray<MemberPtrType>* aList = nullptr);
+  explicit NormalizedConstraints(const dom::MediaTrackConstraints& aOther);
 
   std::vector<NormalizedConstraintSet> mAdvanced;
 };

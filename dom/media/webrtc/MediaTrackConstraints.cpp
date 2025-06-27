@@ -89,12 +89,12 @@ void NormalizedConstraintSet::Range<bool>::FinalizeMerge() {
 }
 
 NormalizedConstraintSet::LongRange::LongRange(
-    LongPtrType aMemberPtr, const char* aName,
+    const char* aName,
     const dom::Optional<dom::OwningLongOrConstrainLongRange>& aOther,
-    bool advanced, nsTArray<MemberPtrType>* aList)
-    : Range<int32_t>((MemberPtrType)aMemberPtr, aName, 1 + INT32_MIN,
-                     INT32_MAX,  // +1 avoids Windows compiler bug
-                     aList) {
+    bool advanced)
+    : Range<int32_t>(aName,
+                     1 + INT32_MIN,  // +1 avoids Windows compiler bug
+                     INT32_MAX) {
   if (!aOther.WasPassed()) {
     return;
   }
@@ -110,22 +110,20 @@ NormalizedConstraintSet::LongRange::LongRange(
   }
 }
 
-NormalizedConstraintSet::LongLongRange::LongLongRange(
-    LongLongPtrType aMemberPtr, const char* aName, const long long& aOther,
-    nsTArray<MemberPtrType>* aList)
-    : Range<int64_t>((MemberPtrType)aMemberPtr, aName, 1 + INT64_MIN,
-                     INT64_MAX,  // +1 avoids Windows compiler bug
-                     aList) {
+NormalizedConstraintSet::LongLongRange::LongLongRange(const char* aName,
+                                                      const long long& aOther)
+    : Range<int64_t>(aName,
+                     1 + INT64_MIN,  // +1 avoids Windows compiler bug
+                     INT64_MAX) {
   mIdeal.emplace(aOther);
 }
 
 NormalizedConstraintSet::DoubleRange::DoubleRange(
-    DoublePtrType aMemberPtr, const char* aName,
+    const char* aName,
     const dom::Optional<dom::OwningDoubleOrConstrainDoubleRange>& aOther,
-    bool advanced, nsTArray<MemberPtrType>* aList)
-    : Range<double>((MemberPtrType)aMemberPtr, aName,
-                    -std::numeric_limits<double>::infinity(),
-                    std::numeric_limits<double>::infinity(), aList) {
+    bool advanced)
+    : Range<double>(aName, -std::numeric_limits<double>::infinity(),
+                    std::numeric_limits<double>::infinity()) {
   if (!aOther.WasPassed()) {
     return;
   }
@@ -142,10 +140,10 @@ NormalizedConstraintSet::DoubleRange::DoubleRange(
 }
 
 NormalizedConstraintSet::BooleanRange::BooleanRange(
-    BooleanPtrType aMemberPtr, const char* aName,
+    const char* aName,
     const dom::Optional<dom::OwningBooleanOrConstrainBooleanParameters>& aOther,
-    bool advanced, nsTArray<MemberPtrType>* aList)
-    : Range<bool>((MemberPtrType)aMemberPtr, aName, false, true, aList) {
+    bool advanced)
+    : Range<bool>(aName, false, true) {
   if (!aOther.WasPassed()) {
     return;
   }
@@ -169,12 +167,12 @@ NormalizedConstraintSet::BooleanRange::BooleanRange(
 }
 
 NormalizedConstraintSet::StringRange::StringRange(
-    StringPtrType aMemberPtr, const char* aName,
+    const char* aName,
     const dom::Optional<
         dom::OwningStringOrStringSequenceOrConstrainDOMStringParameters>&
         aOther,
-    bool advanced, nsTArray<MemberPtrType>* aList)
-    : BaseRange((MemberPtrType)aMemberPtr, aName, aList) {
+    bool advanced)
+    : BaseRange(aName) {
   if (!aOther.WasPassed()) {
     return;
   }
@@ -280,8 +278,8 @@ bool NormalizedConstraintSet::StringRange::Merge(const StringRange& aOther) {
 }
 
 NormalizedConstraints::NormalizedConstraints(
-    const dom::MediaTrackConstraints& aOther, nsTArray<MemberPtrType>* aList)
-    : NormalizedConstraintSet(aOther, false, aList) {
+    const dom::MediaTrackConstraints& aOther)
+    : NormalizedConstraintSet(aOther, false) {
   if (aOther.mAdvanced.WasPassed()) {
     for (auto& entry : aOther.mAdvanced.Value()) {
       mAdvanced.push_back(NormalizedConstraintSet(entry, true));
