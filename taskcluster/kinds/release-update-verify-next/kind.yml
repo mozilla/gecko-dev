@@ -61,6 +61,12 @@ tasks:
         attributes:
             build_platform: win64-shippable
 
+    firefox-next-win64-aarch64:
+        description: win64-aarch64 esr-next update verify
+        shipping-product: firefox
+        attributes:
+            build_platform: win64-aarch64-shippable
+
     firefox-next-win32:
         description: win32 esr-next update verify
         shipping-product: firefox
