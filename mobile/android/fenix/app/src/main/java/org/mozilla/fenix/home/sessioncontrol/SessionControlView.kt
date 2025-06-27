@@ -58,11 +58,8 @@ internal fun normalModeAdapterItems(
         items.add(AdapterItem.SetupChecklist)
     }
 
-    if (showRecentTab) {
-        items.add(AdapterItem.RecentTabItem)
-        if (showRecentSyncedTab) {
-            items.add(AdapterItem.RecentSyncedTabItem)
-        }
+    if (showRecentTab && showRecentSyncedTab) {
+        items.add(AdapterItem.RecentSyncedTabItem)
     }
 
     if (settings.showBookmarksHomeFeature && bookmarks.isNotEmpty()) {
