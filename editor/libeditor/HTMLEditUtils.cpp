@@ -739,28 +739,33 @@ EditorDOMPoint HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(
   }
   // If the point is in a Text, check the next character in it to skip the
   // expensive check below.
-  if (point.IsInTextNode()) {
+  if (point.IsInTextNode() && !point.IsContainerEmpty()) {
     if (!point.IsStartOfContainer() &&
         !point.IsPreviousCharCollapsibleASCIISpace()) {
-      return EditorDOMPoint();  // Not following collapsible white-space
+      return EditorDOMPoint();  // following a visible character.
     }
     if (!point.IsEndOfContainer()) {
-      if (!point.IsCharCollapsibleASCIISpace()) {
-        return EditorDOMPoint();
+      if (EditorUtils::IsWhiteSpacePreformatted(*point.ContainerAs<Text>())) {
+        return EditorDOMPoint();  // followed by a visible character.
       }
-      const bool linefeedPreformatted = EditorUtils::IsNewLinePreformatted(
-          *point.template ContainerAs<Text>());
+      // NOTE: In the worst case, the fragment has a lot of collapsible
+      // white-spaces after the point.  However, it won't occur with usual web
+      // apps.  Instead, we should optimize the response time when user typing
+      // keys in the usual web apps.
       const nsTextFragment& fragment =
           point.template ContainerAs<Text>()->TextFragment();
-      for (uint32_t i : IntegerRange(point.Offset(), fragment.GetLength())) {
-        const char16_t ch = fragment.CharAt(i);
-        if (linefeedPreformatted && ch == HTMLEditUtils::kNewLine) {
-          return EditorDOMPoint();  // Followed by a preformatted line break.
-        }
-        if (!nsCRT::IsAsciiSpace(ch)) {
-          return EditorDOMPoint();  // Followed by a visible character.
-        }
+      const uint32_t inclusiveNextVisibleCharOffset =
+          fragment.FindNonWhitespaceChar(
+              EditorUtils::IsNewLinePreformatted(*point.ContainerAs<Text>())
+                  ? WhitespaceOptions{WhitespaceOption::FormFeedIsSignificant,
+                                      WhitespaceOption::NewLineIsSignificant}
+                  : WhitespaceOptions{WhitespaceOption::FormFeedIsSignificant},
+              point.Offset());
+      if (inclusiveNextVisibleCharOffset != nsTextFragment::kNotFound) {
+        return EditorDOMPoint();  // followed by a visible character.
       }
+      // Followed by only collapsible white-spaces, let's check the next visible
+      // thing.
     }
   }
 
