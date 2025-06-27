@@ -347,7 +347,6 @@
  * user agent styles differently
  */
 .ruleview-rule.unmatched,
-.ruleview-rule.uneditable,
 .ruleview-rule[unmatched="true"],
 .ruleview-rule[uneditable="true"] {
   background: var(--theme-tab-toolbar-background);
@@ -359,35 +358,29 @@
   color: var(--theme-text-color-inactive);
 }
 
-.ruleview-rule.uneditable :focus,
 .ruleview-rule[uneditable="true"] :focus {
   outline: none;
 }
 
-.ruleview-rule.uneditable .theme-link,
 .ruleview-rule[uneditable="true"] .theme-link {
   color: var(--theme-highlight-bluegrey);
 }
 
-.ruleview-rule.uneditable .ruleview-enableproperty,
 .ruleview-rule[uneditable="true"] .ruleview-enableproperty {
   visibility: hidden;
 }
 
-.ruleview-rule.uneditable .inspector-swatch,
 .ruleview-rule[uneditable="true"] .inspector-swatch {
   cursor: default;
 }
 
-.ruleview-rule.uneditable .ruleview-namecontainer > .ruleview-propertyname,
-.ruleview-rule.uneditable .ruleview-propertyvaluecontainer > .ruleview-propertyvalue,
 .ruleview-rule[uneditable="true"] .ruleview-namecontainer > .ruleview-propertyname,
 .ruleview-rule[uneditable="true"] .ruleview-propertyvaluecontainer > .ruleview-propertyvalue {
   text-decoration: none;
 }
 
 /* Display a lock before the selector for uneditable rules */
-.ruleview-rule:is(.uneditable, [uneditable="true"]) .ruleview-selectors-container::before {
+.ruleview-rule[uneditable="true"] .ruleview-selectors-container::before {
   content: url(images/lock.svg) / "read only";
   display: inline-block;
   translate: 0 1px;
