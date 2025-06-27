@@ -718,6 +718,40 @@ Tester.prototype = {
     }
   },
 
+  async checkPreferencesAfterTest() {
+    // This supports the --compare-preferences flag for browser tests.
+    // The implementation for plain mochitests is at
+    // https://searchfox.org/mozilla-central/rev/c25dbe453ff9ca10f2c6bdfb873893c515a29826/testing/mochitest/tests/SimpleTest/TestRunner.js#990-1012
+    if (!gConfig.comparePrefs) {
+      // Although the plain mochitest version of this logic resets preferences
+      // unconditionally, we do not, to minimize impact on the many existing
+      // tests. We only report failures when --compare-preferences is set.
+      return;
+    }
+    if (!this._ignorePrefs) {
+      const ignorePrefsFile = `chrome://mochikit/content/${gConfig.ignorePrefsFile}`;
+      try {
+        const res = await fetch(ignorePrefsFile);
+        this._ignorePrefs = await res.json();
+      } catch (e) {
+        this.Assert.ok(
+          false,
+          `Failed to load ignorePrefsFile (${ignorePrefsFile}): ${e}`
+        );
+      }
+    }
+    // This comparison relies on a snapshot of the prefs having been saved by
+    // a call to getBaselinePrefs in SpecialPowersParent's init().
+    const failures = await window.SpecialPowers.comparePrefsToBaseline(
+      this._ignorePrefs
+    );
+    for (let p of failures) {
+      this.structuredLogger.error(
+        `TEST-UNEXPECTED-FAIL | ${this.currentTest.path} | changed preference: ${p}`
+      );
+    }
+  },
+
   async nextTest() {
     if (this.currentTest) {
       if (this._coverageCollector) {
@@ -827,8 +861,9 @@ Tester.prototype = {
 
       await this.ensureNoNewRepeatingTimers();
 
-      // eslint-disable-next-line no-undef
-      await new Promise(resolve => SpecialPowers.flushPrefEnv(resolve));
+      await new Promise(resolve => window.SpecialPowers.flushPrefEnv(resolve));
+
+      await this.checkPreferencesAfterTest();
 
       window.SpecialPowers.cleanupAllClipboard();
 
