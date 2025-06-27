@@ -248,7 +248,7 @@ tasks:
             build_platform: android
         worker-type: b-linux-gcp
         worker:
-            max-run-time: 5400
+            max-run-time: 1800
             docker-image: {in-tree: webrender}
             artifacts:
                 - type: file
@@ -285,7 +285,7 @@ tasks:
                 - linux64-rust-android
                 - wrench-deps
         treeherder:
-            platform: android-em-7-0-x86/debug
+            platform: android-em-14-x86_64/debug
             symbol: WR(B)
         when:
             files-changed:
@@ -299,7 +299,7 @@ tasks:
             build_platform: android
         worker-type: b-linux-gcp
         worker:
-            max-run-time: 5400
+            max-run-time: 1800
             docker-image: {in-tree: webrender}
             artifacts:
                 - type: file
@@ -336,7 +336,7 @@ tasks:
                 - linux64-rust-android
                 - wrench-deps
         treeherder:
-            platform: android-em-7-0-x86/opt
+            platform: android-em-14-x86_64/opt
             symbol: WR(B)
         when:
             files-changed:
@@ -350,8 +350,8 @@ tasks:
             build_platform: android
         worker-type: t-linux-kvm
         worker:
-            max-run-time: 5400
-            docker-image: {in-tree: ubuntu1804-test}
+            max-run-time: 1800
+            docker-image: {in-tree: ubuntu2404-test}
             kvm: true
             artifacts:
                 - type: directory
@@ -382,7 +382,7 @@ tasks:
                 export MOZHARNESS_PATH=$GECKO_PATH/testing/mozharness &&
                 $GECKO_PATH/taskcluster/scripts/tester/test-linux.sh
         treeherder:
-            platform: android-em-7-0-x86/debug
+            platform: android-em-14-x86_64/debug
             symbol: WR(wrench)
         when:
             files-changed:
@@ -396,8 +396,8 @@ tasks:
             build_platform: android
         worker-type: t-linux-kvm
         worker:
-            max-run-time: 5400
-            docker-image: {in-tree: ubuntu1804-test}
+            max-run-time: 1800
+            docker-image: {in-tree: ubuntu2404-test}
             kvm: true
             artifacts:
                 - type: directory
@@ -428,7 +428,7 @@ tasks:
                 export MOZHARNESS_PATH=$GECKO_PATH/testing/mozharness &&
                 $GECKO_PATH/taskcluster/scripts/tester/test-linux.sh
         treeherder:
-            platform: android-em-7-0-x86/opt
+            platform: android-em-14-x86_64/opt
             symbol: WR(wrench)
         when:
             files-changed:

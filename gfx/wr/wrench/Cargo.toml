@@ -61,7 +61,7 @@ font-loader = "0.11"
 # Configuration information used when building wrench as an APK.
 [package.metadata.android]
 package = "org.mozilla.wrench"
-build_targets = [ "aarch64-linux-android", "i686-linux-android" ]
+build_targets = [ "aarch64-linux-android", "x86_64-linux-android" ]
 opengles_version_major = 3
 opengles_version_minor = 0
 
