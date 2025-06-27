@@ -201,8 +201,15 @@ HRESULT WMFDecoderModule::CreateMFTDecoder(const WMFStreamType& aType,
   }
 
   switch (aType) {
-    case WMFStreamType::H264:
+    case WMFStreamType::H264: {
+      if (XRE_IsGPUProcess() && !sDXVAEnabled) {
+        WmfDecoderModuleMarkerAndLog("CreateMFTDecoder, H264 Failure",
+                                     "SW decoder is not allowed in the GPU "
+                                     "process and the HW H264 requires DXVA");
+        return E_FAIL;
+      }
       return aDecoder->Create(CLSID_CMSH264DecoderMFT);
+    }
     case WMFStreamType::VP8:
       static const uint32_t VP8_USABLE_BUILD = 16287;
       if (!IsWindows10BuildOrLater(VP8_USABLE_BUILD)) {
