@@ -239,12 +239,15 @@ class WindowManager {
       lazy.logger.trace(
         `Checking window geometry ${win.outerWidth}x${win.outerHeight} @ (${win.screenX}, ${win.screenY})`
       );
+
       if (foundMatch) {
         lazy.logger.trace(`Already found a previous match for this request`);
         return true;
       }
+
       let sizeMatches = true;
       let posMatches = true;
+
       if (
         width !== null &&
         height !== null &&
@@ -252,20 +255,28 @@ class WindowManager {
       ) {
         sizeMatches = false;
       }
+
       // Wayland doesn't support getting the window position.
       if (
-        !lazy.AppInfo.isWayland &&
         x !== null &&
         y !== null &&
         (win.screenX !== x || win.screenY !== y)
       ) {
-        posMatches = false;
+        if (lazy.AppInfo.isWayland) {
+          lazy.logger.info(
+            `Wayland doesn't support setting the window position`
+          );
+        } else {
+          posMatches = false;
+        }
       }
+
       if (sizeMatches && posMatches) {
         lazy.logger.trace(`Requested window geometry matches`);
         foundMatch = true;
         return true;
       }
+
       return false;
     }
 
@@ -278,10 +289,12 @@ class WindowManager {
         timeout: 500,
       };
       const promises = [];
+
       if (width !== null && height !== null) {
         promises.push(new lazy.EventPromise(win, "resize", options));
         win.resizeTo(width, height);
       }
+
       // Wayland doesn't support setting the window position.
       if (!lazy.AppInfo.isWayland && x !== null && y !== null) {
         promises.push(
@@ -289,6 +302,7 @@ class WindowManager {
         );
         win.moveTo(x, y);
       }
+
       try {
         await Promise.race(promises);
       } catch (e) {
