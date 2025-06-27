@@ -2422,6 +2422,16 @@ static void VideoDecodingFailedChangedCallback(const char* aPref, void*) {
 
   gfxVars::SetCanUseHardwareVideoDecoding(featureDec.IsEnabled());
   gfxVars::SetCanUseHardwareVideoEncoding(featureEnc.IsEnabled());
+
+#ifdef MOZ_WMF_CDM
+  FeatureState& featureHWDRM = gfxConfig::GetFeature(Feature::WMF_HW_DRM);
+  if (!featureDec.IsEnabled()) {
+    featureHWDRM.ForceDisable(FeatureStatus::Unavailable,
+                              "Force disabled by no hardware video decoding",
+                              "FEATURE_FAILURE_NO_HARDWARE_VIDEO_DECODING"_ns);
+  }
+  gfxVars::SetUseWMFHWDWM(featureHWDRM.IsEnabled());
+#endif
 }
 
 void gfxPlatform::UpdateForceSubpixelAAWherePossible() {
@@ -3077,6 +3087,11 @@ void gfxPlatform::InitHardwareVideoConfig() {
   if (!IsGfxInfoStatusOkay(nsIGfxInfo::FEATURE_WMF_HW_DRM, &message,
                            failureId)) {
     featureHWDRM.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
+  }
+  if (!featureDec.IsEnabled()) {
+    featureHWDRM.ForceDisable(FeatureStatus::Unavailable,
+                              "Force disabled by no hardware video decoding",
+                              "FEATURE_FAILURE_NO_HARDWARE_VIDEO_DECODING"_ns);
   }
   gfxVars::SetUseWMFHWDWM(featureHWDRM.IsEnabled());
 #endif
