@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
@@ -18,7 +17,7 @@ from qm_try_analysis import stackanalysis, utils
 from qm_try_analysis.logging import error, info, warning
 
 # Flag for toggling development mod
-DEV = True
+DEV = False
 
 # Constants for Bugzilla URLs
 if DEV:
@@ -218,17 +217,33 @@ def report_qm_failures(key, stacksfile, open_modified, workdir):
             info(f'Created bug {BUGZILLA_BUG_URL + str(bug_id)} for anchor "{anchor}".')
 
         comment = generate_comment(anchors[anchor]["stacks"])
+        # This can happen if we hit a function like `RemoveNsIFileRecursively`
+        if len(comment) >= 2**16:
+            error(f'Skipping "{anchor}" since it exceeds bugzillas comment limit.')
+            continue
+        # This returns the incorrect id for Bugzilla Prod.
+        # See: https://bugzilla.mozilla.org/show_bug.cgi?id=1877201
         comment_id = post_comment(bug_id, comment)
 
         reported.append(hash_str(anchor))
         utils.updateLastRunToExecutionFile(workdir, run)
 
         if open_modified:
-            comment_seq_number = bugzilla_client.get_comment(comment_id)["comments"][
-                str(comment_id)
-            ]["count"]
+            # DOES NOT WORK, see above comment regarding the comment id
+            #
+            # res = bugzilla_client.get_comment(comment_id)
+            # comment_seq_number = res["comments"][
+            #     str(comment_id)
+            # ]["count"]
+            # webbrowser.open(
+            #     BUGZILLA_BUG_URL + str(bug_id) + "#c" + str(comment_seq_number)
+            # )
+
+            # Workaround
             webbrowser.open(
-                BUGZILLA_BUG_URL + str(bug_id) + "#c" + str(comment_seq_number)
+                BUGZILLA_BUG_URL
+                + str(bug_id)
+                + f"#:~:text=Attachment%20{attachment_id}"
             )
 
 
