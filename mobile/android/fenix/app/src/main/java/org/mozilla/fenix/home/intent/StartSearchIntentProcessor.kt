@@ -17,8 +17,8 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.utils.Settings
 
 /**
- * When the search widget is tapped, Fenix should open to the search fragment.
- * Tapping the private browsing mode launcher icon should also open to the search fragment.
+ * When the search widget is tapped, Fenix should open directly to search.
+ * Tapping the private browsing mode launcher icon should also open to search.
  */
 class StartSearchIntentProcessor : HomeIntentProcessor {
 
@@ -41,18 +41,27 @@ class StartSearchIntentProcessor : HomeIntentProcessor {
 
             out.removeExtra(HomeActivity.OPEN_TO_SEARCH)
 
-            val directions = source?.let {
-                NavGraphDirections.actionGlobalSearchDialog(
-                    sessionId = null,
-                    searchAccessPoint = it,
-                )
-            }
-            directions?.let {
-                val options = navOptions {
-                    popUpTo(R.id.homeFragment)
+            source?.let {
+                when (settings.shouldUseComposableToolbar) {
+                    true -> navController.nav(
+                        id = null,
+                        directions = NavGraphDirections.actionGlobalHome(
+                            focusOnAddressBar = true,
+                            searchAccessPoint = it,
+                        ),
+                    )
+
+                    false -> navController.nav(
+                        id = null,
+                        directions = NavGraphDirections.actionGlobalSearchDialog(
+                            sessionId = null,
+                            searchAccessPoint = it,
+                        ),
+                        navOptions = navOptions { popUpTo(R.id.homeFragment) },
+                    )
                 }
-                navController.nav(null, it, options)
             }
+
             true
         } else {
             false

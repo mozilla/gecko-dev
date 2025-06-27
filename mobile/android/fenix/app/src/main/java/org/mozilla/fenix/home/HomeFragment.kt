@@ -1344,6 +1344,7 @@ class HomeFragment : Fragment() {
             toolbarStore = toolbarStore,
             navController = findNavController(),
             lifecycleOwner = this,
+            searchAccessPoint = args.searchAccessPoint,
         ).also {
             awesomeBarComposable = it
         }

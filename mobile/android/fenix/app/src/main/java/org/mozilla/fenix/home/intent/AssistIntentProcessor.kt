@@ -14,8 +14,7 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.utils.Settings
 
 /**
- * Long pressing home button should also open to the search fragment if Fenix is set as the
- * assist app
+ * Long pressing home button should also start a new search is set as the assist app.
  */
 class AssistIntentProcessor : HomeIntentProcessor {
     override fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean {
@@ -23,18 +22,27 @@ class AssistIntentProcessor : HomeIntentProcessor {
             return false
         }
 
-        val directions = NavGraphDirections.actionGlobalSearchDialog(
-            sessionId = null,
-            // Will follow this up with adding `ASSIST` as a search source.
-            // https://bugzilla.mozilla.org/show_bug.cgi?id=1808043
-            searchAccessPoint = MetricsUtils.Source.NONE,
-        )
+        if (settings.shouldUseComposableToolbar) {
+            navController.nav(
+                id = null,
+                directions = NavGraphDirections.actionGlobalHome(
+                    focusOnAddressBar = true,
+                ),
+            )
+        } else {
+            val directions = NavGraphDirections.actionGlobalSearchDialog(
+                sessionId = null,
+                // Will follow this up with adding `ASSIST` as a search source.
+                // https://bugzilla.mozilla.org/show_bug.cgi?id=1808043
+                searchAccessPoint = MetricsUtils.Source.NONE,
+            )
 
-        val options = navOptions {
-            popUpTo(R.id.homeFragment)
+            val options = navOptions {
+                popUpTo(R.id.homeFragment)
+            }
+
+            navController.nav(null, directions, options)
         }
-
-        navController.nav(null, directions, options)
 
         return true
     }

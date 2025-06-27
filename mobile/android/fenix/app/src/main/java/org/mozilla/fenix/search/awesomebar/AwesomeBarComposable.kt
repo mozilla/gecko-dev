@@ -63,6 +63,7 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param toolbarStore [BrowserToolbarStore] for accessing the current toolbar state.
  * @param navController [NavController] for navigating to other destinations in the application.
  * @param lifecycleOwner [Fragment] for controlling the lifetime of long running operations.
+ * @param searchAccessPoint Where search was started from.
  */
 @Suppress("LongParameterList")
 class AwesomeBarComposable(
@@ -74,6 +75,7 @@ class AwesomeBarComposable(
     private val toolbarStore: BrowserToolbarStore,
     private val navController: NavController,
     private val lifecycleOwner: Fragment,
+    private val searchAccessPoint: MetricsUtils.Source = MetricsUtils.Source.NONE,
 ) {
     private val toolbarQueryMapper = getOrCreate<BrowserToolbarToFenixSearchMapperMiddleware>()
     private val searchMiddleware = getOrCreate<FenixSearchMiddleware>()
@@ -197,7 +199,7 @@ class AwesomeBarComposable(
                         components = components,
                         tabId = null,
                         pastedText = null,
-                        searchAccessPoint = MetricsUtils.Source.NONE,
+                        searchAccessPoint = searchAccessPoint,
                     ),
                     middleware = listOf(
                         toolbarQueryMapper,

@@ -83,4 +83,29 @@ class StartSearchIntentProcessorTest {
         }
         verify { out.removeExtra(HomeActivity.OPEN_TO_SEARCH) }
     }
+
+    @Test
+    fun `process search intents to open new search UX`() {
+        every { settings.shouldUseComposableToolbar } returns true
+        val intent = Intent().apply {
+            putExtra(HomeActivity.OPEN_TO_SEARCH, StartSearchIntentProcessor.SEARCH_WIDGET)
+        }
+        StartSearchIntentProcessor().process(intent, navController, out, settings)
+
+        assertNotNull(SearchWidget.newTabButton.testGetValue())
+        val recordedEvents = SearchWidget.newTabButton.testGetValue()!!
+        assertEquals(1, recordedEvents.size)
+        assertEquals(null, recordedEvents.single().extra)
+
+        verify {
+            navController.nav(
+                null,
+                NavGraphDirections.actionGlobalHome(
+                    focusOnAddressBar = true,
+                    searchAccessPoint = MetricsUtils.Source.WIDGET,
+                ),
+            )
+        }
+        verify { out.removeExtra(HomeActivity.OPEN_TO_SEARCH) }
+    }
 }

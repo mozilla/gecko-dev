@@ -66,6 +66,28 @@ class AssistIntentProcessorTest {
         verify { out wasNot Called }
     }
 
+    @Test
+    fun `GIVEN an intent with ACTION_ASSIST action WHEN it is processed THEN navigate to the new search UX`() {
+        every { settings.shouldUseComposableToolbar } returns true
+        val intent = Intent().apply {
+            action = Intent.ACTION_ASSIST
+        }
+
+        AssistIntentProcessor().process(intent, navController, out, settings)
+
+        verify {
+            navController.nav(
+                null,
+                NavGraphDirections.actionGlobalHome(
+                    focusOnAddressBar = true,
+                    searchAccessPoint = MetricsUtils.Source.NONE,
+                ),
+            )
+        }
+
+        verify { out wasNot Called }
+    }
+
     companion object {
         const val TEST_WRONG_ACTION = "test-action"
     }

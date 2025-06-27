@@ -5,6 +5,8 @@
 package org.mozilla.fenix.search
 
 import android.content.res.Resources
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.Lifecycle.State.RESUMED
 import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
@@ -14,7 +16,11 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.android.asCoroutineDispatcher
+import kotlinx.coroutines.test.setMain
 import mozilla.components.browser.state.action.AwesomeBarAction
+import mozilla.components.browser.state.action.SearchAction.ApplicationSearchEnginesLoaded
 import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.SearchState
@@ -57,6 +63,7 @@ import org.mozilla.fenix.search.fixtures.assertSearchSelectorEquals
 import org.mozilla.fenix.search.fixtures.buildExpectedSearchSelector
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 
 @RunWith(RobolectricTestRunner::class)
 class BrowserToolbarSearchMiddlewareTest {
@@ -303,6 +310,24 @@ class BrowserToolbarSearchMiddlewareTest {
         assertEquals(
             emptyList<AutocompleteProvider>(),
             store.state.editState.autocompleteProviders,
+        )
+    }
+
+    @Test
+    fun `WHEN the search engines are updated in BrowserStore THEN update the search selector and search providers`() {
+        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
+
+        val browserStore = BrowserStore()
+        val (_, store) = buildMiddlewareAndAddToStore(browserStore = browserStore)
+        store.dispatch(ToggleEditMode(true))
+        val newSearchEngines = fakeSearchState().applicationSearchEngines
+
+        browserStore.dispatch(ApplicationSearchEnginesLoaded(newSearchEngines)).joinBlocking()
+        shadowOf(Looper.getMainLooper()).idle() // wait for observing and processing the search engines update
+
+        assertSearchSelectorEquals(
+            expectedSearchSelector(newSearchEngines[0], newSearchEngines),
+            store.state.editState.editActionsStart[0] as SearchSelectorAction,
         )
     }
 

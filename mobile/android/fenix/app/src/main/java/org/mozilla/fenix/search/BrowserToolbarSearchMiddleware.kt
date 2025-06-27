@@ -98,6 +98,7 @@ class BrowserToolbarSearchMiddleware(
     private lateinit var toolbarStore: BrowserToolbarStore
     private lateinit var dependencies: LifecycleDependencies
     private var syncCurrentSearchEngineJob: Job? = null
+    private var syncAvailableSearchEnginesJob: Job? = null
 
     /**
      * Updates the [LifecycleDependencies] of this middleware.
@@ -129,8 +130,10 @@ class BrowserToolbarSearchMiddleware(
                         appStore.state.shortcutSearchEngine ?: browserStore.state.search.selectedOrDefaultSearchEngine,
                     )
                     syncCurrentSearchEngine()
+                    syncAvailableEngines()
                 } else {
                     syncCurrentSearchEngineJob?.cancel()
+                    syncAvailableSearchEnginesJob?.cancel()
                 }
             }
 
@@ -230,6 +233,16 @@ class BrowserToolbarSearchMiddleware(
                     it.shortcutSearchEngine?.let {
                         refreshConfigurationAfterSearchEngineChange(it)
                     }
+                }
+        }
+    }
+
+    private fun syncAvailableEngines() {
+        syncAvailableSearchEnginesJob?.cancel()
+        syncAvailableSearchEnginesJob = observeWhileActive(browserStore) {
+            distinctUntilChangedBy { it.search.searchEngineShortcuts }
+                .collect {
+                    refreshConfigurationAfterSearchEngineChange(it.search.selectedOrDefaultSearchEngine)
                 }
         }
     }
