@@ -234,10 +234,11 @@ class MediaStreamTrackSource : public nsISupports {
     if (mStopped) {
       return;
     }
+    mSinks.RemoveElementsBy([](const WeakPtr<Sink>& aElem) {
+      MOZ_ASSERT(aElem, "Sink was not explicitly removed");
+      return !aElem;
+    });
     mSinks.AppendElement(aSink);
-    while (mSinks.RemoveElement(nullptr)) {
-      MOZ_ASSERT_UNREACHABLE("Sink was not explicitly removed");
-    }
   }
 
   /**
@@ -246,9 +247,10 @@ class MediaStreamTrackSource : public nsISupports {
    */
   void UnregisterSink(Sink* aSink) {
     MOZ_ASSERT(NS_IsMainThread());
-    while (mSinks.RemoveElement(nullptr)) {
-      MOZ_ASSERT_UNREACHABLE("Sink was not explicitly removed");
-    }
+    mSinks.RemoveElementsBy([](const WeakPtr<Sink>& aElem) {
+      MOZ_ASSERT(aElem, "Sink was not explicitly removed");
+      return !aElem;
+    });
     if (mSinks.RemoveElement(aSink) && !IsActive()) {
       MOZ_ASSERT(!aSink->KeepsSourceAlive() || !mStopped,
                  "When the last sink keeping the source alive is removed, "
@@ -288,12 +290,11 @@ class MediaStreamTrackSource : public nsISupports {
    */
   void PrincipalChanged() {
     MOZ_ASSERT(NS_IsMainThread());
-    for (auto& sink : mSinks.Clone()) {
-      if (!sink) {
-        DebugOnly<bool> removed = mSinks.RemoveElement(sink);
-        MOZ_ASSERT(!removed, "Sink was not explicitly removed");
-        continue;
-      }
+    mSinks.RemoveElementsBy([](const WeakPtr<Sink>& aElem) {
+      MOZ_ASSERT(aElem, "Sink was not explicitly removed");
+      return !aElem;
+    });
+    for (const auto& sink : mSinks.Clone()) {
       sink->PrincipalChanged();
     }
   }
@@ -305,12 +306,11 @@ class MediaStreamTrackSource : public nsISupports {
    */
   void MutedChanged(bool aNewState) {
     MOZ_ASSERT(NS_IsMainThread());
-    for (auto& sink : mSinks.Clone()) {
-      if (!sink) {
-        DebugOnly<bool> removed = mSinks.RemoveElement(sink);
-        MOZ_ASSERT(!removed, "Sink was not explicitly removed");
-        continue;
-      }
+    mSinks.RemoveElementsBy([](const WeakPtr<Sink>& aElem) {
+      MOZ_ASSERT(aElem, "Sink was not explicitly removed");
+      return !aElem;
+    });
+    for (const auto& sink : mSinks.Clone()) {
       sink->MutedChanged(aNewState);
     }
   }
@@ -321,12 +321,11 @@ class MediaStreamTrackSource : public nsISupports {
    */
   void ConstraintsChanged(const MediaTrackConstraints& aConstraints) {
     MOZ_ASSERT(NS_IsMainThread());
-    for (auto& sink : mSinks.Clone()) {
-      if (!sink) {
-        DebugOnly<bool> removed = mSinks.RemoveElement(sink);
-        MOZ_ASSERT(!removed, "Sink was not explicitly removed");
-        continue;
-      }
+    mSinks.RemoveElementsBy([](const WeakPtr<Sink>& aElem) {
+      MOZ_ASSERT(aElem, "Sink was not explicitly removed");
+      return !aElem;
+    });
+    for (const auto& sink : mSinks.Clone()) {
       sink->ConstraintsChanged(aConstraints);
     }
   }
@@ -337,12 +336,11 @@ class MediaStreamTrackSource : public nsISupports {
    */
   void OverrideEnded() {
     MOZ_ASSERT(NS_IsMainThread());
-    for (auto& sink : mSinks.Clone()) {
-      if (!sink) {
-        DebugOnly<bool> removed = mSinks.RemoveElement(sink);
-        MOZ_ASSERT(!removed, "Sink was not explicitly removed");
-        continue;
-      }
+    mSinks.RemoveElementsBy([](const WeakPtr<Sink>& aElem) {
+      MOZ_ASSERT(aElem, "Sink was not explicitly removed");
+      return !aElem;
+    });
+    for (const auto& sink : mSinks.Clone()) {
       sink->OverrideEnded();
     }
   }
