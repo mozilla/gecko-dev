@@ -97,21 +97,6 @@
         android:visibility="gone"
         app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/sessionControlRecyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:paddingVertical="16dp"
-        android:scrollbars="none"
-        android:transitionGroup="false"
-        android:importantForAccessibility="yes"
-        android:overScrollMode="never"
-        tools:listitem="@layout/collection_home_list_row"
-        tools:itemCount="3"
-        app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"/>
-
     <ViewStub
         android:id="@+id/toolbarLayoutStub"
         android:layout_width="match_parent"

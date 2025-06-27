@@ -519,7 +519,6 @@ class HomeFragment : Fragment() {
             initComposeHomepage()
         } else {
             binding.homepageView.isVisible = false
-            binding.sessionControlRecyclerView.isVisible = true
         }
 
         disableAppBarDragging()
@@ -889,7 +888,6 @@ class HomeFragment : Fragment() {
     }
 
     private fun initComposeHomepage() {
-        binding.sessionControlRecyclerView.isVisible = false
         binding.homepageView.isVisible = true
         binding.homeAppBarContent.isVisible = false
 
