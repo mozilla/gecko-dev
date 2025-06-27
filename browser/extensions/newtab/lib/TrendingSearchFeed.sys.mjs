@@ -54,6 +54,7 @@ export class TrendingSearchFeed {
   }
 
   async loadTrendingSearch(isStartup = false) {
+    this.initialized = true;
     const cachedData = (await this.cache.get()) || {};
     const { trendingSearch } = cachedData;
 
@@ -98,8 +99,10 @@ export class TrendingSearchFeed {
 
   async fetchHelper() {
     if (!this.defaultEngine) {
-      return null;
+      const engine = await Services.search.getDefault();
+      this.defaultEngine = engine;
     }
+
     this.suggestionsController = new lazy.SearchSuggestionController();
     this.suggestionsController.maxLocalResults = 0;
 
@@ -170,7 +173,9 @@ export class TrendingSearchFeed {
           const { name, value } = action.data;
 
           const isTrendingShowPref =
-            name === PREF_SHOW_TRENDING_SEARCH && value;
+            (name === PREF_SHOW_TRENDING_SEARCH ||
+              name === PREF_SHOW_TRENDING_SEARCH_SYSTEM) &&
+            value;
           const isTrendingDefaultPref = name === PREF_TRENDING_SEARCH_DEFAULT;
 
           if (isTrendingShowPref || isTrendingDefaultPref) {
