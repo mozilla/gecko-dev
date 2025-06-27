@@ -7,9 +7,11 @@
 
 #include "nsTArrayForwardDeclare.h"
 #include "MediaEngine.h"
-#include "MediaEventSource.h"
 
 namespace mozilla {
+
+template <typename...>
+class MediaEventProducer;
 
 /**
  * The fake implementation of the MediaEngine interface.
