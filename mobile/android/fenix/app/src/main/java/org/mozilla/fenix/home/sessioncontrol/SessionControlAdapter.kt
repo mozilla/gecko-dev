@@ -16,7 +16,6 @@ import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.home.BottomSpacerViewHolder
 import org.mozilla.fenix.home.bookmarks.view.BookmarksHeaderViewHolder
 import org.mozilla.fenix.home.bookmarks.view.BookmarksViewHolder
 import org.mozilla.fenix.home.collections.CollectionViewHolder
@@ -159,8 +158,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
      */
     data object SetupChecklist : AdapterItem(SetupChecklistViewHolder.LAYOUT_ID)
 
-    object BottomSpacer : AdapterItem(BottomSpacerViewHolder.LAYOUT_ID)
-
     /**
      * True if this item represents the same value as other. Used by [AdapterItemDiffCallback].
      */
@@ -284,7 +281,6 @@ class SessionControlAdapter(
                     components.appStore,
                     interactor,
                 )
-            BottomSpacerViewHolder.LAYOUT_ID -> BottomSpacerViewHolder(view)
             else -> throw IllegalStateException()
         }
     }

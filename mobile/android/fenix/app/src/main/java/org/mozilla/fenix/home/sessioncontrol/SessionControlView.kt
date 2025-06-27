@@ -92,8 +92,6 @@ internal fun normalModeAdapterItems(
         items.add(AdapterItem.PocketStoriesItem)
     }
 
-    items.add(AdapterItem.BottomSpacer)
-
     return items
 }
 
