@@ -424,11 +424,12 @@ export const FormAutofillHeuristics = {
       const detail = scanner.getFieldDetailByIndex(idx);
 
       // Skip over any house number fields. There should only be zero or one,
-      // but we'll skip over them all anyway.
+      // but we'll skip over them all anyway. Only check the alternate field
+      // name if it wasn't already changed by an earlier step.
       if (
-        [detail?.fieldName, detail?.alternativeFieldName].includes(
-          "address-housenumber"
-        )
+        detail?.fieldName == "address-housenumber" ||
+        (detail?.reason == "regex-heuristic" &&
+          detail?.alternativeFieldName == "address-housenumber")
       ) {
         houseNumberFields.push(idx);
         continue;
