@@ -75,7 +75,6 @@ import mozilla.components.lib.state.Action as MVIAction
  * @param appStore [AppStore] to sync search related data with.
  * @param browserStore [BrowserStore] to sync search related data with.
  * @param toolbarStore [BrowserToolbarStore] used for querying and updating the toolbar state.
- * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
  */
 @Suppress("LongParameterList")
 class FenixSearchMiddleware(
@@ -86,7 +85,6 @@ class FenixSearchMiddleware(
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
     private val toolbarStore: BrowserToolbarStore,
-    private val includeSelectedTab: Boolean = false,
 ) : Middleware<SearchFragmentState, SearchFragmentAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     internal lateinit var searchStore: SearchFragmentStore
@@ -251,7 +249,7 @@ class FenixSearchMiddleware(
     internal fun buildSearchSuggestionsProvider() = SearchSuggestionsProvidersBuilder(
         context = dependencies.context,
         browsingModeManager = dependencies.browsingModeManager,
-        includeSelectedTab = includeSelectedTab,
+        includeSelectedTab = true,
         loadUrlUseCase = loadUrlUseCase,
         searchUseCase = searchUseCase,
         selectTabUseCase = selectTabUseCase,
@@ -467,7 +465,6 @@ class FenixSearchMiddleware(
          * @param appStore [AppStore] used for querying application's state related to search.
          * @param browserStore [BrowserStore] used for updating search related data.
          * @param toolbarStore [BrowserToolbarStore] used for querying and updating the toolbar state.
-         * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
          */
         @Suppress("LongParameterList")
         fun viewModelFactory(
@@ -478,7 +475,6 @@ class FenixSearchMiddleware(
             appStore: AppStore,
             browserStore: BrowserStore,
             toolbarStore: BrowserToolbarStore,
-            includeSelectedTab: Boolean,
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T = FenixSearchMiddleware(
@@ -489,7 +485,6 @@ class FenixSearchMiddleware(
                 appStore = appStore,
                 browserStore = browserStore,
                 toolbarStore = toolbarStore,
-                includeSelectedTab = includeSelectedTab,
             ) as? T ?: throw IllegalArgumentException("Unknown ViewModel class")
         }
     }

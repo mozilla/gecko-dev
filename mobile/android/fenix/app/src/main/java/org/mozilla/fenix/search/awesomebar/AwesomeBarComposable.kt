@@ -63,8 +63,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param toolbarStore [BrowserToolbarStore] for accessing the current toolbar state.
  * @param navController [NavController] for navigating to other destinations in the application.
  * @param lifecycleOwner [Fragment] for controlling the lifetime of long running operations.
- * @param includeSelectedTab Whether to include the currently selected tab in the search suggestions.
- * Defaults to `true`.
  */
 @Suppress("LongParameterList")
 class AwesomeBarComposable(
@@ -76,7 +74,6 @@ class AwesomeBarComposable(
     private val toolbarStore: BrowserToolbarStore,
     private val navController: NavController,
     private val lifecycleOwner: Fragment,
-    private val includeSelectedTab: Boolean = true,
 ) {
     private val toolbarQueryMapper = getOrCreate<BrowserToolbarToFenixSearchMapperMiddleware>()
     private val searchMiddleware = getOrCreate<FenixSearchMiddleware>()
@@ -179,7 +176,6 @@ class AwesomeBarComposable(
                     appStore = appStore,
                     browserStore = browserStore,
                     toolbarStore = toolbarStore,
-                    includeSelectedTab = includeSelectedTab,
                 ),
             )[FenixSearchMiddleware::class.java].also {
                 it.updateLifecycleDependencies(
@@ -199,7 +195,7 @@ class AwesomeBarComposable(
                     initialState = createInitialSearchFragmentState(
                         activity = activity,
                         components = components,
-                        tabId = browserStore.state.selectedTabId,
+                        tabId = null,
                         pastedText = null,
                         searchAccessPoint = MetricsUtils.Source.NONE,
                     ),

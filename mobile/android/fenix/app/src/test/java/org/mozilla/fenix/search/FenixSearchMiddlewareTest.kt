@@ -432,11 +432,10 @@ class FenixSearchMiddlewareTest {
         appStore: AppStore = this.appStore,
         browserStore: BrowserStore = this.browserStore,
         toolbarStore: BrowserToolbarStore = this.toolbarStore,
-        includeSelectedTab: Boolean = true,
     ): Pair<FenixSearchMiddleware, SearchFragmentStore> {
         val middleware = spyk(
             buildMiddleware(
-                engine, tabsUseCases, nimbusComponents, settings, appStore, browserStore, toolbarStore, includeSelectedTab,
+                engine, tabsUseCases, nimbusComponents, settings, appStore, browserStore, toolbarStore,
             ),
         )
         val store = SearchFragmentStore(
@@ -455,7 +454,6 @@ class FenixSearchMiddlewareTest {
         appStore: AppStore = this.appStore,
         browserStore: BrowserStore = this.browserStore,
         toolbarStore: BrowserToolbarStore = this.toolbarStore,
-        includeSelectedTab: Boolean = true,
     ) = FenixSearchMiddleware(
         engine = engine,
         tabsUseCases = tabsUseCases,
@@ -464,7 +462,6 @@ class FenixSearchMiddlewareTest {
         appStore = appStore,
         browserStore = browserStore,
         toolbarStore = toolbarStore,
-        includeSelectedTab = includeSelectedTab,
     ).apply {
         updateLifecycleDependencies(
             FenixSearchMiddleware.LifecycleDependencies(

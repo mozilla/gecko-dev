@@ -1344,7 +1344,6 @@ class HomeFragment : Fragment() {
             toolbarStore = toolbarStore,
             navController = findNavController(),
             lifecycleOwner = this,
-            includeSelectedTab = true,
         ).also {
             awesomeBarComposable = it
         }
