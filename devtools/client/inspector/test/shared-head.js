@@ -686,17 +686,17 @@ function getRuleViewSelector(view, selectorText) {
 }
 
 /**
- * Get a rule-link from the rule-view given its index
+ * Get a rule-link from the rule-view given the rule index
  *
  * @param {CssRuleView} view
  *        The instance of the rule-view panel
  * @param {Number} index
  *        The index of the link to get
- * @return {DOMNode} The link if any at this index
+ * @return {DOMNode|null} The link if any at this rule index, or null if it doesn't exist
  */
 function getRuleViewLinkByIndex(view, index) {
-  const links = view.styleDocument.querySelectorAll(".ruleview-rule-source");
-  return links[index];
+  const ruleEl = view.styleDocument.querySelectorAll(".ruleview-rule")[index];
+  return ruleEl?.querySelector(".ruleview-rule-source") || null;
 }
 
 /**
