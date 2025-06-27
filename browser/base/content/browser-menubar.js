@@ -27,6 +27,10 @@ document.addEventListener(
         case "repair-text-encoding":
           BrowserCommands.forceEncodingDetection();
           break;
+        case "enterFullScreenItem":
+        case "exitFullScreenItem":
+          BrowserCommands.fullScreen();
+          break;
         case "documentDirection-swap":
           gBrowser.selectedBrowser.sendMessageToActor(
             "SwitchDocumentDirection",

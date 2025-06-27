@@ -168,14 +168,10 @@
 #ifdef XP_MACOSX
                 <menuitem id="enterFullScreenItem"
                           key="key_enterFullScreen"
-                          data-l10n-id="menu-view-enter-full-screen">
-                  <observes element="View:FullScreen" attribute="oncommand"/>
-                </menuitem>
+                          data-l10n-id="menu-view-enter-full-screen"/>
                 <menuitem id="exitFullScreenItem"
                           key="key_exitFullScreen"
-                          hidden="true" data-l10n-id="menu-view-exit-full-screen">
-                  <observes element="View:FullScreen" attribute="oncommand"/>
-                </menuitem>
+                          hidden="true" data-l10n-id="menu-view-exit-full-screen"/>
 #else
                 <menuitem id="fullScreenItem"
                           key="key_enterFullScreen"
