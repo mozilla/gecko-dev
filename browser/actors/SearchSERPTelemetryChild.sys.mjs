@@ -1652,11 +1652,11 @@ export class SearchSERPTelemetryChild extends JSWindowActorChild {
         break;
       }
       case "DOMContentLoaded": {
-        this.#checkForPageImpressionComponents();
         this.#check(event.type);
         break;
       }
       case "load": {
+        this.#checkForPageImpressionComponents();
         // We check both DOMContentLoaded and load in case the page has
         // taken a long time to load and the ad is only detected on load.
         // We still check at DOMContentLoaded because if the page hasn't

@@ -578,6 +578,7 @@ class TelemetryHandler {
         impressionId,
         urlToComponentMap: null,
         impressionInfo,
+        impressionRecorded: false,
         searchBoxSubmitted: false,
         categorizationInfo: null,
         adsClicked: 0,
@@ -597,6 +598,7 @@ class TelemetryHandler {
           impressionId,
           urlToComponentMap: null,
           impressionInfo,
+          impressionRecorded: false,
           searchBoxSubmitted: false,
           categorizationInfo: null,
           adsClicked: 0,
@@ -726,6 +728,14 @@ class TelemetryHandler {
       if (item.browserTelemetryStateMap.has(browser)) {
         let telemetryState = item.browserTelemetryStateMap.get(browser);
         let impressionId = telemetryState.impressionId;
+
+        if (
+          telemetryState.impressionInfo &&
+          !telemetryState.impressionRecorded
+        ) {
+          this._contentHandler._recordFallbackPageImpression(telemetryState);
+        }
+
         if (impressionIdsWithoutEngagementsSet.has(impressionId)) {
           this.recordAbandonmentTelemetry(impressionId, abandonmentReason);
         }
@@ -1874,7 +1884,7 @@ class ContentHandler {
 
   _reportPageImpression(info, browser) {
     let item = this._findItemForBrowser(browser);
-    let telemetryState = item.browserTelemetryStateMap.get(browser);
+    let telemetryState = item?.browserTelemetryStateMap.get(browser);
     if (!telemetryState?.impressionInfo) {
       lazy.logConsole.debug(
         "Could not find telemetry state or impression info."
@@ -1882,7 +1892,7 @@ class ContentHandler {
       return;
     }
     let impressionId = telemetryState.impressionId;
-    if (impressionId) {
+    if (impressionId && !telemetryState.impressionRecorded) {
       let impressionInfo = telemetryState.impressionInfo;
       Glean.serp.impression.record({
         impression_id: impressionId,
@@ -1895,15 +1905,47 @@ class ContentHandler {
         is_private: impressionInfo.isPrivate,
         is_signed_in: impressionInfo.isSignedIn,
       });
+
+      telemetryState.impressionRecorded = true;
+
       lazy.logConsole.debug(`Reported Impression:`, {
         impressionId,
         ...impressionInfo,
         shoppingTabDisplayed: info.shoppingTabDisplayed,
       });
       Services.obs.notifyObservers(null, "reported-page-with-impression");
+    } else if (telemetryState.impressionRecorded) {
+      lazy.logConsole.debug("Impression already recorded for browser.");
     } else {
       lazy.logConsole.debug("Could not find an impression id.");
     }
+  }
+
+  _recordFallbackPageImpression(telemetryState) {
+    if (!telemetryState?.impressionInfo) {
+      return;
+    }
+    let impressionInfo = telemetryState.impressionInfo;
+    Glean.serp.impression.record({
+      impression_id: telemetryState.impressionId,
+      provider: impressionInfo.provider,
+      tagged: impressionInfo.tagged,
+      partner_code: impressionInfo.partnerCode,
+      source: impressionInfo.source,
+      shopping_tab_displayed: false,
+      is_shopping_page: impressionInfo.isShoppingPage,
+      is_private: impressionInfo.isPrivate,
+      is_signed_in: impressionInfo.isSignedIn,
+    });
+
+    telemetryState.impressionRecorded = true;
+
+    lazy.logConsole.debug(`Reported Impression:`, {
+      impressionId: telemetryState.impressionId,
+      ...impressionInfo,
+      shoppingTabDisplayed: false,
+    });
+    Services.obs.notifyObservers(null, "reported-page-with-impression");
   }
 
   /**

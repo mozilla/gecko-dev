@@ -40,17 +40,28 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_tab_close() {
+add_task(async function test_tab_close_before_page_load() {
   resetTelemetry();
 
+  let contentHandler = SearchSERPTelemetry._contentHandler;
+
+  let spy = sinon.spy(contentHandler, "_recordFallbackPageImpression");
+
+  let pageImpression = waitForPageWithImpression();
   let tab = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,
     getSERPUrl("searchTelemetry.html")
   );
 
-  await waitForPageWithAdImpressions();
-
   BrowserTestUtils.removeTab(tab);
+
+  await pageImpression;
+
+  Assert.ok(spy.called, "Expected _recordFallbackPageImpression to be called");
+  Assert.ok(
+    spy.calledOnce,
+    "Expected _recordFallbackPageImpression to be called once"
+  );
 
   assertSERPTelemetry([
     {
@@ -69,6 +80,53 @@ add_task(async function test_tab_close() {
       },
     },
   ]);
+
+  spy.restore();
+
+  // Ensure child actor has finished sending messages before creating spies so
+  // that future spies accurately count calls in their tests.
+  await TestUtils.waitForTick();
+});
+
+add_task(async function test_tab_close_after_page_load() {
+  resetTelemetry();
+
+  let contentHandler = SearchSERPTelemetry._contentHandler;
+
+  let spy = sinon.spy(contentHandler, "_reportPageImpression");
+
+  let pageImpression = waitForPageWithImpression();
+  let tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    getSERPUrl("searchTelemetry.html")
+  );
+
+  await pageImpression;
+
+  BrowserTestUtils.removeTab(tab);
+
+  Assert.ok(spy.called, "Expected _reportPageImpression to be called");
+  Assert.ok(spy.calledOnce, "Expected _reportPageImpression to be called once");
+
+  assertSERPTelemetry([
+    {
+      impression: {
+        provider: "example",
+        tagged: "true",
+        partner_code: "ff",
+        source: "unknown",
+        is_shopping_page: "false",
+        is_private: "false",
+        shopping_tab_displayed: "false",
+        is_signed_in: "false",
+      },
+      abandonment: {
+        reason: SearchSERPTelemetryUtils.ABANDONMENTS.TAB_CLOSE,
+      },
+    },
+  ]);
+
+  spy.restore();
 });
 
 add_task(async function test_window_close() {

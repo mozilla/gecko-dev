@@ -494,6 +494,10 @@ function waitForPageWithAction() {
   return TestUtils.topicObserved("reported-page-with-action");
 }
 
+function waitForPageWithImpression() {
+  return TestUtils.topicObserved("reported-page-with-impression");
+}
+
 function waitForPageWithAdImpressions() {
   return TestUtils.topicObserved("reported-page-with-ad-impressions");
 }

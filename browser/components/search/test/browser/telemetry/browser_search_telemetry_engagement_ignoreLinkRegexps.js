@@ -93,6 +93,8 @@ add_task(async function test_click_link_1_matching_ignore_link_regexps() {
   );
   await promise;
 
+  await waitForPageWithImpression();
+
   assertSERPTelemetry([
     {
       impression: IMPRESSION,
@@ -121,6 +123,8 @@ add_task(async function test_click_link_2_matching_ignore_link_regexps() {
   );
   await promise;
 
+  await waitForPageWithImpression();
+
   assertSERPTelemetry([
     {
       impression: IMPRESSION,
@@ -148,6 +152,8 @@ add_task(async function test_click_link_3_not_matching_ignore_link_regexps() {
     tab.linkedBrowser
   );
   await promise;
+
+  await waitForPageWithImpression();
 
   assertSERPTelemetry([
     {
@@ -204,6 +210,8 @@ add_task(async function test_click_listener_with_ignore_link_regexps() {
     tab.linkedBrowser
   );
   await promise;
+
+  await waitForPageWithImpression();
 
   assertSERPTelemetry([
     {
