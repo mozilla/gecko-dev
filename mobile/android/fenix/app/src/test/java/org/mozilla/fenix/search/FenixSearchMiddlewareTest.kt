@@ -22,7 +22,7 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.concept.awesomebar.AwesomeBar.Suggestion
 import mozilla.components.concept.awesomebar.AwesomeBar.SuggestionProvider
@@ -63,7 +63,6 @@ import org.mozilla.fenix.search.SearchFragmentAction.SearchStarted
 import org.mozilla.fenix.search.SearchFragmentAction.SearchSuggestionsVisibilityUpdated
 import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
 import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
-import org.mozilla.fenix.search.SearchFragmentAction.UpdateQuery
 import org.mozilla.fenix.search.awesomebar.SearchSuggestionsProvidersBuilder
 import org.mozilla.fenix.search.fixtures.EMPTY_SEARCH_FRAGMENT_STATE
 import org.mozilla.fenix.utils.Settings
@@ -164,7 +163,7 @@ class FenixSearchMiddlewareTest {
         }
         every { middleware.buildSearchSuggestionsProvider() } returns expectedSearchSuggestionsProvider
 
-        store.dispatch(UpdateQuery("test"))
+        store.dispatch(SearchFragmentAction.UpdateQuery("test"))
         store.dispatch(SearchStarted(preselectedSearchEngine, isSearchInPrivateMode))
 
         verify { engine.speculativeCreateSession(isSearchInPrivateMode) }
@@ -188,7 +187,7 @@ class FenixSearchMiddlewareTest {
         }
         every { middleware.buildSearchSuggestionsProvider() } returns expectedSearchSuggestionsProvider
 
-        store.dispatch(UpdateQuery("test"))
+        store.dispatch(SearchFragmentAction.UpdateQuery("test"))
         store.dispatch(SearchStarted(null, isSearchInPrivateMode))
         store.waitUntilIdle()
 
@@ -203,20 +202,20 @@ class FenixSearchMiddlewareTest {
     fun `GIVEN the search query is updated WHEN is is different than the current URL and not empty THEN show search suggestions`() {
         val (_, store) = buildMiddlewareAndAddToSearchStore()
 
-        store.dispatch(UpdateQuery(store.state.url))
+        store.dispatch(SearchFragmentAction.UpdateQuery(store.state.url))
         assertFalse(store.state.shouldShowSearchSuggestions)
 
-        store.dispatch(UpdateQuery("test"))
+        store.dispatch(SearchFragmentAction.UpdateQuery("test"))
         assertTrue(store.state.shouldShowSearchSuggestions)
 
-        store.dispatch(UpdateQuery(""))
+        store.dispatch(SearchFragmentAction.UpdateQuery(""))
         assertFalse(store.state.shouldShowSearchSuggestions)
     }
 
     @Test
     fun `GIVEN a search query already exists WHEN the search providers are updated THEN show new search suggestions`() {
         val (_, store) = buildMiddlewareAndAddToSearchStore()
-        store.dispatch(UpdateQuery("test"))
+        store.dispatch(SearchFragmentAction.UpdateQuery("test"))
 
         store.dispatch(SearchProvidersUpdated(listOf(mockk())))
 
@@ -386,7 +385,7 @@ class FenixSearchMiddlewareTest {
         store.dispatch(SuggestionClicked(clickedSuggestion))
 
         assertTrue(wasSuggestionClickHandled)
-        verify { toolbarStore.dispatch(UpdateEditText("")) }
+        verify { toolbarStore.dispatch(BrowserEditToolbarAction.SearchQueryUpdated("")) }
         browserActionsCaptor.assertLastAction(AwesomeBarAction.SuggestionClicked::class) {
             assertEquals(clickedSuggestion, it.suggestion)
         }
@@ -423,7 +422,7 @@ class FenixSearchMiddlewareTest {
 
         store.dispatch(SuggestionSelected(selectedSuggestion))
 
-        verify { toolbarStore.dispatch(UpdateEditText("test")) }
+        verify { toolbarStore.dispatch(BrowserEditToolbarAction.SearchQueryUpdated("test")) }
     }
 
     private fun buildMiddlewareAndAddToSearchStore(

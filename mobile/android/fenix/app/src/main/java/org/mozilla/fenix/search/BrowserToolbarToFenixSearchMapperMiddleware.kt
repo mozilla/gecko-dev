@@ -96,10 +96,10 @@ class BrowserToolbarToFenixSearchMapperMiddleware(
         syncSearchQueryJob?.cancel()
         isSyncingUserQueryInProgress = true
         syncSearchQueryJob = observeWhileActive(toolbarStore) {
-            map { it.editState.editText }
+            map { it.editState.query }
                 .distinctUntilChanged()
                 .collect { query ->
-                    searchStore.dispatch(SearchFragmentAction.UpdateQuery(query ?: ""))
+                    searchStore.dispatch(SearchFragmentAction.UpdateQuery(query))
                 }
         }
     }

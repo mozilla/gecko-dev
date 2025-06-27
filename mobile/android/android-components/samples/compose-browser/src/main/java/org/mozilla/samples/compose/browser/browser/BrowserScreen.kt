@@ -89,8 +89,8 @@ fun BrowserScreen(navController: NavController) {
                         Target.SelectedTab,
                     )
 
-                    val url = toolbarState.editState.editText
-                    if (toolbarState.isEditMode() && url != null) {
+                    val url = toolbarState.editState.query
+                    if (toolbarState.isEditMode() && url.isNotEmpty()) {
                         Suggestions(
                             url,
                             onSuggestionClicked = { suggestion ->
@@ -99,7 +99,7 @@ fun BrowserScreen(navController: NavController) {
                             },
                             onAutoComplete = { suggestion ->
                                 toolbarStore.dispatch(
-                                    BrowserEditToolbarAction.UpdateEditText(
+                                    BrowserEditToolbarAction.SearchQueryUpdated(
                                         suggestion.editSuggestion!!,
                                     ),
                                 )

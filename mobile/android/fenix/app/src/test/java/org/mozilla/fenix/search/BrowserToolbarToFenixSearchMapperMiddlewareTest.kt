@@ -9,7 +9,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import io.mockk.every
 import io.mockk.mockk
-import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchQueryUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.support.test.middleware.CaptureActionsMiddleware
@@ -56,16 +56,16 @@ class BrowserToolbarToFenixSearchMapperMiddlewareTest {
 
         searchStore.dispatch(SearchStarted(mockk(), false))
 
-        toolbarStore.dispatch(UpdateEditText("t"))
+        toolbarStore.dispatch(SearchQueryUpdated("t"))
         assertEquals("t", searchStore.state.query)
 
-        toolbarStore.dispatch(UpdateEditText("te"))
+        toolbarStore.dispatch(SearchQueryUpdated("te"))
         assertEquals("te", searchStore.state.query)
 
-        toolbarStore.dispatch(UpdateEditText("tes"))
+        toolbarStore.dispatch(SearchQueryUpdated("tes"))
         assertEquals("tes", searchStore.state.query)
 
-        toolbarStore.dispatch(UpdateEditText("test"))
+        toolbarStore.dispatch(SearchQueryUpdated("test"))
         assertEquals("test", searchStore.state.query)
     }
 

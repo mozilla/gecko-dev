@@ -101,9 +101,12 @@ sealed class BrowserEditToolbarAction : BrowserToolbarAction {
     /**
      * Updates the text of the toolbar that is currently being edited (in "edit" mode).
      *
-     * @property text The text in the toolbar that is being edited.
+     * @property query The text in the toolbar that is being edited.
      */
-    data class UpdateEditText(val text: String) : BrowserEditToolbarAction()
+    data class SearchQueryUpdated(
+        val query: String,
+        val showAsPreselected: Boolean = false,
+    ) : BrowserEditToolbarAction()
 
     /**
      * Indicates that a new url suggestion has been autocompleted in the search toolbar.

@@ -47,7 +47,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
  * Sub-component of the [BrowserToolbar] responsible for allowing the user to edit the current
  * URL ("edit mode").
  *
- * @param url The initial URL to be edited.
+ * @param query The current query.
+ * @param showQueryAsPreselected Whether or not to show the query as preselected.
  * @param autocompleteProviders Optional list of [AutocompleteProvider]s to be used for
  * inline autocompleting the current query.
  * @param useComposeTextField Whether or not to use the Compose [TextField] or a view-based
@@ -65,7 +66,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(8.dp)
 @Composable
 @Suppress("LongMethod")
 fun BrowserEditToolbar(
-    url: String,
+    query: String,
+    showQueryAsPreselected: Boolean = false,
     autocompleteProviders: List<AutocompleteProvider> = emptyList(),
     useComposeTextField: Boolean = false,
     editActionsStart: List<Action> = emptyList(),
@@ -86,7 +88,7 @@ fun BrowserEditToolbar(
     ) {
         if (useComposeTextField) {
             TextField(
-                value = url,
+                value = query,
                 onValueChange = { value ->
                     onUrlEdit(value)
                 },
@@ -108,7 +110,7 @@ fun BrowserEditToolbar(
                     imeAction = ImeAction.Go,
                 ),
                 keyboardActions = KeyboardActions(
-                    onGo = { onUrlCommitted(url) },
+                    onGo = { onUrlCommitted(query) },
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 shape = ROUNDED_CORNER_SHAPE,
@@ -125,7 +127,7 @@ fun BrowserEditToolbar(
                             onInteraction = onInteraction,
                         )
 
-                        if (url.isNotEmpty()) {
+                        if (query.isNotEmpty()) {
                             ClearButton(
                                 tint = AcornTheme.colors.iconPrimary,
                                 onButtonClicked = { onUrlEdit("") },
@@ -141,7 +143,8 @@ fun BrowserEditToolbar(
             )
 
             InlineAutocompleteTextField(
-                url = url,
+                query = query,
+                showQueryAsPreselected = showQueryAsPreselected,
                 autocompleteProviders = autocompleteProviders,
                 modifier = Modifier.weight(1f),
                 onUrlEdit = onUrlEdit,
@@ -154,7 +157,7 @@ fun BrowserEditToolbar(
                 onInteraction = onInteraction,
             )
 
-            if (url.isNotEmpty()) {
+            if (query.isNotEmpty()) {
                 ClearButton(
                     tint = AcornTheme.colors.iconPrimary,
                     onButtonClicked = { onUrlEdit("") },
@@ -192,7 +195,7 @@ private fun ClearButton(
 private fun BrowserEditToolbarPreview() {
     AcornTheme {
         BrowserEditToolbar(
-            url = "http://www.mozilla.org",
+            query = "http://www.mozilla.org",
             autocompleteProviders = emptyList(),
             useComposeTextField = true,
             editActionsStart = listOf(

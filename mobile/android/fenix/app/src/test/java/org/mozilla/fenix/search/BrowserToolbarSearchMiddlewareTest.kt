@@ -21,7 +21,7 @@ import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
-import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchQueryUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.concept.toolbar.AutocompleteProvider
@@ -102,14 +102,14 @@ class BrowserToolbarSearchMiddlewareTest {
         val appStore = AppStore(middlewares = listOf(captorMiddleware))
         val (_, store) = buildMiddlewareAndAddToStore(appStore = appStore)
         store.dispatch(ToggleEditMode(true))
-        store.dispatch(UpdateEditText("test"))
+        store.dispatch(SearchQueryUpdated("test"))
         assertTrue(store.state.isEditMode())
-        assertEquals("test", store.state.editState.editText)
+        assertEquals("test", store.state.editState.query)
 
         store.dispatch(SearchSettingsItemClicked)
 
         assertFalse(store.state.isEditMode())
-        assertEquals("", store.state.editState.editText)
+        assertEquals("", store.state.editState.query)
         captorMiddleware.assertLastAction(UpdateSearchBeingActiveState::class) {
             assertFalse(it.isSearchActive)
         }

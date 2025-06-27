@@ -58,7 +58,8 @@ private const val AUTOCOMPLETE_THREADS_FACTORY_NAME = "EditToolbar"
  */
 @Composable
 internal fun InlineAutocompleteTextField(
-    url: String,
+    query: String,
+    showQueryAsPreselected: Boolean,
     autocompleteProviders: List<AutocompleteProvider>,
     modifier: Modifier = Modifier,
     onUrlEdit: (String) -> Unit = {},
@@ -139,7 +140,10 @@ internal fun InlineAutocompleteTextField(
                 setTextColor(textColor.toArgb())
                 setHintTextColor(hintColor.toArgb())
 
-                updateText(url)
+                updateText(query)
+                if (showQueryAsPreselected && query.isNotBlank()) {
+                    selectAll()
+                }
 
                 setOnCommitListener {
                     onUrlCommitted(text.toString())
@@ -154,8 +158,8 @@ internal fun InlineAutocompleteTextField(
         },
         modifier = modifier,
         update = {
-            if (url != it.originalText) {
-                it.updateText(url)
+            if (query != it.originalText) {
+                it.updateText(query)
                 it.refreshAutocompleteSuggestions()
             }
         },
@@ -276,7 +280,8 @@ private fun InlineAutocompleteEditText.updateText(newText: String) {
 @Composable
 private fun BrowserEditToolbarPreview() {
     InlineAutocompleteTextField(
-        url = "http://www.mozilla.org",
+        query = "http://www.mozilla.org",
+        showQueryAsPreselected = false,
         autocompleteProviders = emptyList(),
     )
 }

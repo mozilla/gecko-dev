@@ -115,14 +115,16 @@ sealed class ProgressBarGravity {
 /**
  * Wrapper containing the toolbar edit state.
  *
- * @property editText The text the user is editing in "edit" mode.
+ * @property query The text the user is editing in "edit" mode.
+ * @property showQueryAsPreselected Whether or not [query] should be shown as selected.
  * @property editActionsStart List of [Action]s to be displayed at the start of the URL of
  * the edit toolbar.
  * @property editActionsEnd List of [Action]s to be displayed at the end of the URL of
  * the edit toolbar.
  */
 data class EditState(
-    val editText: String? = null,
+    val query: String = "",
+    val showQueryAsPreselected: Boolean = false,
     val autocompleteProviders: List<AutocompleteProvider> = emptyList(),
     val editActionsStart: List<Action> = emptyList(),
     val editActionsEnd: List<Action> = emptyList(),

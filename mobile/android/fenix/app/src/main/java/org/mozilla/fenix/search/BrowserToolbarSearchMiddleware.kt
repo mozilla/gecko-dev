@@ -27,7 +27,7 @@ import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.AutocompleteProvidersUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchActionsStartUpdated
-import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchQueryUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UrlSuggestionAutocompleted
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
@@ -140,7 +140,7 @@ class BrowserToolbarSearchMiddleware(
 
             is SearchSettingsItemClicked -> {
                 toolbarStore.dispatch(ToggleEditMode(false))
-                toolbarStore.dispatch(UpdateEditText(""))
+                toolbarStore.dispatch(SearchQueryUpdated(""))
                 appStore.dispatch(UpdateSearchBeingActiveState(false))
                 browserStore.dispatch(AwesomeBarAction.EngagementFinished(abandoned = true))
                 dependencies.navController.navigate(

@@ -34,14 +34,14 @@ fun BrowserToolbar(
     val uiState by store.observeAsState(initialValue = store.state) { it }
     val progressBarConfig = store.observeAsComposableState { it.displayState.progressBarConfig }.value
 
-    val input = when (val editText = uiState.editState.editText) {
-        null -> url
+    val input = when (val editText = uiState.editState.query) {
+        "" -> url
         else -> editText
     }
 
     if (uiState.isEditMode()) {
         BrowserEditToolbar(
-            url = input,
+            query = input,
             editActionsStart = uiState.editState.editActionsStart,
             editActionsEnd = uiState.editState.editActionsEnd,
             onUrlCommitted = { text -> onTextCommit(text) },

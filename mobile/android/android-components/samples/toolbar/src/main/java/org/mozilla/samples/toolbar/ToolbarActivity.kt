@@ -515,7 +515,7 @@ class ToolbarActivity : AppCompatActivity() {
                 BrowserToolbar(
                     store = store,
                     onTextEdit = { text ->
-                        store.dispatch(BrowserEditToolbarAction.UpdateEditText(text = text))
+                        store.dispatch(BrowserEditToolbarAction.SearchQueryUpdated(query = text))
                     },
                     onTextCommit = {
                         store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = false))

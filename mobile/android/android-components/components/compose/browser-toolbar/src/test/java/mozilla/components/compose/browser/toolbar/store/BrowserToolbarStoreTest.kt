@@ -16,7 +16,6 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,7 +37,7 @@ class BrowserToolbarStoreTest {
         store.dispatch(BrowserToolbarAction.ToggleEditMode(editMode = editMode))
 
         assertEquals(Mode.EDIT, store.state.mode)
-        assertNull(store.state.editState.editText)
+        assertEquals("", store.state.editState.query)
     }
 
     @Test
@@ -46,11 +45,11 @@ class BrowserToolbarStoreTest {
         val store = BrowserToolbarStore()
         val text = "Mozilla"
 
-        assertNull(store.state.editState.editText)
+        assertEquals("", store.state.editState.query)
 
-        store.dispatch(BrowserEditToolbarAction.UpdateEditText(text = text))
+        store.dispatch(BrowserEditToolbarAction.SearchQueryUpdated(query = text))
 
-        assertEquals(text, store.state.editState.editText)
+        assertEquals(text, store.state.editState.query)
     }
 
     @Test

@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.UpdateEditText
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
@@ -167,12 +167,12 @@ class FenixSearchMiddleware(
                 }
                 suggestion.onSuggestionClicked?.invoke()
                 browserStore.dispatch(AwesomeBarAction.SuggestionClicked(suggestion))
-                toolbarStore.dispatch(UpdateEditText(""))
+                toolbarStore.dispatch(BrowserEditToolbarAction.SearchQueryUpdated(""))
             }
 
             is SuggestionSelected -> {
                 action.suggestion.editSuggestion?.let {
-                    toolbarStore.dispatch(UpdateEditText(it))
+                    toolbarStore.dispatch(BrowserEditToolbarAction.SearchQueryUpdated(it))
                 }
             }
 
