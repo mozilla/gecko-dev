@@ -66,7 +66,6 @@ internal fun normalModeAdapterItems(
     }
 
     if (settings.showBookmarksHomeFeature && bookmarks.isNotEmpty()) {
-        items.add(AdapterItem.BookmarksHeader)
         items.add(AdapterItem.Bookmarks)
     }
 

@@ -16,7 +16,6 @@ import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.home.bookmarks.view.BookmarksHeaderViewHolder
 import org.mozilla.fenix.home.bookmarks.view.BookmarksViewHolder
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
@@ -136,11 +135,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
     object RecentVisitsItems : AdapterItem(RecentlyVisitedViewHolder.LAYOUT_ID)
 
     /**
-     * The header for the Bookmarks section.
-     */
-    object BookmarksHeader : AdapterItem(BookmarksHeaderViewHolder.LAYOUT_ID)
-
-    /**
      * The Bookmarks section.
      */
     object Bookmarks : AdapterItem(BookmarksViewHolder.LAYOUT_ID)
@@ -223,11 +217,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            BookmarksHeaderViewHolder.LAYOUT_ID -> return BookmarksHeaderViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             CollectionViewHolder.LAYOUT_ID -> return CollectionViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -269,7 +258,6 @@ class SessionControlAdapter(
         when (holder) {
             is RecentlyVisitedViewHolder,
             is BookmarksViewHolder,
-            is BookmarksHeaderViewHolder,
             is RecentTabViewHolder,
             is RecentSyncedTabViewHolder,
             is PrivateBrowsingDescriptionViewHolder,
