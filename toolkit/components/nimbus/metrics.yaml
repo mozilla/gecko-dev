@@ -984,7 +984,6 @@ nimbus_events:
       - chumphreys@mozilla.com
       - project-nimbus@mozilla.com
     expires: never
-    disabled: true
 
   migration:
     type: event
