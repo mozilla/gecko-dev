@@ -46,7 +46,11 @@ Tracer::Tracer(std::shared_ptr<TracerContext> context,
     : instrumentation_scope_{std::move(instrumentation_scope)},
       context_{std::move(context)},
       tracer_config_(context_->GetTracerConfigurator().ComputeConfig(*instrumentation_scope_))
-{}
+{
+#if OPENTELEMETRY_ABI_VERSION_NO >= 2
+  UpdateEnabled(tracer_config_.IsEnabled());
+#endif
+}
 
 nostd::shared_ptr<opentelemetry::trace::Span> Tracer::StartSpan(
     nostd::string_view name,

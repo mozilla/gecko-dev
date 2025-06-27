@@ -10,13 +10,18 @@
 #  endif
 #endif
 
+#include <type_traits>
+
 #if !defined(OPENTELEMETRY_HAVE_STD_TYPE_TRAITS)
 #  include <array>
-#  include <type_traits>
 
-#  include "opentelemetry/config.h"
 #  include "opentelemetry/nostd/detail/void.h"  // IWYU pragma: export
 #  include "opentelemetry/version.h"
+#endif
+
+#if !defined(__GLIBCXX__) || (defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE >= 7) || \
+    (defined(__GLIBCXX__) && __GLIBCXX__ >= 20150422)  // >= libstdc++-5
+#  define OPENTELEMETRY_TRIVIALITY_TYPE_TRAITS
 #endif
 
 OPENTELEMETRY_BEGIN_NAMESPACE

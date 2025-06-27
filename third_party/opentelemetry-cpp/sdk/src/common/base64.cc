@@ -11,16 +11,11 @@
 #include <cstring>
 #include <limits>
 
-#if defined(HAVE_ABSEIL)
-#  include "absl/strings/escaping.h"
-#endif
-
 OPENTELEMETRY_BEGIN_NAMESPACE
 namespace sdk
 {
 namespace common
 {
-#if !defined(HAVE_ABSEIL)
 namespace
 {
 using Base64EscapeChars   = const unsigned char[64];
@@ -145,11 +140,11 @@ static inline int Base64EscapeInternal(std::string &dest,
 
   int ret = Base64EscapeInternal(reinterpret_cast<unsigned char *>(&dest[0]), dest.size(), &olen,
                                  src, slen, base64_enc_map, padding_char);
-#  if defined(HAVE_GSL)
+#if defined(HAVE_GSL)
   Expects(0 != ret || dest.size() == olen + 1);
-#  else
+#else
   assert(0 != ret || dest.size() == olen + 1);
-#  endif
+#endif
   // pop back last zero
   if (!dest.empty() && *dest.rbegin() == 0)
   {
@@ -278,7 +273,6 @@ static int Base64UnescapeInternal(unsigned char *dst,
 }
 
 }  // namespace
-#endif
 
 // Base64Escape()
 //
@@ -292,12 +286,8 @@ OPENTELEMETRY_EXPORT void Base64Escape(opentelemetry::nostd::string_view src, st
     return;
   }
 
-#if defined(HAVE_ABSEIL)
-  absl::Base64Escape(absl::string_view{src.data(), src.size()}, dest);
-#else
   Base64EscapeInternal(*dest, reinterpret_cast<const unsigned char *>(src.data()), src.size(),
                        kBase64EscapeCharsBasic, '=');
-#endif
 }
 
 OPENTELEMETRY_EXPORT std::string Base64Escape(opentelemetry::nostd::string_view src)
@@ -315,9 +305,6 @@ OPENTELEMETRY_EXPORT bool Base64Unescape(opentelemetry::nostd::string_view src, 
     return false;
   }
 
-#if defined(HAVE_ABSEIL)
-  return absl::Base64Unescape(absl::string_view{src.data(), src.size()}, dest);
-#else
   if (src.empty())
   {
     return true;
@@ -337,7 +324,6 @@ OPENTELEMETRY_EXPORT bool Base64Unescape(opentelemetry::nostd::string_view src, 
                          reinterpret_cast<const unsigned char *>(src.data()), src.size(),
                          kBase64UnescapeCharsBasic, '=');
   return true;
-#endif
 }
 
 }  // namespace common
