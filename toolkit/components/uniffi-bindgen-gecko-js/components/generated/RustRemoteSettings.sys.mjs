@@ -1883,13 +1883,49 @@ export class FfiConverterTypeRemoteSettingsError extends FfiConverterArrayBuffer
 
     static errorClass = RemoteSettingsError;
 }
+
+/**
+ * RemoteSettingsInterface
+ */
+export class RemoteSettingsInterface {
+    /**
+     * Download an attachment with the provided id to the provided path.
+     * @param {string} attachmentId
+     * @param {string} path
+     */
+    async downloadAttachmentToPath(
+        attachmentId, 
+        path) {
+      throw Error("downloadAttachmentToPath not implemented");
+    }
+    /**
+     * Fetch all records for the configuration this client was initialized with.
+     * @returns {Promise<RemoteSettingsResponse>}}
+     */
+    async getRecords() {
+      throw Error("getRecords not implemented");
+    }
+    /**
+     * Fetch all records added to the server since the provided timestamp,
+     * using the configuration this client was initialized with.
+     * @param {number} timestamp
+     * @returns {Promise<RemoteSettingsResponse>}}
+     */
+    async getRecordsSince(
+        timestamp) {
+      throw Error("getRecordsSince not implemented");
+    }
+
+}
+
 /**
  * RemoteSettings
  */
-export class RemoteSettings {
+export class RemoteSettings extends RemoteSettingsInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -2165,15 +2201,98 @@ export class FfiConverterOptionalMapStringTypeRemoteSettingsRecord extends FfiCo
         return 1 + FfiConverterMapStringTypeRemoteSettingsRecord.computeSize(value)
     }
 }
+
 /**
  * Client for a single Remote Settings collection
  * 
  * Use [RemoteSettingsService::make_client] to create these.
  */
-export class RemoteSettingsClient {
+export class RemoteSettingsClientInterface {
+    /**
+     * Collection this client is for
+     * @returns {Promise<string>}}
+     */
+    async collectionName() {
+      throw Error("collectionName not implemented");
+    }
+    /**
+     * Get attachment data for a remote settings record
+     * 
+     * Attachments are large binary blobs used for data that doesn't fit in a normal record.  They
+     * are handled differently than other record data:
+     * 
+     * - Attachments are not downloaded in [RemoteSettingsService::sync]
+     * - This method will make network requests if the attachment is not cached
+     * - This method will throw if there is a network or other error when fetching the
+     * attachment data.
+     * @param {RemoteSettingsRecord} record
+     * @returns {Promise<string>}}
+     */
+    async getAttachment(
+        record) {
+      throw Error("getAttachment not implemented");
+    }
+    /**
+     * Get the current set of records.
+     * 
+     * This method normally fetches records from the last sync.  This means that it returns fast
+     * and does not make any network requests.
+     * 
+     * If records have not yet been synced it will return None.  Use `sync_if_empty = true` to
+     * change this behavior and perform a network request in this case.  That this is probably a
+     * bad idea if you want to fetch the setting in application startup or when building the UI.
+     * 
+     * None will also be returned on disk IO errors or other unexpected errors.  The reason for
+     * this is that there is not much an application can do in this situation other than fall back
+     * to the same default handling as if records have not been synced.
+     * 
+     * Application-services schedules regular dumps of the server data for specific collections.
+     * For these collections, `get_records` will never return None.  If you would like to add your
+     * collection to this list, please reach out to the DISCO team.
+     * @param {boolean} syncIfEmpty
+     * @returns {Promise<?Array.<RemoteSettingsRecord>>}}
+     */
+    async getRecords(
+        syncIfEmpty = false) {
+      throw Error("getRecords not implemented");
+    }
+    /**
+     * Get the current set of records as a map of record_id -> record.
+     * 
+     * See [Self::get_records] for an explanation of when this makes network requests, error
+     * handling, and how the `sync_if_empty` param works.
+     * @param {boolean} syncIfEmpty
+     * @returns {Promise<?object>}}
+     */
+    async getRecordsMap(
+        syncIfEmpty = false) {
+      throw Error("getRecordsMap not implemented");
+    }
+    /**
+     * Shutdown the client, releasing the SQLite connection used to cache records.
+     */
+    async shutdown() {
+      throw Error("shutdown not implemented");
+    }
+    /**
+     * sync
+     */
+    async sync() {
+      throw Error("sync not implemented");
+    }
+
+}
+
+/**
+ * Client for a single Remote Settings collection
+ * 
+ * Use [RemoteSettingsService::make_client] to create these.
+ */
+export class RemoteSettingsClient extends RemoteSettingsClientInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -2401,16 +2520,60 @@ export class FfiConverterSequenceString extends FfiConverterArrayBuffer {
         })
     }
 }
+
 /**
  * Application-level Remote Settings manager.
  * 
  * This handles application-level operations, like syncing all the collections, and acts as a
  * factory for creating clients.
  */
-export class RemoteSettingsService {
+export class RemoteSettingsServiceInterface {
+    /**
+     * Create a new Remote Settings client
+     * 
+     * This method performs no IO or network requests and is safe to run in a main thread that can't be blocked.
+     * @param {string} collectionName
+     * @returns {Promise<RemoteSettingsClient>}}
+     */
+    async makeClient(
+        collectionName) {
+      throw Error("makeClient not implemented");
+    }
+    /**
+     * Sync collections for all active clients
+     * @returns {Promise<Array.<string>>}}
+     */
+    async sync() {
+      throw Error("sync not implemented");
+    }
+    /**
+     * Update the remote settings config
+     * 
+     * This will cause all current and future clients to use new config and will delete any stored
+     * records causing the clients to return new results from the new config.
+     * 
+     * Only intended for QA/debugging.  Swapping the remote settings server in the middle of
+     * execution can cause weird effects.
+     * @param {RemoteSettingsConfig2} config
+     */
+    updateConfig(
+        config) {
+      throw Error("updateConfig not implemented");
+    }
+
+}
+
+/**
+ * Application-level Remote Settings manager.
+ * 
+ * This handles application-level operations, like syncing all the collections, and acts as a
+ * factory for creating clients.
+ */
+export class RemoteSettingsService extends RemoteSettingsServiceInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")

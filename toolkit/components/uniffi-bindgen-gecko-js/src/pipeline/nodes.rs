@@ -363,6 +363,7 @@ pub struct Interface {
     pub name: String,
     pub js_class_name: String,
     pub object_id: u64,
+    pub interface_base_class: InterfaceBaseClass,
     pub constructors: Vec<Constructor>,
     pub methods: Vec<Method>,
     pub uniffi_traits: Vec<UniffiTrait>,
@@ -380,10 +381,23 @@ pub struct Interface {
 #[derive(Debug, Clone, Node)]
 pub struct CallbackInterface {
     pub name: String,
+    pub interface_base_class: InterfaceBaseClass,
     pub vtable: VTable,
     pub docstring: Option<String>,
     pub js_docstring: String,
     pub self_type: TypeNode,
+}
+
+/// Javascript interface class.
+///
+/// This is an abstract base class that the interface implements.
+/// For trait/callback interfaces this is what the JS code should extend.
+#[derive(Debug, Clone, Node)]
+pub struct InterfaceBaseClass {
+    pub name: String,
+    pub methods: Vec<Method>,
+    pub docstring: Option<String>,
+    pub js_docstring: String,
 }
 
 #[derive(Debug, Clone, Node)]

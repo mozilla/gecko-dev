@@ -1048,13 +1048,117 @@ export class FfiConverterOptionalString extends FfiConverterArrayBuffer {
         return 1 + FfiConverterString.computeSize(value)
     }
 }
+
+/**
+ * WebExtStorageBridgedEngineInterface
+ */
+export class WebExtStorageBridgedEngineInterface {
+    /**
+     * apply
+     * @returns {Promise<Array.<string>>}}
+     */
+    async apply() {
+      throw Error("apply not implemented");
+    }
+    /**
+     * ensureCurrentSyncId
+     * @param {string} newSyncId
+     * @returns {Promise<string>}}
+     */
+    async ensureCurrentSyncId(
+        newSyncId) {
+      throw Error("ensureCurrentSyncId not implemented");
+    }
+    /**
+     * lastSync
+     * @returns {Promise<number>}}
+     */
+    async lastSync() {
+      throw Error("lastSync not implemented");
+    }
+    /**
+     * prepareForSync
+     * @param {string} clientData
+     */
+    async prepareForSync(
+        clientData) {
+      throw Error("prepareForSync not implemented");
+    }
+    /**
+     * reset
+     */
+    async reset() {
+      throw Error("reset not implemented");
+    }
+    /**
+     * resetSyncId
+     * @returns {Promise<string>}}
+     */
+    async resetSyncId() {
+      throw Error("resetSyncId not implemented");
+    }
+    /**
+     * setLastSync
+     * @param {number} lastSync
+     */
+    async setLastSync(
+        lastSync) {
+      throw Error("setLastSync not implemented");
+    }
+    /**
+     * setUploaded
+     * @param {number} serverModifiedMillis
+     * @param {Array.<Guid>} guids
+     */
+    async setUploaded(
+        serverModifiedMillis, 
+        guids) {
+      throw Error("setUploaded not implemented");
+    }
+    /**
+     * storeIncoming
+     * @param {Array.<string>} incoming
+     */
+    async storeIncoming(
+        incoming) {
+      throw Error("storeIncoming not implemented");
+    }
+    /**
+     * syncFinished
+     */
+    async syncFinished() {
+      throw Error("syncFinished not implemented");
+    }
+    /**
+     * syncId
+     * @returns {Promise<?string>}}
+     */
+    async syncId() {
+      throw Error("syncId not implemented");
+    }
+    /**
+     * syncStarted
+     */
+    async syncStarted() {
+      throw Error("syncStarted not implemented");
+    }
+    /**
+     * wipe
+     */
+    async wipe() {
+      throw Error("wipe not implemented");
+    }
+
+}
+
 /**
  * WebExtStorageBridgedEngine
  */
-export class WebExtStorageBridgedEngine {
+export class WebExtStorageBridgedEngine extends WebExtStorageBridgedEngineInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -1408,13 +1512,95 @@ export class FfiConverterSequenceTypeSyncedExtensionChange extends FfiConverterA
         })
     }
 }
+
+/**
+ * WebExtStorageStoreInterface
+ */
+export class WebExtStorageStoreInterface {
+    /**
+     * bridgedEngine
+     * @returns {Promise<WebExtStorageBridgedEngine>}}
+     */
+    async bridgedEngine() {
+      throw Error("bridgedEngine not implemented");
+    }
+    /**
+     * clear
+     * @param {string} extId
+     * @returns {Promise<StorageChanges>}}
+     */
+    async clear(
+        extId) {
+      throw Error("clear not implemented");
+    }
+    /**
+     * close
+     */
+    async close() {
+      throw Error("close not implemented");
+    }
+    /**
+     * get
+     * @param {string} extId
+     * @param {JsonValue} keys
+     * @returns {Promise<JsonValue>}}
+     */
+    async get(
+        extId, 
+        keys) {
+      throw Error("get not implemented");
+    }
+    /**
+     * getBytesInUse
+     * @param {string} extId
+     * @param {JsonValue} keys
+     * @returns {Promise<number>}}
+     */
+    async getBytesInUse(
+        extId, 
+        keys) {
+      throw Error("getBytesInUse not implemented");
+    }
+    /**
+     * getSyncedChanges
+     * @returns {Promise<Array.<SyncedExtensionChange>>}}
+     */
+    async getSyncedChanges() {
+      throw Error("getSyncedChanges not implemented");
+    }
+    /**
+     * remove
+     * @param {string} extId
+     * @param {JsonValue} keys
+     * @returns {Promise<StorageChanges>}}
+     */
+    async remove(
+        extId, 
+        keys) {
+      throw Error("remove not implemented");
+    }
+    /**
+     * set
+     * @param {string} extId
+     * @param {JsonValue} val
+     * @returns {Promise<StorageChanges>}}
+     */
+    async set(
+        extId, 
+        val) {
+      throw Error("set not implemented");
+    }
+
+}
+
 /**
  * WebExtStorageStore
  */
-export class WebExtStorageStore {
+export class WebExtStorageStore extends WebExtStorageStoreInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")

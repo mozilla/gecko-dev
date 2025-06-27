@@ -1,8 +1,12 @@
+{%- let interface_base_class = int.interface_base_class %}
+{% include "InterfaceBaseClass.sys.mjs" %}
+
 {{ int.js_docstring }}
-export class {{ int.js_class_name }} {
+export class {{ int.js_class_name }} extends {{ int.interface_base_class.name }} {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -82,6 +86,9 @@ export class {{ int.self_type.ffi_converter }} extends FfiConverter {
 
     // lower treats value like a callback interface
     static lower(value) {
+        if (!(value instanceof {{ int.interface_base_class.name }})) {
+            throw new UniFFITypeError("expected '{{ int.interface_base_class.name }}' subclass");
+        }
         return {{ vtable.js_handler_var }}.storeCallbackObj(value)
     }
 

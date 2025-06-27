@@ -2579,15 +2579,83 @@ import {
 
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypeRemoteSettingsService };
+
 /**
  * SearchEngineSelector parses the JSON configuration for
  * search engines and returns the applicable engines depending
  * on their region + locale.
  */
-export class SearchEngineSelector {
+export class SearchEngineSelectorInterface {
+    /**
+     * Clears the search configuration from memory if it is known that it is
+     * not required for a time, e.g. if the configuration will only be re-filtered
+     * after an app/environment update.
+     */
+    clearSearchConfig() {
+      throw Error("clearSearchConfig not implemented");
+    }
+    /**
+     * Filters the search configuration with the user's given environment,
+     * and returns the set of engines and parameters that should be presented
+     * to the user.
+     * @param {SearchUserEnvironment} userEnvironment
+     * @returns {RefinedSearchConfig}
+     */
+    filterEngineConfiguration(
+        userEnvironment) {
+      throw Error("filterEngineConfiguration not implemented");
+    }
+    /**
+     * setConfigOverrides
+     * @param {string} overrides
+     */
+    setConfigOverrides(
+        overrides) {
+      throw Error("setConfigOverrides not implemented");
+    }
+    /**
+     * Sets the search configuration from the given string. If the configuration
+     * string is unchanged since the last update, the cached configuration is
+     * reused to avoid unnecessary reprocessing. This helps optimize performance,
+     * particularly during test runs where the same configuration may be used
+     * repeatedly.
+     * @param {string} configuration
+     */
+    setSearchConfig(
+        configuration) {
+      throw Error("setSearchConfig not implemented");
+    }
+    /**
+     * Sets the RemoteSettingsService to use. The selector will create the
+     * relevant remote settings client(s) from the service.
+     * 
+     * # Params:
+     * - `service`: The remote settings service instance for the application.
+     * - `options`: The remote settings options to be passed to the client(s).
+     * - `apply_engine_overrides`: Whether or not to apply overrides from
+     * `search-config-v2-overrides` to the selected engines. Should be false unless the
+     * application supports the click URL feature.
+     * @param {RemoteSettingsService} service
+     * @param {boolean} applyEngineOverrides
+     */
+    async useRemoteSettingsServer(
+        service, 
+        applyEngineOverrides) {
+      throw Error("useRemoteSettingsServer not implemented");
+    }
+
+}
+
+/**
+ * SearchEngineSelector parses the JSON configuration for
+ * search engines and returns the applicable engines depending
+ * on their region + locale.
+ */
+export class SearchEngineSelector extends SearchEngineSelectorInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")

@@ -391,13 +391,31 @@ export class FfiConverterBoolean extends FfiConverter {
         return this.lift(dataStream.readUint8())
     }
 }
+
+/**
+ * FilterAdultComponentInterface
+ */
+export class FilterAdultComponentInterface {
+    /**
+     * Check if a URL is in the adult domain list
+     * @param {string} baseDomainToCheck
+     * @returns {boolean}
+     */
+    contains(
+        baseDomainToCheck) {
+      throw Error("contains not implemented");
+    }
+
+}
+
 /**
  * FilterAdultComponent
  */
-export class FilterAdultComponent {
+export class FilterAdultComponent extends FilterAdultComponentInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
