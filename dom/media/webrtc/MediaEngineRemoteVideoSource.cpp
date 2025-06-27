@@ -194,6 +194,7 @@ nsresult MediaEngineRemoteVideoSource::Allocate(
     mState = kAllocated;
     mCapability = newCapability;
     mCalculation = distanceMode;
+    mConstraints = Some(c);
     *mPrefs = aPrefs;
     mTrackingId =
         TrackingId(CaptureEngineToTrackingSourceStr(mCapEngine), mCaptureId);
@@ -314,23 +315,8 @@ nsresult MediaEngineRemoteVideoSource::Start() {
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "MediaEngineRemoteVideoSource::SetLastCapability",
       [settings = mSettings, updated = mSettingsUpdatedByFrame,
-       capEngine = mCapEngine, cap = mCapability, calc = mCalculation,
+       cap = mCapability, calc = mCalculation,
        resizeModeEnabled = mPrefs->mResizeModeEnabled]() mutable {
-        switch (capEngine) {
-          case camera::ScreenEngine:
-          case camera::WinEngine:
-            // Undo the hack where ideal and max constraints are crammed
-            // together in mCapability for consumption by low-level code. We
-            // don't actually know the real resolution yet, so report min(ideal,
-            // max) for now.
-            // TODO: This can be removed in bug 1453269.
-            cap.width = std::min(cap.width >> 16, cap.width & 0xffff);
-            cap.height = std::min(cap.height >> 16, cap.height & 0xffff);
-            break;
-          default:
-            break;
-        }
-
         if (!updated->mValue) {
           settings->mWidth.Value() = cap.width;
           settings->mHeight.Value() = cap.height;
@@ -411,6 +397,7 @@ nsresult MediaEngineRemoteVideoSource::Reconfigure(
     // Start() applies mCapability on the device.
     mCapability = newCapability;
     mCalculation = distanceMode;
+    mConstraints = Some(c);
     *mPrefs = aPrefs;
   }
 
@@ -486,22 +473,17 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(mState == kStarted);
-    // TODO: These can be removed in bug 1453269.
-    const int32_t max_width = mCapability.width & 0xffff;
-    const int32_t max_height = mCapability.height & 0xffff;
-    const int32_t ideal_width = (mCapability.width >> 16) & 0xffff;
-    const int32_t ideal_height = (mCapability.height >> 16) & 0xffff;
+    const int32_t& max_width = mConstraints->mWidth.mMax;
+    const int32_t& max_height = mConstraints->mHeight.mMax;
 
     req_max_width = max_width ? Some(max_width) : Nothing();
     req_max_height = max_height ? Some(max_height) : Nothing();
-    req_ideal_width = ideal_width ? Some(ideal_width) : Nothing();
-    req_ideal_height = ideal_height ? Some(ideal_height) : Nothing();
+    req_ideal_width = mConstraints->mWidth.mIdeal;
+    req_ideal_height = mConstraints->mHeight.mIdeal;
     if (!mFrameDeliveringTrackingId) {
       mFrameDeliveringTrackingId = Some(mTrackingId);
     }
   }
-
-  // This is only used in the case of screen sharing, see bug 1453269.
 
   if (aProps.rotation() == 90 || aProps.rotation() == 270) {
     // This frame is rotated, so what was negotiated as width is now height,
@@ -527,7 +509,7 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
   dst_width = std::min(dst_width, dst_max_width);
   dst_height = std::min(dst_height, dst_max_height);
 
-  // Apply scaling for screen sharing, see bug 1453269.
+  // Apply scaling for screen sharing.
   switch (mCapEngine) {
     case camera::ScreenEngine:
     case camera::WinEngine: {
@@ -836,25 +818,12 @@ bool MediaEngineRemoteVideoSource::ChooseCapability(
 
   switch (mCapEngine) {
     case camera::ScreenEngine:
-    case camera::WinEngine: {
-      FlattenedConstraints c(aConstraints);
-      // The actual resolution to constrain around is not easy to find ahead of
-      // time (and may in fact change over time), so as a hack, we push ideal
-      // and max constraints down to desktop_capture_impl.cc and finish the
-      // algorithm there.
-      // TODO: This can be removed in bug 1453269.
-      aCapability.width =
-          (std::min(0xffff, c.mWidth.mIdeal.valueOr(0)) & 0xffff) << 16 |
-          (std::min(0xffff, c.mWidth.mMax) & 0xffff);
-      aCapability.height =
-          (std::min(0xffff, c.mHeight.mIdeal.valueOr(0)) & 0xffff) << 16 |
-          (std::min(0xffff, c.mHeight.mMax) & 0xffff);
-      aCapability.maxFPS =
-          c.mFrameRate.Clamp(c.mFrameRate.mIdeal.valueOr(aPrefs.mFPS));
-      return true;
-    }
+    case camera::WinEngine:
     case camera::BrowserEngine: {
       FlattenedConstraints c(aConstraints);
+      // DesktopCaptureImpl polls for frames and so must know the framerate to
+      // capture at. This is signaled through CamerasParent as the capability's
+      // maxFPS. Note that DesktopCaptureImpl does not expose any capabilities.
       aCapability.maxFPS =
           c.mFrameRate.Clamp(c.mFrameRate.mIdeal.valueOr(aPrefs.mFPS));
       return true;

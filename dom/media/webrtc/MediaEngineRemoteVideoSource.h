@@ -209,7 +209,6 @@ class MediaEngineRemoteVideoSource : public MediaEngineSource,
 
   // True when resolution settings have been updated from a real frame's
   // resolution. Threadsafe.
-  // TODO: This can be removed in bug 1453269.
   const RefPtr<media::Refcountable<AtomicBool>> mSettingsUpdatedByFrame;
 
   // The current settings of this source.
@@ -227,6 +226,10 @@ class MediaEngineRemoteVideoSource : public MediaEngineSource,
   // Set under mMutex on the owning thread. Accessed under one of the two.
   webrtc::CaptureCapability mCapability;
   DistanceCalculation mCalculation;
+
+  // The constraints we're currently operating under, for calculating incoming
+  // video resolution.
+  Maybe<NormalizedConstraints> mConstraints MOZ_GUARDED_BY(mMutex);
 
   // Owning thread only.
   UniquePtr<MediaEnginePrefs> mPrefs;
