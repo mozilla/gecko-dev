@@ -23,7 +23,6 @@ import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
 import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.recenttabs.view.RecentTabViewHolder
-import org.mozilla.fenix.home.recenttabs.view.RecentTabsHeaderViewHolder
 import org.mozilla.fenix.home.recentvisits.view.RecentVisitsHeaderViewHolder
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisitedViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.CollectionHeaderViewHolder
@@ -130,7 +129,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
             other is NimbusMessageCard && message.id == other.message.id
     }
 
-    object RecentTabsHeader : AdapterItem(RecentTabsHeaderViewHolder.LAYOUT_ID)
     object RecentTabItem : AdapterItem(RecentTabViewHolder.LAYOUT_ID)
 
     /**
@@ -239,11 +237,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            RecentTabsHeaderViewHolder.LAYOUT_ID -> return RecentTabsHeaderViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             CollectionHeaderViewHolder.LAYOUT_ID -> return CollectionHeaderViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -294,7 +287,6 @@ class SessionControlAdapter(
             is BookmarksHeaderViewHolder,
             is RecentTabViewHolder,
             is RecentSyncedTabViewHolder,
-            is RecentTabsHeaderViewHolder,
             is PrivateBrowsingDescriptionViewHolder,
             is PocketStoriesViewHolder,
             is SetupChecklistViewHolder,

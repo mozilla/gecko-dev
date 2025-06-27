@@ -59,7 +59,6 @@ internal fun normalModeAdapterItems(
     }
 
     if (showRecentTab) {
-        items.add(AdapterItem.RecentTabsHeader)
         items.add(AdapterItem.RecentTabItem)
         if (showRecentSyncedTab) {
             items.add(AdapterItem.RecentSyncedTabItem)
