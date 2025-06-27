@@ -2273,22 +2273,22 @@ nsresult WhiteSpaceVisibilityKeeper::
   if (whiteSpaceOffset.isNothing()) {
     return NS_OK;
   }
+  nsTextFragment::WhitespaceOptions whitespaceOptions{
+      nsTextFragment::WhitespaceOption::FormFeedIsSignificant,
+      nsTextFragment::WhitespaceOption::TreatNBSPAsCollapsible};
+  if (isNewLinePreformatted) {
+    whitespaceOptions += nsTextFragment::WhitespaceOption::NewLineIsSignificant;
+  }
   const uint32_t firstOffset = [&]() {
-    for (const uint32_t offset : Reversed(IntegerRange(*whiteSpaceOffset))) {
-      if (!IsCollapsibleCharOrNBSP(textNode.TextFragment().CharAt(offset))) {
-        return offset + 1u;
-      }
-    }
-    return 0u;
+    const uint32_t offset = textNode.TextFragment().RFindNonWhitespaceChar(
+        whitespaceOptions, *whiteSpaceOffset - 1);
+    return offset == nsTextFragment::kNotFound ? 0u : offset + 1u;
   }();
   const uint32_t endOffset = [&]() {
-    for (const uint32_t offset :
-         IntegerRange(*whiteSpaceOffset + 1, textNode.TextDataLength())) {
-      if (!IsCollapsibleCharOrNBSP(textNode.TextFragment().CharAt(offset))) {
-        return offset;
-      }
-    }
-    return textNode.TextDataLength();
+    const uint32_t offset = textNode.TextFragment().FindNonWhitespaceChar(
+        whitespaceOptions, *whiteSpaceOffset + 1);
+    return offset == nsTextFragment::kNotFound ? textNode.TextDataLength()
+                                               : offset;
   }();
   nsAutoString normalizedString;
   const char16_t precedingChar =
