@@ -15,11 +15,8 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
-import org.mozilla.fenix.ext.shouldShowRecentTabs
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
-import org.mozilla.fenix.utils.Settings
 
 // This method got a little complex with the addition of the tab tray feature flag
 // When we remove the tabs from the home screen this will get much simpler again.
@@ -30,17 +27,11 @@ internal fun normalModeAdapterItems(
     expandedCollections: Set<Long>,
     showCollectionsPlaceholder: Boolean,
     nimbusMessageCard: Message? = null,
-    showRecentTab: Boolean,
-    showRecentSyncedTab: Boolean,
 ): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
 
     nimbusMessageCard?.let {
         items.add(AdapterItem.NimbusMessageCard(it))
-    }
-
-    if (showRecentTab && showRecentSyncedTab) {
-        items.add(AdapterItem.RecentSyncedTabItem)
     }
 
     if (collections.isEmpty()) {
@@ -70,14 +61,12 @@ private fun showCollections(
     }
 }
 
-private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> =
+private fun AppState.toAdapterList(): List<AdapterItem> =
     normalModeAdapterItems(
         collections,
         expandedCollections,
         showCollectionPlaceholder,
         messaging.messageToShow[FenixMessageSurfaceId.HOMESCREEN],
-        shouldShowRecentTabs(settings),
-        shouldShowRecentSyncedTabs(),
     )
 
 private fun collectionTabItems(collection: TabCollection) =
@@ -136,6 +125,6 @@ class SessionControlView(
     fun update(state: AppState, shouldReportMetrics: Boolean = false) {
         if (shouldReportMetrics) interactor.reportSessionMetrics(state)
 
-        sessionControlAdapter.submitList(state.toAdapterList(view.context.settings()))
+        sessionControlAdapter.submitList(state.toAdapterList())
     }
 }

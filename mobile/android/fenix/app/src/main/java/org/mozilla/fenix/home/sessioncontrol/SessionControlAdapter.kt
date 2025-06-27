@@ -17,7 +17,6 @@ import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
-import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
@@ -62,11 +61,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
     }
 
     /**
-     * Adapter item to hold homescreen synced tabs view.
-     */
-    object RecentSyncedTabItem : AdapterItem(RecentSyncedTabViewHolder.LAYOUT_ID)
-
-    /**
      * True if this item represents the same value as other. Used by [AdapterItemDiffCallback].
      */
     open fun sameAs(other: AdapterItem) = this::class == other::class
@@ -107,11 +101,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            RecentSyncedTabViewHolder.LAYOUT_ID -> return RecentSyncedTabViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                recentSyncedTabInteractor = interactor,
-            )
             CollectionViewHolder.LAYOUT_ID -> return CollectionViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -140,14 +129,6 @@ class SessionControlAdapter(
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
-            is RecentSyncedTabViewHolder,
-            -> {
-                // no op
-                // This previously called "composeView.disposeComposition" which would have the
-                // entire Composable destroyed and recreated when this View is scrolled off or on screen again.
-                // This View already listens and maps store updates. Avoid creating and binding new Views.
-                // The composition will live until the ViewTreeLifecycleOwner to which it's attached to is destroyed.
-            }
             is CollectionViewHolder -> {
                 // Dispose the underlying composition immediately.
                 // This ViewHolder can be removed / re-added and we need it to show a fresh new composition.
@@ -193,11 +174,6 @@ class SessionControlAdapter(
             is TabInCollectionViewHolder -> {
                 val (collection, tab, isLastTab) = item as AdapterItem.TabInCollectionItem
                 holder.bindSession(collection, tab, isLastTab)
-            }
-            is RecentSyncedTabViewHolder,
-            -> {
-                // no-op. This ViewHolder receives the HomeStore as argument and will observe that
-                // without the need for us to manually update from here the data to be displayed.
             }
         }
     }
