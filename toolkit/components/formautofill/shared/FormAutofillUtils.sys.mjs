@@ -1092,7 +1092,7 @@ FormAutofillUtils = {
         ? this.strInclude(value, name, collators)
         : this.strCompare(value, name, collators)
     );
-    if (index === -1) {
+    if (index === -1 && isoids) {
       index = isoids.findIndex(isoid =>
         inexactMatch
           ? this.strInclude(value, isoid, collators)

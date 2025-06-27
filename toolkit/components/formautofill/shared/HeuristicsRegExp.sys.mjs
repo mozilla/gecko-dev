@@ -458,7 +458,7 @@ export const HeuristicsRegExp = {
         "city|town" +
         "|\\bort\\b|stadt" + // de-DE
         "|suburb" + // en-AU
-        "|ciudad|provincia|localidad|poblacion" + // es
+        "|ciudad|localidad|poblacion" + // es
         "|ville|commune" + // fr-FR
         "|localita" + // it-IT
         "|市区町村" + // ja-JP
