@@ -25,7 +25,14 @@ const OPEN_CLOSE_BODY = {
   "(": ")",
 };
 
-const NO_AUTOCOMPLETE_PREFIXES = ["var", "const", "let", "function", "class"];
+const NO_AUTOCOMPLETE_PREFIXES = [
+  "var",
+  "const",
+  "let",
+  "function",
+  "class",
+  "using",
+];
 const OPERATOR_CHARS_SET = new Set(";,:=<>+-*%|&^~!".split(""));
 
 /**

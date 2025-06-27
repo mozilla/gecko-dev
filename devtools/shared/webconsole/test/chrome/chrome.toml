@@ -12,6 +12,7 @@ support-files = [
 ]
 prefs = [
   "devtools.console.stdout.chrome=false",
+  "javascript.options.experimental.explicit_resource_management=true",
 ]
 
 ["test_basics.html"]

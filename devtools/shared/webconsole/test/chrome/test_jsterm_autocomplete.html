@@ -543,6 +543,10 @@
     matches = (await webConsoleFront.autocomplete("class win")).matches;
     is(matches, null, "no autocompletion on a class declaration");
 
+    info("test autocomplete for 'using win'");
+    matches = (await webConsoleFront.autocomplete("using win")).matches;
+    is(matches, null, `no autocompletion on a "using" declaration`);
+
     info("test autocomplete for 'const win = win'");
     matches = (await webConsoleFront.autocomplete("const win = win")).matches;
     ok(matches.includes("window"), "autocompletion still happens after the `=` sign");
@@ -554,8 +558,28 @@
 }
 
 async function doKeywordsAutocomplete(webConsoleFront) {
+  info("test autocomplete for 'va'");
+  let matches = (await webConsoleFront.autocomplete("va")).matches;
+  ok(matches.includes("var"), `"var" keyword is returned`);
+
+  info("test autocomplete for 'le'");
+  matches = (await webConsoleFront.autocomplete("le")).matches;
+  ok(matches.includes("let"), `"let" keyword is returned`);
+
+  info("test autocomplete for 'co'");
+  matches = (await webConsoleFront.autocomplete("co")).matches;
+  ok(matches.includes("const"), `"const" keyword is returned`);
+
+  info("test autocomplete for 'cl'");
+  matches = (await webConsoleFront.autocomplete("cl")).matches;
+  ok(matches.includes("class"), `"class" keyword is returned`);
+
+  info("test autocomplete for 'us'");
+  matches = (await webConsoleFront.autocomplete("us")).matches;
+  ok(matches.includes("using"), `"using" keyword is returned`);
+
   info("test autocomplete for 'func'");
-  let matches = (await webConsoleFront.autocomplete("func")).matches;
+  matches = (await webConsoleFront.autocomplete("func")).matches;
   ok(matches.includes("function"), "keywords are returned");
 
   info("test autocomplete for ':func'");
