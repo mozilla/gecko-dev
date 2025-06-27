@@ -223,6 +223,8 @@ class nsHttpChannel final : public HttpBaseChannel,
   [[nodiscard]] nsresult ContinueConnect();
 
   [[nodiscard]] nsresult StartRedirectChannelToURI(nsIURI*, uint32_t);
+  [[nodiscard]] nsresult StartRedirectChannelToURI(
+      nsIURI*, uint32_t, std::function<void(nsIChannel*)>&&);
 
   SnifferCategoryType GetSnifferCategoryType() const {
     return mSnifferCategoryType;
@@ -838,6 +840,21 @@ class nsHttpChannel final : public HttpBaseChannel,
   // we got the result of HTTPS RR query. Otherwise, it means we are still
   // waiting for the result or the query is not performed.
   Maybe<nsCOMPtr<nsIDNSHTTPSSVCRecord>> mHTTPSSVCRecord;
+
+  enum class EssentialDomainCategory {
+    SubAddonsMozillaOrg,
+    AddonsMozillaOrg,
+    Aus5MozillaOrg,
+    RemoteSettings,
+    Telemetry,
+    Other,
+  };
+
+  // When an essential domain request gets retried this variable is set on the
+  // redirected channel. This is important so we can track the success
+  // rates of retried channels to the fallback domain.
+  Maybe<EssentialDomainCategory> mEssentialDomainCategory;
+  static EssentialDomainCategory GetEssentialDomainCategory(nsCString& domain);
 
  protected:
   virtual void DoNotifyListenerCleanup() override;

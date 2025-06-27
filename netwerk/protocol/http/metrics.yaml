@@ -884,6 +884,36 @@ network:
     description: >
      Counts the status of succeeded and failed requests to other mozilla.org domains
 
+  retried_system_channel_update_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of fallback requests to aus5.mozilla.org
+
+  retried_system_channel_addonversion_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of fallback requests to *.addons.mozilla.org
+
+  retried_system_channel_addon_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of fallback requests to addons.mozilla.org
+
+  retried_system_channel_remote_settings_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of fallback requests to firefox.settings.services.mozilla.com
+
+  retried_system_channel_telemetry_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of fallback requests to incoming.telemetry.mozilla.org
+
+  retried_system_channel_other_status:
+    <<: *system_channel_success_or_failure
+    description: >
+     Counts the status of fallback requests to other mozilla.org domains
+
   alpn_mismatch_count:
     type: labeled_counter
     description: >

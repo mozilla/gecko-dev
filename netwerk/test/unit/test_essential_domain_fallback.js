@@ -64,6 +64,7 @@ add_setup(async function setup() {
 });
 
 add_task(async function test_fallback_on_dns_failure() {
+  Services.fog.testResetFOG();
   Services.obs.notifyObservers(null, "net:cancel-all-connections");
   Services.dns.clearCache(true);
   override.addIPOverride("aus5.mozilla.org", "N/A");
@@ -71,6 +72,17 @@ add_task(async function test_fallback_on_dns_failure() {
 
   let { buf } = await openChannelPromise("https://aus5.mozilla.org/stuff");
   equal(buf, "Good stuff");
+
+  equal(
+    await Glean.network.systemChannelUpdateStatus.dns.testGetValue(),
+    1,
+    "Expecting one failed request due to DNS"
+  );
+  equal(
+    await Glean.network.retriedSystemChannelUpdateStatus.ok.testGetValue(),
+    1,
+    "Expecting retried update request to succeed"
+  );
 });
 
 add_task(async function test_fallback_on_tls_failure() {
