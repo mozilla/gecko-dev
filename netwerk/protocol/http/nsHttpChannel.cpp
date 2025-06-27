@@ -8769,6 +8769,15 @@ nsHttpChannel::OnStopRequest(nsIRequest* request, nsresult status) {
                                   mPeerAddr);
     RecordLNATelemetry(NS_SUCCEEDED(mStatus), mURI, mLoadInfo, mPeerAddr);
 
+    uint32_t flags;
+    if (mStatus == NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED &&
+        StaticPrefs::network_lna_block_trackers() &&
+        NS_SUCCEEDED(
+            mLoadInfo->GetTriggeringThirdPartyClassificationFlags(&flags)) &&
+        flags != 0) {
+      mozilla::glean::networking::local_network_blocked_tracker.Add(1);
+    }
+
     // If we are using the transaction to serve content, we also save the
     // time since async open in the cache entry so we can compare telemetry
     // between cache and net response.

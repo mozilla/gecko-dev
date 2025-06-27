@@ -1960,6 +1960,20 @@ networking:
      - necko@gmail.com
     expires: 150
 
+  local_network_blocked_tracker:
+    type: counter
+    description: >
+      Counts the number of times the channel was blocked because it's a LNA load triggered by a tracker
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973500
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1973500
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+    expires: 160
+
   http_channel_sub_open_to_first_sent_https_rr:
     type: timing_distribution
     time_unit: millisecond
