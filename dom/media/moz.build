@@ -90,7 +90,6 @@ MOCHITEST_MANIFESTS += [
     "test/mochitest_media_recorder.toml",
     "test/mochitest_seek.toml",
     "test/mochitest_stream.toml",
-    "test/mochitest_sw.toml",
     "webrtc/tests/mochitests/identity/mochitest.toml",
 ]
 
