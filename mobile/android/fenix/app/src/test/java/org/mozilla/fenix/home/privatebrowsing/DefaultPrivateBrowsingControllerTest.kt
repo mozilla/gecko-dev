@@ -5,7 +5,6 @@
 package org.mozilla.fenix.home.privatebrowsing
 
 import androidx.navigation.NavController
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -15,9 +14,14 @@ import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.support.test.ext.joinBlocking
+import mozilla.components.support.test.robolectric.testContext
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.GleanMetrics.Homepage
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -25,11 +29,16 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.home.privatebrowsing.controller.DefaultPrivateBrowsingController
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(AndroidJUnit4::class)
+@RunWith(RobolectricTestRunner::class)
 class DefaultPrivateBrowsingControllerTest {
+
+    @get:Rule
+    val gleanTestRule = FenixGleanTestRule(testContext)
 
     private val appStore: AppStore = mockk(relaxed = true)
     private val navController: NavController = mockk(relaxed = true)
@@ -99,9 +108,14 @@ class DefaultPrivateBrowsingControllerTest {
 
         every { settings.incrementNumTimesPrivateModeOpened() } just Runs
 
+        assertNull(Homepage.privateModeIconTapped.testGetValue())
+
         val newMode = BrowsingMode.Private
 
         controller.handlePrivateModeButtonClicked(newMode)
+
+        val snapshot = Homepage.privateModeIconTapped.testGetValue()!!
+        assertEquals(1, snapshot.size)
 
         verify {
             browsingModeManager.mode = newMode

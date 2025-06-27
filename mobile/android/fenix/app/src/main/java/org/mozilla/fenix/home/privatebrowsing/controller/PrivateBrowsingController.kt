@@ -5,6 +5,8 @@
 package org.mozilla.fenix.home.privatebrowsing.controller
 
 import androidx.navigation.NavController
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.Homepage
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -53,6 +55,8 @@ class DefaultPrivateBrowsingController(
     }
 
     override fun handlePrivateModeButtonClicked(newMode: BrowsingMode) {
+        Homepage.privateModeIconTapped.record(NoExtras())
+
         browsingModeManager.mode = newMode
 
         if (newMode == BrowsingMode.Private) {
