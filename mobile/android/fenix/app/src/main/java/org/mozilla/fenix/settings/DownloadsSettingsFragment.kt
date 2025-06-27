@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.settings
 
-import android.os.Build
 import android.os.Bundle
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
@@ -20,7 +19,7 @@ class DownloadsSettingsFragment : PreferenceFragmentCompat() {
         requirePreference<SwitchPreference>(R.string.pref_key_downloads_clean_up_files_automatically).apply {
             title = getString(
                 R.string.preferences_downloads_settings_clean_up_files_title,
-                Build.BRAND,
+                getString(R.string.app_name),
             )
         }
     }
