@@ -2224,43 +2224,27 @@ class HTMLEditUtils final {
   static Maybe<uint32_t> GetPreviousNonCollapsibleCharOffset(
       const Text& aTextNode, uint32_t aOffset,
       const WalkTextOptions& aWalkTextOptions = {}) {
-    const bool isWhiteSpaceCollapsible =
-        !EditorUtils::IsWhiteSpacePreformatted(aTextNode);
-    const bool isNewLineCollapsible =
-        !EditorUtils::IsNewLinePreformatted(aTextNode);
-    const bool isNBSPCollapsible =
-        isWhiteSpaceCollapsible &&
-        aWalkTextOptions.contains(WalkTextOption::TreatNBSPsCollapsible);
-    const nsTextFragment& textFragment = aTextNode.TextFragment();
-    MOZ_ASSERT(aOffset <= textFragment.GetLength());
-    for (uint32_t i = aOffset; i; i--) {
-      // TODO: Perhaps, nsTextFragment should have scanner methods because
-      //       the text may be in per-one-byte storage or per-two-byte storage,
-      //       and `CharAt` needs to check it everytime.
-      switch (textFragment.CharAt(i - 1)) {
-        case HTMLEditUtils::kSpace:
-        case HTMLEditUtils::kCarriageReturn:
-        case HTMLEditUtils::kTab:
-          if (!isWhiteSpaceCollapsible) {
-            return Some(i - 1);
-          }
-          break;
-        case HTMLEditUtils::kNewLine:
-          if (!isNewLineCollapsible) {
-            return Some(i - 1);
-          }
-          break;
-        case HTMLEditUtils::kNBSP:
-          if (!isNBSPCollapsible) {
-            return Some(i - 1);
-          }
-          break;
-        default:
-          MOZ_ASSERT(!nsCRT::IsAsciiSpace(textFragment.CharAt(i - 1)));
-          return Some(i - 1);
-      }
+    if (MOZ_UNLIKELY(!aOffset)) {
+      return Nothing{};
     }
-    return Nothing();
+    MOZ_ASSERT(aOffset <= aTextNode.TextDataLength());
+    if (EditorUtils::IsWhiteSpacePreformatted(aTextNode)) {
+      return Some(aOffset - 1);
+    }
+    WhitespaceOptions whitespaceOptions{
+        WhitespaceOption::FormFeedIsSignificant};
+    if (EditorUtils::IsNewLinePreformatted(aTextNode)) {
+      whitespaceOptions += WhitespaceOption::NewLineIsSignificant;
+    }
+    if (aWalkTextOptions.contains(WalkTextOption::TreatNBSPsCollapsible)) {
+      whitespaceOptions += WhitespaceOption::TreatNBSPAsCollapsible;
+    }
+    const uint32_t prevVisibleCharOffset =
+        aTextNode.TextFragment().RFindNonWhitespaceChar(whitespaceOptions,
+                                                        aOffset - 1);
+    return prevVisibleCharOffset != nsTextFragment::kNotFound
+               ? Some(prevVisibleCharOffset)
+               : Nothing();
   }
 
   /**
