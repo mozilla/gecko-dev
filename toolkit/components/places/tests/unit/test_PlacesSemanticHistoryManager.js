@@ -17,22 +17,39 @@ function approxEqual(a, b, tolerance = 1e-6) {
   return Math.abs(a - b) < tolerance;
 }
 
-function createPlacesSemanticHistoryManager() {
+function createPlacesSemanticHistoryManager(options = {}) {
   return getPlacesSemanticHistoryManager(
-    {
-      embeddingSize: EMBEDDING_SIZE,
-      rowLimit: 10,
-    },
+    Object.assign(
+      {
+        embeddingSize: EMBEDDING_SIZE,
+        rowLimit: 10,
+      },
+      options
+    ),
     true
   );
 }
 
 class MockMLEngine {
+  #entries;
+  /**
+   * Mock engine that simulates an ML embedding engine.
+   *
+   * @param {Array} entries - Array of entries with title and vector properties.
+   */
+  constructor(entries = []) {
+    this.#entries = entries;
+  }
+
   async run(request) {
     const texts = request.args[0];
     return texts.map(text => {
       if (typeof text !== "string" || text.trim() === "") {
         throw new Error("Invalid input: text must be a non-empty string");
+      }
+      let entry = this.#entries.find(e => e.title === text);
+      if (entry) {
+        return entry.vector;
       }
       // Return a mock embedding vector (e.g., an array of zeros)
       return Array(EMBEDDING_SIZE).fill(0);
@@ -321,5 +338,125 @@ add_task(async function test_duplicate_urlhash() {
     PlacesUtils.history.hashURL(urls[2].url),
     "Third URL hash should match"
   );
+  await semanticManager.shutdown();
+});
+
+add_task(async function test_rowid_relations() {
+  await PlacesUtils.history.clear();
+  const entries = Array(6)
+    .fill(0)
+    .map((r, i) => ({
+      url: `https://test${i}.moz.com/`,
+      urlHash: PlacesUtils.history.hashURL(`https://test${i}.moz.com/`),
+      title: `test ${i}`,
+      vector: Array(EMBEDDING_SIZE).fill(i / 10),
+    }));
+
+  // Add the first 5 entries to history.
+  await PlacesTestUtils.addVisits(entries.slice(0, 5));
+
+  let semanticManager = createPlacesSemanticHistoryManager({
+    changeThresholdCount: 1,
+  });
+  // Ensure we start from an empty database.
+  await semanticManager.semanticDB.removeDatabaseFiles();
+  let conn = await semanticManager.getConnection();
+  semanticManager.embedder.setEngine(new MockMLEngine(entries));
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+
+  async function checkRowids(count) {
+    // Collect the rowids of the entries and verify the relations.
+    let rows = await conn.execute(`
+      SELECT m.rowid, url_hash, vec_to_json(embedding) vector
+      FROM vec_history_mapping m
+      JOIN vec_history USING (rowid)
+    `);
+    Assert.equal(rows.length, count, "Found the expected amount of matches");
+    for (let i = 0; i < rows.length; i++) {
+      let rowid = rows[i].getResultByName("rowid");
+      let urlHash = rows[i].getResultByName("url_hash");
+      info("Found rowid: " + rowid + ", urlHash: " + urlHash);
+      let vector = JSON.parse(rows[i].getResultByName("vector"));
+      let entry = entries.find(e => e.urlHash === urlHash);
+      entry.rowid = rowid;
+      Assert.deepEqual(entry.vector, vector, "Vector should match");
+    }
+  }
+
+  info("Check initial rowids after adding entries.");
+  await checkRowids(5);
+
+  info("Remove a URL from history and insert a new one.");
+  await PlacesUtils.history.remove(entries[2].url);
+  await PlacesTestUtils.addVisits(entries[5]);
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+  info("Check rowids after removal and insertion.");
+  await checkRowids(5);
+
+  info("Remove and reinsert the last entry");
+  await PlacesUtils.history.remove(entries[5].url);
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+  await PlacesTestUtils.addVisits(entries[5]);
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+  info("Check rowids after second removal and insertion.");
+  await checkRowids(5);
+
+  await semanticManager.shutdown();
+});
+
+add_task(async function test_rowid_conflict() {
+  // Test management of a rowid conflict.
+  await PlacesUtils.history.clear();
+
+  let entry = {
+    url: `https://test.moz.com/`,
+    urlHash: PlacesUtils.history.hashURL(`https://test.moz.com/`),
+    title: `test page`, // must be at least 5 characters long
+    vector: Array(EMBEDDING_SIZE).fill(0.15),
+  };
+
+  let semanticManager = createPlacesSemanticHistoryManager({
+    changeThresholdCount: 1,
+  });
+  // Ensure we start from an empty database.
+  await semanticManager.semanticDB.removeDatabaseFiles();
+  let conn = await semanticManager.getConnection();
+  semanticManager.embedder.setEngine(new MockMLEngine([entry]));
+  // Let's insert a vector to ensure we will end up reinserting with the same
+  // rowid.
+  await conn.execute(
+    `
+    INSERT INTO vec_history (rowid, embedding, embedding_coarse)
+    VALUES (1, :vector, vec_quantize_binary(:vector))
+    `,
+    {
+      vector: semanticManager.tensorToBindable(Array(EMBEDDING_SIZE).fill(0.1)),
+    }
+  );
+
+  await PlacesTestUtils.addVisits(entry);
+  await TestUtils.topicObserved(
+    "places-semantichistorymanager-update-complete"
+  );
+
+  let rows = await conn.execute(`
+    SELECT m.rowid, vec_to_json(embedding) vector
+    FROM vec_history_mapping m
+    JOIN vec_history USING (rowid)
+  `);
+  Assert.equal(rows.length, 1, "There should be one entry");
+  let rowid = rows[0].getResultByName("rowid");
+  Assert.equal(rowid, 1, "Rowid should be the one we inserted");
+  let vector = JSON.parse(rows[0].getResultByName("vector"));
+  Assert.deepEqual(entry.vector, vector, "Vector should be the new one");
+
   await semanticManager.shutdown();
 });

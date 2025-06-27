@@ -134,8 +134,7 @@ add_task(async function test_asyncClone() {
   );
 
   await asyncClose(conn2);
-  await asyncClose(conn1);
-  await IOUtils.remove(getTestDB().path, { ignoreAbsent: true });
+  await asyncCleanup();
 });
 
 async function loadExtension(conn, ext = "vec") {
@@ -149,3 +148,118 @@ async function loadExtension(conn, ext = "vec") {
     });
   });
 }
+
+add_task(async function test_invariants() {
+  // Test some invariants of the vec extension that we rely upon, so that if
+  // the behavior changes we can catch it.
+  let conn = getOpenedUnsharedDatabase();
+  await loadExtension(conn);
+
+  conn.executeSimpleSQL(
+    `
+    CREATE VIRTUAL TABLE vectors USING vec0(
+      embedding FLOAT[4]
+    )
+    `
+  );
+  conn.executeSimpleSQL(
+    `
+    CREATE TABLE relations (
+      rowid INTEGER PRIMARY KEY,
+      content TEXT
+    )
+    `
+  );
+
+  let rowids = [];
+  let insertRelStmt = conn.createStatement(
+    `
+    INSERT INTO relations (rowid, content)
+    VALUES (NULL, "test")
+    RETURNING rowid
+    `
+  );
+  Assert.ok(insertRelStmt.executeStep());
+  rowids.push(insertRelStmt.getInt32(0));
+  insertRelStmt.reset();
+  Assert.ok(insertRelStmt.executeStep());
+  rowids.push(insertRelStmt.getInt32(0));
+  insertRelStmt.reset();
+
+  // Try to insert the same rowid twice in the vec table.
+  let insertVecStmt = conn.createStatement(
+    `
+    INSERT INTO vectors (rowid, embedding)
+    VALUES (:rowid, :vector)
+    `
+  );
+  insertVecStmt.bindByName("rowid", rowids[0]);
+  insertVecStmt.bindBlobByName("vector", tensorToBlob([0.1, 0.1, 0.1, 0.1]));
+  insertVecStmt.executeStep();
+  insertVecStmt.reset();
+
+  let deleteStmt = conn.createStatement(
+    `
+    DELETE FROM vectors WHERE rowid = :rowid
+    `
+  );
+  deleteStmt.bindByName("rowid", rowids[0]);
+  deleteStmt.executeStep();
+  deleteStmt.finalize();
+
+  insertVecStmt.bindByName("rowid", rowids[0]);
+  insertVecStmt.bindBlobByName("vector", tensorToBlob([0.2, 0.2, 0.2, 0.2]));
+  insertVecStmt.executeStep();
+  insertVecStmt.reset();
+
+  let selectStmt = conn.createStatement(
+    `
+    SELECT
+      rowid,
+      vec_to_json(embedding)
+    FROM vectors
+    `
+  );
+  let count = 0;
+  while (selectStmt.executeStep()) {
+    count++;
+    Assert.equal(selectStmt.getInt32(0), rowids[0]);
+    Assert.equal(
+      selectStmt.getUTF8String(1).replace(/(?<=[0-9])0+/g, ""),
+      "[0.2,0.2,0.2,0.2]"
+    );
+  }
+  Assert.equal(count, 1, "Should have one row in the vec table");
+  selectStmt.reset();
+
+  Assert.ok(insertRelStmt.executeStep());
+  rowids.push(insertRelStmt.getInt32(0));
+  insertRelStmt.finalize();
+  insertVecStmt.bindByName("rowid", rowids[2]);
+  insertVecStmt.bindBlobByName("vector", tensorToBlob([0.3, 0.3, 0.3, 0.3]));
+  insertVecStmt.executeStep();
+  insertVecStmt.finalize();
+
+  let expected = [
+    { rowid: rowids[0], vector: "[0.2,0.2,0.2,0.2]" },
+    { rowid: rowids[2], vector: "[0.3,0.3,0.3,0.3]" },
+  ];
+  count = 0;
+  for (let i = 0; selectStmt.executeStep(); i++) {
+    count++;
+    Assert.equal(selectStmt.getInt32(0), expected[i].rowid);
+    Assert.equal(
+      selectStmt.getUTF8String(1).replace(/(?<=[0-9])0+/g, ""),
+      expected[i].vector
+    );
+  }
+  Assert.equal(count, 2, "Should have two rows in the vec table");
+  selectStmt.finalize();
+
+  // TODO: In the future add testing for RETURNING and UPSERT as those are
+  // currently broken. See:
+  // https://github.com/asg017/sqlite-vec/issues/127
+  // https://github.com/asg017/sqlite-vec/issues/229
+
+  cleanup();
+});
