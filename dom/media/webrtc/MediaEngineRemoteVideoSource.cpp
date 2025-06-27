@@ -84,6 +84,79 @@ static Maybe<VideoFacingModeEnum> GetFacingMode(const nsString& aDeviceName) {
   return Nothing();
 }
 
+struct DesiredSizeInput {
+  NormalizedConstraints mConstraints;
+  camera::CaptureEngine mCapEngine;
+  int32_t mInputWidth;
+  int32_t mInputHeight;
+  int32_t mRotation;
+};
+
+static gfx::IntSize CalculateDesiredSize(DesiredSizeInput aInput) {
+  if (aInput.mRotation == 90 || aInput.mRotation == 270) {
+    // This frame is rotated, so what was negotiated as width is now height,
+    // and vice versa.
+    std::swap(aInput.mConstraints.mWidth, aInput.mConstraints.mHeight);
+  }
+
+  // This logic works for both camera and screen sharing case.
+  // In VideoResizeModeEnum::None, ideal dimensions are absent.
+  // In screen sharing, min and max dimensions are forbidden.
+  int32_t dst_width = aInput.mConstraints.mWidth.Get(aInput.mInputWidth);
+  int32_t dst_height = aInput.mConstraints.mHeight.Get(aInput.mInputHeight);
+
+  if (!aInput.mConstraints.mWidth.mIdeal &&
+      aInput.mConstraints.mHeight.mIdeal) {
+    dst_width = *aInput.mConstraints.mHeight.mIdeal * aInput.mInputWidth /
+                aInput.mInputHeight;
+  } else if (!aInput.mConstraints.mHeight.mIdeal &&
+             aInput.mConstraints.mWidth.mIdeal) {
+    dst_height = *aInput.mConstraints.mWidth.mIdeal * aInput.mInputHeight /
+                 aInput.mInputWidth;
+  }
+
+  if (aInput.mCapEngine != camera::CameraEngine ||
+      !aInput.mConstraints.mWidth.mIdeal ||
+      !aInput.mConstraints.mHeight.mIdeal) {
+    // Scale down without cropping.
+    // Cropping is not allowed by spec for desktop capture.
+    // It also doesn't make sense when not both ideal width and height are
+    // given.
+    // First scale to average of portrait and landscape.
+    float scale_width = (float)dst_width / (float)aInput.mInputWidth;
+    float scale_height = (float)dst_height / (float)aInput.mInputHeight;
+    float scale = (scale_width + scale_height) / 2;
+    // If both req_ideal_width & req_ideal_height are absent, scale is 1, but
+    // if one is present and the other not, scale precisely to the one present
+    if (!aInput.mConstraints.mWidth.mIdeal) {
+      scale = scale_height;
+    } else if (!aInput.mConstraints.mHeight.mIdeal) {
+      scale = scale_width;
+    }
+    dst_width = int32_t(scale * (float)aInput.mInputWidth);
+    dst_height = int32_t(scale * (float)aInput.mInputHeight);
+
+    // If scaled rectangle exceeds max rectangle, scale to minimum of portrait
+    // and landscape
+    if (dst_width > aInput.mConstraints.mWidth.mMax ||
+        dst_height > aInput.mConstraints.mHeight.mMax) {
+      scale_width = (float)aInput.mConstraints.mWidth.mMax / (float)dst_width;
+      scale_height =
+          (float)aInput.mConstraints.mHeight.mMax / (float)dst_height;
+      scale = std::min(scale_width, scale_height);
+      dst_width = int32_t(scale * dst_width);
+      dst_height = int32_t(scale * dst_height);
+    }
+  }
+
+  // Ensure width and height are at least two. Smaller frames can lead to
+  // problems with scaling and video encoding.
+  dst_width = std::max(2, dst_width);
+  dst_height = std::max(2, dst_height);
+
+  return {dst_width, dst_height};
+}
+
 static VideoResizeModeEnum GetResizeMode(const NormalizedConstraintSet& c,
                                          const MediaEnginePrefs& aPrefs) {
   if (!aPrefs.mResizeModeEnabled) {
@@ -297,9 +370,22 @@ nsresult MediaEngineRemoteVideoSource::Start() {
   MOZ_ASSERT(mState == kAllocated || mState == kStarted || mState == kStopped);
   MOZ_ASSERT(mTrack);
 
+  DesiredSizeInput input{};
+  double framerate = 0.0;
   {
     MutexAutoLock lock(mMutex);
     mState = kStarted;
+    const double maxFPS = AssertedCast<double>(mCapability.maxFPS);
+    const bool can_crop_and_scale = mCalculation == kFeasibility;
+    input = {
+        .mConstraints = *mConstraints,
+        .mCapEngine = mCapEngine,
+        .mInputWidth = mCapability.width,
+        .mInputHeight = mCapability.height,
+        .mRotation = 0,
+    };
+    framerate =
+        can_crop_and_scale ? mConstraints->mFrameRate.Get(maxFPS) : maxFPS;
   }
 
   mSettingsUpdatedByFrame->mValue = false;
@@ -312,23 +398,24 @@ nsresult MediaEngineRemoteVideoSource::Start() {
     return NS_ERROR_FAILURE;
   }
 
+  gfx::IntSize dstSize = CalculateDesiredSize(input);
   NS_DispatchToMainThread(NS_NewRunnableFunction(
       "MediaEngineRemoteVideoSource::SetLastCapability",
       [settings = mSettings, updated = mSettingsUpdatedByFrame,
-       cap = mCapability, calc = mCalculation,
+       calc = mCalculation, dstSize, framerate,
        resizeModeEnabled = mPrefs->mResizeModeEnabled]() mutable {
+        const bool cropAndScale = calc == kFeasibility;
         if (!updated->mValue) {
-          settings->mWidth.Value() = cap.width;
-          settings->mHeight.Value() = cap.height;
+          settings->mWidth.Value() = dstSize.width;
+          settings->mHeight.Value() = dstSize.height;
         }
-        settings->mFrameRate.Value() = cap.maxFPS;
+        settings->mFrameRate.Value() = framerate;
         if (resizeModeEnabled) {
-          auto resizeMode = (calc == kFitness)
-                                ? VideoResizeModeEnum::None
-                                : VideoResizeModeEnum::Crop_and_scale;
+          auto resizeMode = cropAndScale ? VideoResizeModeEnum::Crop_and_scale
+                                         : VideoResizeModeEnum::None;
           settings->mResizeMode.Reset();
-          settings->mResizeMode.Construct(
-              NS_ConvertASCIItoUTF16(dom::GetEnumString(resizeMode)));
+          settings->mResizeMode.Value() =
+              NS_ConvertASCIItoUTF16(dom::GetEnumString(resizeMode));
         }
       }));
 
@@ -466,87 +553,24 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
     uint8_t* aBuffer, const camera::VideoFrameProperties& aProps) {
   // Cameras IPC thread - take great care with accessing members!
 
-  Maybe<int32_t> req_max_width;
-  Maybe<int32_t> req_max_height;
-  Maybe<int32_t> req_ideal_width;
-  Maybe<int32_t> req_ideal_height;
+  DesiredSizeInput input{};
   {
     MutexAutoLock lock(mMutex);
     MOZ_ASSERT(mState == kStarted);
-    const int32_t& max_width = mConstraints->mWidth.mMax;
-    const int32_t& max_height = mConstraints->mHeight.mMax;
 
-    req_max_width = max_width ? Some(max_width) : Nothing();
-    req_max_height = max_height ? Some(max_height) : Nothing();
-    req_ideal_width = mConstraints->mWidth.mIdeal;
-    req_ideal_height = mConstraints->mHeight.mIdeal;
+    input = {
+        .mConstraints = *mConstraints,
+        .mCapEngine = mCapEngine,
+        .mInputWidth = aProps.width(),
+        .mInputHeight = aProps.height(),
+        .mRotation = aProps.rotation(),
+    };
     if (!mFrameDeliveringTrackingId) {
       mFrameDeliveringTrackingId = Some(mTrackingId);
     }
   }
 
-  if (aProps.rotation() == 90 || aProps.rotation() == 270) {
-    // This frame is rotated, so what was negotiated as width is now height,
-    // and vice versa.
-    std::swap(req_max_width, req_max_height);
-    std::swap(req_ideal_width, req_ideal_height);
-  }
-
-  int32_t dst_max_width =
-      std::min(aProps.width(), req_max_width.valueOr(aProps.width()));
-  int32_t dst_max_height =
-      std::min(aProps.height(), req_max_height.valueOr(aProps.height()));
-  // This logic works for both camera and screen sharing case.
-  // for camera case, req_ideal_width and req_ideal_height are absent.
-  int32_t dst_width = req_ideal_width.valueOr(aProps.width());
-  int32_t dst_height = req_ideal_height.valueOr(aProps.height());
-
-  if (!req_ideal_width && req_ideal_height) {
-    dst_width = *req_ideal_height * aProps.width() / aProps.height();
-  } else if (!req_ideal_height && req_ideal_width) {
-    dst_height = *req_ideal_width * aProps.height() / aProps.width();
-  }
-  dst_width = std::min(dst_width, dst_max_width);
-  dst_height = std::min(dst_height, dst_max_height);
-
-  // Apply scaling for screen sharing.
-  switch (mCapEngine) {
-    case camera::ScreenEngine:
-    case camera::WinEngine: {
-      // scale to average of portrait and landscape
-      float scale_width = (float)dst_width / (float)aProps.width();
-      float scale_height = (float)dst_height / (float)aProps.height();
-      float scale = (scale_width + scale_height) / 2;
-      // If both req_ideal_width & req_ideal_height are absent, scale is 1, but
-      // if one is present and the other not, scale precisely to the one present
-      if (!req_ideal_width) {
-        scale = scale_height;
-      } else if (!req_ideal_height) {
-        scale = scale_width;
-      }
-      dst_width = int32_t(scale * (float)aProps.width());
-      dst_height = int32_t(scale * (float)aProps.height());
-
-      // if scaled rectangle exceeds max rectangle, scale to minimum of portrait
-      // and landscape
-      if (dst_width > dst_max_width || dst_height > dst_max_height) {
-        scale_width = (float)dst_max_width / (float)dst_width;
-        scale_height = (float)dst_max_height / (float)dst_height;
-        scale = std::min(scale_width, scale_height);
-        dst_width = int32_t(scale * dst_width);
-        dst_height = int32_t(scale * dst_height);
-      }
-      break;
-    }
-    default: {
-      break;
-    }
-  }
-
-  // Ensure width and height are at least two. Smaller frames can lead to
-  // problems with scaling and video encoding.
-  dst_width = std::max(2, dst_width);
-  dst_height = std::max(2, dst_height);
+  gfx::IntSize dstSize = CalculateDesiredSize(input);
 
   std::function<void()> callback_unused = []() {};
   rtc::scoped_refptr<webrtc::I420BufferInterface> buffer =
@@ -556,14 +580,14 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
           aBuffer + aProps.yAllocatedSize() + aProps.uAllocatedSize(),
           aProps.vStride(), callback_unused);
 
-  if ((dst_width != aProps.width() || dst_height != aProps.height()) &&
-      dst_width <= aProps.width() && dst_height <= aProps.height()) {
+  if ((dstSize.width != aProps.width() || dstSize.height != aProps.height()) &&
+      dstSize.width <= aProps.width() && dstSize.height <= aProps.height()) {
     PerformanceRecorder<CopyVideoStage> rec("MERVS::CropAndScale"_ns,
                                             *mFrameDeliveringTrackingId,
-                                            dst_width, dst_height);
+                                            dstSize.width, dstSize.height);
     // Destination resolution is smaller than source buffer. We'll rescale.
     rtc::scoped_refptr<webrtc::I420Buffer> scaledBuffer =
-        mRescalingBufferPool.CreateI420Buffer(dst_width, dst_height);
+        mRescalingBufferPool.CreateI420Buffer(dstSize.width, dstSize.height);
     if (!scaledBuffer) {
       MOZ_ASSERT_UNREACHABLE(
           "We might fail to allocate a buffer, but with this "
@@ -588,8 +612,9 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
 
   RefPtr<layers::PlanarYCbCrImage> image;
   {
-    PerformanceRecorder<CopyVideoStage> rec(
-        "MERVS::Copy"_ns, *mFrameDeliveringTrackingId, dst_width, dst_height);
+    PerformanceRecorder<CopyVideoStage> rec("MERVS::Copy"_ns,
+                                            *mFrameDeliveringTrackingId,
+                                            dstSize.width, dstSize.height);
     image = mImageContainer->CreatePlanarYCbCrImage();
     if (NS_FAILED(image->CopyData(data))) {
       MOZ_ASSERT_UNREACHABLE(
@@ -605,19 +630,18 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
   LOG_FRAME(
       "frame %d (%dx%d)->(%dx%d); rotation %d, rtpTimeStamp %u, ntpTimeMs "
       "%" PRIu64 ", renderTimeMs %" PRIu64,
-      frame_num++, aProps.width(), aProps.height(), dst_width, dst_height,
-      aProps.rotation(), aProps.rtpTimeStamp(), aProps.ntpTimeMs(),
-      aProps.renderTimeMs());
+      frame_num++, aProps.width(), aProps.height(), dstSize.width,
+      dstSize.height, aProps.rotation(), aProps.rtpTimeStamp(),
+      aProps.ntpTimeMs(), aProps.renderTimeMs());
 #endif
 
-  if (mImageSize.width != dst_width || mImageSize.height != dst_height) {
+  if (mImageSize != dstSize) {
     NS_DispatchToMainThread(NS_NewRunnableFunction(
         "MediaEngineRemoteVideoSource::FrameSizeChange",
         [settings = mSettings, updated = mSettingsUpdatedByFrame,
-         holder = std::move(mFirstFramePromiseHolder), dst_width,
-         dst_height]() mutable {
-          settings->mWidth.Value() = dst_width;
-          settings->mHeight.Value() = dst_height;
+         holder = std::move(mFirstFramePromiseHolder), dstSize]() mutable {
+          settings->mWidth.Value() = dstSize.width;
+          settings->mHeight.Value() = dstSize.height;
           updated->mValue = true;
           // Since mImageSize was initialized to (0,0), we end up here on the
           // arrival of the first frame. We resolve the promise representing
