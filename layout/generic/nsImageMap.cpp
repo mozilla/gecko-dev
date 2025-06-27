@@ -791,12 +791,11 @@ void nsImageMap::AttributeChanged(dom::Element* aElement, int32_t aNameSpaceID,
   }
 }
 
-void nsImageMap::ContentAppended(nsIContent* aFirstNewContent,
-                                 const ContentAppendInfo&) {
+void nsImageMap::ContentAppended(nsIContent* aFirstNewContent) {
   MaybeUpdateAreas(aFirstNewContent->GetParent());
 }
 
-void nsImageMap::ContentInserted(nsIContent* aChild, const ContentInsertInfo&) {
+void nsImageMap::ContentInserted(nsIContent* aChild) {
   MaybeUpdateAreas(aChild->GetParent());
 }
 
@@ -820,7 +819,7 @@ static UniquePtr<Area> TakeArea(nsImageMap::AreaList& aAreas,
 }
 
 void nsImageMap::ContentWillBeRemoved(nsIContent* aChild,
-                                      const ContentRemoveInfo&) {
+                                      const BatchRemovalState*) {
   if (aChild->GetParent() != mMap && !mConsiderWholeSubtree) {
     return;
   }

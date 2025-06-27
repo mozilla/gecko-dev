@@ -5058,12 +5058,12 @@ Result<EditorDOMPoint, nsresult> HTMLEditor::RemoveContainerWithTransaction(
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY void HTMLEditor::ContentAppended(
-    nsIContent* aFirstNewContent, const ContentAppendInfo&) {
+    nsIContent* aFirstNewContent) {
   DoContentInserted(aFirstNewContent, ContentNodeIs::Appended);
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY void HTMLEditor::ContentInserted(
-    nsIContent* aChild, const ContentInsertInfo&) {
+    nsIContent* aChild) {
   DoContentInserted(aChild, ContentNodeIs::Inserted);
 }
 
@@ -5170,7 +5170,7 @@ void HTMLEditor::DoContentInserted(nsIContent* aChild,
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY void HTMLEditor::ContentWillBeRemoved(
-    nsIContent* aChild, const ContentRemoveInfo&) {
+    nsIContent* aChild, const BatchRemovalState*) {
   if (mLastCollapsibleWhiteSpaceAppendedTextNode == aChild) {
     mLastCollapsibleWhiteSpaceAppendedTextNode = nullptr;
   }

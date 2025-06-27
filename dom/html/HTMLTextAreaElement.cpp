@@ -784,20 +784,17 @@ void HTMLTextAreaElement::CharacterDataChanged(nsIContent* aContent,
   ContentChanged(aContent);
 }
 
-void HTMLTextAreaElement::ContentAppended(nsIContent* aFirstNewContent,
-                                          const ContentAppendInfo&) {
+void HTMLTextAreaElement::ContentAppended(nsIContent* aFirstNewContent) {
   ContentChanged(aFirstNewContent);
 }
 
-void HTMLTextAreaElement::ContentInserted(nsIContent* aChild,
-                                          const ContentInsertInfo&) {
+void HTMLTextAreaElement::ContentInserted(nsIContent* aChild) {
   ContentChanged(aChild);
 }
 
-void HTMLTextAreaElement::ContentWillBeRemoved(nsIContent* aChild,
-                                               const ContentRemoveInfo& aInfo) {
-  if (mValueChanged || !mDoneAddingChildren ||
-      (aInfo.mBatchRemovalState && !aInfo.mBatchRemovalState->mIsFirst) ||
+void HTMLTextAreaElement::ContentWillBeRemoved(
+    nsIContent* aChild, const BatchRemovalState* aState) {
+  if (mValueChanged || !mDoneAddingChildren || (aState && !aState->mIsFirst) ||
       !nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
     return;
   }

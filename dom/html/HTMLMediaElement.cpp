@@ -2200,7 +2200,7 @@ void HTMLMediaElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
 }
 
 void HTMLMediaElement::ContentWillBeRemoved(nsIContent* aChild,
-                                            const ContentRemoveInfo&) {
+                                            const BatchRemovalState*) {
   if (aChild == mSourcePointer) {
     mSourcePointer = aChild->GetPreviousSibling();
   }

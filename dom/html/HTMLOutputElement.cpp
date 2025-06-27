@@ -116,19 +116,17 @@ void HTMLOutputElement::CharacterDataChanged(nsIContent* aContent,
   DescendantsChanged();
 }
 
-void HTMLOutputElement::ContentAppended(nsIContent* aFirstNewContent,
-                                        const ContentAppendInfo&) {
+void HTMLOutputElement::ContentAppended(nsIContent* aFirstNewContent) {
   DescendantsChanged();
 }
 
-void HTMLOutputElement::ContentInserted(nsIContent* aChild,
-                                        const ContentInsertInfo&) {
+void HTMLOutputElement::ContentInserted(nsIContent* aChild) {
   DescendantsChanged();
 }
 
 void HTMLOutputElement::ContentWillBeRemoved(nsIContent* aChild,
-                                             const ContentRemoveInfo& aInfo) {
-  if (aInfo.mBatchRemovalState && !aInfo.mBatchRemovalState->mIsFirst) {
+                                             const BatchRemovalState* aState) {
+  if (aState && !aState->mIsFirst) {
     return;
   }
   // Make sure to run this once the removal has taken place.

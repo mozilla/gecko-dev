@@ -114,22 +114,20 @@ void SVGStyleElement::CharacterDataChanged(nsIContent* aContent,
   ContentChanged(aContent);
 }
 
-void SVGStyleElement::ContentAppended(nsIContent* aFirstNewContent,
-                                      const ContentAppendInfo&) {
+void SVGStyleElement::ContentAppended(nsIContent* aFirstNewContent) {
   ContentChanged(aFirstNewContent->GetParent());
 }
 
-void SVGStyleElement::ContentInserted(nsIContent* aChild,
-                                      const ContentInsertInfo&) {
+void SVGStyleElement::ContentInserted(nsIContent* aChild) {
   ContentChanged(aChild);
 }
 
 void SVGStyleElement::ContentWillBeRemoved(nsIContent* aChild,
-                                           const ContentRemoveInfo& aInfo) {
+                                           const BatchRemovalState* aState) {
   if (!nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
     return;
   }
-  if (aInfo.mBatchRemovalState && !aInfo.mBatchRemovalState->mIsFirst) {
+  if (aState && !aState->mIsFirst) {
     return;
   }
   // Make sure to run this once the removal has taken place.

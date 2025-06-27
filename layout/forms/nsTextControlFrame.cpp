@@ -1215,17 +1215,17 @@ void nsTextControlFrame::nsAnonDivObserver::CharacterDataChanged(
 }
 
 void nsTextControlFrame::nsAnonDivObserver::ContentAppended(
-    nsIContent* aFirstNewContent, const ContentAppendInfo&) {
+    nsIContent* aFirstNewContent) {
   mFrame.ClearCachedValue();
 }
 
 void nsTextControlFrame::nsAnonDivObserver::ContentInserted(
-    nsIContent* aChild, const ContentInsertInfo&) {
+    nsIContent* aChild) {
   mFrame.ClearCachedValue();
 }
 
 void nsTextControlFrame::nsAnonDivObserver::ContentWillBeRemoved(
-    nsIContent* aChild, const ContentRemoveInfo&) {
+    nsIContent* aChild, const BatchRemovalState*) {
   mFrame.ClearCachedValue();
 }
 

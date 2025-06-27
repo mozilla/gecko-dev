@@ -999,8 +999,7 @@ void DocAccessible::ARIAActiveDescendantChanged(LocalAccessible* aAccessible) {
   }
 }
 
-void DocAccessible::ContentAppended(nsIContent* aFirstNewContent,
-                                    const ContentAppendInfo&) {
+void DocAccessible::ContentAppended(nsIContent* aFirstNewContent) {
   MaybeHandleChangeToHiddenNameOrDescription(aFirstNewContent);
 }
 
@@ -1119,13 +1118,12 @@ void DocAccessible::CharacterDataChanged(nsIContent* aContent,
   MaybeHandleChangeToHiddenNameOrDescription(aContent);
 }
 
-void DocAccessible::ContentInserted(nsIContent* aChild,
-                                    const ContentInsertInfo&) {
+void DocAccessible::ContentInserted(nsIContent* aChild) {
   MaybeHandleChangeToHiddenNameOrDescription(aChild);
 }
 
 void DocAccessible::ContentWillBeRemoved(nsIContent* aChildNode,
-                                         const ContentRemoveInfo&) {
+                                         const BatchRemovalState*) {
 #ifdef A11Y_LOG
   if (logging::IsEnabled(logging::eTree)) {
     logging::MsgBegin("TREE", "DOM content removed; doc: %p", this);

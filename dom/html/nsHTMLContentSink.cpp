@@ -840,7 +840,7 @@ void HTMLContentSink::NotifyInsert(nsIContent* aContent,
     MOZ_AUTO_DOC_UPDATE(aContent ? aContent->OwnerDoc() : mDocument.get(),
                         true);
     MutationObservers::NotifyContentInserted(NODE_FROM(aContent, mDocument),
-                                             aChildContent, {});
+                                             aChildContent);
     mLastNotificationTime = PR_Now();
   }
 

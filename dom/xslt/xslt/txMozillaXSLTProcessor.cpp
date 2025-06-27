@@ -1233,18 +1233,16 @@ void txMozillaXSLTProcessor::AttributeChanged(Element* aElement,
   mStylesheet = nullptr;
 }
 
-void txMozillaXSLTProcessor::ContentAppended(nsIContent* aFirstNewContent,
-                                             const ContentAppendInfo&) {
+void txMozillaXSLTProcessor::ContentAppended(nsIContent* aFirstNewContent) {
   mStylesheet = nullptr;
 }
 
-void txMozillaXSLTProcessor::ContentInserted(nsIContent* aChild,
-                                             const ContentInsertInfo&) {
+void txMozillaXSLTProcessor::ContentInserted(nsIContent* aChild) {
   mStylesheet = nullptr;
 }
 
 void txMozillaXSLTProcessor::ContentWillBeRemoved(nsIContent* aChild,
-                                                  const ContentRemoveInfo&) {
+                                                  const BatchRemovalState*) {
   mStylesheet = nullptr;
 }
 

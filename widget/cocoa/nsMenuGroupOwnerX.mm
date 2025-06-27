@@ -68,8 +68,7 @@ void nsMenuGroupOwnerX::CharacterDataWillChange(
 void nsMenuGroupOwnerX::CharacterDataChanged(nsIContent* aContent,
                                              const CharacterDataChangeInfo&) {}
 
-void nsMenuGroupOwnerX::ContentAppended(nsIContent* aFirstNewContent,
-                                        const ContentAppendInfo&) {
+void nsMenuGroupOwnerX::ContentAppended(nsIContent* aFirstNewContent) {
   for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
     ContentInserted(cur);
   }
@@ -94,7 +93,7 @@ void nsMenuGroupOwnerX::AttributeChanged(dom::Element* aElement,
 }
 
 void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild,
-                                             const ContentRemoveInfo&) {
+                                             const BatchRemovalState*) {
   nsIContent* container = aChild->GetParent();
   if (!container) {
     return;
@@ -118,8 +117,7 @@ void nsMenuGroupOwnerX::ContentWillBeRemoved(nsIContent* aChild,
   }
 }
 
-void nsMenuGroupOwnerX::ContentInserted(nsIContent* aChild,
-                                        const ContentInsertInfo&) {
+void nsMenuGroupOwnerX::ContentInserted(nsIContent* aChild) {
   nsIContent* container = aChild->GetParent();
   if (!container) {
     return;

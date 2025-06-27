@@ -58,7 +58,6 @@ class nsIScriptElement : public nsIScriptLoaderObserver {
         mDefer(false),
         mAsync(false),
         mExternal(false),
-        mIsTrusted(true),
         mKind(JS::loader::ScriptKind::eClassic),
         mParserCreated(aFromParser == mozilla::dom::FROM_PARSER_FRAGMENT
                            ? mozilla::dom::NOT_FROM_PARSER
@@ -340,12 +339,6 @@ class nsIScriptElement : public nsIScriptLoaderObserver {
    * if the src attribute contained an invalid URL string.
    */
   bool mExternal;
-
-  /**
-   *  Whether a script element is considered trustworthy for execution.
-   *  https://github.com/w3c/trusted-types/pull/579
-   */
-  bool mIsTrusted;
 
   /**
    * The effective script kind.

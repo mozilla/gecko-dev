@@ -114,18 +114,16 @@ void XPathResult::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
   Invalidate(aElement);
 }
 
-void XPathResult::ContentAppended(nsIContent* aFirstNewContent,
-                                  const ContentAppendInfo&) {
+void XPathResult::ContentAppended(nsIContent* aFirstNewContent) {
   Invalidate(aFirstNewContent->GetParent());
 }
 
-void XPathResult::ContentInserted(nsIContent* aChild,
-                                  const ContentInsertInfo&) {
+void XPathResult::ContentInserted(nsIContent* aChild) {
   Invalidate(aChild->GetParent());
 }
 
 void XPathResult::ContentWillBeRemoved(nsIContent* aChild,
-                                       const ContentRemoveInfo&) {
+                                       const BatchRemovalState*) {
   Invalidate(aChild->GetParent());
 }
 

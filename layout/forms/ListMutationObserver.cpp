@@ -68,18 +68,16 @@ void ListMutationObserver::CharacterDataChanged(
   mOwningElementFrame->InvalidateFrame();
 }
 
-void ListMutationObserver::ContentAppended(nsIContent* aFirstNewContent,
-                                           const ContentAppendInfo&) {
+void ListMutationObserver::ContentAppended(nsIContent* aFirstNewContent) {
   mOwningElementFrame->InvalidateFrame();
 }
 
-void ListMutationObserver::ContentInserted(nsIContent* aChild,
-                                           const ContentInsertInfo&) {
+void ListMutationObserver::ContentInserted(nsIContent* aChild) {
   mOwningElementFrame->InvalidateFrame();
 }
 
 void ListMutationObserver::ContentWillBeRemoved(nsIContent* aChild,
-                                                const ContentRemoveInfo&) {
+                                                const BatchRemovalState*) {
   mOwningElementFrame->InvalidateFrame();
 }
 

@@ -78,22 +78,20 @@ class MutationObserverWrapper final : public nsIMutationObserver {
     mOwner->AttributeSetToCurrentValue(aElement, aNameSpaceID, aAttribute);
   }
 
-  void ContentAppended(nsIContent* aFirstNewContent,
-                       const ContentAppendInfo& aInfo) override {
+  void ContentAppended(nsIContent* aFirstNewContent) override {
     MOZ_ASSERT(mOwner);
-    mOwner->ContentAppended(aFirstNewContent, aInfo);
+    mOwner->ContentAppended(aFirstNewContent);
   }
 
-  void ContentInserted(nsIContent* aChild,
-                       const ContentInsertInfo& aInfo) override {
+  void ContentInserted(nsIContent* aChild) override {
     MOZ_ASSERT(mOwner);
-    mOwner->ContentInserted(aChild, aInfo);
+    mOwner->ContentInserted(aChild);
   }
 
   void ContentWillBeRemoved(nsIContent* aChild,
-                            const ContentRemoveInfo& aInfo) override {
+                            const BatchRemovalState* aState) override {
     MOZ_ASSERT(mOwner);
-    mOwner->ContentWillBeRemoved(aChild, aInfo);
+    mOwner->ContentWillBeRemoved(aChild, aState);
   }
 
   void NodeWillBeDestroyed(nsINode* aNode) override {

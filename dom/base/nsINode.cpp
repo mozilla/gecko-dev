@@ -1762,9 +1762,9 @@ void nsINode::InsertChildBefore(nsIContent* aKid, nsIContent* aBeforeThis,
     // Note that we always want to call ContentInserted when things are added
     // as kids to documents
     if (parent && !aBeforeThis) {
-      MutationObservers::NotifyContentAppended(parent, aKid, {});
+      MutationObservers::NotifyContentAppended(parent, aKid);
     } else {
-      MutationObservers::NotifyContentInserted(this, aKid, {});
+      MutationObservers::NotifyContentInserted(this, aKid);
     }
 
     if (nsContentUtils::WantMutationEvents(
@@ -2367,7 +2367,7 @@ void nsINode::RemoveChildNode(nsIContent* aKid, bool aNotify,
   mozAutoDocUpdate updateBatch(GetComposedDoc(), aNotify);
 
   if (aNotify) {
-    MutationObservers::NotifyContentWillBeRemoved(this, aKid, {aState});
+    MutationObservers::NotifyContentWillBeRemoved(this, aKid, aState);
   }
 
   // Since aKid is use also after DisconnectChild, ensure it stays alive.
@@ -2958,7 +2958,7 @@ nsINode* nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
         // Make sure to notify on any children that we did succeed to insert
         if (appending && i != 0) {
           MutationObservers::NotifyContentAppended(
-              static_cast<nsIContent*>(this), firstInsertedContent, {});
+              static_cast<nsIContent*>(this), firstInsertedContent);
         }
         return nullptr;
       }
@@ -2971,7 +2971,7 @@ nsINode* nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     // Notify and fire mutation events when appending
     if (appending) {
       MutationObservers::NotifyContentAppended(static_cast<nsIContent*>(this),
-                                               firstInsertedContent, {});
+                                               firstInsertedContent);
       if (mutationBatch) {
         mutationBatch->NodesAdded();
       }

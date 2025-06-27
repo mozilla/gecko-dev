@@ -616,8 +616,7 @@ void nsRange::CharacterDataChanged(nsIContent* aContent,
   }
 }
 
-void nsRange::ContentAppended(nsIContent* aFirstNewContent,
-                              const ContentAppendInfo&) {
+void nsRange::ContentAppended(nsIContent* aFirstNewContent) {
   MOZ_ASSERT(mIsPositioned);
 
   nsINode* container = aFirstNewContent->GetParentNode();
@@ -654,7 +653,7 @@ void nsRange::ContentAppended(nsIContent* aFirstNewContent,
   }
 }
 
-void nsRange::ContentInserted(nsIContent* aChild, const ContentInsertInfo&) {
+void nsRange::ContentInserted(nsIContent* aChild) {
   MOZ_ASSERT(mIsPositioned);
 
   bool updateBoundaries = false;
@@ -706,7 +705,7 @@ void nsRange::ContentInserted(nsIContent* aChild, const ContentInsertInfo&) {
 }
 
 void nsRange::ContentWillBeRemoved(nsIContent* aChild,
-                                   const ContentRemoveInfo&) {
+                                   const BatchRemovalState*) {
   MOZ_ASSERT(mIsPositioned);
 
   nsINode* container = aChild->GetParentNode();

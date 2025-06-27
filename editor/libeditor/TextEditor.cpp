@@ -986,7 +986,8 @@ nsresult TextEditor::SetUnmaskRangeInternal(uint32_t aStart, uint32_t aLength,
     if (RefPtr<PresShell> presShell = document->GetObservingPresShell()) {
       nsAutoScriptBlocker blockRunningScript;
       uint32_t valueLength = text->Length();
-      CharacterDataChangeInfo changeInfo = {false, 0, valueLength, valueLength};
+      CharacterDataChangeInfo changeInfo = {false, 0, valueLength, valueLength,
+                                            nullptr};
       presShell->CharacterDataChanged(text, changeInfo);
     }
 

@@ -339,23 +339,21 @@ void HTMLSelectEventListener::CharacterDataChanged(
 }
 
 void HTMLSelectEventListener::ContentWillBeRemoved(nsIContent* aChild,
-                                                   const ContentRemoveInfo&) {
+                                                   const BatchRemovalState*) {
   if (nsContentUtils::IsInSameAnonymousTree(mElement, aChild)) {
     OptionValueMightHaveChanged(aChild);
     ComboboxMightHaveChanged();
   }
 }
 
-void HTMLSelectEventListener::ContentAppended(nsIContent* aFirstNewContent,
-                                              const ContentAppendInfo&) {
+void HTMLSelectEventListener::ContentAppended(nsIContent* aFirstNewContent) {
   if (nsContentUtils::IsInSameAnonymousTree(mElement, aFirstNewContent)) {
     OptionValueMightHaveChanged(aFirstNewContent);
     ComboboxMightHaveChanged();
   }
 }
 
-void HTMLSelectEventListener::ContentInserted(nsIContent* aChild,
-                                              const ContentInsertInfo&) {
+void HTMLSelectEventListener::ContentInserted(nsIContent* aChild) {
   if (nsContentUtils::IsInSameAnonymousTree(mElement, aChild)) {
     OptionValueMightHaveChanged(aChild);
     ComboboxMightHaveChanged();

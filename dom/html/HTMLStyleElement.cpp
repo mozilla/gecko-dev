@@ -64,23 +64,21 @@ void HTMLStyleElement::CharacterDataChanged(nsIContent* aContent,
   ContentChanged(aContent);
 }
 
-void HTMLStyleElement::ContentAppended(nsIContent* aFirstNewContent,
-                                       const ContentAppendInfo&) {
+void HTMLStyleElement::ContentAppended(nsIContent* aFirstNewContent) {
   ContentChanged(aFirstNewContent->GetParent());
 }
 
-void HTMLStyleElement::ContentInserted(nsIContent* aChild,
-                                       const ContentInsertInfo&) {
+void HTMLStyleElement::ContentInserted(nsIContent* aChild) {
   ContentChanged(aChild);
 }
 
 void HTMLStyleElement::ContentWillBeRemoved(nsIContent* aChild,
-                                            const ContentRemoveInfo& aInfo) {
+                                            const BatchRemovalState* aState) {
   mTriggeringPrincipal = nullptr;
   if (!nsContentUtils::IsInSameAnonymousTree(this, aChild)) {
     return;
   }
-  if (aInfo.mBatchRemovalState && !aInfo.mBatchRemovalState->mIsFirst) {
+  if (aState && !aState->mIsFirst) {
     return;
   }
   // Make sure to run this once the removal has taken place.

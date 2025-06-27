@@ -863,16 +863,14 @@ void nsTreeContentView::AttributeChanged(dom::Element* aElement,
   }
 }
 
-void nsTreeContentView::ContentAppended(nsIContent* aFirstNewContent,
-                                        const ContentAppendInfo& aInfo) {
+void nsTreeContentView::ContentAppended(nsIContent* aFirstNewContent) {
   for (nsIContent* cur = aFirstNewContent; cur; cur = cur->GetNextSibling()) {
     // Our contentinserted doesn't use the index
-    ContentInserted(cur, aInfo);
+    ContentInserted(cur);
   }
 }
 
-void nsTreeContentView::ContentInserted(nsIContent* aChild,
-                                        const ContentInsertInfo&) {
+void nsTreeContentView::ContentInserted(nsIContent* aChild) {
   NS_ASSERTION(aChild, "null ptr");
   nsIContent* container = aChild->GetParent();
 
@@ -941,7 +939,7 @@ void nsTreeContentView::ContentInserted(nsIContent* aChild,
 }
 
 void nsTreeContentView::ContentWillBeRemoved(nsIContent* aChild,
-                                             const ContentRemoveInfo&) {
+                                             const BatchRemovalState*) {
   NS_ASSERTION(aChild, "null ptr");
 
   nsIContent* container = aChild->GetParent();

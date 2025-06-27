@@ -164,18 +164,16 @@ void nsXMLPrettyPrinter::AttributeChanged(Element* aElement,
   MaybeUnhook(aElement);
 }
 
-void nsXMLPrettyPrinter::ContentAppended(nsIContent* aFirstNewContent,
-                                         const ContentAppendInfo&) {
+void nsXMLPrettyPrinter::ContentAppended(nsIContent* aFirstNewContent) {
   MaybeUnhook(aFirstNewContent->GetParent());
 }
 
-void nsXMLPrettyPrinter::ContentInserted(nsIContent* aChild,
-                                         const ContentInsertInfo&) {
+void nsXMLPrettyPrinter::ContentInserted(nsIContent* aChild) {
   MaybeUnhook(aChild->GetParent());
 }
 
 void nsXMLPrettyPrinter::ContentWillBeRemoved(nsIContent* aChild,
-                                              const ContentRemoveInfo&) {
+                                              const BatchRemovalState*) {
   MaybeUnhook(aChild->GetParent());
 }
 

@@ -1149,21 +1149,19 @@ void IMEContentObserver::NotifyIMEOfCachedConsecutiveNewNodes(
   MaybeNotifyIMEOfTextChange(data);
 }
 
-void IMEContentObserver::ContentAppended(nsIContent* aFirstNewContent,
-                                         const ContentAppendInfo&) {
+void IMEContentObserver::ContentAppended(nsIContent* aFirstNewContent) {
   nsIContent* parent = aFirstNewContent->GetParent();
   MOZ_ASSERT(parent);
   ContentAdded(parent, aFirstNewContent, parent->GetLastChild());
 }
 
-void IMEContentObserver::ContentInserted(nsIContent* aChild,
-                                         const ContentInsertInfo&) {
+void IMEContentObserver::ContentInserted(nsIContent* aChild) {
   MOZ_ASSERT(aChild);
   ContentAdded(aChild->GetParentNode(), aChild, aChild);
 }
 
 void IMEContentObserver::ContentWillBeRemoved(nsIContent* aChild,
-                                              const ContentRemoveInfo&) {
+                                              const BatchRemovalState*) {
   if (!NeedsTextChangeNotification() ||
       !nsContentUtils::IsInSameAnonymousTree(mRootElement, aChild)) {
     return;

@@ -82,33 +82,29 @@ class MutationObservers {
    * Send ContentAppended notifications to nsIMutationObservers
    * @param aContainer           Node into which new child/children were added
    * @param aFirstNewContent     First new child
-   * @param aInfo                Struct with information details about the
-   *                             change
    * @see nsIMutationObserver::ContentAppended
    */
   static void NotifyContentAppended(nsIContent* aContainer,
-                                    nsIContent* aFirstNewContent,
-                                    const ContentAppendInfo&);
+                                    nsIContent* aFirstNewContent);
 
   /**
    * Send ContentInserted notifications to nsIMutationObservers
    * @param aContainer        Node into which new child was inserted
    * @param aChild            Newly inserted child
-   * @param aInfo             Struct with information details about the change
    * @see nsIMutationObserver::ContentInserted
    */
-  static void NotifyContentInserted(nsINode* aContainer, nsIContent* aChild,
-                                    const ContentInsertInfo&);
+  static void NotifyContentInserted(nsINode* aContainer, nsIContent* aChild);
   /**
    * Send ContentWillBeRemoved notifications to nsIMutationObservers
    * @param aContainer        Node from which child was removed
    * @param aChild            Removed child
-   * @param aInfo             Struct with information details about the change
+   * @param aBatchRemoving    Whether we'll be removing all children of this
+   *                          container. This is useful to avoid wasteful work.
    * @see nsIMutationObserver::ContentWillBeRemoved
    */
   static void NotifyContentWillBeRemoved(nsINode* aContainer,
                                          nsIContent* aChild,
-                                         const ContentRemoveInfo&);
+                                         const BatchRemovalState*);
 
   /**
    * Send ParentChainChanged notifications to nsIMutationObservers
