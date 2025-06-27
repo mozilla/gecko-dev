@@ -4036,12 +4036,14 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
       QM_TRY(
           ([&directory, &info, this, aPersistenceType,
             &aOriginFunc]() -> Result<Ok, nsresult> {
+            const auto& metadata = info.mFullOriginMetadata;
+
             const auto extraInfo =
                 ScopedLogExtraInfo{ScopedLogExtraInfo::kTagStorageOriginTainted,
-                                   info.mFullOriginMetadata.mStorageOrigin};
+                                   metadata.mStorageOrigin};
 
             const auto originDirName =
-                MakeSanitizedOriginString(info.mFullOriginMetadata.mOrigin);
+                MakeSanitizedOriginString(metadata.mOrigin);
 
             // Check if targetDirectory exist.
             QM_TRY_INSPECT(const auto& targetDirectory,
@@ -4060,14 +4062,13 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                 info.mOriginDirectory->RenameTo(nullptr, originDirName)));
 
             if (aPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
-              std::forward<OriginFunc>(aOriginFunc)(info.mFullOriginMetadata);
+              std::forward<OriginFunc>(aOriginFunc)(metadata);
 
-              AddTemporaryOrigin(info.mFullOriginMetadata);
+              AddTemporaryOrigin(metadata);
             }
 
             // XXX We don't check corruption here ?
-            QM_TRY(MOZ_TO_RESULT(
-                InitializeOrigin(targetDirectory, info.mFullOriginMetadata)));
+            QM_TRY(MOZ_TO_RESULT(InitializeOrigin(targetDirectory, metadata)));
 
             return Ok{};
           }()),
