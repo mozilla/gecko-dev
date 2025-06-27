@@ -23,7 +23,6 @@ import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
 import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.recenttabs.view.RecentTabViewHolder
-import org.mozilla.fenix.home.recentvisits.view.RecentVisitsHeaderViewHolder
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisitedViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescriptionViewHolder
@@ -134,7 +133,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
      */
     object RecentSyncedTabItem : AdapterItem(RecentSyncedTabViewHolder.LAYOUT_ID)
 
-    object RecentVisitsHeader : AdapterItem(RecentVisitsHeaderViewHolder.LAYOUT_ID)
     object RecentVisitsItems : AdapterItem(RecentlyVisitedViewHolder.LAYOUT_ID)
 
     /**
@@ -225,11 +223,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            RecentVisitsHeaderViewHolder.LAYOUT_ID -> return RecentVisitsHeaderViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             BookmarksHeaderViewHolder.LAYOUT_ID -> return BookmarksHeaderViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -275,7 +268,6 @@ class SessionControlAdapter(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
             is RecentlyVisitedViewHolder,
-            is RecentVisitsHeaderViewHolder,
             is BookmarksViewHolder,
             is BookmarksHeaderViewHolder,
             is RecentTabViewHolder,

@@ -71,7 +71,6 @@ internal fun normalModeAdapterItems(
     }
 
     if (settings.historyMetadataUIFeature && recentVisits.isNotEmpty()) {
-        items.add(AdapterItem.RecentVisitsHeader)
         items.add(AdapterItem.RecentVisitsItems)
     }
 
