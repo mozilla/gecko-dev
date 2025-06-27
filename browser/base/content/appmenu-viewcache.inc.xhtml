@@ -838,21 +838,19 @@
   <panelview id="PanelUI-ipprotection"
              class="PanelUI-subView"
              mainview-with-header="true">
-    <vbox id="PanelUI-ipprotection-header">
+    <vbox id="PanelUI-ipprotection-header-container">
       <hbox id="PanelUI-ipprotection-header-bar"
             class="panel-header panel-header-with-additional-element">
-        <!-- Beta tag element -->
-        <html:h1>
-          <html:span data-l10n-id="ipprotection-title"></html:span>
-        </html:h1>
-        <!-- Question mark info element -->
+        <html:div id="PanelUI-ipprotection-header" namespaceURI="http://www.w3.org/1999/xhtml">
+          <!-- Root for ipprotection-header -->
+        </html:div>
       </hbox>
     </vbox>
     <toolbarseparator />
-    <vbox class="panel-subview-body">
-      <div id="PanelUI-ipprotection-content" namespaceURI="http://www.w3.org/1999/xhtml">
-        <!-- Root for ipprotection-panel content -->
-      </div>
+    <vbox id="PanelUI-ipprotection-content-container" class="panel-subview-body">
+      <html:div id="PanelUI-ipprotection-content" namespaceURI="http://www.w3.org/1999/xhtml">
+        <!-- Root for ipprotection-content -->
+      </html:div>
     </vbox>
   </panelview>
 

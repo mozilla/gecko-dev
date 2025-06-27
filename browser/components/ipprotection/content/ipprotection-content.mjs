@@ -1,11 +1,11 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
-export default class IPProtectionPanelElement extends MozLitElement {
+export default class IPProtectionContentElement extends MozLitElement {
   static queries = {};
 
   static properties = {
@@ -28,8 +28,14 @@ export default class IPProtectionPanelElement extends MozLitElement {
   }
 
   render() {
-    return html``;
+    return html`
+      <link
+        rel="stylesheet"
+        href="chrome://browser/content/ipprotection/ipprotection-content.css"
+      />
+      <div id="ipprotection-content-wrapper"></div>
+    `;
   }
 }
 
-customElements.define("ipprotection-panel", IPProtectionPanelElement);
+customElements.define("ipprotection-content", IPProtectionContentElement);

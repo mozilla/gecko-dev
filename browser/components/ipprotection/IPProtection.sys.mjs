@@ -204,7 +204,8 @@ class IPProtectionWidget {
   }
 
   /**
-   * Gets the toolbaritem after the widget has been created.
+   * Gets the toolbaritem after the widget has been created and
+   * adds content to the panel.
    *
    * @param {XULElement} toolbaritem - the widget toolbaritem.
    */

@@ -5,14 +5,23 @@
 "use strict";
 
 {
-  const TAG = "ipprotection-panel";
+  const HEADER_TAG = "ipprotection-header";
+  const CONTENT_TAG = "ipprotection-content";
 
-  if (!customElements.get(TAG)) {
-    customElements.setElementCreationCallback(TAG, () => {
-      ChromeUtils.importESModule(
-        "chrome://browser/content/ipprotection/ipprotection-panel.mjs",
-        { global: "current" }
-      );
-    });
+  for (let [tag, script] of [
+    [
+      HEADER_TAG,
+      "chrome://browser/content/ipprotection/ipprotection-header.mjs",
+    ],
+    [
+      CONTENT_TAG,
+      "chrome://browser/content/ipprotection/ipprotection-content.mjs",
+    ],
+  ]) {
+    if (!customElements.get(tag)) {
+      customElements.setElementCreationCallback(tag, () => {
+        ChromeUtils.importESModule(script, { global: "current" });
+      });
+    }
   }
 }
