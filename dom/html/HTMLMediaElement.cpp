@@ -7649,7 +7649,7 @@ void HTMLMediaElement::NotifyCueDisplayStatesChanged() {
     return;
   }
 
-  mTextTrackManager->DispatchUpdateCueDisplay();
+  mTextTrackManager->NotifyUpdateCueDisplay();
 }
 
 void HTMLMediaElement::LogVisibility(CallerAPI aAPI) {
