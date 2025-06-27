@@ -284,6 +284,10 @@ export class WebDriverSession {
       );
     }
 
+    // For the WebDriver BiDi session cleanup, the root network module is
+    // responsible for resuming requests in the blocked request map.
+    // See root NetworkModule.destroy().
+
     // Destroy the dedicated MessageHandler instance if we created one.
     if (this.#messageHandler) {
       this.#messageHandler.off(

@@ -356,6 +356,16 @@ class NetworkModule extends RootBiDiModule {
 
     this.#decodedBodySizeMap.destroy();
 
+    for (const [, { request }] of this.#blockedRequests) {
+      try {
+        request.wrappedChannel.resume();
+      } catch {
+        lazy.logger.warn(
+          `Failed to resume request "${request.requestId}" when ending the session`
+        );
+      }
+    }
+
     this.#decodedBodySizeMap = null;
     this.#blockedRequests = null;
     this.#interceptMap = null;
