@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Ober gant %1$s evel pourchaser dilesa</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Kennaskañ ouzh %1$s gant ur gont %2$s a zo reolennet gant o &lt;a href="%3$s"&gt;Reolenn a-fet buhez prevez&lt;/a&gt; ha &lt;a href="%4$s"&gt;divizoù arver&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Kennaskañ ouzh %1$s gant ur gont %2$s a zo reolennet gant o <a href=\"%3$s\">Reolenn a-fet buhez prevez</a> ha <a href=\"%4$s\">divizoù arver</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Kenderc’hel</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

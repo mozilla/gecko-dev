@@ -113,8 +113,7 @@
   <!-- Title for showing the suggest strong password updated confirmation snackbar -->
   <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Kecap sandi geus diropéa</string>
   <!-- Title for showing the username updated confirmation snackbar -->
-  <string name="mozac_feature_prompt_login_snackbar_username_updated">Ngaran pamaké dianyarkeun
-</string>
+  <string name="mozac_feature_prompt_login_snackbar_username_updated">Ngaran pamaké dianyarkeun\u0020</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
   <string name="mozac_feature_prompt_repost_title">Kirimkeun deui data ka ieu loka?</string>
   <string name="mozac_feature_prompt_repost_message">Nyegerkeun ieu kaca bisa ngaduplikasi peta panganyarna, contona mayar atawa ngirim koméntar dua kali.</string>
@@ -165,7 +164,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Paké %1$s salaku panyadia login</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Asup log ka %1$s maké akun %2$s nurut kana &lt;a href="%3$s"&gt;Kawijakan Pripasi&lt;/a&gt; jeung &lt;a href="%4$s"&gt;Katangtuan Layanan.&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Asup log ka %1$s maké akun %2$s nurut kana <a href=\"%3$s\">Kawijakan Pripasi</a> jeung <a href=\"%4$s\">Katangtuan Layanan.</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Tuluykeun</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

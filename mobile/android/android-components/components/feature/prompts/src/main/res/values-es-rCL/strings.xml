@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usar %1$s como proveedor de inicio de sesión</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Conectarse a %1$s con una cuenta de %2$s está sujeto a su &lt;a href="%3$s"&gt;Política de privacidad&lt;/a&gt; y &lt;a href="%4$s"&gt;Términos de servicio&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Conectarse a %1$s con una cuenta de %2$s está sujeto a su <a href=\"%3$s\">Política de privacidad</a> y <a href=\"%4$s\">Términos de servicio</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Continuar</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

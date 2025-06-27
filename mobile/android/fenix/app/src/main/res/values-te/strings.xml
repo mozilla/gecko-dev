@@ -166,7 +166,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$sలో కొత్తవి</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$sలో కొత్తవి</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">డెస్క్‌టాప్ సైటుకి మారండి</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
@@ -352,7 +352,7 @@
   <!-- Preference for open links in third party apps always open in apps option -->
   <string name="preferences_open_links_in_apps_always">ఎల్లప్పుడూ</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">బయటి దింపుకోలు నిర్వాహకి</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">బయటి దింపుకోలు నిర్వాహకి</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">గమనింపులు</string>
   <!--
@@ -1546,4 +1546,5 @@
   <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">ఇప్పుడే తాజాకరించు</string>
   <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">మీరు Firefox యొక్క పాత వెర్షన్ వాడుతున్నారు</string>
+  <!-- TextField Design System Component -->
 </resources>

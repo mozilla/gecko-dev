@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">데이터 다시 보내기</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">취소</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">파일을 업로드하시겠습니까?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">“%1$s”에서 업로드하기 전에 이 사이트를 신뢰하는지 확인하세요.</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">업로드</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">취소</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">로그인 공급자로 %1$s 사용</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> %2$s 계정으로 %1$s에 로그인하면 해당 계정의 &lt;a href="%3$s"&gt;개인정보처리방침&lt;/a&gt; 및 &lt;a href="%4$s"&gt;이용 약관&lt;/a&gt;이 적용됩니다.</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%2$s 계정으로 %1$s에 로그인하면 해당 계정의 <a href=\"%3$s\">개인정보처리방침</a> 및 <a href=\"%4$s\">이용 약관</a>이 적용됩니다.]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">계속</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

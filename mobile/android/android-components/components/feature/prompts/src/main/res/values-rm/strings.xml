@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Utilisar %1$s sco purschider d\'annunzia</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">L\'annunzia tar %1$s cun in conto da %2$s è suttamessa a las &lt;a href="%3$s"&gt;Directivas per la protecziun da datas&lt;/a&gt; e las &lt;a href="%4$s"&gt;Cundiziuns d\'utilisaziun&lt;/a&gt; correspundentas</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[L\'annunzia tar %1$s cun in conto da %2$s è suttamessa a las <a href=\"%3$s\">Directivas per la protecziun da datas</a> e las <a href=\"%4$s\">Cundiziuns d\'utilisaziun</a> correspundentas]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Cuntinuar</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

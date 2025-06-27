@@ -290,7 +290,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">အက်ပ်များမှလင့်များကိုဖွင့်ပါ</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">ပြင်ပ ဒေါင်းလုတ် မန်နေဂျာ</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">ပြင်ပ ဒေါင်းလုတ် မန်နေဂျာ</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">အသိပေးချက်များ</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1262,4 +1262,6 @@
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">ပိတ်ပါ</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

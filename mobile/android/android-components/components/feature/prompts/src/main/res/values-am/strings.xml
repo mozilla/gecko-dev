@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$sን እንደ መለያ አቅራቢ ይጠቀሙ</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> በ%2$s መለያ ወደ %1$s መግባት በ&lt;a href="%3$s"&gt;የግላዊነት ፖሊሲ&lt;/a&gt; እና &lt;a href="%4$s"&gt;የአገልግሎት ውል&lt;/a&gt; ተገዢ ነው</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[በ%2$s መለያ ወደ %1$s መግባት በ<a href=\"%3$s\">የግላዊነት ፖሊሲ</a> እና <a href=\"%4$s\">የአገልግሎት ውል</a> ተገዢ ነው]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">ቀጥል</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

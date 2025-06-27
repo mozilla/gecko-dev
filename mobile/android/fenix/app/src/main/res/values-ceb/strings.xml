@@ -304,4 +304,6 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Dugang pagtuon</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

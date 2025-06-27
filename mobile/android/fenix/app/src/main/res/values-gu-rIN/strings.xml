@@ -800,4 +800,6 @@
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">કાઢી નાંખો</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

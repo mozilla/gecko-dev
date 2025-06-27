@@ -102,5 +102,5 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Gārasun %1$s da’ rūgûñu’ūnj man gāyi’ìt sēsiûn</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> Gāyi’ì sēsiûn riña %1$s ngà ‘ngō %2$s kuendâ nīkò’ rukû &lt;a href="%3$s"&gt;Nuguan’ guendâ gā huì gāchē nunt&lt;/a&gt; nī &lt;a href="%4$s"&gt;Sa da’huît gīni’înt da’ gā’hue gārasunt&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Gāyi’ì sēsiûn riña %1$s ngà ‘ngō %2$s kuendâ nīkò’ rukû <a href=\"%3$s\">Nuguan’ guendâ gā huì gāchē nunt</a> nī <a href=\"%4$s\">Sa da’huît gīni’înt da’ gā’hue gārasunt</a>]]></string>
 </resources>

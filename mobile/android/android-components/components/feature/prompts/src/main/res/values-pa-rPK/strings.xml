@@ -162,7 +162,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s نوں لاگ ان دیݨ والے وجوں ورتوں</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">%1$s وچ %2$s کھاتے نال لاگ ان کیتا جا رہا اے، جو کہ &lt;a href="%3$s"&gt;پردے داری نیتی&lt;/a&gt; تے &lt;a href="%4$s"&gt;سیوا دیاں شرطاں&lt;/a&gt; دے ادھین اے</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s وچ %2$s کھاتے نال لاگ ان کیتا جا رہا اے، جو کہ <a href=\"%3$s\">پردے داری نیتی</a> تے <a href=\"%4$s\">سیوا دیاں شرطاں</a> دے ادھین اے]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">جاری رکھو</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

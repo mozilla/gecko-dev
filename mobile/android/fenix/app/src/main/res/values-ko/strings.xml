@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">도구 모음을 밀어서 탭 전환</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">탭을 전환하려면 왼쪽이나 오른쪽으로 미세요. 새 탭을 열려면 마지막 탭을 왼쪽으로 미세요.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">도구 모음을 왼쪽이나 오른쪽으로 밀어서 탭을 전환합니다.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">카메라 액세스가 필요합니다. Android 설정으로 이동하여 권한을 누른 다음 허용을 누르세요.</string>
@@ -336,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s 새 기능</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s 새 기능</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">데스크톱 사이트로 전환</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -641,7 +637,7 @@
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">더 알아보기</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_title">Mozilla에 기술 및 상호 작용 데이터 보내기</string>
-  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">사용자의 기기와 하드웨어 설정, 그리고 Firefox를 어떻게 사용하는지에 대한 데이터는 모두를 위해 기능, 성능, 안정성을 개선하는데 도움이 됩니다.</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">사용자의 기기와 하드웨어 설정, 그리고 Firefox를 어떻게 사용하는지에 대한 데이터는 모두를 위해 기능, 성능, 안정성을 개선하는 데 도움이 됩니다.</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">더 알아보기</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">완료</string>
@@ -944,7 +940,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">안 함</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">외부 다운로드 관리자</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">외부 다운로드 관리자</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">다른 앱으로 다운로드 관리</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">%s 및 기기에서 삭제</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">다운로드 관리자에서 파일을 삭제하면 기기에서도 삭제됨</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">다운로드</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko 로그 활성화</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1110,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">모모</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">\u0040heyheymomodraws 제작</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">단색</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">그라데이션</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">기타</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1238,7 +1248,7 @@
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">자동으로 충돌 보고서 보내기</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">브라우저의 문제를 진단하고 해결하는데 도움이 됩니다. 보고서에는 개인 정보나 민감한 정보가 포함되어 있을 수 있습니다.</string>
+  <string name="preferences_automatically_send_crashes_description">브라우저의 문제를 진단하고 해결하는 데 도움이 됩니다. 보고서에는 개인 정보나 민감한 정보가 포함되어 있을 수 있습니다.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">충돌 보고서에 대해 더 알아보기</string>
   <!-- Title for studies preferences -->
@@ -1566,7 +1576,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[기기에 <b>%s</b> 파일을 다운로드하는데 충분한 공간이 없습니다.]]></string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[기기에 <b>%s</b> 파일을 다운로드하는 데 충분한 공간이 없습니다.]]></string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1581,8 +1591,6 @@
   <string name="download_delete_item">삭제</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">뒤로</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">위로</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">뒤로 가기 및 검색 닫기</string>
   <!--
@@ -1754,12 +1762,20 @@
   <string name="tab_crash_restore">탭 복원</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s를 다시 시작해야 함</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">조사 중인 충돌과 관련된 보내지 않은 충돌 보고서가 있습니다. 보내면 %1$s를 개선하는 데 도움이 됩니다. 이 알림을 닫으면 이 보고서가 무시됩니다.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">조사 중인 충돌과 관련된 보내지 않은 충돌 보고서(%1$d)가 있습니다. 보내면 %2$s를 개선하는 데 도움이 됩니다. 이 알림을 닫으면 이 보고서가 무시됩니다.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">자동으로 충돌 보고서 제출</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">닫기</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">다시 표시 않음</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">충돌 보고서 보내기</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">더 알아보기</string>
   <!--
     Bookmarks
 
@@ -2376,7 +2392,7 @@
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title_2">교차 사이트 쿠키</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description">광고 네트워크 및 분석 회사가 여러 사이트에서 사용자 탐색 데이터를 컴파일하는데 사용하는 쿠키를 차단합니다.</string>
+  <string name="etp_cookies_description">광고 네트워크 및 분석 회사가 여러 사이트에서 사용자 탐색 데이터를 컴파일하는 데 사용하는 쿠키를 차단합니다.</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_description_2">전체 쿠키 보호는 광고 네트워크와 같은 추적기가 쿠키를 사용하여 여러 사이트에서 사용자를 추적할 수 없도록 쿠키를 사용자가 있는 사이트로 격리합니다.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
@@ -3607,14 +3623,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">부가 기능과 기타 기능을 계속 사용하시려면 3월 14일 전에 업데이트를 하세요.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">내일이면 일부 기능이 작동하지 않습니다.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">숨긴 텍스트 표시</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">텍스트 지우기</string>
   <!--
     Setup checklist feature
 

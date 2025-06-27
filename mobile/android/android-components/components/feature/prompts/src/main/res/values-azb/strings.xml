@@ -47,7 +47,7 @@
   <!-- Text of a confirm button in dialog requesting to open a new window. -->
   <string name="mozac_feature_prompts_allow">ایجازه وئر</string>
   <!-- Text of a negative button in dialog requesting to open a new window. -->
-  <string name="mozac_feature_prompts_deny">رد </string>
+  <string name="mozac_feature_prompts_deny">رد</string>
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
   <string name="mozac_feature_prompt_before_unload_dialog_title">سیز آرخایینسیز؟</string>
   <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -146,7 +146,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s اوتورم آچما ایرائه وئره‌نی کیمی ایشه آلین</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">%2$s حسابی ایله %1$s حسابینا داخیل اولماق اونلارین &lt;a href="%3$s"&gt;گیزلیلیک سیاستینه&lt;/a&gt; و &lt;a href="%4$s"&gt;خیدمت شرطلرینه باخیر. &lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%2$s حسابی ایله %1$s حسابینا داخیل اولماق اونلارین <a href=\"%3$s\">گیزلیلیک سیاستینه</a> و <a href=\"%4$s\">خیدمت شرطلرینه باخیر. </a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">ایدامه وئر</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

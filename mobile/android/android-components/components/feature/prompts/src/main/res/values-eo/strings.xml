@@ -166,7 +166,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Uzi %1$s kiel provizanton de legitimilo</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Komenco de seanco en %1$s per konto de %2$s estas regata de ilia &lt;a href="%3$s"&gt;politiko pri privateco&lt;/a&gt; kaj &lt;a href="%4$s"&gt;kondiĉoj de uzo&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Komenco de seanco en %1$s per konto de %2$s estas regata de ilia <a href=\"%3$s\">politiko pri privateco</a> kaj <a href=\"%4$s\">kondiĉoj de uzo</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Daŭrigi</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

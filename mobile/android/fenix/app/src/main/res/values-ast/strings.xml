@@ -436,7 +436,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Abrir los enllaces nes aplicaciones</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Xestor de descargues esternu</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Xestor de descargues esternu</string>
   <!-- Preference for extensions -->
   <string name="preferences_extensions">Estensiones</string>
   <!-- Preference for notifications -->
@@ -1576,4 +1576,5 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Anueva enantes del 14 de marzu pa siguir usando los complementos y otres funciones.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Dalgunes funciones van dexar de funcionar mañana.</string>
+  <!-- TextField Design System Component -->
 </resources>

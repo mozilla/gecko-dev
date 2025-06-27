@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Torne invie i dâts</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Anule</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Cjariâ in rêt i files?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Siguriti che il sît al sedi atendibil prime di cjariâ di “%1$s”.</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Cjame</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Anule</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Dopre %1$s come furnidôr di acès</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">L’acès a %1$s cuntun account %2$s al sotstà ae &lt;a href="%3$s"&gt;Informative su la riservatece&lt;/a&gt; e ai &lt;a href="%4$s"&gt;Tiermins dal servizi&lt;/a&gt; di chest ultin</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[L’acès a %1$s cuntun account %2$s al sotstà ae <a href=\"%3$s\">Informative su la riservatece</a> e ai <a href=\"%4$s\">Tiermins dal servizi</a> di chest ultin]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Continue</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

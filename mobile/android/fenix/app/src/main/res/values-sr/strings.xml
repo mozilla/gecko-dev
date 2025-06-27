@@ -109,14 +109,6 @@
   <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">На сајту, ова трака се увлачи док скролујете према доле за додатни простор за претраживање.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Додирните и држите стрелице да пребацујете између страница у историји ове картице.</string>
-  <!--
-    Address bar swipe "contextual feature recommendation" (CFR)
-
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
-  -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Превуците траку са алаткама да промените картице</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Превуците налево или надесно да пребаците. Превуците лево на задњој картици да отворите нову.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Потребан је приступ камери. Отворите Android подешавања, одаберите дозволе и омогућите приступ.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -324,7 +316,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Ново у %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Ново у %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Пребаци на сајт радне површине</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -770,7 +762,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Никад</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Спољни управник преузимања</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Спољни управник преузимања</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Омогућите Gecko евидентирање</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -2892,4 +2884,5 @@
     Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element.
   -->
   <string name="beta_feature">BETA</string>
+  <!-- TextField Design System Component -->
 </resources>

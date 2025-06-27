@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Sveip over verktøylinjen for å bytte fane</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Sveip til venstre eller høyre for å bytte. Sveip til venstre på den siste fanen for å åpne en ny fane.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Sveip verktøylinjen til venstre eller høyre for å bytte mellom faner.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillinger, trykk på tillatelser, og trykk på tillat.</string>
@@ -336,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Nytt i %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Nytt i %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Bytt til datamaskinversjon</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -944,7 +940,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Aldri</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Ekstern nedlastingsbehandler</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Ekstern nedlastingsbehandler</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Behandle nedlastinger med en annen app</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Slett fra %s og enhet</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Hvis du fjerner filer fra nedlastingsbehandleren, fjernes de også fra enheten din</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Nedlastinger</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Slå på Gecko-logger</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1110,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Laget av @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Ensfarget</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Fargeoverganger</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Annen</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1581,8 +1591,6 @@
   <string name="download_delete_item">Slett</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Naviger tilbake</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Naviger opp</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Lukk søk og gå tilbake</string>
   <!--
@@ -1754,12 +1762,20 @@
   <string name="tab_crash_restore">Gjenopprett fane</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s måtte starte på nytt</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Du har en usendt krasjrapport relatert til krasj som blir undersøkt. Å sende den vil hjelpe oss med å forbedre %1$s. Hvis du lukker dette varselet, ignoreres denne rapporten.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Du har usendte krasjrapporter (%1$d) relatert til krasj som blir undersøkt. Å sende dem vil hjelpe oss med å forbedre %2$s. Hvis du lukker dette varselet, ignoreres disse rapportene.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Send inn krasjrapporter automatisk</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Lukk</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Vis aldri igjen</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Send krasjrapport</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Les mer</string>
   <!--
     Bookmarks
 
@@ -3607,14 +3623,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Oppdater før 14. mars for å fortsette å bruke utvidelser og andre funksjoner.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Noen funksjoner slutter å fungere i morgen.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Vis skjult tekst</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Fjern tekst</string>
   <!--
     Setup checklist feature
 
@@ -3744,7 +3754,7 @@
   <!-- Label for a button positively rating the user's experience with the app -->
   <string name="review_prompt_positive_button">Den er flott!</string>
   <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="review_prompt_rate_header">Takk for at du liker %1$s. Har du et øyeblikk til dele din begeistring med en vurdering?</string>
+  <string name="review_prompt_rate_header">Takk for at du liker %1$s. Har du et øyeblikk til å dele din begeistring med en vurdering?</string>
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Vurder %1$s i Play butikk</string>
   <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->

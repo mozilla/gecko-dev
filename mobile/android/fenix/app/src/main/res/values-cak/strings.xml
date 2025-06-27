@@ -267,7 +267,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">K\'ak\'a\' pa %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">K\'ak\'a\' pa %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Tik\'ex rik\'in ruxaq kematz\'ib\'</string>
   <!-- Browser menu label that navigates to the page tools sub-menu -->
@@ -599,7 +599,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Majub\'ey</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Runuk\'samajel chi rij qasanïk</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Runuk\'samajel chi rij qasanïk</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Titzij taq rutz\'ib\'axik Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -2019,4 +2019,6 @@
   <!-- Current state for elements that can be expanded if interacting with them. Talkback will dictate this after a state change. -->
   <string name="a11y_state_label_expanded">nimirisan</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

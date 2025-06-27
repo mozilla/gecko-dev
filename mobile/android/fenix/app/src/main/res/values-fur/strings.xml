@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Scor la sbare dai struments par cambiâ schede</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Scor viers çampe o drete par cambiâ. Scor a çampe su la ultime schede par vierzint une gnove.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Scor la sbare dai struments a çampe o a diestre par cambiâ schede.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Al covente l’acès ae fotocjamare. Va tes impostazions di Android, va te schede dai permès e tocje permet.</string>
@@ -322,6 +318,8 @@
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sincronize passwords, schedis e tant altri</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">Sincronize segnelibris, passwords, schedis e altre robe</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">Sincronize passwords, segnelibris e altri</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Torne jentre par sincronizâ</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -334,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">Novitâts in %1$s</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">Novitâts in %1$s</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Passe al sît par scritori</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -942,7 +940,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Mai</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Gjestôr esterni dai discjariaments</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Gjestôr esterni dai discjariaments</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Gjestìs i files discjariâts cuntune altre aplicazion</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Elimine di %s e dal dispositîf</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">La rimozion di files dal to gjestôr di files discjariâts e compuarte ancje la rimozion dai files dal to dispositîf</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Discjariâts</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Ative i regjistris Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -971,6 +977,20 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">Se tu ti fidis di cheste estension, tu puedis dâi il permès su ducj i sîts web.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Cheste estension no domande nissun permès.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Il svilupadôr al dîs che cheste estension e tire sù: %1$s.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">Il svilupadôr al dîs che cheste estension e tire sù: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">Il svilupadôr al dîs che cheste estension no à bisugne di tirâ sù dâts.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">Permès obligatoris:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">Permès facoltatîfs:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">Racuelte dâts obligatorie:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">Racuelte dâts facoltative:</string>
   <!--
     Add-on Preferences
 
@@ -1094,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Creade di @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Colôrs solits</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Gradients</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Altri</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1521,6 +1547,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Elements eliminâts: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Discjame il file cun:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Eliminât “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1563,8 +1591,6 @@
   <string name="download_delete_item">Elimine</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Torne indaûr</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navighe in sù</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Torne indaûr e siere la ricercje</string>
   <!--
@@ -1736,12 +1762,20 @@
   <string name="tab_crash_restore">Ripristine schede</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s al à scugnût tornâ a inviâsi</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Tu âs une segnalazion di colàs che no je stade mandade e che e je simile a altris colàs che o sin daûr a studiâ. Se tu le inviis tu nus judaressis a miorâ %1$s. Se tu sieris cheste notifiche la segnalazion e vignarà ignorade.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Tu âs (%1$d) segnalazions di colàs che no son stadis inviadis e che a son similis a altris colàs che o sin daûr a studiâ. Se tu lis mandis tu nus judaressis a miorâ %2$s. Se tu sieris cheste notifiche lis segnalazions a vignaran ignoradis.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Mande in automatic i rapuarts sui colàs</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Siere</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">No sta mostrâ plui</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Invie segnalazion</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Plui informazions</string>
   <!--
     Bookmarks
 
@@ -2358,7 +2392,7 @@
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title_2">Cookies inter-sît</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description">Al bloche i cookies che lis rêts publicitariis e lis compagniis di analisi a doprin par tirâ dongje i dâts di navigazion cuant che tu passis di un sît a chel altri.</string>
+  <string name="etp_cookies_description">Al bloche i cookies che lis rêts publicitariis e lis compagniis di analisi a doprin par tirâ sù i dâts di navigazion cuant che tu passis di un sît a chel altri.</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_description_2">La Protezion totâl dai cookies e isole il sît che tu stâs visitant, cussì che lis spiis come chês des rêts publicitariis no puedin doprâju par stâti daûr di un sît a chel altri.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
@@ -3589,14 +3623,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Inzorne prime dai 14 di Març par continuâ a doprâ i components adizionâi e altris funzionalitâts.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Cun doman cualchi funzionalitât no funzionarà plui.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Mostre test platât</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Nete test</string>
   <!--
     Setup checklist feature
 

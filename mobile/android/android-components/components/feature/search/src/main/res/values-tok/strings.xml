@@ -10,4 +10,6 @@
   <string name="search_widget_text_short">o alasa</string>
   <!-- Text preview for larger sized widgets. -->
   <string name="search_widget_text_long">o alasa lon ma ilo</string>
+  <!-- Content description (not visible, for screen readers etc.): Voice search. -->
+  <string name="search_widget_voice">o alasa kepeken kalama uta</string>
 </resources>

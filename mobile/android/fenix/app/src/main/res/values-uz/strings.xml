@@ -367,7 +367,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Havolalarni ilovalarda ochish</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Tashqi yuklab olish menejeri</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Tashqi yuklab olish menejeri</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">Bildirishnomalar</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1645,4 +1645,6 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article" moz:removedIn="141" tools:ignore="UnusedResources">maqolani oʻqish</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

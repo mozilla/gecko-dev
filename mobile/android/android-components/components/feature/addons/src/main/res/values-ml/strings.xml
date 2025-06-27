@@ -118,6 +118,18 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">വെബ്ബിട പ്രവൎത്തനം</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">വെബ്ബിടയുള്ളടക്കം</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">അധികാരിക്കൽ വിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">അടയാളക്കുറിപ്പുകളെ പറ്റിയുള്ള വിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">തിരച്ചിൽ നാൾവഴി വിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">സാമ്പതിക വിവരവും പണമടക്കൽ വിവരവും വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">ആരോഗ്യ വിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">ഇടവിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">പതിപ്പു്</string>
   <!-- The author of an add-on. -->

@@ -112,4 +112,6 @@
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Mag save</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

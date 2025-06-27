@@ -224,7 +224,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">کردنەوەی بەستەر لە بەرنامەکان</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">بەڕێوەبردنی داگرتنی دەرەکی</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">بەڕێوەبردنی داگرتنی دەرەکی</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">ئاگانامەکان</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1102,4 +1102,6 @@
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">داخستن</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

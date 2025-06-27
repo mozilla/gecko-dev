@@ -112,12 +112,8 @@
   <!--
     Address bar swipe "contextual feature recommendation" (CFR)
 
-    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
   -->
-  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Sekme değiştirmek için araç çubuğunu kaydırın</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
-  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Geçiş yapmak için sola veya sağa kaydırın. Yeni bir sekme açmak için son sekmenizde sola kaydırın.</string>
-  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Sekme değiştirmek için araç çubuğunu sola veya sağa sürükleyin.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Kamera erişimi gerekiyor. Android ayarlarına gidin, izinlere girin ve izin verin.</string>
@@ -336,7 +332,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s uygulamasındaki yenilikler</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s sürüm notları</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">Masaüstü sitesine geç</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -944,7 +940,15 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">Asla</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Harici indirme yöneticisi</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Harici indirme yöneticisi</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">İndirmeleri başka bir uygulamadan yönet</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">%s uygulamasından ve cihazdan sil</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">İndirme yöneticinizden sildiğiniz dosyalar cihazınızdan da silinir</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">İndirilenler</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko günlük kaydını etkinleştir</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1110,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Tasarım: @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Düz renkler</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Renk geçişleri</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Diğer</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1448,7 +1458,7 @@
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_private_tab">Gizli sekme ekle</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
-  <string name="tab_drawer_fab_content">Gizli</string>
+  <string name="tab_drawer_fab_content">GİZLİ</string>
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
   <string name="tab_drawer_fab_sync">EŞİTLE</string>
   <!-- Text shown in the menu for sharing all tabs -->
@@ -1581,8 +1591,6 @@
   <string name="download_delete_item">Sil</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Geri git</string>
-  <!-- Content description for the toolbar "Navigate up" button -->
-  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Yukarı git</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Geri dön ve aramayı kapat</string>
   <!--
@@ -1754,12 +1762,20 @@
   <string name="tab_crash_restore">Sekmeyi geri yükle</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s yeniden başlamak zorunda kaldı</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Araştırdığımız çökmelerle ilgili gönderilmemiş bir çökme raporunuz var. Raporunuzu göndererek %1$s tarayıcısını geliştirmemize yardımcı olabilirsiniz. Bu bildirimi kapatırsanız bu rapor görmezden gelinecektir.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Araştırdığımız çökmelerle ilgili gönderilmemiş %1$d çökme raporunuz var. Raporunuzu göndererek %2$s tarayıcısını geliştirmemize yardımcı olabilirsiniz. Bu bildirimi kapatırsanız bu rapor görmezden gelinecektir.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Çökme raporlarını otomatik olarak gönder</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Kapat</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Bir daha gösterme</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Çökme raporu gönder</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Daha fazla bilgi al</string>
   <!--
     Bookmarks
 
@@ -2436,7 +2452,7 @@
   -->
   <string name="preference_doh_title">HTTPS üzerinden DNS</string>
   <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
-  <string name="preference_doh_summary">HTTPS Üzerinden Alan Adı Sistemi (DNS), alan adı isteklerinizi şifreli bir bağlantı üzerinden göndererek güvenli bir DNS sağlar. Böylece hangi web sitelerine eriştiğinizi başkalarının görmesi zorlaştır. %1$s</string>
+  <string name="preference_doh_summary">HTTPS Üzerinden Alan Adı Sistemi (DNS), alan adı isteklerinizi şifreli bir bağlantı üzerinden göndererek güvenli bir DNS sağlar. Böylece hangi web sitelerine eriştiğinizi başkalarının görmesi zorlaşır. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Daha fazla bilgi al</string>
   <!-- Content description for the "Exceptions" button -->
@@ -2784,7 +2800,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">Arama için kullanılacak URL</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Sorguyu “%s” ile değiştirin. Örnek:\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Sorgunun yerine “%s” yazın. Örnek:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Özel arama motoru ayrıntıları</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -3607,14 +3623,8 @@
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Eklentileri ve diğer özellikleri kullanmaya devam edebilmek için 14 Mart’tan önce tarayıcınızı güncelleyin.</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Bazı özellikler yarından itibaren çalışmayacak.</string>
-  <!--
-    TextField Design System Component
+  <!-- TextField Design System Component -->
 
-    The default content description for the eye trailing icon button in TextField
-  -->
-  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Gizli metni göster</string>
-  <!-- The default content description for the cross trailing icon button in TextField -->
-  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">Metni temizle</string>
   <!--
     Setup checklist feature
 

@@ -84,12 +84,24 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">اجازه دادن به اسکریپت‌های شخص ثالث تایید نشده برای دسترسی به داده‌های شما</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">اسکریپت‌های تایید نشده می‌توانند خطرات امنیتی و حفظ حریم خصوصی ایجاد کنند. فقط اسکریپت‌هایی را از افزونه‌ها یا منابعی که به آن‌ها اعتماد دارید، اجرا کنید.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">این افزونه به گفته توسعه‌دهنده، داده‌های زیر را جمع‌آوری می‌کند: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">این افزونه به گفته توسعه‌دهنده، داده‌های زیر را جمع‌آوری می‌کند: %1$s</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">توسعه‌دهنده اعلام کرده است که این افزونه نیازی به جمع‌آوری داده ندارد.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">گسترش ابزارتوسعه‌دهندگان برای دسترسی به داده‌های شما بر روی زبانه‌های باز</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">نمایش تمام وبگاه‌ها</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">نمایش تعداد کمتری از وبگاه‌ها</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">اطلاعات احراز هویت</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">نشانک‌ها</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">اطلاعات مالی و پرداخت</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">نگارش</string>
   <!-- The author of an add-on. -->

@@ -948,4 +948,6 @@
   <!-- Content description radio buttons with a link to more information -->
   <string name="radio_preference_info_content_description">ಹೆಚ್ಚಿನ ವಿವರಗಳಿಗಾಗಿ ಕ್ಲಿಕ್ ಮಾಡಿ</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

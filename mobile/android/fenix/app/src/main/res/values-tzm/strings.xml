@@ -354,4 +354,6 @@
   <!-- Content description for close button in collection placeholder. -->
   <string name="remove_home_collection_placeholder_content_description">Kkes</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

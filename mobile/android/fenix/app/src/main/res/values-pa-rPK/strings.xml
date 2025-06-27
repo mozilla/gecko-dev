@@ -290,7 +290,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s وچ نواں</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s وچ نواں</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">ڈیسک‌ٹاپ سائیٹ لئی بدلو</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -670,7 +670,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">کدے نہیں</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">باہری ڈاؤن‌لوڈ مینیجر</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">باہری ڈاؤن‌لوڈ مینیجر</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">گیکو لاگاں دا چالو کرو</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1739,4 +1739,6 @@
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">سیٹنگاں نوں جاؤ</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

@@ -287,7 +287,7 @@
     Browser menu label that navigates to the SUMO page for the Firefox for Android release notes.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_new_in_firefox">%1$s අළුත් දෑ</string>
+  <string name="browser_menu_new_in_firefox" moz:removedIn="141" tools:ignore="UnusedResources">%1$s අළුත් දෑ</string>
   <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
   <string name="browser_menu_switch_to_desktop_site" moz:removedIn="141" tools:ignore="UnusedResources">වැඩතල අඩවිය</string>
   <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
@@ -733,7 +733,7 @@
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">කවදාවත්</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">බාහිර බාගැනීම් කළමනාකරු</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">බාහිර බාගැනීම් කළමනාකරු</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">ගෙක්කෝ සටහන් සබල කරන්න</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -2603,4 +2603,5 @@
     Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element.
   -->
   <string name="beta_feature">බීටා</string>
+  <!-- TextField Design System Component -->
 </resources>

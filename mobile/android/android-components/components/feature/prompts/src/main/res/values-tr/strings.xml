@@ -123,6 +123,14 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Verileri yeniden gönder</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">İptal</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Dosyalar gönderilsin mi?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">“%1$s” klasöründeki dosyalarınızı karşıya yüklemeden önce bu siteye güvendiğinizden emin olun.</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Karşıya yükle</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">İptal</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +174,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Oturum açma sağlayıcısı olarak %1$s kullan</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">%2$s hesabıyla %1$s üzerinde oturum açtığınızda bu sağlayıcının &lt;a href="%3$s"&gt;Gizlilik Politikası&lt;/a&gt; ve &lt;a href="%4$s"&gt;Hizmet Koşulları&lt;/a&gt;’na tabi olursunuz</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%2$s hesabıyla %1$s üzerinde oturum açtığınızda bu sağlayıcının <a href=\"%3$s\">Gizlilik Politikası</a> ve <a href=\"%4$s\">Hizmet Koşulları</a>’na tabi olursunuz]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">İleri</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

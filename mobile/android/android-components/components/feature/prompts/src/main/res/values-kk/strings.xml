@@ -123,6 +123,12 @@
   <string name="mozac_feature_prompt_repost_positive_button_text">Деректерді қайта жіберу</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Бас тарту</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Файлдарды жүктеп салу керек пе?</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Жүктеп салу</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Бас тарту</string>
   <!--
     Credit Card Autofill
 
@@ -166,7 +172,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Жүйеге кіру провайдері ретінде %1$s қолдану</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"> %2$s тіркелгісімен %1$s ішіне кіру олардың &lt;a href="%3$s"&gt;Жекелік саясаты&lt;/a&gt; және &lt;a href="%4$s"&gt;Қолдану шарттарымен&lt;/a&gt; реттеледі</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%2$s тіркелгісімен %1$s ішіне кіру олардың <a href=\"%3$s\">Жекелік саясаты</a> және <a href=\"%4$s\">Қолдану шарттарымен</a> реттеледі]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Жалғастыру</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -764,4 +764,6 @@
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Scrios</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>

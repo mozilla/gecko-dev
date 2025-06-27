@@ -303,7 +303,7 @@
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Ubrir vinclos en aplicacions</string>
   <!-- Preference for open download with an external download manager app -->
-  <string name="preferences_external_download_manager">Chestor de descargas externo</string>
+  <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Chestor de descargas externo</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">Notificacions</string>
   <!-- Button caption to confirm the add-on collection configuration -->
@@ -1232,4 +1232,6 @@
   <!-- Content description for close button in collection placeholder. -->
   <string name="remove_home_collection_placeholder_content_description">Eliminar</string>
   <!-- Translations feature -->
+
+  <!-- TextField Design System Component -->
 </resources>
