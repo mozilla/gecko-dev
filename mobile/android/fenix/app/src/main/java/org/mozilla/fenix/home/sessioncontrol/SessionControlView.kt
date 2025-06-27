@@ -100,7 +100,6 @@ private fun showCollections(
     items: MutableList<AdapterItem>,
 ) {
     // If the collection is expanded, we want to add all of its tabs beneath it in the adapter
-    items.add(AdapterItem.CollectionHeader)
     collections.map {
         AdapterItem.CollectionItem(it, expandedCollections.contains(it.id))
     }.forEach {
