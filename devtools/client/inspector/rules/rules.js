@@ -1672,7 +1672,7 @@ CssRuleView.prototype = {
       ? styleSheetSource === this.searchData.strictSearchValue
       : styleSheetSource.includes(this.searchValue);
 
-    if (isStyleSheetHighlighted && rule.editor.source) {
+    if (isStyleSheetHighlighted) {
       rule.editor.source.classList.add("ruleview-highlight");
     }
 
