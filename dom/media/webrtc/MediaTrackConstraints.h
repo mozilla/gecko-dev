@@ -28,6 +28,9 @@ class NormalizedConstraintSet {
     virtual ~BaseRange() = default;
 
    public:
+    bool operator==(const BaseRange& aOther) const noexcept {
+      return strcmp(mName, aOther.mName) == 0;
+    }
     virtual bool Merge(const BaseRange& aOther) = 0;
     virtual void FinalizeMerge() = 0;
 
@@ -44,6 +47,11 @@ class NormalizedConstraintSet {
     Range(const char* aName, ValueType aMin, ValueType aMax)
         : BaseRange(aName), mMin(aMin), mMax(aMax), mMergeDenominator(0) {}
     virtual ~Range() = default;
+
+    bool operator==(const Range& aOther) const noexcept {
+      return BaseRange::operator==(aOther) && mMin == aOther.mMin &&
+             mMax == aOther.mMax && mIdeal == aOther.mIdeal;
+    }
 
     template <class ConstrainRange>
     void SetFrom(const ConstrainRange& aOther);
@@ -166,6 +174,11 @@ class NormalizedConstraintSet {
 
     ~StringRange() = default;
 
+    bool operator==(const StringRange& aOther) const noexcept {
+      return BaseRange::operator==(aOther) && mExact == aOther.mExact &&
+             mIdeal == aOther.mIdeal;
+    }
+
     void SetFrom(const dom::ConstrainDOMStringParameters& aOther);
     ValueType Clamp(const ValueType& n) const;
     ValueType Get(const ValueType& defaultValue) const {
@@ -221,6 +234,24 @@ class NormalizedConstraintSet {
                           advanced),
         mAutoGainControl("autoGainControl", aOther.mAutoGainControl, advanced),
         mChannelCount("channelCount", aOther.mChannelCount, advanced) {}
+
+  bool operator==(const NormalizedConstraintSet& aOther) const noexcept {
+    return mWidth == aOther.mWidth && mHeight == aOther.mHeight &&
+           mFrameRate == aOther.mFrameRate &&
+           mFacingMode == aOther.mFacingMode &&
+           mResizeMode == aOther.mResizeMode &&
+           mMediaSource == aOther.mMediaSource &&
+           mBrowserWindow == aOther.mBrowserWindow &&
+           mDeviceId == aOther.mDeviceId && mGroupId == aOther.mGroupId &&
+           mViewportOffsetX == aOther.mViewportOffsetX &&
+           mViewportOffsetY == aOther.mViewportOffsetY &&
+           mViewportWidth == aOther.mViewportWidth &&
+           mViewportHeight == aOther.mViewportHeight &&
+           mEchoCancellation == aOther.mEchoCancellation &&
+           mNoiseSuppression == aOther.mNoiseSuppression &&
+           mAutoGainControl == aOther.mAutoGainControl &&
+           mChannelCount == aOther.mChannelCount;
+  }
 };
 
 template <>
@@ -233,6 +264,15 @@ struct NormalizedConstraints : public NormalizedConstraintSet {
   NormalizedConstraints() = default;
   explicit NormalizedConstraints(const dom::MediaTrackConstraints& aOther);
 
+  bool operator==(const NormalizedConstraints& aOther) const noexcept {
+    return NormalizedConstraintSet::operator==(aOther) &&
+           mAdvanced == aOther.mAdvanced;
+  }
+
+  bool operator!=(const NormalizedConstraints& aOther) const noexcept {
+    return !(*this == aOther);
+  }
+
   std::vector<NormalizedConstraintSet> mAdvanced;
 };
 
@@ -242,6 +282,14 @@ struct FlattenedConstraints : public NormalizedConstraintSet {
   explicit FlattenedConstraints(const NormalizedConstraints& aOther);
   explicit FlattenedConstraints(const dom::MediaTrackConstraints& aOther)
       : FlattenedConstraints(NormalizedConstraints(aOther)) {}
+
+  bool operator==(const FlattenedConstraints& aOther) const noexcept {
+    return NormalizedConstraintSet::operator==(aOther);
+  }
+
+  bool operator!=(const FlattenedConstraints& aOther) const noexcept {
+    return !(*this == aOther);
+  }
 };
 
 // A helper class for MediaEngineSources
