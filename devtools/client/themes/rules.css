@@ -386,6 +386,16 @@
   text-decoration: none;
 }
 
+/* Display a lock before the selector for uneditable rules */
+.ruleview-rule:is(.uneditable, [uneditable="true"]) .ruleview-selectors-container::before {
+  content: url(images/lock.svg) / "read only";
+  display: inline-block;
+  translate: 0 1px;
+  margin-inline-end: 2px;
+  -moz-context-properties: fill;
+  fill: var(--theme-icon-dimmed-color);
+}
+
 .ruleview-overridden-rule-filter {
   display: inline-block;
   width: 14px;
