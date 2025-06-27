@@ -197,7 +197,9 @@ TEST(FilenameEvalParser, UserChromeJS)
       "chrome://tabgroups-resource/content/modules/utils/Overlays.jsm"_ns,
       "resource://usl-ucjs/UserScriptLoaderParent.jsm"_ns,
       "resource://cpmanager-legacy/CPManager.jsm"_ns,
-      "resource://sfm-ucjs/SaveFolderModokiParent.mjs"_ns};
+      "resource://sfm-ucjs/SaveFolderModokiParent.mjs"_ns,
+      "resource://pwa/utils/systemIntegration.sys.mjs"_ns,
+  };
 
   for (auto& name : files) {
     FilenameTypeAndDetails ret =

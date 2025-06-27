@@ -357,7 +357,8 @@ FilenameTypeAndDetails nsContentSecurityUtils::FilenameToFilenameType(
   if (StringBeginsWith(fileName, "resource://"_ns)) {
     if (StringBeginsWith(fileName, "resource://usl-ucjs/"_ns) ||
         StringBeginsWith(fileName, "resource://sfm-ucjs/"_ns) ||
-        StringBeginsWith(fileName, "resource://cpmanager-legacy/"_ns)) {
+        StringBeginsWith(fileName, "resource://cpmanager-legacy/"_ns) ||
+        StringBeginsWith(fileName, "resource://pwa/utils/"_ns)) {
       return FilenameTypeAndDetails(kSuspectedUserChromeJS,
                                     Some(StripQueryRef(fileName)));
     }
