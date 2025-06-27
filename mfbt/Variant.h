@@ -372,6 +372,13 @@ struct VariantIndex {
  * its constructor and destructor run on creation and deletion
  * respectively. This is the problem that `mozilla::Variant` solves.
  *
+ * Since C++17, std::variant exists. `mozilla::Variant` differs conceptually
+ * from it by (a.) having a richer `.match` API (compared to `std::visit`) and
+ * (b.) having a different assignment semantic. Assigning to an `std::variant`
+ * assigns to the underlying value, while assigning to a `mozilla::Variant`
+ * deletes the previous value then move-constructs a new value. This makes it
+ * possible to store *and* update const values.
+ *
  * ## Usage
  *
  * A `mozilla::Variant` instance is constructed (via move or copy) from one of
