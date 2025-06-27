@@ -418,7 +418,7 @@ script.preloader:
     description:
       How many times we ended up recompiling a script from the script preloader
       on the main thread.
-    expires: "100"
+    expires: 100
     keyed: false
     kind: uint
     notification_emails:
@@ -452,7 +452,7 @@ script.preloader:
     notification_emails:
       - dothayer@mozilla.com
       - plawless@mozilla.com
-    expires: "100"
+    expires: 100
 ```
 
 **GIFFT:** This type of collection is mirrorable back to Firefox Telemetry via the

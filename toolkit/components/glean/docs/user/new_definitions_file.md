@@ -101,10 +101,10 @@ This is to allow metrics to be valid over the entire life of an application vers
 whether that is the 4-6 weeks of usual releases or the 13 months of ESR releases.
 
 There are three values accepted in the `expires` field of `metrics.yaml`s for FOG:
-* `"X"` (where `X` is the major portion of a Firefox Desktop version) -
+* `X` (where `X` is the major portion of a Firefox Desktop version) -
   The metric will be expired when the `MOZ_APP_VERSION` reaches or exceeds `X`.
   (For example, when the Firefox Version is `88.0a1`,
-  all metrics marked with `expires: "88"` or lower will be expired.)
+  all metrics marked with `expires: 88` or lower will be expired.)
   This is the recommended form for all new metrics to ensure they stop recording when they stop being relevant.
 * `expired` - For marking a metric as manually expired.
   Not usually used, but sometimes helpful for internal tests.

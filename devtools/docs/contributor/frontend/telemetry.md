@@ -97,7 +97,7 @@ devtools.copy.unique.css.selector:
       - 1323700
       - 1352115
     description: Number of times the DevTools copy unique CSS selector has been used.
-    expires: "57"
+    expires: 57
     kind: uint
     notification_emails:
       - dev-developer-tools@lists.mozilla.org
