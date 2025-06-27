@@ -1,0 +1,110 @@
+<!doctype html>
+
+<!-- Render a triangle to a storage texture using a compute shader. The
+     triangle should be displayed. Regression test for
+     https://bugzilla.mozilla.org/show_bug.cgi?id=1972921. -->
+
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <canvas width=512 height=512></canvas>
+  </body>
+  <script>
+    (async function() {
+        var code = `
+        @group(0) @binding(0) var output: texture_storage_2d<{PRESENTATION_FORMAT}, write>;
+
+        @compute @workgroup_size(16, 16)
+        fn main(
+          @builtin(global_invocation_id) invocation_id: vec3u
+        ) {
+          let x = i32(invocation_id.x);
+          let y = i32(invocation_id.y);
+          if (y >= 128 && y < 384 && 2 * x >= 640 - y && 2 * x < 384 + y) {
+            textureStore(output, invocation_id.xy, vec4f(1, 0, 0, 1));
+          } else {
+            textureStore(output, invocation_id.xy, vec4f(0, 0, 0, 1));
+          }
+        }
+        `;
+
+        const canvas = document.querySelector('canvas');
+        const adapter = await navigator.gpu?.requestAdapter({ });
+
+        const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+        if (presentationFormat != 'rgba8unorm' && presentationFormat != 'bgra8unorm') {
+          throw new Error('Unsupported presentation format: ' + presentationFormat);
+        }
+        const deviceDescriptor = {};
+        if (presentationFormat == 'bgra8unorm') {
+          if (!adapter.features.has('bgra8unorm-storage')) {
+            console.warn('Using rgba8unorm because bgra8unorm-storage feature is not available');
+            presentationFormat = 'rgba8unorm';
+          } else {
+            deviceDescriptor.requiredFeatures = ['bgra8unorm-storage'];
+          }
+        }
+
+        const device = await adapter?.requestDevice(deviceDescriptor);
+        const context = canvas.getContext('webgpu');
+        const devicePixelRatio = window.devicePixelRatio;
+        canvas.width = canvas.clientWidth * devicePixelRatio;
+        canvas.height = canvas.clientHeight * devicePixelRatio;
+        context.configure({
+          device,
+          format: presentationFormat,
+          usage: GPUTextureUsage.STORAGE_BINDING,
+        });
+
+        const canvasView = context.getCurrentTexture().createView();
+        const bindGroupLayout = device.createBindGroupLayout({
+          entries: [
+            {
+              binding: 0,
+              visibility: GPUShaderStage.COMPUTE,
+              storageTexture: {
+                access: 'write-only',
+                format: presentationFormat,
+                viewDimension: '2d',
+              },
+            },
+          ],
+        });
+        const bindGroup = device.createBindGroup({
+          layout: bindGroupLayout,
+          entries: [
+            {
+              binding: 0,
+              resource: canvasView,
+            },
+          ],
+        });
+
+        const pipelineLayout = device.createPipelineLayout({
+          bindGroupLayouts: [bindGroupLayout],
+        });
+        const pipeline = device.createComputePipeline({
+          layout: pipelineLayout,
+          compute: {
+            module: device.createShaderModule({
+              code: code.replace('{PRESENTATION_FORMAT}', presentationFormat),
+            }),
+          },
+        });
+
+        const commandEncoder = device.createCommandEncoder();
+        const passEncoder = commandEncoder.beginComputePass();
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.dispatchWorkgroups(32, 32);
+        passEncoder.end();
+        device.queue.submit([commandEncoder.finish()]);
+        await device.queue.onSubmittedWorkDone();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => document.documentElement.className = "");
+        });
+    })();
+  </script>
+</html>

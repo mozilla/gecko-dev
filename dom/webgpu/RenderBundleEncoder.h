@@ -7,6 +7,7 @@
 #define GPU_RenderBundleEncoder_H_
 
 #include "mozilla/dom/TypedArray.h"
+#include "CanvasContext.h"
 #include "ObjectModel.h"
 
 namespace mozilla::webgpu {
@@ -40,6 +41,10 @@ class RenderBundleEncoder final : public ObjectBase, public ChildOf<Device> {
   nsTArray<RefPtr<const BindGroup>> mUsedBindGroups;
   nsTArray<RefPtr<const Buffer>> mUsedBuffers;
   nsTArray<RefPtr<const RenderPipeline>> mUsedPipelines;
+
+  // The canvas contexts of any canvas textures used in bind groups of this
+  // render bundle.
+  CanvasContextArray mUsedCanvasContexts;
 
   // programmable pass encoder
  private:
@@ -78,6 +83,11 @@ class RenderBundleEncoder final : public ObjectBase, public ChildOf<Device> {
   // self
   already_AddRefed<RenderBundle> Finish(
       const dom::GPURenderBundleDescriptor& aDesc);
+
+  // helpers not defined by WebGPU
+  mozilla::Span<const WeakPtr<CanvasContext>> GetCanvasContexts() const {
+    return mUsedCanvasContexts;
+  }
 };
 
 }  // namespace mozilla::webgpu

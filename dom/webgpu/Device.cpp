@@ -441,6 +441,7 @@ already_AddRefed<PipelineLayout> Device::CreatePipelineLayout(
 already_AddRefed<BindGroup> Device::CreateBindGroup(
     const dom::GPUBindGroupDescriptor& aDesc) {
   nsTArray<ffi::WGPUBindGroupEntry> entries(aDesc.mEntries.Length());
+  CanvasContextArray canvasContexts;
   for (const auto& entry : aDesc.mEntries) {
     ffi::WGPUBindGroupEntry e = {};
     e.binding = entry.mBinding;
@@ -454,7 +455,12 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
       e.offset = bufBinding.mOffset;
       e.size = bufBinding.mSize.WasPassed() ? bufBinding.mSize.Value() : 0;
     } else if (entry.mResource.IsGPUTextureView()) {
-      e.texture_view = entry.mResource.GetAsGPUTextureView()->mId;
+      auto texture_view = entry.mResource.GetAsGPUTextureView();
+      e.texture_view = texture_view->mId;
+      auto context = texture_view->GetTargetContext();
+      if (context) {
+        canvasContexts.AppendElement(context);
+      }
     } else if (entry.mResource.IsGPUSampler()) {
       e.sampler = entry.mResource.GetAsGPUSampler()->mId;
     } else {
@@ -478,7 +484,7 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
   RawId id =
       ffi::wgpu_client_create_bind_group(mBridge->GetClient(), mId, &desc);
 
-  RefPtr<BindGroup> object = new BindGroup(this, id);
+  RefPtr<BindGroup> object = new BindGroup(this, id, std::move(canvasContexts));
   object->SetLabel(aDesc.mLabel);
 
   return object.forget();

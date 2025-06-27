@@ -1,0 +1,4 @@
+fuzzy(0-255,0-800) == draw.html draw-ref.html
+fuzzy(0-255,0-800) == draw-storage-compute.html draw.html
+fuzzy(0-255,0-800) == draw-storage.html draw.html
+fuzzy(0-255,0-800) == draw-storage-bundle.html draw.html

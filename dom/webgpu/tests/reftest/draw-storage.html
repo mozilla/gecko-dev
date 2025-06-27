@@ -1,0 +1,151 @@
+<!doctype html>
+
+<!-- Render a triangle to a storage texture. The triangle should be displayed.
+     Regression test for https://bugzilla.mozilla.org/show_bug.cgi?id=1972921. -->
+
+<html class="reftest-wait">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <canvas width=512 height=512></canvas>
+  </body>
+  <script>
+    (async function() {
+        var triangleVertWGSL = `@vertex
+        fn main(
+          @builtin(vertex_index) VertexIndex : u32
+        ) -> @builtin(position) vec4f {
+          var pos = array<vec2f, 3>(
+            vec2(0.0, 3.0),
+            vec2(-2.0, -1.0),
+            vec2(2.0, -1.0)
+          );
+
+          return vec4f(pos[VertexIndex], 0.0, 1.0);
+        }
+        `;
+
+        var redFragWGSL = `
+        @group(0) @binding(0) var output: texture_storage_2d<{PRESENTATION_FORMAT}, write>;
+
+        @fragment
+        fn main(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+          let x = i32(pos.x);
+          let y = i32(pos.y);
+          if (y >= 128 && y < 384 && 2 * x >= 640 - y && 2 * x < 384 + y) {
+            textureStore(output, vec2(x, y), vec4f(1, 0, 0, 1));
+          } else {
+            textureStore(output, vec2(x, y), vec4f(0, 0, 0, 1));
+          }
+          return vec4(0.0, 0.0, 0.0, 0.0);
+        }`;
+
+        const canvas = document.querySelector('canvas');
+        const adapter = await navigator.gpu?.requestAdapter({ });
+
+        const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+        if (presentationFormat != 'rgba8unorm' && presentationFormat != 'bgra8unorm') {
+          throw new Error('Unsupported presentation format: ' + presentationFormat);
+        }
+        const deviceDescriptor = {};
+        if (presentationFormat == 'bgra8unorm') {
+          if (!adapter.features.has('bgra8unorm-storage')) {
+            console.warn('Using rgba8unorm because bgra8unorm-storage feature is not available');
+            presentationFormat = 'rgba8unorm';
+          } else {
+            deviceDescriptor.requiredFeatures = ['bgra8unorm-storage'];
+          }
+        }
+
+        const device = await adapter?.requestDevice(deviceDescriptor);
+        const context = canvas.getContext('webgpu');
+        const devicePixelRatio = window.devicePixelRatio;
+        canvas.width = canvas.clientWidth * devicePixelRatio;
+        canvas.height = canvas.clientHeight * devicePixelRatio;
+        context.configure({
+          device,
+          format: presentationFormat,
+          usage: GPUTextureUsage.STORAGE_BINDING,
+        });
+        const canvasView = context.getCurrentTexture().createView();
+
+        const dummyTexture = device.createTexture({
+          size: { width: 512, height: 512, depth: 1 },
+          format: presentationFormat,
+          usage: GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        const dummyView = dummyTexture.createView();
+
+        const bindGroupLayout = device.createBindGroupLayout({
+          entries: [
+            {
+              binding: 0,
+              visibility: GPUShaderStage.FRAGMENT,
+              storageTexture: {
+                access: 'write-only',
+                format: presentationFormat,
+                viewDimension: '2d',
+              },
+            },
+          ],
+        });
+        const bindGroup = device.createBindGroup({
+          layout: bindGroupLayout,
+          entries: [
+            {
+              binding: 0,
+              resource: canvasView,
+            },
+          ],
+        });
+
+        const pipelineLayout = device.createPipelineLayout({
+          bindGroupLayouts: [bindGroupLayout],
+        });
+        const pipeline = device.createRenderPipeline({
+          layout: pipelineLayout,
+          vertex: {
+            module: device.createShaderModule({
+              code: triangleVertWGSL,
+            }),
+          },
+          fragment: {
+            module: device.createShaderModule({
+              code: redFragWGSL.replace('{PRESENTATION_FORMAT}', presentationFormat),
+            }),
+            targets: [
+              {
+                format: presentationFormat,
+              },
+            ],
+          },
+          primitive: {
+            topology: 'triangle-list',
+          },
+        });
+
+        const renderPassDescriptor = {
+          colorAttachments: [
+            {
+              view: dummyView,
+              clearValue: [0, 0, 0, 1],
+              loadOp: 'clear',
+              storeOp: 'store',
+            },
+          ],
+        };
+        const commandEncoder = device.createCommandEncoder();
+        const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+        passEncoder.setBindGroup(0, bindGroup);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.draw(3);
+        passEncoder.end();
+        device.queue.submit([commandEncoder.finish()]);
+        await device.queue.onSubmittedWorkDone();
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => document.documentElement.className = "");
+        });
+    })();
+  </script>
+</html>

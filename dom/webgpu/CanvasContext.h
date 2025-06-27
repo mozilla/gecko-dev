@@ -118,6 +118,8 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
   bool mNewTextureRequested = false;
 };
 
+typedef AutoTArray<WeakPtr<CanvasContext>, 1> CanvasContextArray;
+
 }  // namespace webgpu
 }  // namespace mozilla
 
