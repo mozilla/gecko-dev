@@ -19,7 +19,7 @@ glutin = "0.28"
 clap = { version = "3.1", features = ["yaml"] }
 glsl-lang = { version = "0.2", features = ["lexer-v2-full"] }
 log = "0.4"
-yaml-rust = "0.4"
+yaml-rust = { version = "0.10", package = "yaml-rust2" }
 serde_json = "1.0"
 chrono = "0.4"
 crossbeam = "0.2"

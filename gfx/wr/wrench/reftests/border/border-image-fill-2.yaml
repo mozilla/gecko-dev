@@ -23,7 +23,6 @@ root:
           image-source: "border-image-src-2.png"
           image-width: 100
           image-height: 50
-          slice: [ 20, 40 ]
           repeat-vertical: stretch
           repeat-horizontal: repeat
           fill: true
