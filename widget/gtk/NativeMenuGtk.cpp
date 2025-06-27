@@ -237,20 +237,20 @@ class MenuModelGMenu final : public MenuModel {
 NS_IMPL_ISUPPORTS(MenuModel, nsIMutationObserver)
 
 void MenuModel::ContentWillBeRemoved(nsIContent* aChild,
-                                     const BatchRemovalState* aState) {
+                                     const ContentRemoveInfo&) {
   if (NodeIsRelevant(*aChild)) {
     nsContentUtils::AddScriptRunner(NewRunnableMethod(
         "MenuModel::ContentWillBeRemoved", this, &MenuModel::DirtyModel));
   }
 }
 
-void MenuModel::ContentInserted(nsIContent* aChild) {
+void MenuModel::ContentInserted(nsIContent* aChild, const ContentInsertInfo&) {
   if (NodeIsRelevant(*aChild)) {
     DirtyModel();
   }
 }
 
-void MenuModel::ContentAppended(nsIContent* aChild) {
+void MenuModel::ContentAppended(nsIContent* aChild, const ContentAppendInfo&) {
   if (NodeIsRelevant(*aChild)) {
     DirtyModel();
   }

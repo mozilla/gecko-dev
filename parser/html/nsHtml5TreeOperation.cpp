@@ -224,7 +224,8 @@ nsresult nsHtml5TreeOperation::AppendTextToTextNode(
   MOZ_ASSERT(aBuilder);
   MOZ_ASSERT(aBuilder->IsInDocUpdate());
   uint32_t oldLength = aTextNode->TextLength();
-  CharacterDataChangeInfo info = {true, oldLength, oldLength, aLength};
+  CharacterDataChangeInfo info = {true, oldLength, oldLength, aLength,
+                                  MutationEffectOnScript::KeepTrustWorthiness};
   MutationObservers::NotifyCharacterDataWillChange(aTextNode, info);
 
   nsresult rv = aTextNode->AppendText(aBuffer, aLength, false);
@@ -264,7 +265,8 @@ nsresult nsHtml5TreeOperation::Append(nsIContent* aNode, nsIContent* aParent,
   aParent->AppendChildTo(aNode, false, rv);
   if (!rv.Failed() && !ownerDoc->DOMNotificationsSuspended()) {
     aNode->SetParserHasNotified();
-    MutationObservers::NotifyContentAppended(aParent, aNode);
+    MutationObservers::NotifyContentAppended(
+        aParent, aNode, {MutationEffectOnScript::KeepTrustWorthiness});
   }
   return rv.StealNSResult();
 }
@@ -308,7 +310,8 @@ nsresult nsHtml5TreeOperation::AppendToDocument(
 
   if (!doc->DOMNotificationsSuspended()) {
     aNode->SetParserHasNotified();
-    MutationObservers::NotifyContentInserted(doc, aNode);
+    MutationObservers::NotifyContentInserted(
+        doc, aNode, {MutationEffectOnScript::KeepTrustWorthiness});
   }
 
   NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),
@@ -366,7 +369,9 @@ nsresult nsHtml5TreeOperation::AppendChildrenToNewParent(
     didAppend = true;
   }
   if (didAppend) {
-    MutationObservers::NotifyContentAppended(aParent, aParent->GetLastChild());
+    MutationObservers::NotifyContentAppended(
+        aParent, aParent->GetLastChild(),
+        {MutationEffectOnScript::KeepTrustWorthiness});
   }
   return NS_OK;
 }
@@ -388,7 +393,8 @@ nsresult nsHtml5TreeOperation::FosterParent(nsIContent* aNode,
       return rv.StealNSResult();
     }
 
-    MutationObservers::NotifyContentInserted(foster, aNode);
+    MutationObservers::NotifyContentInserted(
+        foster, aNode, {MutationEffectOnScript::KeepTrustWorthiness});
     return NS_OK;
   }
 
@@ -676,7 +682,8 @@ nsresult nsHtml5TreeOperation::FosterParentText(
       return error.StealNSResult();
     }
 
-    MutationObservers::NotifyContentInserted(foster, text);
+    MutationObservers::NotifyContentInserted(
+        foster, text, {MutationEffectOnScript::KeepTrustWorthiness});
     return rv;
   }
 

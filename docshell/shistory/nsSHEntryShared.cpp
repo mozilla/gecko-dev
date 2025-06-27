@@ -346,20 +346,22 @@ void nsSHEntryShared::AttributeChanged(dom::Element* aElement,
   }
 }
 
-void nsSHEntryShared::ContentAppended(nsIContent* aFirstNewContent) {
+void nsSHEntryShared::ContentAppended(nsIContent* aFirstNewContent,
+                                      const ContentAppendInfo&) {
   if (!IgnoreMutationForBfCache(*aFirstNewContent)) {
     RemoveFromBFCacheAsync();
   }
 }
 
-void nsSHEntryShared::ContentInserted(nsIContent* aChild) {
+void nsSHEntryShared::ContentInserted(nsIContent* aChild,
+                                      const ContentInsertInfo&) {
   if (!IgnoreMutationForBfCache(*aChild)) {
     RemoveFromBFCacheAsync();
   }
 }
 
 void nsSHEntryShared::ContentWillBeRemoved(nsIContent* aChild,
-                                           const BatchRemovalState*) {
+                                           const ContentRemoveInfo&) {
   if (!IgnoreMutationForBfCache(*aChild)) {
     RemoveFromBFCacheAsync();
   }

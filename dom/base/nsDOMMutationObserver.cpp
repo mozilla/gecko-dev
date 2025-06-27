@@ -191,7 +191,8 @@ void nsMutationReceiver::CharacterDataWillChange(
   }
 }
 
-void nsMutationReceiver::ContentAppended(nsIContent* aFirstNewContent) {
+void nsMutationReceiver::ContentAppended(nsIContent* aFirstNewContent,
+                                         const ContentAppendInfo&) {
   nsINode* parent = aFirstNewContent->GetParentNode();
   bool wantsChildList =
       ChildList() && ((Subtree() && RegisterTarget()->SubtreeRoot() ==
@@ -225,7 +226,8 @@ void nsMutationReceiver::ContentAppended(nsIContent* aFirstNewContent) {
   m->mPreviousSibling = aFirstNewContent->GetPreviousSibling();
 }
 
-void nsMutationReceiver::ContentInserted(nsIContent* aChild) {
+void nsMutationReceiver::ContentInserted(nsIContent* aChild,
+                                         const ContentInsertInfo&) {
   nsINode* parent = aChild->GetParentNode();
   bool wantsChildList =
       ChildList() && ((Subtree() && RegisterTarget()->SubtreeRoot() ==
@@ -255,7 +257,7 @@ void nsMutationReceiver::ContentInserted(nsIContent* aChild) {
 }
 
 void nsMutationReceiver::ContentWillBeRemoved(nsIContent* aChild,
-                                              const BatchRemovalState*) {
+                                              const ContentRemoveInfo&) {
   if (!IsObservable(aChild)) {
     return;
   }

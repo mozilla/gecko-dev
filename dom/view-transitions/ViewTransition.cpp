@@ -985,7 +985,7 @@ void ViewTransition::SetupTransitionPseudoElements() {
         /* aIsRemove = */ false);
   }
   if (PresShell* ps = mDocument->GetPresShell()) {
-    ps->ContentAppended(mSnapshotContainingBlock);
+    ps->ContentAppended(mSnapshotContainingBlock, {});
   }
 }
 
@@ -1639,7 +1639,7 @@ void ViewTransition::ClearActiveTransition(bool aIsDocumentHidden) {
           /* aIsRemove = */ true);
     }
     if (PresShell* ps = mDocument->GetPresShell()) {
-      ps->ContentWillBeRemoved(mSnapshotContainingBlock, nullptr);
+      ps->ContentWillBeRemoved(mSnapshotContainingBlock, {});
     }
     mSnapshotContainingBlock->UnbindFromTree();
     mSnapshotContainingBlock = nullptr;

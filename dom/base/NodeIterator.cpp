@@ -202,7 +202,7 @@ void NodeIterator::Detach() {
  */
 
 void NodeIterator::ContentWillBeRemoved(nsIContent* aChild,
-                                        const BatchRemovalState*) {
+                                        const ContentRemoveInfo&) {
   nsINode* container = aChild->GetParentNode();
   mPointer.AdjustForRemoval(mRoot, container, aChild);
   mWorkingPointer.AdjustForRemoval(mRoot, container, aChild);

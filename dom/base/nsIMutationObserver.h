@@ -26,6 +26,15 @@ class Element;
   {0x6d674c17, 0x0fbc, 0x4633, {0x8f, 0x46, 0x73, 0x4e, 0x87, 0xeb, 0xf0, 0xc7}}
 
 /**
+ * Used for Trusted Types' Enforcement for scripts.
+ * https://w3c.github.io/trusted-types/dist/spec/#enforcement-in-scripts
+ */
+enum class MutationEffectOnScript : bool {
+  KeepTrustWorthiness,
+  DropTrustWorthiness,
+};
+
+/**
  * Information details about a characterdata change.  Basically, we
  * view all changes as replacements of a length of text at some offset
  * with some other text (of possibly some other length).
@@ -68,6 +77,9 @@ struct CharacterDataChangeInfo {
    * mChangeStart + mReplaceLength.
    */
 
+  MutationEffectOnScript mMutationEffectOnScript =
+      MutationEffectOnScript::DropTrustWorthiness;
+
   struct MOZ_STACK_CLASS Details {
     enum {
       eMerge,  // two text nodes are merged as a result of normalize()
@@ -83,7 +95,32 @@ struct CharacterDataChangeInfo {
   /**
    * Used for splitText() and normalize(), otherwise null.
    */
-  Details* mDetails;
+  Details* mDetails = nullptr;
+};
+
+/**
+ * Information details about a content appending.
+ */
+struct ContentAppendInfo {
+  MutationEffectOnScript mMutationEffectOnScript =
+      MutationEffectOnScript::DropTrustWorthiness;
+};
+
+/**
+ * Information details about a content insertion.
+ */
+using ContentInsertInfo = ContentAppendInfo;
+
+/**
+ * Information details about a content removal.
+ */
+struct ContentRemoveInfo {
+  /* Whether we'll be removing all children of this
+     container. This is useful to avoid wasteful work. */
+  const BatchRemovalState* mBatchRemovalState = nullptr;
+
+  MutationEffectOnScript mMutationEffectOnScript =
+      MutationEffectOnScript::DropTrustWorthiness;
 };
 
 /**
@@ -216,6 +253,7 @@ class nsIMutationObserver
    * child list of another node in the tree.
    *
    * @param aFirstNewContent the first node appended.
+   * @param aInfo The structure with information details about the change.
    *
    * @note Callers of this method might not hold a strong reference to the
    *       observer.  The observer is responsible for making sure it stays
@@ -223,13 +261,15 @@ class nsIMutationObserver
    *       assume that this call will happen when there are script blockers on
    *       the stack.
    */
-  virtual void ContentAppended(nsIContent* aFirstNewContent) = 0;
+  virtual void ContentAppended(nsIContent* aFirstNewContent,
+                               const ContentAppendInfo&) = 0;
 
   /**
    * Notification that a content node has been inserted as child to another
    * node in the tree.
    *
    * @param aChild The newly inserted child.
+   * @param aInfo The structure with information details about the change.
    *
    * @note Callers of this method might not hold a strong reference to the
    *       observer.  The observer is responsible for making sure it stays
@@ -237,7 +277,8 @@ class nsIMutationObserver
    *       assume that this call will happen when there are script blockers on
    *       the stack.
    */
-  virtual void ContentInserted(nsIContent* aChild) = 0;
+  virtual void ContentInserted(nsIContent* aChild,
+                               const ContentInsertInfo&) = 0;
 
   /**
    * Notification that a content node is about to be removed from the child list
@@ -245,6 +286,7 @@ class nsIMutationObserver
    *
    * @param aChild     The child that will be removed.
    * @param aState     The state of our batch removal of all children, or null.
+   * @param aInfo      The structure with information details about the change.
    *
    * @note Callers of this method might not hold a strong reference to the
    *       observer.  The observer is responsible for making sure it stays
@@ -253,7 +295,7 @@ class nsIMutationObserver
    *       the stack.
    */
   virtual void ContentWillBeRemoved(nsIContent* aChild,
-                                    const BatchRemovalState*) = 0;
+                                    const ContentRemoveInfo&) = 0;
 
   /**
    * The node is in the process of being destroyed. Calling QI on the node is
@@ -358,15 +400,17 @@ class nsIMutationObserver
                                 int32_t aModType,                         \
                                 const nsAttrValue* aOldValue) override;
 
-#define NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED \
-  virtual void ContentAppended(nsIContent* aFirstNewContent) override;
+#define NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED          \
+  virtual void ContentAppended(nsIContent* aFirstNewContent, \
+                               const ContentAppendInfo&) override;
 
-#define NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED \
-  virtual void ContentInserted(nsIContent* aChild) override;
+#define NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED                          \
+  virtual void ContentInserted(nsIContent* aChild, const ContentInsertInfo&) \
+      override;
 
 #define NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED      \
   virtual void ContentWillBeRemoved(nsIContent* aChild, \
-                                    const BatchRemovalState*) override;
+                                    const ContentRemoveInfo&) override;
 
 #define NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED \
   virtual void NodeWillBeDestroyed(nsINode* aNode) override;
@@ -411,10 +455,12 @@ class nsIMutationObserver
   void _class::AttributeChanged(                                               \
       mozilla::dom::Element* aElement, int32_t aNameSpaceID,                   \
       nsAtom* aAttribute, int32_t aModType, const nsAttrValue* aOldValue) {}   \
-  void _class::ContentAppended(nsIContent* aFirstNewContent) {}                \
-  void _class::ContentInserted(nsIContent* aChild) {}                          \
+  void _class::ContentAppended(nsIContent* aFirstNewContent,                   \
+                               const ContentAppendInfo&) {}                    \
+  void _class::ContentInserted(nsIContent* aChild, const ContentInsertInfo&) { \
+  }                                                                            \
   void _class::ContentWillBeRemoved(nsIContent* aChild,                        \
-                                    const BatchRemovalState*) {}               \
+                                    const ContentRemoveInfo&) {}               \
   void _class::ParentChainChanged(nsIContent* aContent) {}                     \
   void _class::ARIAAttributeDefaultWillChange(                                 \
       mozilla::dom::Element* aElement, nsAtom* aAttribute, int32_t aModType) { \

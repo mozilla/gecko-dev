@@ -168,14 +168,16 @@ void nsFormFillController::MaybeCancelAttributeChangeTask() {
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY
-void nsFormFillController::ContentAppended(nsIContent* aChild) {
+void nsFormFillController::ContentAppended(nsIContent* aChild,
+                                           const ContentAppendInfo&) {
   if (mListNode && mListNode->Contains(aChild->GetParent())) {
     RevalidateDataList();
   }
 }
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY
-void nsFormFillController::ContentInserted(nsIContent* aChild) {
+void nsFormFillController::ContentInserted(nsIContent* aChild,
+                                           const ContentInsertInfo&) {
   if (mListNode && mListNode->Contains(aChild->GetParent())) {
     RevalidateDataList();
   }
@@ -183,7 +185,7 @@ void nsFormFillController::ContentInserted(nsIContent* aChild) {
 
 MOZ_CAN_RUN_SCRIPT_BOUNDARY
 void nsFormFillController::ContentWillBeRemoved(nsIContent* aChild,
-                                                const BatchRemovalState*) {
+                                                const ContentRemoveInfo&) {
   if (mListNode && mListNode->Contains(aChild->GetParent())) {
     nsContentUtils::AddScriptRunner(
         NewRunnableMethod("nsFormFillController::ContentWillBeRemoved", this,

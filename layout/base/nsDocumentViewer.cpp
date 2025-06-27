@@ -255,14 +255,16 @@ void BFCachePreventionObserver::AttributeChanged(Element* aElement,
   MutationHappened();
 }
 
-void BFCachePreventionObserver::ContentAppended(nsIContent* aFirstNewContent) {
+void BFCachePreventionObserver::ContentAppended(nsIContent* aFirstNewContent,
+                                                const ContentAppendInfo&) {
   if (aFirstNewContent->IsInNativeAnonymousSubtree()) {
     return;
   }
   MutationHappened();
 }
 
-void BFCachePreventionObserver::ContentInserted(nsIContent* aChild) {
+void BFCachePreventionObserver::ContentInserted(nsIContent* aChild,
+                                                const ContentInsertInfo&) {
   if (aChild->IsInNativeAnonymousSubtree()) {
     return;
   }
@@ -270,7 +272,7 @@ void BFCachePreventionObserver::ContentInserted(nsIContent* aChild) {
 }
 
 void BFCachePreventionObserver::ContentWillBeRemoved(nsIContent* aChild,
-                                                     const BatchRemovalState*) {
+                                                     const ContentRemoveInfo&) {
   if (aChild->IsInNativeAnonymousSubtree()) {
     return;
   }

@@ -206,7 +206,7 @@ ManualNACPtr HTMLEditor::CreateAnonymousElement(nsAtom* aTag,
 #endif  // DEBUG
 
   // display the element
-  presShell->ContentAppended(newNativeAnonymousContent);
+  presShell->ContentAppended(newNativeAnonymousContent, {});
 
   return newNativeAnonymousContent;
 }
@@ -249,7 +249,7 @@ void HTMLEditor::DeleteRefToAnonymousNode(ManualNACPtr aContent,
 
     // FIXME(emilio): This is the only caller to PresShell::ContentRemoved that
     // passes NAC into it. This is not great!
-    aPresShell->ContentWillBeRemoved(aContent, nullptr);
+    aPresShell->ContentWillBeRemoved(aContent, {});
   }
 
   // The ManualNACPtr destructor will invoke UnbindFromTree.
