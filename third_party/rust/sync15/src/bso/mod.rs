@@ -5,14 +5,14 @@
 /// This module defines our core "bso" abstractions.
 /// In the terminology of this crate:
 /// * "bso" is an acronym for "basic storage object" and used extensively in the sync server docs.
-///    the record always has a well-defined "envelope" with metadata (eg, the ID of the record,
-///    the server timestamp of the resource,  etc) and a field called `payload`.
-///    A bso is serialized to and from JSON.
+///   the record always has a well-defined "envelope" with metadata (eg, the ID of the record,
+///   the server timestamp of the resource,  etc) and a field called `payload`.
+///   A bso is serialized to and from JSON.
 /// * There's a "cleartext" bso:
 ///   * The payload is a String, which itself is JSON encoded (ie, this string `payload` is
-///      always double JSON encoded in a server record)
+///     always double JSON encoded in a server record)
 ///   * This supplies helper methods for working with the "content" (some arbitrary <T>) in the
-///      payload.
+///     payload.
 /// * There's an "encrypted" bso
 ///   * The payload is an [crate::enc_payload::EncryptedPayload]
 ///   * Only clients use this; as soon as practical we decrypt and as late as practical we encrypt

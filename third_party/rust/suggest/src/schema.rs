@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-use crate::{db::Sqlite3Extension, geoname::geonames_collate};
+use crate::{db::Sqlite3Extension, util::i18n_cmp};
 use rusqlite::{Connection, Transaction};
 use sql_support::{
     open_database::{self, ConnectionInitializer},
@@ -18,12 +18,12 @@ use sql_support::{
 ///  2. Add a migration from the old version to the new version in
 ///     [`SuggestConnectionInitializer::upgrade_from`].
 ///     a. If suggestions should be re-ingested after the migration, call `clear_database()` inside
-///        the migration.
+///     the migration.
 ///  3. If the migration adds any tables, delete their their rows in
 ///     `clear_database()` by adding their names to `conditional_tables`, unless
 ///     they are cleared via a deletion trigger or there's some other good
 ///     reason not to do so.
-pub const VERSION: u32 = 41;
+pub const VERSION: u32 = 42;
 
 /// The current Suggest database schema.
 pub const SQL: &str = "
@@ -42,6 +42,14 @@ CREATE TABLE ingested_records(
 
 CREATE TABLE keywords(
     keyword TEXT NOT NULL,
+    suggestion_id INTEGER NOT NULL,
+    full_keyword_id INTEGER NULL,
+    rank INTEGER NOT NULL,
+    PRIMARY KEY (keyword, suggestion_id)
+) WITHOUT ROWID;
+
+CREATE TABLE keywords_i18n(
+    keyword TEXT NOT NULL COLLATE i18n_collate,
     suggestion_id INTEGER NOT NULL,
     full_keyword_id INTEGER NULL,
     rank INTEGER NOT NULL,
@@ -273,7 +281,12 @@ impl<'a> SuggestConnectionInitializer<'a> {
     }
 
     fn create_custom_functions(&self, conn: &Connection) -> open_database::Result<()> {
-        conn.create_collation("geonames_collate", geonames_collate)?;
+        // `geonames_collate` is deprecated, use `i18n_collate` instead. The
+        // collations are the same and ideally we'd remove `geonames_collate`,
+        // but then we'd need to recreate the geonames table in a migration, and
+        // it doesn't seem worth it.
+        conn.create_collation("geonames_collate", i18n_cmp)?;
+        conn.create_collation("i18n_collate", i18n_cmp)?;
         Ok(())
     }
 }
@@ -775,6 +788,26 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
                 )?;
                 Ok(())
             }
+            41 => {
+                // This migration introduces the `keywords_i18n` table and makes
+                // changes to how keywords metrics are calculated. Clear the DB
+                // so that weather and geonames names are added to the new table
+                // and also so that keywords metrics are recalculated.
+                clear_database(tx)?;
+                tx.execute_batch(
+                    r#"
+                    CREATE TABLE keywords_i18n(
+                        keyword TEXT NOT NULL COLLATE i18n_collate,
+                        suggestion_id INTEGER NOT NULL,
+                        full_keyword_id INTEGER NULL,
+                        rank INTEGER NOT NULL,
+                        PRIMARY KEY (keyword, suggestion_id)
+                    ) WITHOUT ROWID;
+                    "#,
+                )?;
+                Ok(())
+            }
+
             _ => Err(open_database::Error::IncompatibleVersion(version)),
         }
     }
@@ -782,6 +815,9 @@ impl ConnectionInitializer for SuggestConnectionInitializer<'_> {
 
 /// Clears the database, removing all suggestions, icons, and metadata.
 pub fn clear_database(db: &Connection) -> rusqlite::Result<()> {
+    // If you update this, you probably need to update
+    // `SuggestDao::drop_suggestions` too!
+
     db.execute_batch(
         "
         DELETE FROM meta;
@@ -800,6 +836,7 @@ pub fn clear_database(db: &Connection) -> rusqlite::Result<()> {
         "geonames",
         "geonames_metrics",
         "ingested_records",
+        "keywords_i18n",
         "keywords_metrics",
     ];
     for t in conditional_tables {
@@ -941,8 +978,8 @@ PRAGMA user_version=16;
 
     /// Test that `clear_database()` works correctly during migrations.
     ///
-    /// TODO: This only checks `ingested_records` and `rs_cache` for now since
-    /// they're very important, but ideally this would test all tables.
+    /// TODO: This only checks `ingested_records` for now since it's very
+    /// important, but ideally this would test all tables.
     #[test]
     fn test_clear_database() -> anyhow::Result<()> {
         // Start with the v16 schema.

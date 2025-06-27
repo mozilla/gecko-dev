@@ -2706,9 +2706,8 @@ export class SearchEngineSelector {
      * - `service`: The remote settings service instance for the application.
      * - `options`: The remote settings options to be passed to the client(s).
      * - `apply_engine_overrides`: Whether or not to apply overrides from
-     * `search-config-v2-overrides` to the selected
-     * engines. Should be false unless the application
-     * supports the click URL feature.
+     * `search-config-v2-overrides` to the selected engines. Should be false unless the
+     * application supports the click URL feature.
      * @param {RemoteSettingsService} service
      * @param {boolean} applyEngineOverrides
      */

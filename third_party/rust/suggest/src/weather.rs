@@ -62,10 +62,10 @@ impl SuggestDao<'_> {
             return Ok(vec![]);
         }
 
-        // The first step in parsing the query is lowercasing and splitting it
-        // into words. We want to avoid that work for strings that are so long
-        // they can't possibly match. We'll stipulate that weather queries will
-        // include the following parts at most:
+        // The first step in parsing the query is splitting it into words. We
+        // want to avoid that work for strings that are so long they can't
+        // possibly match. We'll stipulate that weather queries will include the
+        // following parts at most:
         //
         // * 3 geonames max: city + one admin division like a state + country
         // * 1 weather keyword
@@ -94,14 +94,12 @@ impl SuggestDao<'_> {
             w_cache.keywords_metrics.max_word_count,
         );
 
-        // Lowercase, strip punctuation, and split the query into words.
-        let kw_lower = query.keyword.to_lowercase();
-        let words: Vec<_> = kw_lower
-            .split_whitespace()
-            .flat_map(|w| {
-                w.split(|c| !char::is_alphanumeric(c))
-                    .filter(|s| !s.is_empty())
-            })
+        // Split the query on whitespace and commas too so that queries like
+        // "city region" and "city, region" both become ["city", "region"].
+        let words: Vec<_> = query
+            .keyword
+            .split(|c| char::is_whitespace(c) || c == ',')
+            .filter(|s| !s.is_empty())
             .collect();
 
         // Step 2: Parse the query words into a list of token paths.
@@ -277,7 +275,7 @@ impl SuggestDao<'_> {
             FROM
                 suggestions s
             JOIN
-                keywords k
+                keywords_i18n k
                 ON k.suggestion_id = s.id
             WHERE
                 s.provider = :provider
@@ -307,7 +305,8 @@ impl SuggestDao<'_> {
     ) -> Result<()> {
         self.scope.err_if_interrupted()?;
         let mut suggestion_insert = SuggestionInsertStatement::new(self.conn)?;
-        let mut keyword_insert = KeywordInsertStatement::new(self.conn)?;
+        let mut keyword_insert =
+            KeywordInsertStatement::with_details(self.conn, "keywords_i18n", None)?;
         let mut metrics_updater = KeywordsMetricsUpdater::new();
 
         for attach in attachments {
@@ -674,7 +673,12 @@ mod tests {
 
         let no_matches = ["wea", "weat", "weath", "weathe"];
         for q in no_matches {
-            assert_eq!(store.fetch_suggestions(SuggestionQuery::weather(q)), vec![]);
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![],
+                "query: {:?}",
+                q
+            );
         }
 
         let matches = ["weather", "WeAtHeR", "  weather  "];
@@ -684,7 +688,93 @@ mod tests {
                 vec![Suggestion::Weather {
                     score: 0.24,
                     city: None,
-                }]
+                }],
+                "query: {:?}",
+                q
+            );
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn weather_keywords_collate() -> anyhow::Result<()> {
+        before_each();
+
+        let store = TestStore::new(MockRemoteSettingsClient::default().with_record(
+            SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    "min_keyword_length": 0,
+                    "keywords": [
+                        "AbC xYz",
+                        "Àęí",
+                        // "wéather" with single 'é' char
+                        "w\u{00e9}ather",
+                        // "éfg" with ASCII 'e' followed by combining acute
+                        // accent
+                        "e\u{0301}fg",
+                        "größe",
+                        "abc. def-ghi",
+                        "x.y.z.",
+                    ],
+                    "score": 0.24
+                }),
+            ),
+        ));
+
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        let matches = [
+            "AbC xYz",
+            "ABC XYZ",
+            "abc xyz",
+            "Àęí",
+            "Aei",
+            "àęí",
+            "aei",
+            // "wéather" with single 'é' char
+            "w\u{00e9}ather",
+            // "wéather" with ASCII 'e' followed by combining acute
+            // accent
+            "we\u{0301}ather",
+            "weather",
+            // "éfg" with single 'é' char
+            "\u{00e9}fg",
+            // "éfg" with ASCII 'e' followed by combining acute
+            // accent
+            "e\u{0301}fg",
+            "efg",
+            "größe",
+            "große",
+            "grösse",
+            "grosse",
+            "abc. def-ghi",
+            "abc def-ghi",
+            "abc. def ghi",
+            "abc def ghi",
+            "x.y.z.",
+            "xy.z.",
+            "x.yz.",
+            "x.y.z",
+            "xyz.",
+            "xy.z",
+            "x.yz",
+            "xyz",
+        ];
+
+        for q in matches {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![Suggestion::Weather {
+                    score: 0.24,
+                    city: None,
+                }],
+                "query: {:?}",
+                q
             );
         }
 
@@ -1663,6 +1753,67 @@ mod tests {
                 query: "liverpool england uk",
                 min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
                 min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+
+            Test {
+                query: "La Visitation-de-l'Île-Dupas",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "la visitation-de-l'île-dupas",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "la visitation-de-l'île-dupas wea",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "la visitation-de-l'île-dupas weather",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "weather la visitation-de-l'île-dupas",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "weather la v",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "weather la visitation",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "weather la visitation de",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "la visitation de lile dupas",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "la visitation de lile dupas wea",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "la visitation de lile dupas weather",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
+            },
+            Test {
+                query: "weather la visitation de lile dupas",
+                min_keyword_len_0: vec![geoname::tests::la_visitation().into()],
+                min_keyword_len_5: vec![geoname::tests::la_visitation().into()],
             },
 
             Test {

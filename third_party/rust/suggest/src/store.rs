@@ -387,9 +387,7 @@ impl SuggestIngestionConstraints {
             .and_then(|c| c.dynamic_suggestion_types.as_ref())
         {
             None => false,
-            Some(suggestion_types) => suggestion_types
-                .iter()
-                .any(|t| *t == record.suggestion_type),
+            Some(suggestion_types) => suggestion_types.contains(&record.suggestion_type),
         }
     }
 
@@ -1017,6 +1015,10 @@ pub(crate) mod tests {
 
         pub fn read<T>(&self, op: impl FnOnce(&SuggestDao) -> Result<T>) -> Result<T> {
             self.inner.dbs().unwrap().reader.read(op)
+        }
+
+        pub fn write<T>(&self, op: impl FnMut(&mut SuggestDao) -> Result<T>) -> Result<T> {
+            self.inner.dbs().unwrap().writer.write(op)
         }
 
         pub fn count_rows(&self, table_name: &str) -> u64 {
@@ -1706,16 +1708,24 @@ pub(crate) mod tests {
                     SuggestionProvider::Amp.record("data-2", json!([good_place_eats_amp()])),
                 )
                 .with_record(SuggestionProvider::Amp.icon(los_pollos_icon()))
-                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon())),
+                .with_record(SuggestionProvider::Amp.icon(good_place_eats_icon()))
+                .with_record(
+                    SuggestionProvider::Weather
+                        .record("weather-1", json!({ "keywords": ["abcde"], })),
+                ),
         );
         store.ingest(SuggestIngestionConstraints::all_providers());
         assert!(store.count_rows("suggestions") > 0);
         assert!(store.count_rows("keywords") > 0);
+        assert!(store.count_rows("keywords_i18n") > 0);
+        assert!(store.count_rows("keywords_metrics") > 0);
         assert!(store.count_rows("icons") > 0);
 
         store.inner.clear()?;
         assert!(store.count_rows("suggestions") == 0);
         assert!(store.count_rows("keywords") == 0);
+        assert!(store.count_rows("keywords_i18n") == 0);
+        assert!(store.count_rows("keywords_metrics") == 0);
         assert!(store.count_rows("icons") == 0);
 
         Ok(())

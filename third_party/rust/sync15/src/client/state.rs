@@ -592,7 +592,7 @@ enum SetupState {
 impl SetupState {
     fn label(&self) -> &'static str {
         match self {
-            Initial { .. } => "Initial",
+            Initial => "Initial",
             InitialWithConfig { .. } => "InitialWithConfig",
             InitialWithInfo { .. } => "InitialWithInfo",
             InitialWithMetaGlobal { .. } => "InitialWithMetaGlobal",

@@ -39,10 +39,10 @@
 //! ### Special values and cases
 //! There two special characters that can be used in version parts:
 //! 1. The `*`. This can be used to represent the whole version part. If used, it will set the `num_a` to be
-//!     the maximum value possible ([`i32::MAX`]). This can only be used as the whole version part string. It will parsed
-//!     normally as the `*` ascii character if it is preceded or followed by any other characters.
+//!    the maximum value possible ([`i32::MAX`]). This can only be used as the whole version part string. It will parsed
+//!    normally as the `*` ascii character if it is preceded or followed by any other characters.
 //! 1. The `+`. This can be used as the `str_b`. Whenever a `+` is used as a `str_b`, it increments the `num_a` by 1 and sets
-//!     the `str_b` to be equal to `pre`. For example, `2+` is the same as `3pre`
+//!    the `str_b` to be equal to `pre`. For example, `2+` is the same as `3pre`
 //! 1. An empty `str_b` is always **greater** than a `str_b` with a value. For example, `93` > `93pre`
 //!
 //! ## Example version comparisons

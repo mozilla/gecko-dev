@@ -3,6 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
+use std::borrow::Cow;
+use unicase::UniCase;
+use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
+
 use crate::Result;
 
 /// Given a list of keywords for a suggestion, returns a phrase that best
@@ -238,6 +242,7 @@ fn filter_map_chunks_recurse<T: Clone>(
 
     Ok(this_step_paths)
 }
+
 /// Given a keyword for a suggestion, splits the keyword by the first whitespace
 /// into the prefix and the suffix. Returns an empty string as the suffix if there
 /// is no whitespace.
@@ -245,9 +250,73 @@ pub fn split_keyword(keyword: &str) -> (&str, &str) {
     keyword.split_once(' ').unwrap_or((keyword, ""))
 }
 
+/// Compares two strings ignoring case, Unicode combining marks, and some
+/// punctuation. Intended to be used as a Sqlite collating sequence for
+/// comparing natural language strings like keywords and geoname names.
+pub fn i18n_cmp(a: &str, b: &str) -> std::cmp::Ordering {
+    UniCase::new(i18n_transform(a)).cmp(&UniCase::new(i18n_transform(b)))
+}
+
+/// Performs the following transforms on the given string:
+///
+/// * Removes Unicode combining marks
+/// * Removes some punctuation
+/// * Replaces other punctuation with spaces
+pub fn i18n_transform(s: &str) -> Cow<'_, str> {
+    // Punctuation to remove. Examples:
+    //
+    // "Washington, D.C." => "Washington DC"
+    // "L'Assomption" => "LAssomption"
+    macro_rules! pattern_remove {
+        () => {
+            '.' | ',' | '\'' | '’'
+        };
+    }
+
+    // Punctuation to replace with spaces. Examples:
+    //
+    // "Carmel-by-the-Sea" => "Carmel by the Sea"
+    macro_rules! pattern_replace_with_space {
+        () => {
+            '-'
+        };
+    }
+
+    macro_rules! pattern_all {
+        () => {
+            pattern_remove!() | pattern_replace_with_space!()
+        };
+    }
+
+    let borrowable = !s
+        .nfkd()
+        .any(|c| is_combining_mark(c) || matches!(c, pattern_all!()));
+
+    if borrowable {
+        Cow::from(s)
+    } else {
+        s.nfkd()
+            .filter_map(|c| {
+                if is_combining_mark(c) {
+                    // Remove Unicode combining marks:
+                    // "Que\u{0301}bec" => "Quebec"
+                    None
+                } else {
+                    match c {
+                        pattern_remove!() => None,
+                        pattern_replace_with_space!() => Some(' '),
+                        _ => Some(c),
+                    }
+                }
+            })
+            .collect::<_>()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use itertools::Itertools;
 
     #[test]
     fn keywords_with_more_words() {
@@ -1612,5 +1681,99 @@ mod tests {
     fn test_split_keyword() {
         assert_eq!(split_keyword("foo"), ("foo", ""));
         assert_eq!(split_keyword("foo bar baz"), ("foo", "bar baz"));
+    }
+
+    #[test]
+    fn i18n_transform() -> anyhow::Result<()> {
+        // (test str, expected str)
+        let tests = [
+            ("AbC", "AbC"),
+            ("AbC dEf", "AbC dEf"),
+            ("Àęí", "Aei"),
+            // "Québec" with single 'é' char
+            ("Qu\u{00e9}bec", "Quebec"),
+            // "Québec" with ASCII 'e' followed by combining acute accent
+            ("Que\u{0301}bec", "Quebec"),
+            ("Gößnitz", "Goßnitz"),
+            ("St. Louis", "St Louis"),
+            ("Washington, D.C.", "Washington DC"),
+            ("U.S.A.", "USA"),
+            ("Carmel-by-the-Sea", "Carmel by the Sea"),
+            ("Val-d'Or", "Val dOr"),
+            ("Val-d’Or", "Val dOr"),
+            (".,-'()[]?<>", " ()[]?<>"),
+        ];
+        for (test_str, expected_str) in tests {
+            assert_eq!(
+                super::i18n_transform(test_str),
+                expected_str,
+                "Transform test str: {:?}",
+                test_str
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn i18n_cmp() -> anyhow::Result<()> {
+        let tests = [
+            ["AbC xYz", "ABC XYZ", "abc xyz"].as_slice(),
+            &["Àęí", "Aei", "àęí", "aei"],
+            &[
+                // "Québec" with single 'é' char
+                "Qu\u{00e9}bec",
+                // "Québec" with ASCII 'e' followed by combining acute accent
+                "Que\u{0301}bec",
+                "Quebec",
+                "quebec",
+            ],
+            &[
+                "Gößnitz",
+                "Gössnitz",
+                "Goßnitz",
+                "Gossnitz",
+                "gößnitz",
+                "gössnitz",
+                "goßnitz",
+                "gossnitz",
+            ],
+            &["St. Louis", "St... Louis", "St Louis", "st louis"],
+            &[
+                "Washington, D.C.",
+                "Washington, DC",
+                "Washington D.C.",
+                "Washington DC",
+                "washington dc",
+            ],
+            &[
+                "U.S.A.", "US.A.", "U.SA.", "U.S.A", "USA.", "U.SA", "USA", "usa",
+            ],
+            &[
+                "Val-d'Or",
+                "Val-d’Or",
+                "Val-dOr",
+                "Val d'Or",
+                "Val d’Or",
+                "Val dOr",
+                "val dor",
+            ],
+            &[
+                "Carmel-by-the-Sea",
+                "Carmel by the Sea",
+                "carmel by the sea",
+            ],
+            &[".,-'()[]?<>", " ()[]?<>"],
+        ];
+        for strs in tests {
+            for a_and_b in strs.iter().permutations(2) {
+                assert_eq!(
+                    super::i18n_cmp(a_and_b[0], a_and_b[1]),
+                    std::cmp::Ordering::Equal,
+                    "Comparing: {:?}",
+                    a_and_b
+                );
+            }
+        }
+        Ok(())
     }
 }

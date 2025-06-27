@@ -28,7 +28,7 @@ use crate::{
     },
     schema::{clear_database, SuggestConnectionInitializer},
     suggestion::{cook_raw_suggestion_url, FtsMatchInfo, Suggestion},
-    util::{full_keyword, split_keyword},
+    util::{full_keyword, i18n_transform, split_keyword},
     weather::WeatherCache,
     Result, SuggestionQuery,
 };
@@ -1105,7 +1105,11 @@ impl<'a> SuggestDao<'a> {
         // `suggestion.keywords()` can yield duplicates for dynamic
         // suggestions, so ignore failures on insert in the uniqueness
         // constraint on `(suggestion_id, keyword)`.
-        let mut keyword_insert = KeywordInsertStatement::new_with_or_ignore(self.conn)?;
+        let mut keyword_insert = KeywordInsertStatement::with_details(
+            self.conn,
+            "keywords",
+            Some(InsertConflictResolution::Ignore),
+        )?;
         let mut suggestion_insert = SuggestionInsertStatement::new(self.conn)?;
         let mut dynamic_insert = DynamicInsertStatement::new(self.conn)?;
         for suggestion in suggestions {
@@ -1196,6 +1200,11 @@ impl<'a> SuggestDao<'a> {
         self.scope.err_if_interrupted()?;
         self.conn.execute_cached(
             "DELETE FROM keywords WHERE suggestion_id IN (SELECT id from suggestions WHERE record_id = :record_id)",
+            named_params! { ":record_id": record_id.as_str() },
+        )?;
+        self.scope.err_if_interrupted()?;
+        self.conn.execute_cached(
+            "DELETE FROM keywords_i18n WHERE suggestion_id IN (SELECT id from suggestions WHERE record_id = :record_id)",
             named_params! { ":record_id": record_id.as_str() },
         )?;
         self.scope.err_if_interrupted()?;
@@ -1675,29 +1684,27 @@ pub(crate) struct KeywordInsertStatement<'conn>(rusqlite::Statement<'conn>);
 
 impl<'conn> KeywordInsertStatement<'conn> {
     pub(crate) fn new(conn: &'conn Connection) -> Result<Self> {
-        Ok(Self(conn.prepare(
-            "INSERT INTO keywords(
-                 suggestion_id,
-                 keyword,
-                 full_keyword_id,
-                 rank
-             )
-             VALUES(?, ?, ?, ?)
-             ",
-        )?))
+        Self::with_details(conn, "keywords", None)
     }
 
-    pub(crate) fn new_with_or_ignore(conn: &'conn Connection) -> Result<Self> {
-        Ok(Self(conn.prepare(
-            "INSERT OR IGNORE INTO keywords(
-                 suggestion_id,
-                 keyword,
-                 full_keyword_id,
-                 rank
-             )
-             VALUES(?, ?, ?, ?)
-             ",
-        )?))
+    pub(crate) fn with_details(
+        conn: &'conn Connection,
+        table: &str,
+        conflict_resolution: Option<InsertConflictResolution>,
+    ) -> Result<Self> {
+        Ok(Self(conn.prepare(&format!(
+            r#"
+            INSERT {} INTO {}(
+                suggestion_id,
+                keyword,
+                full_keyword_id,
+                rank
+            )
+            VALUES(?, ?, ?, ?)
+            "#,
+            conflict_resolution.as_ref().map(|r| r.as_str()).unwrap_or_default(),
+            table,
+        ))?))
     }
 
     pub(crate) fn execute(
@@ -1711,6 +1718,18 @@ impl<'conn> KeywordInsertStatement<'conn> {
             .execute((suggestion_id, keyword, full_keyword_id, rank))
             .with_context("keyword insert")?;
         Ok(())
+    }
+}
+
+pub(crate) enum InsertConflictResolution {
+    Ignore,
+}
+
+impl InsertConflictResolution {
+    fn as_str(&self) -> &str {
+        match self {
+            InsertConflictResolution::Ignore => "OR IGNORE",
+        }
     }
 }
 
@@ -1752,32 +1771,55 @@ impl<'conn> PrefixKeywordInsertStatement<'conn> {
     }
 }
 
-#[derive(Debug, Default)]
+/// Metrics for a set of keywords. Use `KeywordsMetricsUpdater` to write metrics
+/// to the store and `SuggestDao::get_keywords_metrics` to read them.
+#[derive(Debug, Default, Eq, PartialEq)]
 pub(crate) struct KeywordsMetrics {
+    /// The max byte count (not chars) of all keywords in the set.
     pub(crate) max_len: usize,
+    /// The max word count of all keywords in the set.
     pub(crate) max_word_count: usize,
 }
 
-/// This can be used to update metrics as keywords are inserted into the DB.
-/// Create a `KeywordsMetricsUpdater`, call `update` on it as each keyword is
-/// inserted, and then call `finish` after all keywords have been inserted.
+/// This can be used to keep a running tally of metrics as you process keywords
+/// and then to write the metrics to the store. Make a `KeywordsMetricsUpdater`,
+/// call `update` on it as you process each keyword, and then call `finish` to
+/// write the metrics to the store.
 pub(crate) struct KeywordsMetricsUpdater {
-    pub(crate) max_len: usize,
-    pub(crate) max_word_count: usize,
+    metrics: KeywordsMetrics,
 }
 
 impl KeywordsMetricsUpdater {
     pub(crate) fn new() -> Self {
         Self {
-            max_len: 0,
-            max_word_count: 0,
+            metrics: KeywordsMetrics::default(),
         }
     }
 
+    /// Updates the metrics with those of the given keyword.
+    ///
+    /// The keyword's metrics are calculated as the max of its metrics as-is and
+    /// its metrics when it's transformed using `i18n_transform`. For example,
+    /// `"Qu\u{00e9}bec"` ("Québec" with single two-byte 'é' char) has 7 bytes,
+    /// so its `len` is 7, but the `len` of `i18n_transform("Qu\u{00e9}bec")` is
+    /// 6, since the 'é' is transformed to an ASCII 'e'. The keyword's `max_len`
+    /// will therefore be the max of 7 and 6, which is 7.
     pub(crate) fn update(&mut self, keyword: &str) {
-        self.max_len = std::cmp::max(self.max_len, keyword.len());
-        self.max_word_count =
-            std::cmp::max(self.max_word_count, keyword.split_whitespace().count());
+        let transformed_kw = i18n_transform(keyword);
+        self.metrics.max_len = std::cmp::max(
+            self.metrics.max_len,
+            std::cmp::max(transformed_kw.len(), keyword.len()),
+        );
+
+        // Getting the word count is costly, so we get only the transformed word
+        // count under the assumption that it will always be at least as large
+        // as the the original word count. That's currently true because the
+        // only relevant transform that `i18n_transform` performs is to replace
+        // hyphens with spaces.
+        self.metrics.max_word_count = std::cmp::max(
+            self.metrics.max_word_count,
+            transformed_kw.split_whitespace().count(),
+        );
     }
 
     /// Inserts keywords metrics into the database. This assumes you have a
@@ -1805,8 +1847,8 @@ impl KeywordsMetricsUpdater {
             .execute((
                 record_id.as_str(),
                 record_type,
-                self.max_len,
-                self.max_word_count,
+                self.metrics.max_len,
+                self.metrics.max_word_count,
             ))
             .with_context("keywords metrics insert")?;
 
@@ -1844,4 +1886,309 @@ impl<'conn> AmpFtsInsertStatement<'conn> {
 
 fn provider_config_meta_key(provider: SuggestionProvider) -> String {
     format!("{}{}", PROVIDER_CONFIG_META_KEY_PREFIX, provider as u8)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{store::tests::TestStore, testing::*, SuggestIngestionConstraints};
+
+    #[test]
+    fn keywords_metrics_updater() -> anyhow::Result<()> {
+        // (test keyword, expected `KeywordsMetrics`)
+        //
+        // Tests are cumulative!
+        let tests = [
+            (
+                "abc",
+                KeywordsMetrics {
+                    max_len: 3,
+                    max_word_count: 1,
+                },
+            ),
+            (
+                "a b",
+                KeywordsMetrics {
+                    max_len: 3,
+                    max_word_count: 2,
+                },
+            ),
+            (
+                "a b c",
+                KeywordsMetrics {
+                    max_len: 5,
+                    max_word_count: 3,
+                },
+            ),
+            // "Québec" with single 'é' char:
+            // With `i18n_transform`: len = 6
+            // Without `i18n_transform`: len = 7
+            // => Length for this string should be max(6, 7) = 7, which is a new
+            //    overall max
+            (
+                "Qu\u{00e9}bec",
+                KeywordsMetrics {
+                    max_len: 7,
+                    max_word_count: 3,
+                },
+            ),
+            // "Québec" with ASCII 'e' followed by combining acute accent:
+            // With `i18n_transform`, len = 6
+            // Without `i18n_transform`, len = 8
+            // => Length for this string should be max(6, 8) = 8, which is a new
+            //    overall max
+            (
+                "Que\u{0301}bec",
+                KeywordsMetrics {
+                    max_len: 8,
+                    max_word_count: 3,
+                },
+            ),
+            // Each '-' should be replaced with a space, so the word count for
+            // this string should be 4, which is a new overall max
+            (
+                "Carmel-by-the-Sea",
+                KeywordsMetrics {
+                    max_len: 17,
+                    max_word_count: 4,
+                },
+            ),
+        ];
+
+        // Make an updater and call it with each test in turn.
+        let mut updater = KeywordsMetricsUpdater::new();
+        for (test_kw, expected_metrics) in &tests {
+            updater.update(test_kw);
+            assert_eq!(&updater.metrics, expected_metrics);
+        }
+
+        // Make a store and finish the updater so it updates the metrics table.
+        let store = TestStore::new(MockRemoteSettingsClient::default());
+        store.write(|dao| {
+            // Make a dummy cache cell. It doesn't matter what it contains, we
+            // just want to make sure it's empty after finishing the updater.
+            let mut dummy_cache = OnceCell::new();
+            dummy_cache.set("test").expect("dummy cache set");
+            assert_ne!(dummy_cache.get(), None);
+
+            let record_type = SuggestRecordType::Wikipedia;
+            updater.finish(
+                dao.conn,
+                &SuggestRecordId::new("test-record-1".to_string()),
+                record_type,
+                &mut dummy_cache,
+            )?;
+
+            assert_eq!(dummy_cache.get(), None);
+
+            // Read back the metrics and make sure they match the ones in the
+            // final test.
+            let read_metrics_1 = dao.get_keywords_metrics(record_type)?;
+            assert_eq!(read_metrics_1, tests.last().unwrap().1);
+
+            // Update the metrics one more time and finish them again.
+            updater.update("a very long keyword with many words");
+            let new_expected = KeywordsMetrics {
+                max_len: 35,
+                max_word_count: 7,
+            };
+            assert_eq!(updater.metrics, new_expected);
+
+            updater.finish(
+                dao.conn,
+                &SuggestRecordId::new("test-record-2".to_string()),
+                record_type,
+                &mut dummy_cache,
+            )?;
+
+            // Read back the new metrics and make sure they match.
+            let read_metrics_2 = dao.get_keywords_metrics(record_type)?;
+            assert_eq!(read_metrics_2, new_expected);
+
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    // Keywords in `keywords_i18n` should be dropped when their records are
+    // deleted.
+    #[test]
+    fn keywords_i18n_delete_record() -> anyhow::Result<()> {
+        // Add some records whose keywords are stored in `keywords_i18n`. We'll
+        // use weather records.
+        let kws_1 = ["aaa", "bbb", "ccc"];
+        let kws_2 = ["yyy", "zzz"];
+        let mut store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(SuggestionProvider::Weather.record(
+                    "weather-1",
+                    json!({
+                        "score": 0.24,
+                        "keywords": kws_1,
+                    }),
+                ))
+                .with_record(SuggestionProvider::Weather.record(
+                    "weather-2",
+                    json!({
+                        "score": 0.24,
+                        "keywords": kws_2,
+                    }),
+                )),
+        );
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        // Make sure all keywords are present.
+        assert_eq!(
+            store.count_rows("keywords_i18n") as usize,
+            kws_1.len() + kws_2.len()
+        );
+
+        for q in kws_1.iter().chain(kws_2.iter()) {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![Suggestion::Weather {
+                    score: 0.24,
+                    city: None,
+                }],
+                "query: {:?}",
+                q
+            );
+        }
+
+        // Delete the first record.
+        store
+            .client_mut()
+            .delete_record(SuggestionProvider::Weather.empty_record("weather-1"));
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        // Its keywords should be dropped and the keywords from the second
+        // record should still be present.
+        assert_eq!(store.count_rows("keywords_i18n") as usize, kws_2.len());
+
+        for q in kws_1 {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![],
+                "query: {:?}",
+                q
+            );
+        }
+        for q in kws_2 {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![Suggestion::Weather {
+                    score: 0.24,
+                    city: None,
+                }],
+                "query: {:?}",
+                q
+            );
+        }
+
+        Ok(())
+    }
+
+    // Keywords in `keywords_i18n` should be dropped when their records are
+    // updated and the keywords are no longer present, and new keywords should
+    // be added.
+    #[test]
+    fn keywords_i18n_update_record() -> anyhow::Result<()> {
+        // Add some records whose keywords are stored in `keywords_i18n`. We'll
+        // use weather records.
+        let kws_1 = ["aaa", "bbb", "ccc"];
+        let kws_2 = ["yyy", "zzz"];
+        let mut store = TestStore::new(
+            MockRemoteSettingsClient::default()
+                .with_record(SuggestionProvider::Weather.record(
+                    "weather-1",
+                    json!({
+                        "score": 0.24,
+                        "keywords": kws_1,
+                    }),
+                ))
+                .with_record(SuggestionProvider::Weather.record(
+                    "weather-2",
+                    json!({
+                        "score": 0.24,
+                        "keywords": kws_2,
+                    }),
+                )),
+        );
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        // Make sure all keywords are present.
+        assert_eq!(
+            store.count_rows("keywords_i18n") as usize,
+            kws_1.len() + kws_2.len()
+        );
+
+        for q in kws_1.iter().chain(kws_2.iter()) {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![Suggestion::Weather {
+                    score: 0.24,
+                    city: None,
+                }],
+                "query: {:?}",
+                q
+            );
+        }
+
+        // Update the first record.
+        let kws_1_new = [
+            "bbb", // keyword from the old record
+            "mmm", // new keyword
+        ];
+        store
+            .client_mut()
+            .update_record(SuggestionProvider::Weather.record(
+                "weather-1",
+                json!({
+                    "score": 0.24,
+                    "keywords": kws_1_new,
+                }),
+            ));
+        store.ingest(SuggestIngestionConstraints {
+            providers: Some(vec![SuggestionProvider::Weather]),
+            ..SuggestIngestionConstraints::all_providers()
+        });
+
+        // Check all keywords.
+        assert_eq!(
+            store.count_rows("keywords_i18n") as usize,
+            kws_1_new.len() + kws_2.len()
+        );
+
+        for q in ["aaa", "ccc"] {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![],
+                "query: {:?}",
+                q
+            );
+        }
+        for q in kws_1_new.iter().chain(kws_2.iter()) {
+            assert_eq!(
+                store.fetch_suggestions(SuggestionQuery::weather(q)),
+                vec![Suggestion::Weather {
+                    score: 0.24,
+                    city: None,
+                }],
+                "query: {:?}",
+                q
+            );
+        }
+
+        Ok(())
+    }
 }

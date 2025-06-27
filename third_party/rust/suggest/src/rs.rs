@@ -397,7 +397,7 @@ pub fn iterate_keywords<'a>(
     let full_keywords_iter = full_keywords
         .iter()
         .flat_map(|(full_keyword, repeat_for)| {
-            std::iter::repeat(Some(full_keyword.as_str())).take(*repeat_for)
+            std::iter::repeat_n(Some(full_keyword.as_str()), *repeat_for)
         })
         .chain(std::iter::repeat(None)); // In case of insufficient full keywords, just fill in with infinite `None`s
                                          //

@@ -61,7 +61,7 @@ impl InvalidHeaderName {
 }
 
 fn validate_header(mut name: Cow<'static, str>) -> Result<HeaderName, InvalidHeaderName> {
-    if name.len() == 0 {
+    if name.is_empty() {
         return Err(invalid_header_name(name));
     }
     let mut need_lower_case = false;

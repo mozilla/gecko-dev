@@ -16,13 +16,10 @@ use rusqlite::{named_params, Connection};
 use serde::Deserialize;
 use sql_support::ConnExt;
 use std::{
-    borrow::Cow,
     cell::OnceCell,
     collections::HashMap,
     hash::{Hash, Hasher},
 };
-use unicase::UniCase;
-use unicode_normalization::{char::is_combining_mark, UnicodeNormalization};
 
 use crate::{
     db::{KeywordsMetrics, KeywordsMetricsUpdater, SuggestDao},
@@ -270,43 +267,6 @@ impl<S: AsRef<str>> DownloadedGeonamesAlternate<S> {
             Self::Name(_) => false,
             Self::Full { is_short, .. } => is_short.unwrap_or(false),
         }
-    }
-}
-
-/// Compares two strings ignoring case, Unicode combining marks, and some
-/// punctuation. Intended to be used as a Sqlite collating sequence for
-/// comparing geoname names.
-pub fn geonames_collate(a: &str, b: &str) -> std::cmp::Ordering {
-    UniCase::new(collate_remove_chars(a)).cmp(&UniCase::new(collate_remove_chars(b)))
-}
-
-fn collate_remove_chars(s: &str) -> Cow<'_, str> {
-    let borrowable = !s
-        .nfkd()
-        .any(|c| is_combining_mark(c) || matches!(c, '.' | ',' | '-'));
-
-    if borrowable {
-        Cow::from(s)
-    } else {
-        s.nfkd()
-            .filter_map(|c| {
-                if is_combining_mark(c) {
-                    // Remove Unicode combining marks:
-                    // "Que\u{0301}bec" => "Quebec"
-                    None
-                } else {
-                    match c {
-                        // Remove '.' and ',':
-                        // "St. Louis, U.S.A." => "St Louis USA"
-                        '.' | ',' => None,
-                        // Replace '-' with space:
-                        // "Carmel-by-the-Sea" => "Carmel by the Sea"
-                        '-' => Some(' '),
-                        _ => Some(c),
-                    }
-                }
-            })
-            .collect::<_>()
     }
 }
 
@@ -1215,6 +1175,21 @@ pub(crate) mod tests {
                 "longitude": "-80.51639",
             },
 
+            // La Visitation-de-l'Île-Dupas, Quebec
+            {
+                "id": 6050740,
+                "name": "La Visitation-de-l'Île-Dupas",
+                "feature_class": "P",
+                "feature_code": "PPL",
+                "country": "CA",
+                "admin1": "10",
+                "admin2": "14",
+                "admin3": "52050",
+                "population": 0,
+                "latitude": "46.083333",
+                "longitude": "-73.15",
+            },
+
             // UK
             {
                 "id": 2635167,
@@ -1758,6 +1733,26 @@ pub(crate) mod tests {
         }
     }
 
+    pub(crate) fn la_visitation() -> Geoname {
+        Geoname {
+            geoname_id: 6050740,
+            geoname_type: GeonameType::City,
+            name: "La Visitation-de-l'Île-Dupas".to_string(),
+            feature_class: "P".to_string(),
+            feature_code: "PPL".to_string(),
+            country_code: "CA".to_string(),
+            admin_division_codes: [
+                (1, "10".to_string()),
+                (2, "14".to_string()),
+                (3, "52050".to_string()),
+            ]
+            .into(),
+            population: 0,
+            latitude: "46.083333".to_string(),
+            longitude: "-73.15".to_string(),
+        }
+    }
+
     pub(crate) fn uk() -> Geoname {
         Geoname {
             geoname_id: 2635167,
@@ -1957,47 +1952,6 @@ pub(crate) mod tests {
                 assert!(
                     !a_and_b[0].is_related_to(a_and_b[1]),
                     "!is_related_to: {:?}",
-                    a_and_b
-                );
-            }
-        }
-        Ok(())
-    }
-
-    #[test]
-    fn geonames_collate() -> anyhow::Result<()> {
-        let tests = [
-            ["AbC xYz", "ABC XYZ", "abc xyz"].as_slice(),
-            &["Àęí", "Aei", "àęí", "aei"],
-            &[
-                // "Québec" with single 'é' char
-                "Qu\u{00e9}bec",
-                // "Québec" with ASCII 'e' followed by combining acute accent
-                "Que\u{0301}bec",
-                "Quebec",
-                "quebec",
-            ],
-            &[
-                "Gößnitz",
-                "Gössnitz",
-                "Goßnitz",
-                "Gossnitz",
-                "gößnitz",
-                "gössnitz",
-                "goßnitz",
-                "gossnitz",
-            ],
-            &["St. Louis", "St... Louis", "St Louis"],
-            &["U.S.A.", "US.A.", "U.SA.", "U.S.A", "USA.", "U.SA", "USA"],
-            &["Carmel-by-the-Sea", "Carmel by the Sea"],
-            &[".,-'()[]?<>", ".,-'()[]?<>"],
-        ];
-        for strs in tests {
-            for a_and_b in strs.iter().permutations(2) {
-                assert_eq!(
-                    super::geonames_collate(a_and_b[0], a_and_b[1]),
-                    std::cmp::Ordering::Equal,
-                    "Comparing: {:?}",
                     a_and_b
                 );
             }
