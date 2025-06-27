@@ -6,6 +6,7 @@ package org.mozilla.fenix.home.toolbar
 
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.AnimationUtils
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
@@ -15,6 +16,7 @@ import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.navigation.fragment.findNavController
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
@@ -218,6 +220,16 @@ internal class HomeToolbarView(
                     context,
                     context.theme.resolveAttribute(R.attr.bottomBarBackgroundTop),
                 )
+
+                homeBinding.homeAppBar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    topMargin =
+                        context.resources.getDimensionPixelSize(R.dimen.home_fragment_top_toolbar_header_margin) +
+                        if (isTabletAndTabStripEnabled) {
+                            context.resources.getDimensionPixelSize(R.dimen.tab_strip_height)
+                        } else {
+                            0
+                        }
+                }
             }
 
             ToolbarPosition.BOTTOM -> {}

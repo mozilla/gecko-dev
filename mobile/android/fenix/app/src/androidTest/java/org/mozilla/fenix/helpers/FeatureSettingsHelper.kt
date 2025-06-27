@@ -87,6 +87,11 @@ interface FeatureSettingsHelper {
     var onboardingFeatureEnabled: Boolean
 
     /**
+     * Enable or disable the compose home screen feature.
+     */
+    var isComposeHomepageEnabled: Boolean
+
+    /**
      * Enable or disable new crash reporter.
      */
     var isUseNewCrashReporterDialog: Boolean

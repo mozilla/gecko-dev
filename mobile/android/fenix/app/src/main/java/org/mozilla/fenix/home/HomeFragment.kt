@@ -6,6 +6,7 @@ package org.mozilla.fenix.home
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.ContextCompat.getColor
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
@@ -35,12 +37,23 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
+import androidx.recyclerview.widget.RecyclerView.SmoothScroller
+import com.google.android.material.appbar.AppBarLayout
+import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.Dispatchers.Main
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.selector.normalTabs
+import mozilla.components.browser.state.selector.privateTabs
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
@@ -62,6 +75,7 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.HomeScreen
+import org.mozilla.fenix.GleanMetrics.Homepage
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
@@ -107,6 +121,8 @@ import org.mozilla.fenix.home.recentvisits.controller.DefaultRecentVisitsControl
 import org.mozilla.fenix.home.search.DefaultHomeSearchController
 import org.mozilla.fenix.home.sessioncontrol.DefaultSessionControlController
 import org.mozilla.fenix.home.sessioncontrol.SessionControlInteractor
+import org.mozilla.fenix.home.sessioncontrol.SessionControlView
+import org.mozilla.fenix.home.sessioncontrol.viewholders.CollectionHeaderViewHolder
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.toolbar.DefaultToolbarController
 import org.mozilla.fenix.home.toolbar.FenixHomeToolbar
@@ -176,6 +192,9 @@ class HomeFragment : Fragment() {
     private val collectionStorageObserver = object : TabCollectionStorage.Observer {
         @SuppressLint("NotifyDataSetChanged")
         override fun onCollectionRenamed(tabCollection: TabCollection, title: String) {
+            lifecycleScope.launch(Main) {
+                binding.sessionControlRecyclerView.adapter?.notifyDataSetChanged()
+            }
             showRenamedSnackbar()
         }
 
@@ -186,6 +205,10 @@ class HomeFragment : Fragment() {
                     R.string.create_collection_tab_saved
                 } else {
                     R.string.create_collection_tabs_saved
+                }
+
+                lifecycleScope.launch(Main) {
+                    binding.sessionControlRecyclerView.adapter?.notifyDataSetChanged()
                 }
 
                 Snackbar.make(
@@ -205,6 +228,8 @@ class HomeFragment : Fragment() {
     private var _sessionControlInteractor: SessionControlInteractor? = null
     private val sessionControlInteractor: SessionControlInteractor
         get() = _sessionControlInteractor!!
+
+    private var sessionControlView: SessionControlView? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal var nullableToolbarView: FenixHomeToolbar? = null
@@ -511,7 +536,21 @@ class HomeFragment : Fragment() {
             listenForMicrosurveyMessage(requireContext())
         }
 
-        initComposeHomepage()
+        if (requireContext().settings().enableComposeHomepage) {
+            initComposeHomepage()
+        } else {
+            binding.homepageView.isVisible = false
+            binding.sessionControlRecyclerView.isVisible = true
+            sessionControlView = SessionControlView(
+                containerView = binding.sessionControlRecyclerView,
+                viewLifecycleOwner = viewLifecycleOwner,
+                interactor = sessionControlInteractor,
+            )
+
+            updateSessionControlView()
+        }
+
+        disableAppBarDragging()
 
         FxNimbus.features.homescreen.recordExposure()
 
@@ -740,6 +779,42 @@ class HomeFragment : Fragment() {
         )
     }
 
+    /**
+     * The [SessionControlView] is forced to update with our current state when we call
+     * [HomeFragment.onCreateView] in order to be able to draw everything at once with the current
+     * data in our store. The [View.consumeFrom] coroutine dispatch
+     * doesn't get run right away which means that we won't draw on the first layout pass.
+     */
+    private fun updateSessionControlView() {
+        if (browsingModeManager.mode == BrowsingMode.Private) {
+            binding.root.consumeFrom(requireContext().components.appStore, viewLifecycleOwner) {
+                sessionControlView?.update(it)
+            }
+        } else {
+            sessionControlView?.update(requireContext().components.appStore.state)
+
+            binding.root.consumeFrom(requireContext().components.appStore, viewLifecycleOwner) {
+                sessionControlView?.update(it, shouldReportMetrics = true)
+            }
+        }
+    }
+
+    private fun disableAppBarDragging() {
+        if (binding.homeAppBar.layoutParams != null) {
+            val appBarLayoutParams = binding.homeAppBar.layoutParams as CoordinatorLayout.LayoutParams
+            val appBarBehavior = AppBarLayout.Behavior()
+            appBarBehavior.setDragCallback(
+                object : AppBarLayout.Behavior.DragCallback() {
+                    override fun canDrag(appBarLayout: AppBarLayout): Boolean {
+                        return false
+                    }
+                },
+            )
+            appBarLayoutParams.behavior = appBarBehavior
+        }
+        binding.homeAppBar.setExpanded(true)
+    }
+
     @Suppress("LongMethod", "ComplexMethod")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         // DO NOT ADD ANYTHING ABOVE THIS getProfilerTime CALL!
@@ -786,8 +861,18 @@ class HomeFragment : Fragment() {
             initTabStrip()
         }
 
+        PrivateBrowsingButtonView(
+            button = binding.privateBrowsingButton,
+            showPrivateBrowsingButton = !requireContext().settings().enableHomepageAsNewTab,
+            browsingModeManager = browsingModeManager,
+        ) { newMode ->
+            sessionControlInteractor.onPrivateModeButtonClicked(newMode)
+            Homepage.privateModeIconTapped.record(NoExtras())
+        }
+
         consumeFrom(requireComponents.core.store) {
             toolbarView.updateTabCounter(it)
+            showCollectionsPlaceholder(it)
         }
 
         requireComponents.appStore.state.wasLastTabClosedPrivate?.also {
@@ -807,6 +892,26 @@ class HomeFragment : Fragment() {
             val searchFragmentAlreadyAdded = parentFragmentManager.fragments.any { it is SearchDialogFragment }
             if (!searchFragmentAlreadyAdded) {
                 sessionControlInteractor.onNavigateSearch()
+            }
+        } else if (bundleArgs.getBoolean(SCROLL_TO_COLLECTION)) {
+            MainScope().launch {
+                delay(ANIM_SCROLL_DELAY)
+                val smoothScroller: SmoothScroller =
+                    object : LinearSmoothScroller(sessionControlView!!.view.context) {
+                        override fun getVerticalSnapPreference(): Int {
+                            return SNAP_TO_START
+                        }
+                    }
+                val recyclerView = sessionControlView!!.view
+                val adapter = recyclerView.adapter!!
+                val collectionPosition = IntRange(0, adapter.itemCount - 1).firstOrNull {
+                    adapter.getItemViewType(it) == CollectionHeaderViewHolder.LAYOUT_ID
+                }
+                collectionPosition?.run {
+                    val linearLayoutManager = recyclerView.layoutManager as LinearLayoutManager
+                    smoothScroller.targetPosition = this
+                    linearLayoutManager.startSmoothScroll(smoothScroller)
+                }
             }
         }
 
@@ -853,6 +958,10 @@ class HomeFragment : Fragment() {
     }
 
     private fun initComposeHomepage() {
+        binding.sessionControlRecyclerView.isVisible = false
+        binding.homepageView.isVisible = true
+        binding.homeAppBarContent.isVisible = false
+
         binding.homepageView.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
@@ -895,20 +1004,12 @@ class HomeFragment : Fragment() {
     }
 
     private fun onFirstHomepageFrameDrawn() {
-        val components = requireContext().components
-        val appStore = components.appStore
-        val appState = appStore.state
-
-        with(components.settings) {
+        with(requireContext().components.settings) {
             if (showWallpaperOnboardingDialog()) {
                 sessionControlInteractor.showWallpapersOnboardingDialog(
-                    appState.wallpaperState,
+                    requireContext().components.appStore.state.wallpaperState,
                 )
             }
-        }
-
-        if (!appStore.state.mode.isPrivate) {
-            sessionControlInteractor.reportSessionMetrics(state = appState)
         }
 
         // We want some parts of the home screen UI to be rendered first if they are
@@ -916,7 +1017,9 @@ class HomeFragment : Fragment() {
         // For this reason, we wait for the home screen recycler view to finish it's
         // layout and post an update for when it's best for non-visible parts of the
         // home screen to render itself.
-        appStore.dispatch(AppAction.UpdateFirstFrameDrawn(drawn = true))
+        requireContext().components.appStore.dispatch(
+            AppAction.UpdateFirstFrameDrawn(true),
+        )
     }
 
     private fun initTabStrip() {
@@ -992,6 +1095,7 @@ class HomeFragment : Fragment() {
         nullableToolbarView = null
 
         _sessionControlInteractor = null
+        sessionControlView = null
         _bottomToolbarContainerView = null
         awesomeBarComposable = null
         _binding = null
@@ -1137,6 +1241,18 @@ class HomeFragment : Fragment() {
         )
     }
 
+    private fun showCollectionsPlaceholder(browserState: BrowserState) {
+        val tabCount = if (browsingModeManager.mode.isPrivate) {
+            browserState.privateTabs.size
+        } else {
+            browserState.normalTabs.size
+        }
+
+        // The add_tabs_to_collections_button is added at runtime. We need to search for it in the same way.
+        sessionControlView?.view?.findViewById<MaterialButton>(R.id.add_tabs_to_collections_button)
+            ?.isVisible = tabCount > 0
+    }
+
     @VisibleForTesting
     internal fun shouldEnableWallpaper() =
         (activity as? HomeActivity)?.themeManager?.currentTheme?.isPrivate?.not() ?: false
@@ -1175,6 +1291,22 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+        // Logo color should be updated in all cases.
+        applyWallpaperTextColor()
+    }
+
+    /**
+     * Apply a color better contrasting with the current wallpaper to the Fenix logo and private mode switcher.
+     */
+    @VisibleForTesting
+    internal fun applyWallpaperTextColor() {
+        val tintColor = when (val color = requireContext().settings().currentWallpaperTextColor.toInt()) {
+            0 -> null // a null ColorStateList will clear the current tint
+            else -> ColorStateList.valueOf(color)
+        }
+
+        binding.wordmarkText.imageTintList = tintColor
+        binding.privateBrowsingButton.buttonTintList = tintColor
     }
 
     private fun observeWallpaperUpdates() {
@@ -1216,7 +1348,11 @@ class HomeFragment : Fragment() {
     companion object {
         // Navigation arguments passed to HomeFragment
         const val FOCUS_ON_ADDRESS_BAR = "focusOnAddressBar"
+        private const val SCROLL_TO_COLLECTION = "scrollToCollection"
         private const val SESSION_TO_DELETE = "sessionToDelete"
+
+        // Delay for scrolling to the collection header
+        private const val ANIM_SCROLL_DELAY = 100L
 
         // Elevation for undo toasts
         internal const val TOAST_ELEVATION = 80f

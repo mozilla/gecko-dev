@@ -6,6 +6,7 @@ package org.mozilla.fenix.perf
 
 import androidx.annotation.UiThread
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.home.topsites.TopSiteItemViewHolder
 import org.mozilla.fenix.perf.StartupTimeline.onApplicationInit
 import org.mozilla.fenix.perf.StartupTimelineStateMachine.StartupActivity
 import org.mozilla.fenix.perf.StartupTimelineStateMachine.StartupDestination
@@ -46,6 +47,11 @@ object StartupTimeline {
     fun onActivityCreateEndHome(activity: HomeActivity) {
         advanceState(StartupActivity.HOME)
         reportFullyDrawn.onActivityCreateEndHome(state, activity)
+    }
+
+    fun onTopSitesItemBound(holder: TopSiteItemViewHolder) {
+        // no advanceState associated with this method.
+        reportFullyDrawn.onTopSitesItemBound(state, holder)
     }
 
     /**

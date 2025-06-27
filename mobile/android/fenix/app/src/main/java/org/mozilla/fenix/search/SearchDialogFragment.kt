@@ -70,6 +70,7 @@ import mozilla.components.support.ktx.android.content.isPermissionGranted
 import mozilla.components.support.ktx.android.content.res.getSpanned
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
 import mozilla.components.support.ktx.android.view.ImeInsetsSynchronizer
+import mozilla.components.support.ktx.android.view.findViewInHierarchy
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.android.view.setupPersistentInsets
 import mozilla.components.support.ktx.android.view.showKeyboard
@@ -92,6 +93,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.databinding.FragmentSearchDialogBinding
 import org.mozilla.fenix.databinding.SearchSuggestionsHintBinding
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.getRectWithScreenLocation
 import org.mozilla.fenix.ext.increaseTapArea
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
@@ -144,6 +146,7 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
     private val qrFeature = ViewBoundFeatureWrapper<QrFeature>()
     private val speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
 
+    private var isPrivateButtonClicked = false
     private var dialogHandledAction = false
     private var searchSelectorAlreadyAdded = false
     private var qrButtonAction: Toolbar.Action? = null
@@ -322,18 +325,27 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                 dialog?.window?.decorView?.setOnTouchListener { _, event ->
                     when (event?.action) {
                         MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                            // Immediately drop Search Bar focus on touch.
-                            toolbarView.view.clearFocus()
+                            isPrivateButtonClicked = isTouchingPrivateButton(event.x, event.y)
+                            // Immediately drop Search Bar focus when the touch is not on the private button.
+                            if (!isPrivateButtonClicked) {
+                                toolbarView.view.clearFocus()
+                            }
                         }
                         MotionEvent.ACTION_UP -> {
-                            findNavController().popBackStack()
+                            if (!isTouchingPrivateButton(
+                                    event.x,
+                                    event.y,
+                                ) && !isPrivateButtonClicked
+                            ) {
+                                findNavController().popBackStack()
+                                isPrivateButtonClicked = false
+                            }
                         }
+                        else -> isPrivateButtonClicked = false
                     }
-
                     if (binding.awesomeBar.visibility != View.VISIBLE) {
                         requireActivity().dispatchTouchEvent(event)
                     }
-
                     false
                 }
             }
@@ -530,6 +542,13 @@ class SearchDialogFragment : AppCompatDialogFragment(), UserInteractionHandler {
                 interactor.onSearchShortcutEngineSelected(selectedSearchEngine)
             }
         }
+    }
+
+    private fun isTouchingPrivateButton(x: Float, y: Float): Boolean {
+        val view = parentFragmentManager.primaryNavigationFragment?.view?.findViewInHierarchy {
+            it.id == R.id.privateBrowsingButton
+        } ?: return false
+        return view.getRectWithScreenLocation().contains(x.toInt(), y.toInt())
     }
 
     private fun hideClipboardSection() {

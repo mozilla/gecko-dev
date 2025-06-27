@@ -110,7 +110,7 @@ data class CollectionColors(
         @Composable
         fun colors(
             buttonBackgroundColor: Color = FirefoxTheme.colors.actionPrimary,
-            buttonTextColor: Color = FirefoxTheme.colors.textActionPrimary,
+            buttonTextColor: Color = FirefoxTheme.colors.iconActionPrimary,
             titleTextColor: Color = FirefoxTheme.colors.textPrimary,
             descriptionTextColor: Color = FirefoxTheme.colors.textSecondary,
         ) = CollectionColors(

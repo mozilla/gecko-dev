@@ -75,9 +75,11 @@
     <dimen name="bookmark_select_folder_indent">10dp</dimen>
 
     <!-- Home Fragment -->
+    <dimen name="home_fragment_top_toolbar_header_margin">60dp</dimen>
     <dimen name="home_item_horizontal_margin">16dp</dimen>
     <dimen name="home_item_vertical_margin">8dp</dimen>
     <dimen name="wordmark_text_height">18dp</dimen>
+    <dimen name="wordmark_text_margin_top">10dp</dimen>
 
     <!-- Browser Fragment -->
     <!--The size of the gap between the tab preview and content layout.-->
@@ -158,12 +160,26 @@
     <!-- Account Settings Fragment  -->
     <dimen name="account_settings_device_name_min_height">48dp</dimen>
 
+    <!-- Top sites  -->
+    <dimen name="top_sites_item_margin_bottom">12dp</dimen>
+    <dimen name="top_sites_text_margin_top">6dp</dimen>
+    <dimen name="top_sites_favicon_size">36dp</dimen>
+    <dimen name="top_sites_favicon_elevation">0dp</dimen>
+    <dimen name="top_sites_favicon_corner_size">4dp</dimen>
+
+    <dimen name="top_sites_card_size">60dp</dimen>
+    <dimen name="top_sites_card_margin_top">4dp</dimen>
+    <dimen name="top_sites_card_padding">12dp</dimen>
+    <dimen name="top_sites_card_elevation">6dp</dimen>
+    <dimen name="top_sites_card_radius">8dp</dimen>
+
     <!-- Credit Cards Fragment -->
     <dimen name="credit_cards_saved_cards_item_margin_start">16dp</dimen>
     <dimen name="credit_cards_saved_cards_item_margin_end">48dp</dimen>
 
     <!-- a11y -->
     <dimen name="accessibility_min_height">48dp</dimen>
+    <dimen name="tap_increase_16">16dp</dimen>
     <dimen name="tap_increase_2">2dp</dimen>
 
     <!-- Browser Menu -->

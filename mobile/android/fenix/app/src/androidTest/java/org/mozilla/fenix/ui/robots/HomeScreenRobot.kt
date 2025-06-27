@@ -34,8 +34,8 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.PositionAssertions.isCompletelyAbove
 import androidx.test.espresso.assertion.PositionAssertions.isPartiallyBelow
-import androidx.test.espresso.assertion.PositionAssertions.isTopAlignedWith
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers
 import androidx.test.espresso.matcher.ViewMatchers
@@ -495,7 +495,7 @@ class HomeScreenRobot {
                 if (bottomPosition) {
                     isPartiallyBelow(withId(R.id.homepageView))
                 } else {
-                    isTopAlignedWith(withId(R.id.homeLayout))
+                    isCompletelyAbove(withId(R.id.homeAppBar))
                 },
             )
         Log.i(TAG, "verifyAddressBarPosition: Verified toolbar position is set to top: $bottomPosition")

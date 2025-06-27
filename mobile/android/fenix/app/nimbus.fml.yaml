@@ -621,6 +621,22 @@ features:
         type: Boolean
         default: false
 
+  compose-homepage:
+    description: Turns on compose homepage.
+    variables:
+      enabled:
+        description: >
+          Whether or not to turn on the compose homepage.
+        type: Boolean
+        default: false
+    defaults:
+      - channel: nightly
+        value:
+          enabled: true
+      - channel: developer
+        value:
+          enabled: true
+
   microsurveys:
     description: Feature for microsurveys.
     variables:
