@@ -27,6 +27,15 @@ const TEST_PROFILE_DE2 = {
   "postal-code": "90002",
 };
 
+const TEST_PROFILE_ES = {
+  email: "address_es@mozilla.org",
+  organization: "Mozilla",
+  country: "ES",
+  "street-address": "Calle de Montalbán, 1\n1er piso",
+  "postal-code": "28014",
+  "address-level1": "Madrid",
+};
+
 add_autofill_heuristic_tests([
   {
     description: "Test autofill with house number",
@@ -313,6 +322,55 @@ add_autofill_heuristic_tests([
           {
             fieldName: "postal-code",
             autofill: TEST_PROFILE_CA["postal-code"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    description:
+      "Test autofill with a field initially identified as credit card number",
+    fixtureData: `<form>
+      <input id="email" autocomplete="email">
+      <label for="house">Dirección y número</label>
+      <input id="house" name="delivery-houseNumber">
+      <label for="line2">Datos adicionales</label>
+      <input id="line2" name="delivery-line2">
+      <input id="postal-code" autocomplete="postal-code">
+      <label for="pro">Provincia</label>
+      <select id="pro">
+        <option value="aa">Almería
+        <option value="bb">Barcelona
+        <option value="cc">Cádiz
+        <option value="mm">Madrid
+      </select>
+    </form>`,
+    profile: TEST_PROFILE_ES,
+    expectedResult: [
+      {
+        default: {
+          reason: "autocomplete",
+        },
+        fields: [
+          { fieldName: "email", autofill: TEST_PROFILE_ES.email },
+          {
+            fieldName: "address-line1",
+            autofill: "Calle de Montalbán, 1",
+            reason: "update-heuristic",
+          },
+          {
+            fieldName: "address-line2",
+            autofill: "1er piso",
+            reason: "regex-heuristic",
+          },
+          {
+            fieldName: "postal-code",
+            autofill: TEST_PROFILE_ES["postal-code"],
+          },
+          {
+            fieldName: "address-level1",
+            autofill: "mm",
+            reason: "regex-heuristic",
           },
         ],
       },
