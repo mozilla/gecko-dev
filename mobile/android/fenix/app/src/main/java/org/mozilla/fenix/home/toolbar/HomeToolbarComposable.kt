@@ -6,7 +6,6 @@ package org.mozilla.fenix.home.toolbar
 
 import android.content.Context
 import android.view.Gravity
-import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
@@ -123,8 +122,6 @@ internal class HomeToolbarComposable(
         if (settings.shouldUseBottomToolbar) {
             ImeInsetsSynchronizer.setup(layout)
         }
-
-        updateHomeAppBarIntegration()
     }
 
     override fun updateDividerVisibility(isVisible: Boolean) {
@@ -161,18 +158,6 @@ internal class HomeToolbarComposable(
                         },
                     ),
                 )
-            }
-        }
-    }
-
-    private fun updateHomeAppBarIntegration() {
-        if (!settings.shouldUseBottomToolbar) {
-            homeBinding.homeAppBar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                topMargin = context.resources.getDimensionPixelSize(R.dimen.home_fragment_top_toolbar_header_margin) +
-                    when (context.isTabStripEnabled()) {
-                        true -> context.resources.getDimensionPixelSize(R.dimen.tab_strip_height)
-                        false -> 0
-                    }
             }
         }
     }
