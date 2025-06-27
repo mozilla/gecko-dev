@@ -8,7 +8,7 @@ use crate::{
 };
 use std::{
     mem::zeroed,
-    os::windows::io::{FromRawHandle, OwnedHandle, RawHandle},
+    os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle},
     ptr::{null, null_mut},
 };
 use windows_sys::Win32::{
@@ -93,7 +93,7 @@ fn cancel_overlapped_io(handle: HANDLE, overlapped: &mut OVERLAPPED) -> bool {
 }
 
 pub(crate) struct OverlappedOperation {
-    handle: HANDLE,
+    handle: OwnedHandle,
     overlapped: Option<Box<OVERLAPPED>>,
     buffer: Option<Vec<u8>>,
 }
@@ -104,12 +104,16 @@ enum OverlappedOperationType {
 }
 
 impl OverlappedOperation {
-    pub(crate) fn listen(handle: HANDLE, event: HANDLE) -> Result<OverlappedOperation, IPCError> {
+    pub(crate) fn listen(
+        handle: OwnedHandle,
+        event: HANDLE,
+    ) -> Result<OverlappedOperation, IPCError> {
         let mut overlapped = Self::overlapped_with_event(event)?;
 
         // SAFETY: We guarantee that the handle and OVERLAPPED object are both
         // valid and remain so while used by this function.
-        let res = unsafe { ConnectNamedPipe(handle, overlapped.as_mut()) };
+        let res =
+            unsafe { ConnectNamedPipe(handle.as_raw_handle() as HANDLE, overlapped.as_mut()) };
         let error = get_last_error();
 
         if res != FALSE {
@@ -173,7 +177,7 @@ impl OverlappedOperation {
         // and thus guaranteed to be valid.
         let res = unsafe {
             GetOverlappedResultEx(
-                self.handle,
+                self.handle.as_raw_handle() as HANDLE,
                 overlapped.as_ref(),
                 &mut number_of_bytes_transferred,
                 if wait { IO_TIMEOUT as u32 } else { 0 },
@@ -202,7 +206,7 @@ impl OverlappedOperation {
     }
 
     pub(crate) fn sched_recv(
-        handle: HANDLE,
+        handle: OwnedHandle,
         event: HANDLE,
         expected_size: usize,
     ) -> Result<OverlappedOperation, IPCError> {
@@ -214,7 +218,7 @@ impl OverlappedOperation {
         // duration of the asynchronous operation.
         let res = unsafe {
             ReadFile(
-                handle,
+                handle.as_raw_handle() as HANDLE,
                 buffer.as_mut_ptr(),
                 number_of_bytes_to_read,
                 null_mut(),
@@ -243,7 +247,7 @@ impl OverlappedOperation {
     }
 
     pub(crate) fn sched_send(
-        handle: HANDLE,
+        handle: OwnedHandle,
         event: HANDLE,
         mut buffer: Vec<u8>,
     ) -> Result<OverlappedOperation, IPCError> {
@@ -254,7 +258,7 @@ impl OverlappedOperation {
         // duration of the asynchronous operation.
         let res = unsafe {
             WriteFile(
-                handle,
+                handle.as_raw_handle() as HANDLE,
                 buffer.as_mut_ptr(),
                 number_of_bytes_to_write,
                 null_mut(),
@@ -296,7 +300,7 @@ impl OverlappedOperation {
     }
 
     fn cancel_or_leak(&self, mut overlapped: Box<OVERLAPPED>, buffer: Option<Vec<u8>>) {
-        if !cancel_overlapped_io(self.handle, overlapped.as_mut()) {
+        if !cancel_overlapped_io(self.handle.as_raw_handle() as HANDLE, overlapped.as_mut()) {
             // If we cannot cancel the operation we must leak the
             // associated buffers so that they're available in case it
             // ever completes.
