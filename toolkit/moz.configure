@@ -4205,3 +4205,4 @@ def onnx_runtime_path(with_onnx_runtime, dllinfo, toolchain, bootstrap):
 
 
 set_config("ONNX_RUNTIME", onnx_runtime_path)
+set_define("ONNX_RUNTIME", onnx_runtime_path)
