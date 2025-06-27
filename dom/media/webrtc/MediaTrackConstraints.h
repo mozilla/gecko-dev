@@ -130,7 +130,7 @@ class NormalizedConstraintSet {
     uint32_t mMergeDenominator;
   };
 
-  struct LongRange : public Range<int32_t> {
+  struct LongRange final : public Range<int32_t> {
     typedef LongRange NormalizedConstraintSet::* LongPtrType;
 
     LongRange(LongPtrType aMemberPtr, const char* aName,
@@ -138,14 +138,14 @@ class NormalizedConstraintSet {
               bool advanced, nsTArray<MemberPtrType>* aList);
   };
 
-  struct LongLongRange : public Range<int64_t> {
+  struct LongLongRange final : public Range<int64_t> {
     typedef LongLongRange NormalizedConstraintSet::* LongLongPtrType;
 
     LongLongRange(LongLongPtrType aMemberPtr, const char* aName,
                   const long long& aOther, nsTArray<MemberPtrType>* aList);
   };
 
-  struct DoubleRange : public Range<double> {
+  struct DoubleRange final : public Range<double> {
     typedef DoubleRange NormalizedConstraintSet::* DoublePtrType;
 
     DoubleRange(
@@ -154,7 +154,7 @@ class NormalizedConstraintSet {
         bool advanced, nsTArray<MemberPtrType>* aList);
   };
 
-  struct BooleanRange : public Range<bool> {
+  struct BooleanRange final : public Range<bool> {
     typedef BooleanRange NormalizedConstraintSet::* BooleanPtrType;
 
     BooleanRange(
@@ -170,7 +170,7 @@ class NormalizedConstraintSet {
     }
   };
 
-  struct StringRange : public BaseRange {
+  struct StringRange final : public BaseRange {
     typedef std::set<nsString> ValueType;
     ValueType mExact, mIdeal;
 
