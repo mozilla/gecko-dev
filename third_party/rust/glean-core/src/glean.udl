@@ -354,6 +354,8 @@ interface PingType {
     void set_enabled(boolean enabled);
 };
 
+typedef enum DynamicLabelType;
+
 // The common set of data shared across all different metric types.
 dictionary CommonMetricData {
     // The metric's category.
@@ -376,7 +378,7 @@ dictionary CommonMetricData {
     // When a labeled metric factory creates the specific metric to be recorded to,
     // dynamic labels are stored in the specific label so that
     // we can validate them when the Glean singleton is available.
-    string? dynamic_label = null;
+    DynamicLabelType? dynamic_label = null;
 };
 
 interface CounterMetric {
@@ -729,4 +731,12 @@ interface ObjectMetric {
     i32 test_get_num_recorded_errors(ErrorType error);
 
     void record_schema_error();
+};
+
+interface DualLabeledCounterMetric {
+    constructor(CommonMetricData meta, sequence<CowString>? keys, sequence<CowString>? categories);
+
+    CounterMetric get(string key, string category);
+
+    i32 test_get_num_recorded_errors(ErrorType error);
 };

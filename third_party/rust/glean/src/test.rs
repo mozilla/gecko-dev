@@ -9,11 +9,13 @@ use std::time::{Duration, Instant};
 
 use crossbeam_channel::RecvTimeoutError;
 use flate2::read::GzDecoder;
-use glean_core::glean_test_get_experimentation_id;
+use glean_core::{glean_test_get_experimentation_id, DynamicLabelType};
 use serde_json::Value as JsonValue;
 
 use crate::private::PingType;
-use crate::private::{BooleanMetric, CounterMetric, EventMetric, StringMetric, TextMetric};
+use crate::private::{
+    BooleanMetric, CounterMetric, DualLabeledCounterMetric, EventMetric, StringMetric, TextMetric,
+};
 
 use super::*;
 use crate::common_test::{lock_test, new_glean, GLOBAL_APPLICATION_ID};
@@ -1273,12 +1275,44 @@ fn test_boolean_get_num_errors() {
         send_in_pings: vec!["custom1".into()],
         lifetime: Lifetime::Application,
         disabled: false,
-        dynamic_label: Some(str::to_string("asdf")),
+        dynamic_label: Some(DynamicLabelType::Label(str::to_string("asdf"))),
     });
 
     // Check specifically for an invalid label
     let result = metric.test_get_num_recorded_errors(ErrorType::InvalidLabel);
 
+    assert_eq!(result, 0);
+}
+
+#[test]
+fn test_dual_labeled_counter_metric() {
+    let _lock = lock_test();
+
+    let _t = new_glean(None, false);
+
+    let metric = DualLabeledCounterMetric::new(
+        CommonMetricData {
+            name: "dual_labeled_counter".into(),
+            category: "telemetry".into(),
+            send_in_pings: vec!["store1".into()],
+            disabled: false,
+            lifetime: Lifetime::Ping,
+            ..Default::default()
+        },
+        Some(vec!["key1".into()]),
+        Some(vec!["category1".into()]),
+    );
+
+    metric.get("key1", "category1").add(1);
+
+    // Check that the value was recorded
+    let value = metric
+        .get("key1", "category1")
+        .test_get_value(Some("store1".into()));
+    assert_eq!(value.unwrap(), 1);
+
+    // Check for an invalid label
+    let result = metric.test_get_num_recorded_errors(ErrorType::InvalidLabel);
     assert_eq!(result, 0);
 }
 
@@ -1294,7 +1328,7 @@ fn test_text_can_hold_long_string() {
         send_in_pings: vec!["custom1".into()],
         lifetime: Lifetime::Application,
         disabled: false,
-        dynamic_label: Some(str::to_string("text")),
+        dynamic_label: Some(DynamicLabelType::Label(str::to_string("text"))),
     });
 
     // 216 characters, which would overflow StringMetric

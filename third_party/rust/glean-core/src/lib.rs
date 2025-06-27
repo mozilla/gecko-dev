@@ -58,7 +58,7 @@ mod util;
 #[cfg(all(not(target_os = "android"), not(target_os = "ios")))]
 mod fd_logger;
 
-pub use crate::common_metric_data::{CommonMetricData, Lifetime};
+pub use crate::common_metric_data::{CommonMetricData, DynamicLabelType, Lifetime};
 pub use crate::core::Glean;
 pub use crate::core_metrics::{AttributionMetrics, ClientInfoMetrics, DistributionMetrics};
 pub use crate::error::{Error, ErrorKind, Result};
@@ -71,11 +71,11 @@ pub use crate::metrics::labeled::{
 };
 pub use crate::metrics::{
     BooleanMetric, CounterMetric, CustomDistributionMetric, Datetime, DatetimeMetric,
-    DenominatorMetric, DistributionData, EventMetric, LocalCustomDistribution,
-    LocalMemoryDistribution, LocalTimingDistribution, MemoryDistributionMetric, MemoryUnit,
-    NumeratorMetric, ObjectMetric, PingType, QuantityMetric, Rate, RateMetric, RecordedEvent,
-    RecordedExperiment, StringListMetric, StringMetric, TextMetric, TimeUnit, TimerId,
-    TimespanMetric, TimingDistributionMetric, UrlMetric, UuidMetric,
+    DenominatorMetric, DistributionData, DualLabeledCounterMetric, EventMetric,
+    LocalCustomDistribution, LocalMemoryDistribution, LocalTimingDistribution,
+    MemoryDistributionMetric, MemoryUnit, NumeratorMetric, ObjectMetric, PingType, QuantityMetric,
+    Rate, RateMetric, RecordedEvent, RecordedExperiment, StringListMetric, StringMetric,
+    TextMetric, TimeUnit, TimerId, TimespanMetric, TimingDistributionMetric, UrlMetric, UuidMetric,
 };
 pub use crate::upload::{PingRequest, PingUploadTask, UploadResult, UploadTaskAction};
 

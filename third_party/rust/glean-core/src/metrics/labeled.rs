@@ -3,13 +3,14 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::borrow::Cow;
+use std::collections::HashSet;
 use std::collections::{hash_map::Entry, HashMap};
 use std::mem;
 use std::sync::{Arc, Mutex};
 
 use malloc_size_of::MallocSizeOf;
 
-use crate::common_metric_data::{CommonMetricData, CommonMetricDataInternal};
+use crate::common_metric_data::{CommonMetricData, CommonMetricDataInternal, DynamicLabelType};
 use crate::error_recording::{record_error, test_get_num_recorded_errors, ErrorType};
 use crate::histogram::HistogramType;
 use crate::metrics::{
@@ -257,7 +258,7 @@ where
     ///
     /// This is used for dynamic labels where we have to actually validate and correct the
     /// label later when we have a Glean object.
-    fn new_metric_with_dynamic_label(&self, label: String) -> T {
+    fn new_metric_with_dynamic_label(&self, label: DynamicLabelType) -> T {
         self.submetric.with_dynamic_label(label)
     }
 
@@ -321,7 +322,8 @@ where
                             label,
                         ))
                     }
-                    None => self.new_metric_with_dynamic_label(label.to_string()),
+                    None => self
+                        .new_metric_with_dynamic_label(DynamicLabelType::Label(label.to_string())),
                 };
                 let metric = Arc::new(metric);
                 entry.insert(Arc::clone(&metric));
@@ -385,10 +387,10 @@ pub fn validate_dynamic_label(
         }
     }
 
-    let mut label_count = 0;
+    let mut labels = HashSet::new();
     let prefix = &key[..=base_identifier.len()];
-    let mut snapshotter = |_: &[u8], _: &Metric| {
-        label_count += 1;
+    let mut snapshotter = |metric_id: &[u8], _: &Metric| {
+        labels.insert(metric_id.to_vec());
     };
 
     let lifetime = meta.inner.lifetime;
@@ -398,6 +400,7 @@ pub fn validate_dynamic_label(
             .iter_store_from(lifetime, store, Some(prefix), &mut snapshotter);
     }
 
+    let label_count = labels.len();
     let error = if label_count >= MAX_LABELS {
         true
     } else if label.len() > MAX_LABEL_LENGTH {

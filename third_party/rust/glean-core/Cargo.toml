@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.82"
 name = "glean-core"
-version = "64.4.0"
+version = "64.5.1"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -40,7 +40,7 @@ license = "MPL-2.0"
 repository = "https://github.com/mozilla/glean"
 
 [package.metadata.glean]
-glean-parser = "17.1.0"
+glean-parser = "17.2.0"
 
 [lib]
 name = "glean_core"
@@ -65,6 +65,10 @@ path = "tests/custom_distribution.rs"
 [[test]]
 name = "datetime"
 path = "tests/datetime.rs"
+
+[[test]]
+name = "dual_labeled_counter"
+path = "tests/dual_labeled_counter.rs"
 
 [[test]]
 name = "event"

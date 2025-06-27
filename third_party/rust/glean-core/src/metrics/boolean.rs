@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use crate::common_metric_data::CommonMetricDataInternal;
+use crate::common_metric_data::{CommonMetricDataInternal, DynamicLabelType};
 use crate::error_recording::{test_get_num_recorded_errors, ErrorType};
 use crate::metrics::Metric;
 use crate::metrics::MetricType;
@@ -33,7 +33,7 @@ impl MetricType for BooleanMetric {
         }
     }
 
-    fn with_dynamic_label(&self, label: String) -> Self {
+    fn with_dynamic_label(&self, label: DynamicLabelType) -> Self {
         let mut meta = (*self.meta).clone();
         meta.inner.dynamic_label = Some(label);
         Self {
