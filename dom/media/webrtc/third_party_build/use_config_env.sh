@@ -79,6 +79,7 @@ function find_base_commit()
 }
 export -f find_base_commit
 
+
 function find_next_commit()
 {
   # identify the next commit above our current base commit
@@ -87,3 +88,17 @@ function find_next_commit()
    | tail -2 | head -1 | awk '{print $1;}'`
 }
 export -f find_next_commit
+
+
+function find_repo_type()
+{
+  if [ -d ".git" ]; then
+      MOZ_REPO="git"
+  elif [ -d ".hg" ]; then
+      MOZ_REPO="hg"
+  else
+    echo "Unable to detect repo (git or hg)"
+    exit 1
+  fi
+}
+export -f find_repo_type

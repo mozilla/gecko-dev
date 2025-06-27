@@ -23,12 +23,22 @@ echo "MOZ_LIBWEBRTC_SRC: $MOZ_LIBWEBRTC_SRC"
 echo "MOZ_LIBWEBRTC_BRANCH: $MOZ_LIBWEBRTC_BRANCH"
 echo "MOZ_FASTFORWARD_BUG: $MOZ_FASTFORWARD_BUG"
 
-CURRENT_SHA=`hg id -r . | awk '{ print $1; }'`
-echo "CURRENT_SHA: $CURRENT_SHA"
+# CURRENT_SHA=`hg id -r . | awk '{ print $1; }'`
+# echo "CURRENT_SHA: $CURRENT_SHA"
+
+find_repo_type
+echo "repo type: $MOZ_REPO"
 
 # we grab the entire firstline description for convenient logging
+if [ "x$MOZ_REPO" == "xgit" ]; then
+LAST_PATCHSTACK_UPDATE_COMMIT=`git log --max-count 1 --oneline \
+    third_party/libwebrtc/moz-patch-stack/*.patch`
+else
+# note: we reverse the output and use tail -1 rather than using head -1
+# because head fails in this context.
 LAST_PATCHSTACK_UPDATE_COMMIT=`hg log -r ::. --template "{node|short} {desc|firstline}\n" \
     --include "third_party/libwebrtc/moz-patch-stack/*.patch" | tail -1`
+fi
 echo "LAST_PATCHSTACK_UPDATE_COMMIT: $LAST_PATCHSTACK_UPDATE_COMMIT"
 
 LAST_PATCHSTACK_UPDATE_COMMIT_SHA=`echo $LAST_PATCHSTACK_UPDATE_COMMIT \
@@ -36,9 +46,15 @@ LAST_PATCHSTACK_UPDATE_COMMIT_SHA=`echo $LAST_PATCHSTACK_UPDATE_COMMIT \
 echo "LAST_PATCHSTACK_UPDATE_COMMIT_SHA: $LAST_PATCHSTACK_UPDATE_COMMIT_SHA"
 
 # grab the oldest, non "Vendor from libwebrtc" line
+if [ "x$MOZ_REPO" == "xgit" ]; then
+CANDIDATE_COMMITS=`git log --format='%h' --invert-grep \
+    --grep="Vendor libwebrtc" c28df994cbbd..HEAD -- third_party/libwebrtc \
+    | awk 'BEGIN { ORS=" " }; { print $1; }'`
+else
 CANDIDATE_COMMITS=`hg log --template "{node|short} {desc|firstline}\n" \
     -r "children($LAST_PATCHSTACK_UPDATE_COMMIT_SHA)::. - desc('re:(Vendor libwebrtc)')" \
     --include "third_party/libwebrtc/" | awk 'BEGIN { ORS=" " }; { print $1; }'`
+fi
 echo "CANDIDATE_COMMITS:"
 echo "$CANDIDATE_COMMITS"
 
@@ -53,10 +69,19 @@ fi
         --commit $MOZ_LIBWEBRTC_BRANCH \
         libwebrtc
 
+# echo "exiting early for testing repo detection"
+# exit
+
+if [ "x$MOZ_REPO" == "xgit" ]; then
+git restore -q \
+    'third_party/libwebrtc/**/moz.build' \
+    third_party/libwebrtc/README.mozilla.last-vendor
+else
 hg revert -q \
    --include "third_party/libwebrtc/**moz.build" \
    --include "third_party/libwebrtc/README.mozilla.last-vendor" \
    third_party/libwebrtc
+fi
 
 ERROR_HELP=$"
 ***
@@ -78,7 +103,12 @@ After adding the new changes from mercurial to the moz-libwebrtc
 patch stack, you should re-run this command to verify vendoring:
   bash $0
 "
+if [ "x$MOZ_REPO" == "xgit" ]; then
+FILE_CHANGE_CNT=`git status --short third_party/libwebrtc | wc -l | tr -d " "`
+else
 FILE_CHANGE_CNT=`hg status third_party/libwebrtc | wc -l | tr -d " "`
+fi
+echo "FILE_CHANGE_CNT: $FILE_CHANGE_CNT"
 if [ "x$FILE_CHANGE_CNT" != "x0" ]; then
   echo "$ERROR_HELP"
   exit 1
