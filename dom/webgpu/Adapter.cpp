@@ -660,7 +660,7 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 
     auto pending_promise = WebGPUChild::PendingRequestDevicePromise{
         RefPtr(promise), ids.device, ids.queue, aDesc.mLabel,
-        RefPtr(this),    features,   limits};
+        RefPtr(this),    features,   limits,    mInfo};
     mBridge->mPendingRequestDevicePromises.push_back(
         std::move(pending_promise));
 

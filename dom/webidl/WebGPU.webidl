@@ -162,6 +162,7 @@ enum GPUFeatureName {
 interface GPUDevice : EventTarget {
     [SameObject] readonly attribute GPUSupportedFeatures features;
     [SameObject] readonly attribute GPUSupportedLimits limits;
+    [SameObject] readonly attribute GPUAdapterInfo adapterInfo;
 
     [SameObject, BinaryName="getQueue"] readonly attribute GPUQueue queue;
 
