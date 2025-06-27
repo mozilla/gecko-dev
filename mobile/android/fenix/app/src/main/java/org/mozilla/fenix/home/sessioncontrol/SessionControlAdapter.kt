@@ -16,7 +16,6 @@ import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.home.bookmarks.view.BookmarksViewHolder
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
 import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
@@ -129,11 +128,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
 
     object RecentVisitsItems : AdapterItem(RecentlyVisitedViewHolder.LAYOUT_ID)
 
-    /**
-     * The Bookmarks section.
-     */
-    object Bookmarks : AdapterItem(BookmarksViewHolder.LAYOUT_ID)
-
     object PocketStoriesItem : AdapterItem(PocketStoriesViewHolder.LAYOUT_ID)
 
     /**
@@ -183,11 +177,6 @@ class SessionControlAdapter(
                 interactor = interactor,
             )
             PocketStoriesViewHolder.LAYOUT_ID -> return PocketStoriesViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
-            BookmarksViewHolder.LAYOUT_ID -> return BookmarksViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
@@ -242,7 +231,6 @@ class SessionControlAdapter(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
             is RecentlyVisitedViewHolder,
-            is BookmarksViewHolder,
             is RecentSyncedTabViewHolder,
             is PocketStoriesViewHolder,
             is SetupChecklistViewHolder,
@@ -312,7 +300,6 @@ class SessionControlAdapter(
                 holder.bindSession(collection, tab, isLastTab)
             }
             is RecentlyVisitedViewHolder,
-            is BookmarksViewHolder,
             is RecentSyncedTabViewHolder,
             is PocketStoriesViewHolder,
             -> {

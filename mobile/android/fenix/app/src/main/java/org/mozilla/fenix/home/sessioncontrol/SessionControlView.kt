@@ -19,7 +19,6 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.shouldShowRecentSyncedTabs
 import org.mozilla.fenix.ext.shouldShowRecentTabs
-import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
@@ -34,7 +33,6 @@ internal fun normalModeAdapterItems(
     topSites: List<TopSite>,
     collections: List<TabCollection>,
     expandedCollections: Set<Long>,
-    bookmarks: List<Bookmark>,
     showCollectionsPlaceholder: Boolean,
     nimbusMessageCard: Message? = null,
     showRecentTab: Boolean,
@@ -59,10 +57,6 @@ internal fun normalModeAdapterItems(
 
     if (showRecentTab && showRecentSyncedTab) {
         items.add(AdapterItem.RecentSyncedTabItem)
-    }
-
-    if (settings.showBookmarksHomeFeature && bookmarks.isNotEmpty()) {
-        items.add(AdapterItem.Bookmarks)
     }
 
     if (settings.historyMetadataUIFeature && recentVisits.isNotEmpty()) {
@@ -110,7 +104,6 @@ private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> =
         topSites,
         collections,
         expandedCollections,
-        bookmarks,
         showCollectionPlaceholder,
         messaging.messageToShow[FenixMessageSurfaceId.HOMESCREEN],
         shouldShowRecentTabs(settings),
