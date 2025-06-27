@@ -637,44 +637,13 @@ export class FfiConverterUInt8 extends FfiConverter {
         return dataStream.readUint8()
     }
 }
-
 /**
  * Top-level API for the context_id component
  */
-export class ContextIdComponentInterface {
-    /**
-     * Regenerate the context ID.
-     */
-    async forceRotation() {
-      throw Error("forceRotation not implemented");
-    }
-    /**
-     * Return the current context ID string.
-     * @param {number} rotationDaysInS
-     * @returns {Promise<string>}}
-     */
-    async request(
-        rotationDaysInS) {
-      throw Error("request not implemented");
-    }
-    /**
-     * Unset the callbacks set during construction, and use a default
-     * no-op ContextIdCallback instead.
-     */
-    async unsetCallback() {
-      throw Error("unsetCallback not implemented");
-    }
-
-}
-
-/**
- * Top-level API for the context_id component
- */
-export class ContextIdComponent extends ContextIdComponentInterface {
+export class ContextIdComponent {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
-        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -832,38 +801,9 @@ export class FfiConverterInt64 extends FfiConverter {
         return dataStream.readInt64()
     }
 }
-
-/**
- * ContextIdCallback
- */
-export class ContextIdCallback {
-    /**
-     * persist
-     * @param {string} contextId
-     * @param {number} creationDate
-     */
-    persist(
-        contextId, 
-        creationDate) {
-      throw Error("persist not implemented");
-    }
-    /**
-     * rotated
-     * @param {string} oldContextId
-     */
-    rotated(
-        oldContextId) {
-      throw Error("rotated not implemented");
-    }
-
-}
-
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeContextIdCallback extends FfiConverter {
     static lower(callbackObj) {
-        if (!(callbackObj instanceof ContextIdCallback)) {
-            throw new UniFFITypeError("expected 'ContextIdCallback' subclass");
-        }
         return uniffiCallbackHandlerContextIdContextIdCallback.storeCallbackObj(callbackObj)
     }
 
@@ -882,8 +822,7 @@ export class FfiConverterTypeContextIdCallback extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}
-const uniffiCallbackHandlerContextIdContextIdCallback = new UniFFICallbackHandler(
+}const uniffiCallbackHandlerContextIdContextIdCallback = new UniFFICallbackHandler(
     "ContextIdCallback",
     1,
     [

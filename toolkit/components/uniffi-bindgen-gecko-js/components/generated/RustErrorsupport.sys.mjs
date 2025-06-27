@@ -615,48 +615,9 @@ export class FfiConverterUInt32 extends FfiConverter {
         return dataStream.readUint32()
     }
 }
-
-/**
- * Application error reporting trait
- * 
- * The application that's consuming application-services implements this via a UniFFI callback
- * interface, then calls `set_application_error_reporter()` to setup a global
- * ApplicationErrorReporter.
- */
-export class ApplicationErrorReporter {
-    /**
-     * reportError
-     * @param {string} typeName
-     * @param {string} message
-     */
-    reportError(
-        typeName, 
-        message) {
-      throw Error("reportError not implemented");
-    }
-    /**
-     * reportBreadcrumb
-     * @param {string} message
-     * @param {string} module
-     * @param {number} line
-     * @param {number} column
-     */
-    reportBreadcrumb(
-        message, 
-        module, 
-        line, 
-        column) {
-      throw Error("reportBreadcrumb not implemented");
-    }
-
-}
-
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
     static lower(callbackObj) {
-        if (!(callbackObj instanceof ApplicationErrorReporter)) {
-            throw new UniFFITypeError("expected 'ApplicationErrorReporter' subclass");
-        }
         return uniffiCallbackHandlerErrorsupportApplicationErrorReporter.storeCallbackObj(callbackObj)
     }
 
@@ -675,8 +636,7 @@ export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}
-const uniffiCallbackHandlerErrorsupportApplicationErrorReporter = new UniFFICallbackHandler(
+}const uniffiCallbackHandlerErrorsupportApplicationErrorReporter = new UniFFICallbackHandler(
     "ApplicationErrorReporter",
     2,
     [

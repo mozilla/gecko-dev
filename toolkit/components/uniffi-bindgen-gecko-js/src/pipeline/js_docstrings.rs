@@ -43,9 +43,6 @@ pub fn pass(root: &mut Root) -> Result<()> {
     root.visit_mut(|int: &mut Interface| {
         int.js_docstring = format_docstring(int.docstring.as_ref().unwrap_or(&int.name));
     });
-    root.visit_mut(|ibc: &mut InterfaceBaseClass| {
-        ibc.js_docstring = format_docstring(ibc.docstring.as_ref().unwrap_or(&ibc.name));
-    });
     root.visit_mut(|cbi: &mut CallbackInterface| {
         cbi.js_docstring = format_docstring(cbi.docstring.as_ref().unwrap_or(&cbi.name));
     });

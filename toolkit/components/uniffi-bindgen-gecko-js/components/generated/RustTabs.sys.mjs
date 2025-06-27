@@ -1281,74 +1281,13 @@ export class FfiConverterSequenceTypePendingCommand extends FfiConverterArrayBuf
         })
     }
 }
-
-/**
- * RemoteCommandStoreInterface
- */
-export class RemoteCommandStoreInterface {
-    /**
-     * Add a new command, after which it will be pending. Returns false if the command is already active.
-     * @param {string} deviceId
-     * @param {RemoteCommand} command
-     * @returns {Promise<boolean>}}
-     */
-    async addRemoteCommand(
-        deviceId, 
-        command) {
-      throw Error("addRemoteCommand not implemented");
-    }
-    /**
-     * Add a new command with an explicit timestamp. Primarily used by tests.
-     * @param {string} deviceId
-     * @param {RemoteCommand} command
-     * @param {Timestamp} when
-     * @returns {Promise<boolean>}}
-     */
-    async addRemoteCommandAt(
-        deviceId, 
-        command, 
-        when) {
-      throw Error("addRemoteCommandAt not implemented");
-    }
-    /**
-     * Return all unsent commands. This is for the code sending the commands, result is sorted by time_requested.
-     * @returns {Promise<Array.<PendingCommand>>}}
-     */
-    async getUnsentCommands() {
-      throw Error("getUnsentCommands not implemented");
-    }
-    /**
-     * Removes the remote command. Typically used to implement "undo" but may also be used by the queue
-     * processor when it gives up trying to send a command.
-     * @param {string} deviceId
-     * @param {RemoteCommand} command
-     * @returns {Promise<boolean>}}
-     */
-    async removeRemoteCommand(
-        deviceId, 
-        command) {
-      throw Error("removeRemoteCommand not implemented");
-    }
-    /**
-     * Flag a command as sent.
-     * @param {PendingCommand} command
-     * @returns {Promise<boolean>}}
-     */
-    async setPendingCommandSent(
-        command) {
-      throw Error("setPendingCommandSent not implemented");
-    }
-
-}
-
 /**
  * RemoteCommandStore
  */
-export class RemoteCommandStore extends RemoteCommandStoreInterface {
+export class RemoteCommandStore {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
-        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -1556,121 +1495,15 @@ export class FfiConverterSequenceTypeTabsGuid extends FfiConverterArrayBuffer {
         })
     }
 }
-
 /**
  * Note the canonical docs for this are in https://searchfox.org/mozilla-central/source/services/interfaces/mozIBridgedSyncEngine.idl
  * It's only actually used in desktop, but it's fine to expose this everywhere.
  * NOTE: all timestamps here are milliseconds.
  */
-export class TabsBridgedEngineInterface {
-    /**
-     * apply
-     * @returns {Promise<Array.<string>>}}
-     */
-    async apply() {
-      throw Error("apply not implemented");
-    }
-    /**
-     * ensureCurrentSyncId
-     * @param {string} newSyncId
-     * @returns {Promise<string>}}
-     */
-    async ensureCurrentSyncId(
-        newSyncId) {
-      throw Error("ensureCurrentSyncId not implemented");
-    }
-    /**
-     * lastSync
-     * @returns {Promise<number>}}
-     */
-    async lastSync() {
-      throw Error("lastSync not implemented");
-    }
-    /**
-     * prepareForSync
-     * @param {string} clientData
-     */
-    async prepareForSync(
-        clientData) {
-      throw Error("prepareForSync not implemented");
-    }
-    /**
-     * reset
-     */
-    async reset() {
-      throw Error("reset not implemented");
-    }
-    /**
-     * resetSyncId
-     * @returns {Promise<string>}}
-     */
-    async resetSyncId() {
-      throw Error("resetSyncId not implemented");
-    }
-    /**
-     * setLastSync
-     * @param {number} lastSync
-     */
-    async setLastSync(
-        lastSync) {
-      throw Error("setLastSync not implemented");
-    }
-    /**
-     * setUploaded
-     * @param {number} newTimestamp
-     * @param {Array.<TabsGuid>} uploadedIds
-     */
-    async setUploaded(
-        newTimestamp, 
-        uploadedIds) {
-      throw Error("setUploaded not implemented");
-    }
-    /**
-     * storeIncoming
-     * @param {Array.<string>} incomingEnvelopesAsJson
-     */
-    async storeIncoming(
-        incomingEnvelopesAsJson) {
-      throw Error("storeIncoming not implemented");
-    }
-    /**
-     * syncFinished
-     */
-    async syncFinished() {
-      throw Error("syncFinished not implemented");
-    }
-    /**
-     * syncId
-     * @returns {Promise<?string>}}
-     */
-    async syncId() {
-      throw Error("syncId not implemented");
-    }
-    /**
-     * syncStarted
-     */
-    async syncStarted() {
-      throw Error("syncStarted not implemented");
-    }
-    /**
-     * wipe
-     */
-    async wipe() {
-      throw Error("wipe not implemented");
-    }
-
-}
-
-/**
- * Note the canonical docs for this are in https://searchfox.org/mozilla-central/source/services/interfaces/mozIBridgedSyncEngine.idl
- * It's only actually used in desktop, but it's fine to expose this everywhere.
- * NOTE: all timestamps here are milliseconds.
- */
-export class TabsBridgedEngine extends TabsBridgedEngineInterface {
+export class TabsBridgedEngine {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
-        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -1997,63 +1830,13 @@ export class FfiConverterSequenceTypeClientRemoteTabs extends FfiConverterArrayB
         })
     }
 }
-
-/**
- * TabsStoreInterface
- */
-export class TabsStoreInterface {
-    /**
-     * bridgedEngine
-     * @returns {Promise<TabsBridgedEngine>}}
-     */
-    async bridgedEngine() {
-      throw Error("bridgedEngine not implemented");
-    }
-    /**
-     * closeConnection
-     */
-    async closeConnection() {
-      throw Error("closeConnection not implemented");
-    }
-    /**
-     * getAll
-     * @returns {Promise<Array.<ClientRemoteTabs>>}}
-     */
-    async getAll() {
-      throw Error("getAll not implemented");
-    }
-    /**
-     * newRemoteCommandStore
-     * @returns {Promise<RemoteCommandStore>}}
-     */
-    async newRemoteCommandStore() {
-      throw Error("newRemoteCommandStore not implemented");
-    }
-    /**
-     * registerWithSyncManager
-     */
-    async registerWithSyncManager() {
-      throw Error("registerWithSyncManager not implemented");
-    }
-    /**
-     * setLocalTabs
-     * @param {Array.<RemoteTabRecord>} remoteTabs
-     */
-    async setLocalTabs(
-        remoteTabs) {
-      throw Error("setLocalTabs not implemented");
-    }
-
-}
-
 /**
  * TabsStore
  */
-export class TabsStore extends TabsStoreInterface {
+export class TabsStore {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
-        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")

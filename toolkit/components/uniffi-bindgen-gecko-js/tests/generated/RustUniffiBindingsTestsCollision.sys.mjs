@@ -577,27 +577,9 @@ export class FfiConverterString extends FfiConverter {
         return 4 + lazy.encoder.encode(value).length
     }
 }
-
-/**
- * TestCallbackInterface
- */
-export class TestCallbackInterface {
-    /**
-     * getValue
-     * @returns {string}
-     */
-    getValue() {
-      throw Error("getValue not implemented");
-    }
-
-}
-
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeTestCallbackInterface extends FfiConverter {
     static lower(callbackObj) {
-        if (!(callbackObj instanceof TestCallbackInterface)) {
-            throw new UniFFITypeError("expected 'TestCallbackInterface' subclass");
-        }
         return uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface.storeCallbackObj(callbackObj)
     }
 
@@ -616,8 +598,7 @@ export class FfiConverterTypeTestCallbackInterface extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}
-const uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface = new UniFFICallbackHandler(
+}const uniffiCallbackHandlerUniffiBindingsTestsCollisionTestCallbackInterface = new UniFFICallbackHandler(
     "TestCallbackInterface",
     7,
     [

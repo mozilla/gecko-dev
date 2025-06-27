@@ -11,9 +11,7 @@ const {
   invokeTestTraitInterfaceNoop,
   invokeTestTraitInterfaceSetValue,
   Failure1,
-  AsyncTestTraitInterface,
   CallbackInterfaceNumbers,
-  TestTraitInterface,
 } = ChromeUtils.importESModule(
   "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/tests/generated/RustUniffiBindingsTests.sys.mjs"
 );
@@ -21,9 +19,8 @@ const {
 /**
  *
  */
-class TraitImpl extends TestTraitInterface {
+class TraitImpl {
   constructor(value) {
-    super();
     this.value = value;
   }
 
@@ -112,9 +109,8 @@ add_task(async () => {
 /**
  *
  */
-class AsyncTraitImpl extends AsyncTestTraitInterface {
+class AsyncTraitImpl {
   constructor(value) {
-    super();
     this.value = value;
   }
 
