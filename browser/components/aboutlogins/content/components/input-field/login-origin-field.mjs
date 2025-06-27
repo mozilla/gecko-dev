@@ -64,7 +64,7 @@ class LoginOriginField extends MozLitElement {
       ${this.readonly
         ? this.readonlyTemplate
         : editableFieldTemplate({
-            type: "url",
+            type: "text",
             value: this.value,
             required: this.required,
             labelL10nId: "login-item-origin-label",
