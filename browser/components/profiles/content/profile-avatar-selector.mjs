@@ -22,7 +22,7 @@ export class ProfileAvatarSelector extends MozLitElement {
   constructor() {
     super();
 
-    this.state = "custom";
+    this.state = "icon";
   }
 
   getAvatarL10nId(value) {
@@ -42,6 +42,11 @@ export class ProfileAvatarSelector extends MozLitElement {
     }
 
     return "";
+  }
+
+  handleTabClick(event, tabName) {
+    event.stopImmediatePropagation();
+    this.state = tabName;
   }
 
   iconTabContentTemplate() {
@@ -225,10 +230,17 @@ export class ProfileAvatarSelector extends MozLitElement {
       <moz-card id="avatar-selector">
         <div class="button-group">
           <moz-button
-            type="primary"
+            type=${this.state === "icon" ? "primary" : "default"}
+            size="small"
             data-l10n-id="avatar-selector-icon-tab"
-          ></moz-button
-          ><moz-button data-l10n-id="avatar-selector-custom-tab"></moz-button>
+            @click=${e => this.handleTabClick(e, "icon")}
+          ></moz-button>
+          <moz-button
+            type=${this.state === "custom" ? "primary" : "default"}
+            size="small"
+            data-l10n-id="avatar-selector-custom-tab"
+            @click=${e => this.handleTabClick(e, "custom")}
+          ></moz-button>
         </div>
         ${this.contentTemplate()}
       </moz-card>`;
