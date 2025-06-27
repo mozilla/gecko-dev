@@ -6,6 +6,7 @@ package org.mozilla.fenix.home.intent
 
 import android.content.Intent
 import androidx.navigation.NavController
+import org.mozilla.fenix.utils.Settings
 
 /**
  * Processor for Android intents received in [org.mozilla.fenix.HomeActivity].
@@ -18,7 +19,9 @@ interface HomeIntentProcessor {
      * @param intent The intent to process.
      * @param navController Controller to navigate between fragments.
      * @param out Intent to mutate.
+     * @param settings Application settings.
+     *
      * @return True if the intent was processed, otherwise false.
      */
-    fun process(intent: Intent, navController: NavController, out: Intent): Boolean
+    fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean
 }

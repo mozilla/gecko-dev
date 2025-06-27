@@ -15,6 +15,7 @@ import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.widget.VoiceSearchActivity.Companion.SPEECH_PROCESSING
 
 /**
@@ -26,7 +27,7 @@ class SpeechProcessingIntentProcessor(
     private val store: BrowserStore,
 ) : HomeIntentProcessor {
 
-    override fun process(intent: Intent, navController: NavController, out: Intent): Boolean {
+    override fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean {
         if (
             !intent.hasExtra(SPEECH_PROCESSING) ||
             intent.extras?.getBoolean(HomeActivity.OPEN_TO_BROWSER_AND_LOAD) != true

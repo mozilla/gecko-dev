@@ -8,6 +8,7 @@ import android.content.Intent
 import androidx.navigation.NavController
 import androidx.navigation.navOptions
 import io.mockk.Called
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Assert.assertFalse
@@ -17,19 +18,23 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class AssistIntentProcessorTest {
     private val navController: NavController = mockk(relaxed = true)
     private val out: Intent = mockk(relaxed = true)
+    private val settings: Settings = mockk {
+        every { shouldUseComposableToolbar } returns false
+    }
 
     @Test
     fun `GIVEN an intent with wrong action WHEN it is processed THEN nothing should happen`() {
         val intent = Intent().apply {
             action = TEST_WRONG_ACTION
         }
-        val result = StartSearchIntentProcessor().process(intent, navController, out)
+        val result = StartSearchIntentProcessor().process(intent, navController, out, settings)
 
         verify { navController wasNot Called }
         verify { out wasNot Called }
@@ -42,7 +47,7 @@ class AssistIntentProcessorTest {
             action = Intent.ACTION_ASSIST
         }
 
-        AssistIntentProcessor().process(intent, navController, out)
+        AssistIntentProcessor().process(intent, navController, out, settings)
         val options = navOptions {
             popUpTo(R.id.homeFragment)
         }

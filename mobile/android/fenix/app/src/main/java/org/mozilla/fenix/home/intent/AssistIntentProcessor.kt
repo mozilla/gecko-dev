@@ -11,13 +11,14 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.utils.Settings
 
 /**
  * Long pressing home button should also open to the search fragment if Fenix is set as the
  * assist app
  */
 class AssistIntentProcessor : HomeIntentProcessor {
-    override fun process(intent: Intent, navController: NavController, out: Intent): Boolean {
+    override fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean {
         if (intent.action != Intent.ACTION_ASSIST) {
             return false
         }

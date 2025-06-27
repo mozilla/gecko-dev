@@ -34,13 +34,17 @@ class ReEngagementIntentProcessorTest {
     @get:Rule
     val gleanTestRule = FenixGleanTestRule(testContext)
 
+    private val settings: Settings = mockk {
+        every { shouldUseComposableToolbar } returns false
+    }
+
     @Test
     fun `do not process blank intents`() {
         val navController: NavController = mockk()
         val out: Intent = mockk()
         val settings: Settings = mockk()
         val result = ReEngagementIntentProcessor(mockk(), settings)
-            .process(Intent(), navController, out)
+            .process(Intent(), navController, out, settings)
 
         assertFalse(result)
         verify { navController wasNot Called }
@@ -65,7 +69,7 @@ class ReEngagementIntentProcessorTest {
         assertNull(Events.reEngagementNotifTapped.testGetValue())
 
         val result = ReEngagementIntentProcessor(activity, settings)
-            .process(intent, navController, out)
+            .process(intent, navController, out, settings)
 
         assert(result)
 
@@ -104,7 +108,7 @@ class ReEngagementIntentProcessorTest {
         assertNull(Events.reEngagementNotifTapped.testGetValue())
 
         val result = ReEngagementIntentProcessor(activity, settings)
-            .process(intent, navController, out)
+            .process(intent, navController, out, settings)
 
         assert(result)
 

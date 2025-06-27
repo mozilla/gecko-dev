@@ -24,6 +24,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.ext.alreadyOnDestination
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
 import org.mozilla.fenix.utils.maybeShowAddSearchWidgetPrompt
+import org.mozilla.fenix.utils.Settings as AppSettings
 
 /**
  * Deep links in the form of `fenix://host` open different parts of the app.
@@ -34,7 +35,7 @@ class HomeDeepLinkIntentProcessor(
 ) : HomeIntentProcessor {
     private val logger = Logger("DeepLinkIntentProcessor")
 
-    override fun process(intent: Intent, navController: NavController, out: Intent): Boolean {
+    override fun process(intent: Intent, navController: NavController, out: Intent, settings: AppSettings): Boolean {
         val scheme = intent.scheme?.equals(BuildConfig.DEEP_LINK_SCHEME, ignoreCase = true) ?: return false
         return if (scheme) {
             intent.data?.let { handleDeepLink(it, navController) }

@@ -886,7 +886,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 CrashReporterIntentProcessor(components.appStore),
             ) + externalSourceIntentProcessors
         val intentHandled =
-            intentProcessors.any { it.process(intent, navHost.navController, this.intent) }
+            intentProcessors.any { it.process(intent, navHost.navController, this.intent, settings()) }
         browsingModeManager.mode = getModeFromIntentOrLastKnown(intent)
 
         if (intentHandled) {
@@ -1395,6 +1395,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 intent,
                 navHost.navController,
                 this.intent,
+                settings(),
             )
         }
     }

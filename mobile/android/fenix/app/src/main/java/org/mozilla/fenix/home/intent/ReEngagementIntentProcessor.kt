@@ -32,7 +32,7 @@ class ReEngagementIntentProcessor(
     private val settings: Settings,
 ) : HomeIntentProcessor {
 
-    override fun process(intent: Intent, navController: NavController, out: Intent): Boolean {
+    override fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean {
         return when {
             isReEngagementNotificationIntent(intent) -> {
                 Events.reEngagementNotifTapped.record(NoExtras())

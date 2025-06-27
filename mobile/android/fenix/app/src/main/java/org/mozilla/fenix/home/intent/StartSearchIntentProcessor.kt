@@ -14,6 +14,7 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.utils.Settings
 
 /**
  * When the search widget is tapped, Fenix should open to the search fragment.
@@ -21,7 +22,7 @@ import org.mozilla.fenix.ext.nav
  */
 class StartSearchIntentProcessor : HomeIntentProcessor {
 
-    override fun process(intent: Intent, navController: NavController, out: Intent): Boolean {
+    override fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean {
         val event = intent.extras?.getString(HomeActivity.OPEN_TO_SEARCH)
         return if (event != null) {
             val source = when (event) {

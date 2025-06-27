@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
@@ -32,6 +33,9 @@ class OpenSpecificTabIntentProcessorTest {
     private lateinit var navController: NavController
     private lateinit var out: Intent
     private lateinit var processor: OpenSpecificTabIntentProcessor
+    private val settings: Settings = mockk {
+        every { shouldUseComposableToolbar } returns false
+    }
 
     @Before
     fun setup() {
@@ -43,7 +47,7 @@ class OpenSpecificTabIntentProcessorTest {
 
     @Test
     fun `GIVEN a blank intent WHEN it is processed THEN nothing should happen`() {
-        assertFalse(processor.process(Intent(), navController, out))
+        assertFalse(processor.process(Intent(), navController, out, settings))
 
         verify { activity wasNot Called }
         verify { navController wasNot Called }
@@ -56,7 +60,7 @@ class OpenSpecificTabIntentProcessorTest {
             action = TEST_WRONG_ACTION
         }
 
-        assertFalse(processor.process(intent, navController, out))
+        assertFalse(processor.process(intent, navController, out, settings))
 
         verify { activity wasNot Called }
         verify { navController wasNot Called }
@@ -74,7 +78,7 @@ class OpenSpecificTabIntentProcessorTest {
         every { activity.components.core.store } returns store
         every { activity.components.useCases.tabsUseCases } returns tabUseCases
 
-        assertFalse(processor.process(intent, navController, out))
+        assertFalse(processor.process(intent, navController, out, settings))
 
         verify(exactly = 0) { activity.openToBrowser(BrowserDirection.FromGlobal) }
         verify { navController wasNot Called }
@@ -92,7 +96,7 @@ class OpenSpecificTabIntentProcessorTest {
         every { activity.components.core.store } returns store
         every { activity.components.useCases.tabsUseCases } returns tabUseCases
 
-        assertTrue(processor.process(intent, navController, out))
+        assertTrue(processor.process(intent, navController, out, settings))
 
         verifyOrder {
             tabUseCases.selectTab(TEST_SESSION_ID)

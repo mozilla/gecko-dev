@@ -23,6 +23,7 @@ import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.perf.TestStrictModeManager
+import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.widget.VoiceSearchActivity.Companion.SPEECH_PROCESSING
 import org.robolectric.RobolectricTestRunner
 
@@ -32,6 +33,9 @@ class SpeechProcessingIntentProcessorTest {
     private val activity: HomeActivity = mockk(relaxed = true)
     private val navController: NavController = mockk(relaxed = true)
     private val out: Intent = mockk(relaxed = true)
+    private val settings: Settings = mockk {
+        every { shouldUseComposableToolbar } returns false
+    }
 
     private val searchEngine = createSearchEngine(
         name = "Test",
@@ -61,7 +65,7 @@ class SpeechProcessingIntentProcessorTest {
     @Test
     fun `do not process blank intents`() {
         val processor = SpeechProcessingIntentProcessor(activity, store)
-        processor.process(Intent(), navController, out)
+        processor.process(Intent(), navController, out, settings)
 
         verify { activity wasNot Called }
         verify { navController wasNot Called }
@@ -74,7 +78,7 @@ class SpeechProcessingIntentProcessorTest {
             putExtra(HomeActivity.OPEN_TO_BROWSER_AND_LOAD, false)
         }
         val processor = SpeechProcessingIntentProcessor(activity, store)
-        processor.process(intent, navController, out)
+        processor.process(intent, navController, out, settings)
 
         verify { activity wasNot Called }
         verify { navController wasNot Called }
@@ -92,7 +96,7 @@ class SpeechProcessingIntentProcessorTest {
         }
 
         val processor = SpeechProcessingIntentProcessor(activity, store)
-        processor.process(intent, mockk(), mockk(relaxed = true))
+        processor.process(intent, mockk(), mockk(relaxed = true), settings)
 
         verify {
             activity.openToBrowserAndLoad(

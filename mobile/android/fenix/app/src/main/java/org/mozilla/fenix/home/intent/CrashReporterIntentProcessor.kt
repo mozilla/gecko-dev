@@ -12,6 +12,7 @@ import mozilla.components.lib.crash.Crash.NativeCodeCrash
 import mozilla.components.lib.crash.CrashReporter
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.utils.Settings
 
 /**
  * Process the [Intent] from [CrashReporter] through which the app is informed about
@@ -23,7 +24,7 @@ class CrashReporterIntentProcessor(
     private val getCrashFromIntent: (Intent) -> Crash = { intent -> Crash.fromIntent(intent) },
 ) : HomeIntentProcessor {
 
-    override fun process(intent: Intent, navController: NavController, out: Intent): Boolean {
+    override fun process(intent: Intent, navController: NavController, out: Intent, settings: Settings): Boolean {
         return if (isCrashIntent(intent)) {
             val crash = getCrashFromIntent(intent)
             // If only a child process crashed we can handle this gracefully.
