@@ -52,6 +52,7 @@
 #include "xpcprivate.h"
 #include "xpcpublic.h"
 #include "nsContentUtils.h"
+#include "nsContentSecurityUtils.h"
 #include "nsXULAppAPI.h"
 #include "WrapperFactory.h"
 #include "JSServices.h"
@@ -1034,12 +1035,6 @@ nsresult mozJSModuleLoader::GetModuleImportStack(const nsACString& aLocation,
 #endif
 }
 
-/* static */
-bool mozJSModuleLoader::IsTrustedScheme(nsIURI* aURI) {
-  return aURI->SchemeIs("resource") || aURI->SchemeIs("chrome") ||
-         aURI->SchemeIs("moz-src");
-}
-
 nsresult mozJSModuleLoader::ImportESModule(
     JSContext* aCx, const nsACString& aLocation,
     JS::MutableHandleObject aModuleNamespace) {
@@ -1075,7 +1070,7 @@ nsresult mozJSModuleLoader::ImportESModule(
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aLocation);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  if (!IsTrustedScheme(uri)) {
+  if (!nsContentSecurityUtils::IsTrustedScheme(uri)) {
     JS_ReportErrorASCII(aCx,
                         "System modules must be loaded from a trusted scheme");
     return NS_ERROR_FAILURE;

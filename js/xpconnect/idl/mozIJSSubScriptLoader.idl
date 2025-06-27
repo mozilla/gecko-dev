@@ -22,8 +22,9 @@ interface mozIJSSubScriptLoader : nsISupports
      * This method should only be called from JS!
      * In JS, the signature looks like:
      * rv loadSubScript (url [, obj] [, charset]);
-     * @param url the url of the UTF-8-encoded sub-script, it MUST be either a
-     *            file:, resource:, blob:, or chrome: url, and MUST be local.
+     * @param url the url of the UTF-8-encoded sub-script, which MUST be either
+     *            a chrome:, resource:, moz-src:, file:, or jar: url.
+     *            TODO(Bug 1974213):  Disallow file: or jar:
      * @param obj an optional object to evaluate the script onto, it
      *            defaults to the global object of the caller.
      * @retval rv the value returned by the sub-script
@@ -36,7 +37,8 @@ interface mozIJSSubScriptLoader : nsISupports
      * In JS, the signature looks like:
      * rv = loadSubScript (url, optionsObject)
      * @param url the url of the UTF-8-encoded sub-script, which MUST be either
-     *            a file:, resource:, blob:, or chrome: url, and MUST be local.
+     *            a chrome:, resource:, moz-src:, file:, or jar: url.
+     *            TODO(Bug 1974213):  Disallow file: or jar:
      * @param optionsObject an object with parameters. Valid parameters are:
      *                      - target:  an object to evaluate onto (default: global object of the caller)
      *                      - ignoreCache: if set to true, will bypass the cache for reading the file.
