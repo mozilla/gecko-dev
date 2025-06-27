@@ -10,13 +10,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.tab.collections.TabCollection
-import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
-import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 
 // This method got a little complex with the addition of the tab tray feature flag
 // When we remove the tabs from the home screen this will get much simpler again.
@@ -25,13 +23,8 @@ import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 internal fun normalModeAdapterItems(
     collections: List<TabCollection>,
     expandedCollections: Set<Long>,
-    nimbusMessageCard: Message? = null,
 ): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
-
-    nimbusMessageCard?.let {
-        items.add(AdapterItem.NimbusMessageCard(it))
-    }
 
     if (!collections.isEmpty()) {
         showCollections(collections, expandedCollections, items)
@@ -60,7 +53,6 @@ private fun AppState.toAdapterList(): List<AdapterItem> =
     normalModeAdapterItems(
         collections,
         expandedCollections,
-        messaging.messageToShow[FenixMessageSurfaceId.HOMESCREEN],
     )
 
 private fun collectionTabItems(collection: TabCollection) =

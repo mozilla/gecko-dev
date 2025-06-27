@@ -12,10 +12,8 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.tab.collections.TabCollection
-import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
-import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
 sealed class AdapterItem(@LayoutRes val viewType: Int) {
@@ -46,13 +44,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
         override fun contentsSameAs(other: AdapterItem): Boolean {
             return other is TabInCollectionItem && this.isLastTab == other.isLastTab
         }
-    }
-
-    data class NimbusMessageCard(
-        val message: Message,
-    ) : AdapterItem(MessageCardViewHolder.LAYOUT_ID) {
-        override fun sameAs(other: AdapterItem) =
-            other is NimbusMessageCard && message.id == other.message.id
     }
 
     /**
@@ -90,11 +81,6 @@ class SessionControlAdapter(
     @SuppressWarnings("ComplexMethod", "LongMethod", "ReturnCount")
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         return when (viewType) {
-            MessageCardViewHolder.LAYOUT_ID -> MessageCardViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             CollectionViewHolder.LAYOUT_ID -> CollectionViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -114,11 +100,6 @@ class SessionControlAdapter(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
             is CollectionViewHolder -> {
-                // Dispose the underlying composition immediately.
-                // This ViewHolder can be removed / re-added and we need it to show a fresh new composition.
-                holder.composeView.disposeComposition()
-            }
-            is MessageCardViewHolder -> {
                 // Dispose the underlying composition immediately.
                 // This ViewHolder can be removed / re-added and we need it to show a fresh new composition.
                 holder.composeView.disposeComposition()
@@ -148,9 +129,6 @@ class SessionControlAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = getItem(position)
         when (holder) {
-            is MessageCardViewHolder -> {
-                holder.bind((item as AdapterItem.NimbusMessageCard).message)
-            }
             is CollectionViewHolder -> {
                 val (collection, expanded) = item as AdapterItem.CollectionItem
                 holder.bindSession(collection, expanded)
