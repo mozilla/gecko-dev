@@ -3975,6 +3975,15 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
                           std::forward<OriginFunc>(aOriginFunc)(metadata);
 
                           AddTemporaryOrigin(metadata);
+
+                          if (StaticPrefs::
+                                  dom_quotaManager_loadQuotaFromSecondaryCache() &&
+                              metadata.mQuotaVersion == kCurrentQuotaVersion &&
+                              !metadata.mAccessed) {
+                            InitQuotaForOrigin(metadata);
+
+                            break;
+                          }
                         }
 
                         QM_TRY(QM_OR_ELSE_WARN_IF(
@@ -4065,6 +4074,14 @@ nsresult QuotaManager::InitializeRepository(PersistenceType aPersistenceType,
               std::forward<OriginFunc>(aOriginFunc)(metadata);
 
               AddTemporaryOrigin(metadata);
+
+              if (StaticPrefs::dom_quotaManager_loadQuotaFromSecondaryCache() &&
+                  metadata.mQuotaVersion == kCurrentQuotaVersion &&
+                  !metadata.mAccessed) {
+                InitQuotaForOrigin(metadata);
+
+                return Ok{};
+              }
             }
 
             // XXX We don't check corruption here ?

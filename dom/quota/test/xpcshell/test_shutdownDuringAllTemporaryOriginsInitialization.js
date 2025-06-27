@@ -190,6 +190,7 @@ async function testSteps() {
       pref_set: [
         ["dom.quotaManager.temporaryStorage.lazyOriginInitialization", true],
         ["dom.quotaManager.loadQuotaFromCache", false],
+        ["dom.quotaManager.loadQuotaFromSecondaryCache", false],
         ["dom.quotaManager.originInitialization.pauseOnIOThreadMs", 2000],
       ],
     },

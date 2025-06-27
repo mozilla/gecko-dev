@@ -44,6 +44,10 @@ const testcases = [
   {
     async setup(expectedInitResult) {
       Services.prefs.setBoolPref("dom.quotaManager.loadQuotaFromCache", false);
+      Services.prefs.setBoolPref(
+        "dom.quotaManager.loadQuotaFromSecondaryCache",
+        false
+      );
 
       let request = init();
       await requestFinished(request);

@@ -107,6 +107,7 @@ async function testSteps() {
       pref_set: [
         ["dom.quotaManager.temporaryStorage.lazyOriginInitialization", true],
         ["dom.quotaManager.loadQuotaFromCache", false],
+        ["dom.quotaManager.loadQuotaFromSecondaryCache", false],
       ],
     },
     testInitializeAllTemporaryOrigins
