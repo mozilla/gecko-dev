@@ -320,7 +320,7 @@ random-if(winWidget) fuzzy(0-25,0-2800) fails-if(useDrawSnapshot) HTTP == 289480
 == 296904-1.html 296904-1-ref.html
 == 299136-1.html 299136-1-ref.html
 == 299837-1.html 299837-1-ref.html
-skip-if(Android) random-if(winWidget) == chrome://reftest/content/bugs/299837-3.xhtml chrome://reftest/content/bugs/299837-3-ref.xhtml # bug 587631
+skip-if(Android) == chrome://reftest/content/bugs/299837-3.xhtml chrome://reftest/content/bugs/299837-3-ref.xhtml
 == 300691-1a.html 300691-1-ref.html
 == 300691-1b.html 300691-1-ref.html
 == 300691-1c.html 300691-1-ref.html
