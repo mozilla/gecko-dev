@@ -374,8 +374,9 @@ export class ONNXPipeline {
     transformers.env.useCustomCache = true;
     transformers.env.customCache = this.#mlEngineWorker;
     // using `NO_LOCAL` so when the custom cache is used, we don't try to fetch it (see MLEngineWorker.match)
+    transformers.env.localModelPath = "NO_LOCAL";
+
     if (config.backend === WASM_BACKEND) {
-      transformers.env.localModelPath = "NO_LOCAL";
       transformers.env.backends.onnx.wasm.numThreads = config.numThreads;
 
       // ONNX runtime - we set up the wasm runtime we got from RS for the ONNX backend to pick
