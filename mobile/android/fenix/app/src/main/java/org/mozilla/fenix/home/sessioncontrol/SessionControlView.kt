@@ -5,77 +5,30 @@
 package org.mozilla.fenix.home.sessioncontrol
 
 import android.view.View
-import androidx.annotation.VisibleForTesting
-import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import mozilla.components.feature.tab.collections.TabCollection
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
 
-// This method got a little complex with the addition of the tab tray feature flag
-// When we remove the tabs from the home screen this will get much simpler again.
-@Suppress("ComplexMethod", "LongParameterList")
-@VisibleForTesting
-internal fun normalModeAdapterItems(
-    collections: List<TabCollection>,
-    expandedCollections: Set<Long>,
-): List<AdapterItem> {
-    val items = mutableListOf<AdapterItem>()
-
-    if (!collections.isEmpty()) {
-        showCollections(collections, expandedCollections, items)
-    }
-
-    return items
-}
-
-private fun showCollections(
-    collections: List<TabCollection>,
-    expandedCollections: Set<Long>,
-    items: MutableList<AdapterItem>,
-) {
-    // If the collection is expanded, we want to add all of its tabs beneath it in the adapter
-    collections.map {
-        AdapterItem.CollectionItem(it, expandedCollections.contains(it.id))
-    }.forEach {
-        items.add(it)
-    }
-}
-
-private fun AppState.toAdapterList(): List<AdapterItem> =
-    normalModeAdapterItems(
-        collections,
-        expandedCollections,
-    )
-
 /**
  * Shows a list of Home screen views.
  *
  * @param containerView The [View] that is used to initialize the Home recycler view.
- * @param viewLifecycleOwner [LifecycleOwner] for the view.
  * @param interactor [SessionControlInteractor] which will have delegated to all user interactions.
  */
 class SessionControlView(
     containerView: View,
-    viewLifecycleOwner: LifecycleOwner,
     private val interactor: SessionControlInteractor,
 ) {
 
     val view: RecyclerView = containerView as RecyclerView
 
-    private val sessionControlAdapter = SessionControlAdapter(
-        interactor,
-        viewLifecycleOwner,
-    )
-
     init {
         @Suppress("NestedBlockDepth")
         view.apply {
-            adapter = sessionControlAdapter
             layoutManager = object : LinearLayoutManager(containerView.context) {
                 override fun onLayoutCompleted(state: RecyclerView.State?) {
                     super.onLayoutCompleted(state)
@@ -101,7 +54,5 @@ class SessionControlView(
 
     fun update(state: AppState, shouldReportMetrics: Boolean = false) {
         if (shouldReportMetrics) interactor.reportSessionMetrics(state)
-
-        sessionControlAdapter.submitList(state.toAdapterList())
     }
 }

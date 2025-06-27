@@ -39,7 +39,6 @@ import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import com.google.android.material.appbar.AppBarLayout
 import kotlinx.coroutines.Dispatchers.IO
-import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -182,9 +181,6 @@ class HomeFragment : Fragment() {
     private val collectionStorageObserver = object : TabCollectionStorage.Observer {
         @SuppressLint("NotifyDataSetChanged")
         override fun onCollectionRenamed(tabCollection: TabCollection, title: String) {
-            lifecycleScope.launch(Main) {
-                binding.sessionControlRecyclerView.adapter?.notifyDataSetChanged()
-            }
             showRenamedSnackbar()
         }
 
@@ -195,10 +191,6 @@ class HomeFragment : Fragment() {
                     R.string.create_collection_tab_saved
                 } else {
                     R.string.create_collection_tabs_saved
-                }
-
-                lifecycleScope.launch(Main) {
-                    binding.sessionControlRecyclerView.adapter?.notifyDataSetChanged()
                 }
 
                 Snackbar.make(
@@ -533,7 +525,6 @@ class HomeFragment : Fragment() {
             binding.sessionControlRecyclerView.isVisible = true
             sessionControlView = SessionControlView(
                 containerView = binding.sessionControlRecyclerView,
-                viewLifecycleOwner = viewLifecycleOwner,
                 interactor = sessionControlInteractor,
             )
 
