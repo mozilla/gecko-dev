@@ -123,7 +123,7 @@ class NormalizedConstraintSet {
   };
 
   struct LongLongRange final : public Range<int64_t> {
-    LongLongRange(const char* aName, const long long& aOther);
+    LongLongRange(const char* aName, const dom::Optional<int64_t>& aOther);
   };
 
   struct DoubleRange final : public Range<double> {
@@ -196,6 +196,10 @@ class NormalizedConstraintSet {
   LongRange mChannelCount;
 
  public:
+  NormalizedConstraintSet()
+      : NormalizedConstraintSet(dom::MediaTrackConstraintSet(),
+                                /* advanced = */ false) {}
+
   NormalizedConstraintSet(const dom::MediaTrackConstraintSet& aOther,
                           bool advanced)
       : mWidth("width", aOther.mWidth, advanced),
@@ -204,9 +208,7 @@ class NormalizedConstraintSet {
         mFacingMode("facingMode", aOther.mFacingMode, advanced),
         mResizeMode("resizeMode", aOther.mResizeMode, advanced),
         mMediaSource("mediaSource", aOther.mMediaSource),
-        mBrowserWindow("browserWindow", aOther.mBrowserWindow.WasPassed()
-                                            ? aOther.mBrowserWindow.Value()
-                                            : 0),
+        mBrowserWindow("browserWindow", aOther.mBrowserWindow),
         mDeviceId("deviceId", aOther.mDeviceId, advanced),
         mGroupId("groupId", aOther.mGroupId, advanced),
         mViewportOffsetX("viewportOffsetX", aOther.mViewportOffsetX, advanced),
@@ -228,6 +230,7 @@ void NormalizedConstraintSet::Range<bool>::FinalizeMerge();
 
 // Used instead of MediaTrackConstraints in lower-level code.
 struct NormalizedConstraints : public NormalizedConstraintSet {
+  NormalizedConstraints() = default;
   explicit NormalizedConstraints(const dom::MediaTrackConstraints& aOther);
 
   std::vector<NormalizedConstraintSet> mAdvanced;
@@ -235,8 +238,8 @@ struct NormalizedConstraints : public NormalizedConstraintSet {
 
 // Flattened version is used in low-level code with orthogonal constraints only.
 struct FlattenedConstraints : public NormalizedConstraintSet {
+  FlattenedConstraints() = default;
   explicit FlattenedConstraints(const NormalizedConstraints& aOther);
-
   explicit FlattenedConstraints(const dom::MediaTrackConstraints& aOther)
       : FlattenedConstraints(NormalizedConstraints(aOther)) {}
 };

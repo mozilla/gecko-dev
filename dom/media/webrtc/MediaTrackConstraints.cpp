@@ -110,12 +110,14 @@ NormalizedConstraintSet::LongRange::LongRange(
   }
 }
 
-NormalizedConstraintSet::LongLongRange::LongLongRange(const char* aName,
-                                                      const long long& aOther)
+NormalizedConstraintSet::LongLongRange::LongLongRange(
+    const char* aName, const dom::Optional<int64_t>& aOther)
     : Range<int64_t>(aName,
                      1 + INT64_MIN,  // +1 avoids Windows compiler bug
                      INT64_MAX) {
-  mIdeal.emplace(aOther);
+  if (aOther.WasPassed()) {
+    mIdeal.emplace(aOther.Value());
+  }
 }
 
 NormalizedConstraintSet::DoubleRange::DoubleRange(
@@ -439,49 +441,48 @@ uint32_t MediaConstraintsHelper::FitnessDistance(
   // of the sources. Unfortunately, this is a bit laborious to find out, and
   // requires updating as new constraints are added!
   const auto& c = aConstraints;
-  dom::MediaTrackConstraints empty;
 
   if (aDevices.IsEmpty() ||
-      !SomeSettingsFit(NormalizedConstraints(empty), aPrefs, aDevices)) {
+      !SomeSettingsFit(NormalizedConstraints(), aPrefs, aDevices)) {
     return "";
   }
   {
-    NormalizedConstraints fresh(empty);
+    NormalizedConstraints fresh;
     fresh.mDeviceId = c.mDeviceId;
     if (!SomeSettingsFit(fresh, aPrefs, aDevices)) {
       return "deviceId";
     }
   }
   {
-    NormalizedConstraints fresh(empty);
+    NormalizedConstraints fresh;
     fresh.mGroupId = c.mGroupId;
     if (!SomeSettingsFit(fresh, aPrefs, aDevices)) {
       return "groupId";
     }
   }
   {
-    NormalizedConstraints fresh(empty);
+    NormalizedConstraints fresh;
     fresh.mWidth = c.mWidth;
     if (!SomeSettingsFit(fresh, aPrefs, aDevices)) {
       return "width";
     }
   }
   {
-    NormalizedConstraints fresh(empty);
+    NormalizedConstraints fresh;
     fresh.mHeight = c.mHeight;
     if (!SomeSettingsFit(fresh, aPrefs, aDevices)) {
       return "height";
     }
   }
   {
-    NormalizedConstraints fresh(empty);
+    NormalizedConstraints fresh;
     fresh.mFrameRate = c.mFrameRate;
     if (!SomeSettingsFit(fresh, aPrefs, aDevices)) {
       return "frameRate";
     }
   }
   {
-    NormalizedConstraints fresh(empty);
+    NormalizedConstraints fresh;
     fresh.mFacingMode = c.mFacingMode;
     if (!SomeSettingsFit(fresh, aPrefs, aDevices)) {
       return "facingMode";
@@ -495,7 +496,7 @@ const char* MediaConstraintsHelper::FindBadConstraint(
     const NormalizedConstraints& aConstraints, const MediaEnginePrefs& aPrefs,
     const MediaDevice* aMediaDevice) {
   NormalizedConstraints c(aConstraints);
-  NormalizedConstraints empty((dom::MediaTrackConstraints()));
+  NormalizedConstraints empty;
   c.mDeviceId = empty.mDeviceId;
   c.mGroupId = empty.mGroupId;
   AutoTArray<RefPtr<LocalMediaDevice>, 1> devices;
