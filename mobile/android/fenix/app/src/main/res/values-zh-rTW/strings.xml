@@ -944,7 +944,7 @@
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">使用另一套應用程式管理下載項目</string>
   <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
-  <string name="preferences_downloads_settings_clean_up_files_title">從裝置刪除 %s</string>
+  <string name="preferences_downloads_settings_clean_up_files_title">從 %s 與裝置刪除</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">從下載管理員移除檔案時，也從裝置中刪除該檔案</string>
   <!-- Preference for downloads -->

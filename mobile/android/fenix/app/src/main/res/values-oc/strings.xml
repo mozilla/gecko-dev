@@ -368,6 +368,8 @@
   <string name="browser_menu_edit_bookmark">Modificar lo marcapagina</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Enregistrar en PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Enregistrar en PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Passar a la vista lectura</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -376,8 +378,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Desplaçar cap a un onglet non privat</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Traduire la pagina…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Traduire la pagina</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Senhalar un site copat…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Senhalar un site copat</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -387,6 +393,8 @@
   <string name="browser_menu_translated">Traducha</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Imprimir…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Imprimir</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -912,6 +920,8 @@
   <string name="preferences_open_links_in_apps_never">Pas jamai</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Gestionari de telecargament extèrn</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Telecargaments</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Activar los jornals Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1515,6 +1525,16 @@
   <string name="download_delete_item">Suprimir</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">Tornar</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Pausa</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Reprendre</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Tornar ensajar</string>
   <string name="download_clear_search_description">Escafar</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Partejar l’URL</string>
@@ -1576,6 +1596,8 @@
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">en espèra</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Fracàs del telecargament</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Detalhs</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Recercar dins los telecargaments</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1688,6 +1710,8 @@
   <string name="bookmark_menu_copy_button">Copiar</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Partejar</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Tot seleccionar</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Dobrir dins un onglet novèl</string>
   <!-- Bookmark overflow menu open in private tab button -->

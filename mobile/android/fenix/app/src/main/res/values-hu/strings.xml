@@ -943,6 +943,8 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Külső letöltéskezelő</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">Letöltések kezelése másik alkalmazással</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Törlés a(z) %s eszközről</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">A fájlok letöltéskezelőből történő eltávolítása eltávolítja azokat az eszközéről is</string>
   <!-- Preference for downloads -->
@@ -1762,12 +1764,18 @@
   <string name="unsubmitted_crash_dialog_title">A %s újraindítása szükséges</string>
   <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_requested_by_devs_dialog_title">Egy beküldetlen hibajelentése van, amely kapcsolódik a vizsgált összeomlásokhoz. Az elküldése segít nekünk a %1$s fejlesztésében. Az értesítés bezárása figyelmen kívül fogja hagyni ezt a jelentést.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Beküldetlen hibajelentései vannak (%1$d), amelyek kapcsolódnak a vizsgált összeomlásokhoz. Az elküldésük segít nekünk a %2$s fejlesztésében. Az értesítés bezárása figyelmen kívül fogja hagyni ezeket a jelentéseket.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Összeomlás-jelentések automatikus elküldése</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Bezárás</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Ne jelenjen meg többé</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Összeomlás-jelentés küldése</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">További tudnivalók</string>
   <!--
     Bookmarks
 

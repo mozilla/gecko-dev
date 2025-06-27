@@ -1762,12 +1762,20 @@
   <string name="tab_crash_restore">Restaurar aba</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s precisou reiniciar</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Você tem um relatório de falha não enviado, relacionado a falhas sendo investigadas. Ao enviar, nos ajuda a melhorar o %1$s. Se fechar esta notificação, o relatório será desconsiderado.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Você tem relatórios de falha não enviados (%1$d), relacionados a falhas sendo investigadas. Ao enviar, nos ajuda a melhorar o %2$s. Se fechar esta notificação, esses relatórios serão desconsiderados.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Enviar relatórios de falhas automaticamente</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Fechar</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Não mostrar novamente</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Enviar relatório de falha</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Saiba mais</string>
   <!--
     Bookmarks
 

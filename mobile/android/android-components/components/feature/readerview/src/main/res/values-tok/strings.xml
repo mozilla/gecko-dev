@@ -17,9 +17,9 @@
   <!-- Accessible description for the color option -->
   <string name="mozac_feature_readerview_dark_color_scheme_desc">nasin lukin pimeja</string>
   <!-- Color option for the background -->
-  <string name="mozac_feature_readerview_sephia">loje lili</string>
+  <string name="mozac_feature_readerview_sephia">loje</string>
   <!-- Accessible description for the color option -->
-  <string name="mozac_feature_readerview_sepia_color_scheme_desc">nasin lukin pi loje lili</string>
+  <string name="mozac_feature_readerview_sepia_color_scheme_desc">nasin lukin loje</string>
   <!-- Color option for the background -->
   <string name="mozac_feature_readerview_light">suno</string>
   <!-- Accessible description for the color option -->

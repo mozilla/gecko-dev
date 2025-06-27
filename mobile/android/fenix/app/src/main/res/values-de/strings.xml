@@ -944,7 +944,7 @@
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">Downloads mit einer anderen App verwalten</string>
   <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
-  <string name="preferences_downloads_settings_clean_up_files_title">Von %s und Gerät löschen</string>
+  <string name="preferences_downloads_settings_clean_up_files_title">Aus %s und Gerät löschen</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">Wenn Sie Dateien aus Ihrer Download-Verwaltung entfernen, werden sie auch von Ihrem Gerät entfernt</string>
   <!-- Preference for downloads -->
