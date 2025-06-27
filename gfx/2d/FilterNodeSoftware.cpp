@@ -704,8 +704,9 @@ void FilterNodeSoftware::RequestInputRect(uint32_t aInputEnumIndex,
   }
   RefPtr<FilterNodeSoftware> filter = mInputFilters[inputIndex];
   MOZ_ASSERT(filter, "missing input");
-
-  filter->RequestRect(filter->GetOutputRectInRect(aRect));
+  if (filter) {
+    filter->RequestRect(filter->GetOutputRectInRect(aRect));
+  }
 }
 
 SurfaceFormat FilterNodeSoftware::DesiredFormat(SurfaceFormat aCurrentFormat,
@@ -754,19 +755,20 @@ FilterNodeSoftware::GetInputDataSourceSurface(
     surfaceRect = surface->GetRect();
   } else {
     // Input from input filter
-#ifdef DEBUG_DUMP_SURFACES
-    printf("getting input from input filter %s...\n",
-           mInputFilters[inputIndex]->GetName());
-#endif
     RefPtr<FilterNodeSoftware> filter = mInputFilters[inputIndex];
     MOZ_ASSERT(filter, "missing input");
+    if (!filter) {
+      return nullptr;
+    }
+#ifdef DEBUG_DUMP_SURFACES
+    printf("getting input from input filter %s...\n", filter->GetName());
+#endif
     IntRect inputFilterOutput = filter->GetOutputRectInRect(aRect);
     if (!inputFilterOutput.IsEmpty()) {
       surface = filter->GetOutput(inputFilterOutput);
     }
 #ifdef DEBUG_DUMP_SURFACES
-    printf("input from input filter %s:\n",
-           mInputFilters[inputIndex]->GetName());
+    printf("input from input filter %s:\n", filter->GetName());
 #endif
     surfaceRect = inputFilterOutput;
     MOZ_ASSERT(!surface || surfaceRect.Size() == surface->GetSize());
