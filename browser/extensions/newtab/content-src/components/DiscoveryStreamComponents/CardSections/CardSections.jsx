@@ -14,6 +14,7 @@ import { AdBanner } from "../AdBanner/AdBanner.jsx";
 import { PersonalizedCard } from "../PersonalizedCard/PersonalizedCard";
 import { FollowSectionButtonHighlight } from "../FeatureHighlight/FollowSectionButtonHighlight";
 import { MessageWrapper } from "content-src/components/MessageWrapper/MessageWrapper";
+import { TrendingSearches } from "../TrendingSearches/TrendingSearches.jsx";
 
 // Prefs
 const PREF_SECTIONS_CARDS_ENABLED = "discoverystream.sections.cards.enabled";
@@ -36,8 +37,17 @@ const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
 const PREF_REFINED_CARDS_ENABLED = "discoverystream.refinedCardsLayout.enabled";
 const PREF_INFERRED_PERSONALIZATION_USER =
   "discoverystream.sections.personalization.inferred.user.enabled";
+const PREF_TRENDING_SEARCH = "trendingSearch.enabled";
+const PREF_TRENDING_SEARCH_SYSTEM = "system.trendingSearch.enabled";
+const PREF_SEARCH_ENGINE = "trendingSearch.defaultSearchEngine";
+const PREF_TRENDING_SEARCH_VARIANT = "trendingSearch.variant";
 
-function getLayoutData(responsiveLayouts, index, refinedCardsLayout) {
+function getLayoutData(
+  responsiveLayouts,
+  index,
+  refinedCardsLayout,
+  sectionKey
+) {
   let layoutData = {
     classNames: [],
     imageSizes: {},
@@ -46,11 +56,23 @@ function getLayoutData(responsiveLayouts, index, refinedCardsLayout) {
   responsiveLayouts.forEach(layout => {
     layout.tiles.forEach((tile, tileIndex) => {
       if (tile.position === index) {
-        layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
-        layoutData.classNames.push(
-          `col-${layout.columnCount}-position-${tileIndex}`
-        );
-        layoutData.imageSizes[layout.columnCount] = tile.size;
+        // When trending searches should be placed in the `top_stories_section`,
+        // we update the layout so that the first item is always a medium card to make
+        // room for the trending search widget
+        if (sectionKey === "top_stories_section" && tileIndex === 0) {
+          //do something
+          layoutData.classNames.push(`col-${layout.columnCount}-medium`);
+          layoutData.classNames.push(
+            `col-${layout.columnCount}-position-${tileIndex}`
+          );
+          layoutData.imageSizes[layout.columnCount] = "medium";
+        } else {
+          layoutData.classNames.push(`col-${layout.columnCount}-${tile.size}`);
+          layoutData.classNames.push(
+            `col-${layout.columnCount}-position-${tileIndex}`
+          );
+          layoutData.imageSizes[layout.columnCount] = tile.size;
+        }
 
         // The API tells us whether the tile should show the excerpt or not.
         // Apply extra styles accordingly.
@@ -138,6 +160,14 @@ function CardSection({
   const selectedTopics = prefs[PREF_TOPICS_SELECTED];
   const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
   const refinedCardsLayout = prefs[PREF_REFINED_CARDS_ENABLED];
+
+  const trendingEnabled =
+    prefs[PREF_TRENDING_SEARCH] &&
+    prefs[PREF_TRENDING_SEARCH_SYSTEM] &&
+    prefs[PREF_SEARCH_ENGINE]?.toLowerCase() === "google";
+  const trendingVariant = prefs[PREF_TRENDING_SEARCH_VARIANT];
+
+  const shouldShowTrendingSearch = trendingEnabled && trendingVariant === "b";
 
   const { saveToPocketCard } = useSelector(state => state.DiscoveryStream);
   const mayHaveSectionsPersonalization =
@@ -296,17 +326,19 @@ function CardSection({
       </div>
       <div className={`ds-section-grid ds-card-grid`}>
         {section.data.slice(0, maxTile).map((rec, index) => {
-          const { classNames, imageSizes } = getLayoutData(
+          const layoutData = getLayoutData(
             responsiveLayouts,
             index,
-            refinedCardsLayout
+            refinedCardsLayout,
+            shouldShowTrendingSearch && sectionKey
           );
 
+          const { classNames, imageSizes } = layoutData;
           if (!rec || rec.placeholder) {
             return <PlaceholderDSCard key={`dscard-${index}`} />;
           }
 
-          return (
+          const card = (
             <DSCard
               key={`dscard-${rec.id}`}
               pos={rec.pos}
@@ -360,6 +392,11 @@ function CardSection({
               isTimeSensitive={rec.isTimeSensitive}
             />
           );
+          return index === 0 &&
+            shouldShowTrendingSearch &&
+            sectionKey === "top_stories_section"
+            ? [card, <TrendingSearches key="trending" />]
+            : [card];
         })}
       </div>
     </section>
