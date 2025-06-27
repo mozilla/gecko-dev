@@ -20,6 +20,7 @@ struct ParamTraits<mozilla::performance::pageload_event::PageloadEventData> {
 #define WRITE_METRIC_PARAM(name, type) WriteParam(aWriter, aParam.name);
     FOR_EACH_PAGELOAD_METRIC(WRITE_METRIC_PARAM)
 #undef WRITE_METRIC_PARAM
+    WriteParam(aWriter, aParam.mDomain);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -28,6 +29,7 @@ struct ParamTraits<mozilla::performance::pageload_event::PageloadEventData> {
   ok = ok && ReadParam(aReader, &aResult->name);
     FOR_EACH_PAGELOAD_METRIC(READ_METRIC_PARAM)
 #undef READ_METRIC_PARAM
+    ok = ok && ReadParam(aReader, &aResult->mDomain);
     return ok;
   }
 };
