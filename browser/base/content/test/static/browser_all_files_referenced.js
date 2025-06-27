@@ -647,7 +647,7 @@ function parseCodeFile(fileUri) {
       );
 
       if (!urls) {
-        urls = line.match(/["']moz-src:\/\/\/[^"']+["']/g);
+        urls = line.match(/["']moz-src:\/\/[^"']+["']/g);
       }
 
       if (!urls) {
@@ -879,19 +879,18 @@ add_task(async function checkAllTheFiles() {
   const libxul = await IOUtils.read(PathUtils.xulLibraryPath);
   findChromeUrlsFromArray(libxul, "chrome://");
   findChromeUrlsFromArray(libxul, "resource://");
-  findChromeUrlsFromArray(libxul, "moz-src:///");
+  findChromeUrlsFromArray(libxul, "moz-src://");
   // Handle NS_LITERAL_STRING.
   let uint16 = new Uint16Array(libxul.buffer);
   findChromeUrlsFromArray(uint16, "chrome://");
   findChromeUrlsFromArray(uint16, "resource://");
-  findChromeUrlsFromArray(uint16, "moz-src:///");
+  findChromeUrlsFromArray(uint16, "moz-src://");
 
   const kCodeExtensions = [
     ".xml",
     ".xsl",
     ".mjs",
     ".js",
-    ".jsm",
     ".json",
     ".html",
     ".xhtml",
@@ -1017,7 +1016,8 @@ add_task(async function checkAllTheFiles() {
         if (isDevtools) {
           if (
             ref.startsWith("resource://app/components/") ||
-            (file.startsWith("chrome://") && ref.startsWith("resource://"))
+            (file.startsWith("chrome://") &&
+              (ref.startsWith("resource://") || ref.startsWith("moz-src://")))
           ) {
             return false;
           }
