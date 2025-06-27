@@ -234,6 +234,7 @@ export class ConditionalPanel extends PureComponent {
           cm6: true,
           readOnly: false,
           lineNumbers: false,
+          lineWrapping: true,
           placeholder: L10N.getStr(
             log
               ? "editor.conditionalPanel.logPoint.placeholder2"
