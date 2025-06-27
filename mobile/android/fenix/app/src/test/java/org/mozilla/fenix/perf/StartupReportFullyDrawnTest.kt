@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.perf
 
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewTreeObserver
 import android.widget.LinearLayout
@@ -14,18 +13,13 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.just
-import io.mockk.mockk
 import io.mockk.slot
-import io.mockk.spyk
 import io.mockk.verify
-import mozilla.components.support.test.robolectric.testContext
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.databinding.TopSiteItemBinding
-import org.mozilla.fenix.home.topsites.TopSiteItemViewHolder
 import org.mozilla.fenix.perf.StartupTimelineStateMachine.StartupDestination
 import org.mozilla.fenix.perf.StartupTimelineStateMachine.StartupState
 import org.robolectric.RobolectricTestRunner
@@ -34,7 +28,6 @@ import org.robolectric.RobolectricTestRunner
 class StartupReportFullyDrawnTest {
 
     @MockK private lateinit var activity: HomeActivity
-    private lateinit var holder: TopSiteItemViewHolder
 
     @MockK(relaxed = true)
     private lateinit var rootContainer: LinearLayout
@@ -49,11 +42,8 @@ class StartupReportFullyDrawnTest {
     @Before
     fun setup() {
         MockKAnnotations.init(this)
-        val binding = TopSiteItemBinding.inflate(LayoutInflater.from(testContext), rootContainer, false)
-        holderItemView = spyk(binding.root)
         every { activity.findViewById<LinearLayout>(R.id.rootContainer) } returns rootContainer
         every { holderItemView.context } returns activity
-        holder = TopSiteItemViewHolder(holderItemView, mockk(), mockk(), mockk())
         every { rootContainer.viewTreeObserver } returns viewTreeObserver
         every { holderItemView.viewTreeObserver } returns viewTreeObserver
 
@@ -73,15 +63,6 @@ class StartupReportFullyDrawnTest {
 
         fullyDrawn.onActivityCreateEndHome(StartupState.Cold(StartupDestination.APP_LINK), activity)
         verify(exactly = 1) { activity.findViewById<LinearLayout>(R.id.rootContainer) }
-
-        every { activity.reportFullyDrawn() } just Runs
-        triggerPreDraw()
-        verify { activity.reportFullyDrawn() }
-    }
-
-    @Test
-    fun testOnTopSitesItemBound() {
-        fullyDrawn.onTopSitesItemBound(StartupState.Cold(StartupDestination.HOMESCREEN), holder)
 
         every { activity.reportFullyDrawn() } just Runs
         triggerPreDraw()

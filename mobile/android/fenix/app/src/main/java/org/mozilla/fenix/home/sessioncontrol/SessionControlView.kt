@@ -10,7 +10,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.tab.collections.TabCollection
-import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
@@ -27,8 +26,6 @@ import org.mozilla.fenix.utils.Settings
 @Suppress("ComplexMethod", "LongParameterList")
 @VisibleForTesting
 internal fun normalModeAdapterItems(
-    settings: Settings,
-    topSites: List<TopSite>,
     collections: List<TabCollection>,
     expandedCollections: Set<Long>,
     showCollectionsPlaceholder: Boolean,
@@ -40,10 +37,6 @@ internal fun normalModeAdapterItems(
 
     nimbusMessageCard?.let {
         items.add(AdapterItem.NimbusMessageCard(it))
-    }
-
-    if (settings.showTopSitesFeature && topSites.isNotEmpty()) {
-        items.add(AdapterItem.TopSitePager(topSites))
     }
 
     if (showRecentTab && showRecentSyncedTab) {
@@ -79,8 +72,6 @@ private fun showCollections(
 
 private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> =
     normalModeAdapterItems(
-        settings,
-        topSites,
         collections,
         expandedCollections,
         showCollectionPlaceholder,
