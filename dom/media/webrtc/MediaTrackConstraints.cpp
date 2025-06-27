@@ -98,7 +98,7 @@ NormalizedConstraintSet::LongRange::LongRange(
   if (!aOther.WasPassed()) {
     return;
   }
-  auto& other = aOther.Value();
+  const auto& other = aOther.Value();
   if (other.IsLong()) {
     if (advanced) {
       mMin = mMax = other.GetAsLong();
@@ -127,7 +127,7 @@ NormalizedConstraintSet::DoubleRange::DoubleRange(
   if (!aOther.WasPassed()) {
     return;
   }
-  auto& other = aOther.Value();
+  const auto& other = aOther.Value();
   if (other.IsDouble()) {
     if (advanced) {
       mMin = mMax = other.GetAsDouble();
@@ -147,7 +147,7 @@ NormalizedConstraintSet::BooleanRange::BooleanRange(
   if (!aOther.WasPassed()) {
     return;
   }
-  auto& other = aOther.Value();
+  const auto& other = aOther.Value();
   if (other.IsBoolean()) {
     if (advanced) {
       mMin = mMax = other.GetAsBoolean();
@@ -155,7 +155,7 @@ NormalizedConstraintSet::BooleanRange::BooleanRange(
       mIdeal.emplace(other.GetAsBoolean());
     }
   } else {
-    auto& r = other.GetAsConstrainBooleanParameters();
+    const auto& r = other.GetAsConstrainBooleanParameters();
     if (r.mIdeal.WasPassed()) {
       mIdeal.emplace(r.mIdeal.Value());
     }
@@ -176,7 +176,7 @@ NormalizedConstraintSet::StringRange::StringRange(
   if (!aOther.WasPassed()) {
     return;
   }
-  auto& other = aOther.Value();
+  const auto& other = aOther.Value();
   if (other.IsString()) {
     if (advanced) {
       mExact.insert(other.GetAsString());
@@ -186,12 +186,12 @@ NormalizedConstraintSet::StringRange::StringRange(
   } else if (other.IsStringSequence()) {
     if (advanced) {
       mExact.clear();
-      for (auto& str : other.GetAsStringSequence()) {
+      for (const auto& str : other.GetAsStringSequence()) {
         mExact.insert(str);
       }
     } else {
       mIdeal.clear();
-      for (auto& str : other.GetAsStringSequence()) {
+      for (const auto& str : other.GetAsStringSequence()) {
         mIdeal.insert(str);
       }
     }
@@ -207,7 +207,7 @@ void NormalizedConstraintSet::StringRange::SetFrom(
     if (aOther.mIdeal.Value().IsString()) {
       mIdeal.insert(aOther.mIdeal.Value().GetAsString());
     } else {
-      for (auto& str : aOther.mIdeal.Value().GetAsStringSequence()) {
+      for (const auto& str : aOther.mIdeal.Value().GetAsStringSequence()) {
         mIdeal.insert(str);
       }
     }
@@ -217,7 +217,7 @@ void NormalizedConstraintSet::StringRange::SetFrom(
     if (aOther.mExact.Value().IsString()) {
       mExact.insert(aOther.mExact.Value().GetAsString());
     } else {
-      for (auto& str : aOther.mExact.Value().GetAsStringSequence()) {
+      for (const auto& str : aOther.mExact.Value().GetAsStringSequence()) {
         mExact.insert(str);
       }
     }
@@ -230,7 +230,7 @@ auto NormalizedConstraintSet::StringRange::Clamp(const ValueType& n) const
     return n;
   }
   ValueType result;
-  for (auto& entry : n) {
+  for (const auto& entry : n) {
     if (mExact.find(entry) != mExact.end()) {
       result.insert(entry);
     }
@@ -281,7 +281,7 @@ NormalizedConstraints::NormalizedConstraints(
     const dom::MediaTrackConstraints& aOther)
     : NormalizedConstraintSet(aOther, false) {
   if (aOther.mAdvanced.WasPassed()) {
-    for (auto& entry : aOther.mAdvanced.Value()) {
+    for (const auto& entry : aOther.mAdvanced.Value()) {
       mAdvanced.push_back(NormalizedConstraintSet(entry, true));
     }
   }
@@ -289,7 +289,7 @@ NormalizedConstraints::NormalizedConstraints(
 
 FlattenedConstraints::FlattenedConstraints(const NormalizedConstraints& aOther)
     : NormalizedConstraintSet(aOther) {
-  for (auto& set : aOther.mAdvanced) {
+  for (const auto& set : aOther.mAdvanced) {
     // Must only apply compatible i.e. inherently non-overconstraining sets
     // This rule is pretty much why this code is centralized here.
     if (mWidth.Intersects(set.mWidth) && mHeight.Intersects(set.mHeight) &&
@@ -330,7 +330,7 @@ bool MediaConstraintsHelper::SomeSettingsFit(
   sets.AppendElement(&aConstraints);
 
   MOZ_ASSERT(!aDevices.IsEmpty());
-  for (auto& device : aDevices) {
+  for (const auto& device : aDevices) {
     auto distance =
         device->GetBestFitnessDistance(sets, aPrefs, CallerType::NonSystem);
     if (distance != UINT32_MAX) {
@@ -360,7 +360,7 @@ uint32_t MediaConstraintsHelper::FitnessDistance(
 /* static */ const char* MediaConstraintsHelper::SelectSettings(
     const NormalizedConstraints& aConstraints, const MediaEnginePrefs& aPrefs,
     nsTArray<RefPtr<LocalMediaDevice>>& aDevices, CallerType aCallerType) {
-  auto& c = aConstraints;
+  const auto& c = aConstraints;
   LogConstraints(c);
 
   if (!aDevices.IsEmpty() &&
@@ -438,7 +438,7 @@ uint32_t MediaConstraintsHelper::FitnessDistance(
   // The spec says to report a constraint that satisfies NONE
   // of the sources. Unfortunately, this is a bit laborious to find out, and
   // requires updating as new constraints are added!
-  auto& c = aConstraints;
+  const auto& c = aConstraints;
   dom::MediaTrackConstraints empty;
 
   if (aDevices.IsEmpty() ||
@@ -516,11 +516,11 @@ static void LogConstraintStringRange(
              : NS_ConvertUTF16toUTF8(*aRange.mIdeal.begin()).get()));
   } else {
     LOG("  %s: { exact: [", aRange.mName);
-    for (auto& entry : aRange.mExact) {
+    for (const auto& entry : aRange.mExact) {
       LOG("      %s,", NS_ConvertUTF16toUTF8(entry).get());
     }
     LOG("    ], ideal: [");
-    for (auto& entry : aRange.mIdeal) {
+    for (const auto& entry : aRange.mIdeal) {
       LOG("      %s,", NS_ConvertUTF16toUTF8(entry).get());
     }
     LOG("    ]}");
@@ -551,7 +551,7 @@ void LogConstraintRange(const NormalizedConstraintSet::Range<double>& aRange) {
 /* static */
 void MediaConstraintsHelper::LogConstraints(
     const NormalizedConstraintSet& aConstraints) {
-  auto& c = aConstraints;
+  const auto& c = aConstraints;
   LOG("Constraints: {");
   LOG("%s", [&]() {
     LogConstraintRange(c.mWidth);
