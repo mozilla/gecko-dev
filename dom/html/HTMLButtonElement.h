@@ -136,7 +136,6 @@ class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
   void SetCustomValidity(const nsAString& aError);
 
   // Command & CommandFor
-  MOZ_CAN_RUN_SCRIPT void HandleCommandForAction();
   Element* GetCommandForElement() const;
   void SetCommandForElement(Element*);
   void GetCommand(nsAString& aValue) const;
