@@ -7,13 +7,10 @@
 #ifndef MEDIATRACKCONSTRAINTS_H_
 #define MEDIATRACKCONSTRAINTS_H_
 
-#include <map>
 #include <set>
 #include <vector>
 
-#include "mozilla/Attributes.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
-#include "mozilla/dom/MediaTrackSupportedConstraintsBinding.h"
 
 namespace mozilla {
 

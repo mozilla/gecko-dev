@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <iterator>
 
-#include "MediaEngineSource.h"
 #include "mozilla/dom/MediaStreamTrackBinding.h"
 #include "mozilla/MediaManager.h"
 
@@ -25,7 +24,6 @@ static mozilla::LazyLogModule gMediaManagerLog("MediaManager");
 namespace mozilla {
 
 using dom::CallerType;
-using dom::ConstrainBooleanParameters;
 using dom::VideoResizeModeEnum;
 
 template <class ValueType>
