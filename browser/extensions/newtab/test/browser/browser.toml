@@ -22,8 +22,6 @@ prefs = [
 ]
 tags = "newtab"
 
-["browser_TrendingSearch.js"]
-
 ["browser_as_load_location.js"]
 
 ["browser_as_render.js"]
