@@ -375,6 +375,13 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
     if (!state.isUndefined()) {
       schedulingState = static_cast<WebTaskSchedulingState*>(state.toPrivate());
     }
+  } else {
+    // There are two possible causes for hostDefinedData to be missing.
+    //   1. It's optimized out, the SpiderMonkey expects the embedding to
+    //   retrieve it on their own.
+    //   2. It's the special case for debugger usage.
+    global = mozilla::dom::GetIncumbentGlobal();
+    schedulingState = mozilla::dom::GetWebTaskSchedulingState();
   }
 
   JS::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));

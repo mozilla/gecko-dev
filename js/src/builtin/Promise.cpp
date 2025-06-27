@@ -48,6 +48,8 @@ static double MillisecondsSinceStartup() {
   return (now - mozilla::TimeStamp::FirstTimeStamp()).ToMilliseconds();
 }
 
+constexpr auto HostDefinedDataIsOptimizedOut = nullptr;
+
 enum ResolutionMode { ResolveMode, RejectMode };
 
 /**
@@ -2663,13 +2665,9 @@ static bool PromiseResolveBuiltinThenableJob(JSContext* cx, unsigned argc,
   // compartment.
   RootedObject promise(cx, &promiseToResolve.toObject());
 
-  Rooted<JSObject*> hostDefinedData(cx);
-  if (!cx->runtime()->getHostDefinedData(cx, &hostDefinedData)) {
-    return false;
-  }
-
   // Step X. HostEnqueuePromiseJob(job.[[Job]], job.[[Realm]]).
-  return cx->runtime()->enqueuePromiseJob(cx, job, promise, hostDefinedData);
+  return cx->runtime()->enqueuePromiseJob(cx, job, promise,
+                                          HostDefinedDataIsOptimizedOut);
 }
 
 /**
@@ -5242,13 +5240,17 @@ bool js::Promise_static_species(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-enum class HostDefinedDataObject {
-  // Do not use the host defined data object, this is a special case used by the
-  // debugger.
-  No,
+enum class HostDefinedDataObjectOption {
+  // Allocate the host defined data object, this is the normal operation.
+  Allocate,
 
-  // Use host defined data object, this is the normal operation.
-  Yes
+  // Do not allocate the host defined data object because the embeddings can
+  // retrieve the same data on its own.
+  OptimizeOut,
+
+  // Did not allocate the host defined data object because this is a special
+  // case used by the debugger.
+  UnusedForDebugger,
 };
 
 /**
@@ -5264,10 +5266,10 @@ enum class HostDefinedDataObject {
 static PromiseReactionRecord* NewReactionRecord(
     JSContext* cx, Handle<PromiseCapability> resultCapability,
     HandleValue onFulfilled, HandleValue onRejected,
-    HostDefinedDataObject hostDefinedDataObjectOption) {
+    HostDefinedDataObjectOption hostDefinedDataObjectOption) {
 #ifdef DEBUG
   if (resultCapability.promise()) {
-    if (hostDefinedDataObjectOption == HostDefinedDataObject::Yes) {
+    if (hostDefinedDataObjectOption == HostDefinedDataObjectOption::Allocate) {
       if (resultCapability.promise()->is<PromiseObject>()) {
         // If `resultCapability.promise` is a Promise object,
         // `resultCapability.{resolve,reject}` may be optimized out,
@@ -5285,7 +5287,8 @@ static PromiseReactionRecord* NewReactionRecord(
         MOZ_ASSERT(resultCapability.reject());
         MOZ_ASSERT(IsCallable(resultCapability.reject()));
       }
-    } else {
+    } else if (hostDefinedDataObjectOption ==
+               HostDefinedDataObjectOption::UnusedForDebugger) {
       // For debugger usage, `resultCapability.promise` should be a
       // maybe-wrapped Promise object. The other fields are not used.
       //
@@ -5305,7 +5308,8 @@ static PromiseReactionRecord* NewReactionRecord(
     // In any case, other fields are also not used.
     MOZ_ASSERT(!resultCapability.resolve());
     MOZ_ASSERT(!resultCapability.reject());
-    MOZ_ASSERT(hostDefinedDataObjectOption == HostDefinedDataObject::Yes);
+    MOZ_ASSERT(hostDefinedDataObjectOption !=
+               HostDefinedDataObjectOption::UnusedForDebugger);
   }
 #endif
 
@@ -5327,7 +5331,7 @@ static PromiseReactionRecord* NewReactionRecord(
   MOZ_ASSERT(onFulfilled.isNull() == onRejected.isNull());
 
   RootedObject hostDefinedData(cx);
-  if (hostDefinedDataObjectOption == HostDefinedDataObject::Yes) {
+  if (hostDefinedDataObjectOption == HostDefinedDataObjectOption::Allocate) {
     if (!GetObjectFromHostDefinedData(cx, &hostDefinedData)) {
       return nullptr;
     }
@@ -5534,9 +5538,14 @@ static bool PromiseThenNewPromiseCapability(
   Rooted<PromiseCapability> resultCapability(cx);
   MOZ_ASSERT(!resultCapability.promise());
 
+  auto hostDefinedDataObjectOption =
+      unwrappedPromise->state() == JS::PromiseState::Pending
+          ? HostDefinedDataObjectOption::Allocate
+          : HostDefinedDataObjectOption::OptimizeOut;
+
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            HostDefinedDataObject::Yes));
+                            hostDefinedDataObjectOption));
   if (!reaction) {
     return false;
   }
@@ -5787,9 +5796,15 @@ template <typename T>
   RootedValue onRejectedValue(cx, Int32Value(int32_t(onRejected)));
   Rooted<PromiseCapability> resultCapability(cx);
   resultCapability.promise().set(resultPromise);
+
+  auto hostDefinedDataObjectOption =
+      unwrappedPromise->state() == JS::PromiseState::Pending
+          ? HostDefinedDataObjectOption::Allocate
+          : HostDefinedDataObjectOption::OptimizeOut;
+
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilledValue,
-                            onRejectedValue, HostDefinedDataObject::Yes));
+                            onRejectedValue, hostDefinedDataObjectOption));
   if (!reaction) {
     return false;
   }
@@ -6362,9 +6377,13 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
   //           [[Handler]]: onRejectedJobCallback }.
   //
   // NOTE: We use single object for both reactions.
+  auto hostDefinedDataObjectOption =
+      promise->state() == JS::PromiseState::Pending
+          ? HostDefinedDataObjectOption::Allocate
+          : HostDefinedDataObjectOption::OptimizeOut;
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            HostDefinedDataObject::Yes));
+                            hostDefinedDataObjectOption));
   if (!reaction) {
     return false;
   }
@@ -6396,6 +6415,15 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
   // Step 5.a. Let onRejectedJobCallback be empty.
   HandleValue onRejected = NullHandleValue;
 
+  // When the promise's state isn't pending, the embedding
+  // should be able to retrieve the host defined object
+  // on their own, so here we optimize out from the
+  // our side.
+  auto hostDefinedDataObjectOption =
+      promise->state() == JS::PromiseState::Pending
+          ? HostDefinedDataObjectOption::Allocate
+          : HostDefinedDataObjectOption::OptimizeOut;
+
   // Step 7. Let fulfillReaction be the PromiseReaction
   //         { [[Capability]]: resultCapability, [[Type]]: Fulfill,
   //           [[Handler]]: onFulfilledJobCallback }.
@@ -6404,7 +6432,7 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
   //           [[Handler]]: onRejectedJobCallback }.
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, resultCapability, onFulfilled, onRejected,
-                            HostDefinedDataObject::Yes));
+                            hostDefinedDataObjectOption));
   if (!reaction) {
     return false;
   }
@@ -6593,7 +6621,7 @@ bool js::Promise_then(JSContext* cx, unsigned argc, Value* vp) {
 
   Rooted<PromiseReactionRecord*> reaction(
       cx, NewReactionRecord(cx, capability, NullHandleValue, NullHandleValue,
-                            HostDefinedDataObject::No));
+                            HostDefinedDataObjectOption::UnusedForDebugger));
   if (!reaction) {
     return false;
   }
