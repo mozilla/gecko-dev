@@ -50,7 +50,9 @@ export const HeuristicsRegExp = {
     // Firefox-specific rules
     {
       "street-address": "ulica(.*(numer|nr))?", // pl-PL
-      "address-line1": "addrline1|address_1|addl1",
+      "address-line1": "addrline1|address_1|addl1" +
+        // TODO: Bug 1829583
+        "|(?<neg>nome.*)|endereço", // es
       "address-line2":
         "addrline2|address_2|addl2" +
         "|landmark", // common in IN

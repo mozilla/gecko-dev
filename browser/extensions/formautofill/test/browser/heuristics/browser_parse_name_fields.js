@@ -207,4 +207,35 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description: `Form field with misleading name attribute`,
+    fixtureData: `
+        <html><body>
+            <label for="address_label">Nome deste endereço</label>
+            <input id="address_label"/>
+            <input id="zipcode" type="text" placeholder="CEP" required="required">
+            <label for="zipcode">CEP*</label>
+            <input id="address_name" type="text" placeholder=" " required="required">
+            <label for="address_name">Endereço*</label>
+            <label for="house_number">Número</label>
+            <input id="house_number"/>
+            <label for="city">Cidade</label>
+            <input id="city"/>
+        </body></html>
+      `,
+    expectedResult: [
+      {
+        default: {
+          reason: "regex-heuristic",
+        },
+        fields: [
+          { fieldName: "name" },
+          { fieldName: "postal-code" },
+          { fieldName: "address-line1" },
+          { fieldName: "address-housenumber", reason: "update-heuristic" },
+          { fieldName: "address-level2" },
+        ],
+      },
+    ],
+  },
 ]);
