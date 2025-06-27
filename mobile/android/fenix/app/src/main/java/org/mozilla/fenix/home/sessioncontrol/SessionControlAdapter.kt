@@ -13,8 +13,6 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.tab.collections.TabCollection
 import org.mozilla.fenix.home.collections.CollectionViewHolder
-import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
-import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
 sealed class AdapterItem(@LayoutRes val viewType: Int) {
     data class CollectionItem(
@@ -30,19 +28,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
                     it.collection.title == this.collection.title &&
                     it.collection.tabs == this.collection.tabs
             } ?: return false
-        }
-    }
-
-    data class TabInCollectionItem(
-        val collection: TabCollection,
-        val tab: ComponentTab,
-        val isLastTab: Boolean,
-    ) : AdapterItem(TabInCollectionViewHolder.LAYOUT_ID) {
-        override fun sameAs(other: AdapterItem) =
-            other is TabInCollectionItem && tab.id == other.tab.id
-
-        override fun contentsSameAs(other: AdapterItem): Boolean {
-            return other is TabInCollectionItem && this.isLastTab == other.isLastTab
         }
     }
 
@@ -86,11 +71,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            TabInCollectionViewHolder.LAYOUT_ID -> TabInCollectionViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             else -> {
                 throw IllegalArgumentException("Unknown view type: $viewType")
             }
@@ -100,11 +80,6 @@ class SessionControlAdapter(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
             is CollectionViewHolder -> {
-                // Dispose the underlying composition immediately.
-                // This ViewHolder can be removed / re-added and we need it to show a fresh new composition.
-                holder.composeView.disposeComposition()
-            }
-            is TabInCollectionViewHolder -> {
                 // Dispose the underlying composition immediately.
                 // This ViewHolder can be removed / re-added and we need it to show a fresh new composition.
                 holder.composeView.disposeComposition()
@@ -132,10 +107,6 @@ class SessionControlAdapter(
             is CollectionViewHolder -> {
                 val (collection, expanded) = item as AdapterItem.CollectionItem
                 holder.bindSession(collection, expanded)
-            }
-            is TabInCollectionViewHolder -> {
-                val (collection, tab, isLastTab) = item as AdapterItem.TabInCollectionItem
-                holder.bindSession(collection, tab, isLastTab)
             }
         }
     }

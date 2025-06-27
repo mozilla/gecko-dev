@@ -43,9 +43,6 @@ private fun showCollections(
         AdapterItem.CollectionItem(it, expandedCollections.contains(it.id))
     }.forEach {
         items.add(it)
-        if (it.expanded) {
-            items.addAll(collectionTabItems(it.collection))
-        }
     }
 }
 
@@ -54,11 +51,6 @@ private fun AppState.toAdapterList(): List<AdapterItem> =
         collections,
         expandedCollections,
     )
-
-private fun collectionTabItems(collection: TabCollection) =
-    collection.tabs.mapIndexed { index, tab ->
-        AdapterItem.TabInCollectionItem(collection, tab, index == collection.tabs.lastIndex)
-    }
 
 /**
  * Shows a list of Home screen views.
