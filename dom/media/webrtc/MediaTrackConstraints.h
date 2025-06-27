@@ -276,7 +276,6 @@ struct NormalizedConstraints : public NormalizedConstraintSet {
                                  nsTArray<MemberPtrType>* aList = nullptr);
 
   std::vector<NormalizedConstraintSet> mAdvanced;
-  const char* mBadConstraint;
 };
 
 // Flattened version is used in low-level code with orthogonal constraints only.

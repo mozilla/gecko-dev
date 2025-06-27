@@ -281,7 +281,7 @@ bool NormalizedConstraintSet::StringRange::Merge(const StringRange& aOther) {
 
 NormalizedConstraints::NormalizedConstraints(
     const dom::MediaTrackConstraints& aOther, nsTArray<MemberPtrType>* aList)
-    : NormalizedConstraintSet(aOther, false, aList), mBadConstraint(nullptr) {
+    : NormalizedConstraintSet(aOther, false, aList) {
   if (aOther.mAdvanced.WasPassed()) {
     for (auto& entry : aOther.mAdvanced.Value()) {
       mAdvanced.push_back(NormalizedConstraintSet(entry, true));
