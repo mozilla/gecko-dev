@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.home.sessioncontrol
 
-import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.annotation.LayoutRes
 import androidx.compose.ui.platform.ComposeView
@@ -14,16 +13,12 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.service.nimbus.messaging.Message
-import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
-import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
 sealed class AdapterItem(@LayoutRes val viewType: Int) {
-    object NoCollectionsMessage : AdapterItem(NoCollectionsMessageViewHolder.LAYOUT_ID)
-
     data class CollectionItem(
         val collection: TabCollection,
         val expanded: Boolean,
@@ -89,41 +84,30 @@ class AdapterItemDiffCallback : DiffUtil.ItemCallback<AdapterItem>() {
 class SessionControlAdapter(
     private val interactor: SessionControlInteractor,
     private val viewLifecycleOwner: LifecycleOwner,
-    private val components: Components,
 ) : ListAdapter<AdapterItem, RecyclerView.ViewHolder>(AdapterItemDiffCallback()) {
 
     // This method triggers the ComplexMethod lint error when in fact it's quite simple.
     @SuppressWarnings("ComplexMethod", "LongMethod", "ReturnCount")
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-        when (viewType) {
-            MessageCardViewHolder.LAYOUT_ID -> return MessageCardViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
-            CollectionViewHolder.LAYOUT_ID -> return CollectionViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
-            TabInCollectionViewHolder.LAYOUT_ID -> return TabInCollectionViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
-        }
-
-        val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
         return when (viewType) {
-            NoCollectionsMessageViewHolder.LAYOUT_ID ->
-                NoCollectionsMessageViewHolder(
-                    view,
-                    viewLifecycleOwner,
-                    components.core.store,
-                    components.appStore,
-                    interactor,
-                )
-            else -> throw IllegalStateException()
+            MessageCardViewHolder.LAYOUT_ID -> MessageCardViewHolder(
+                composeView = ComposeView(parent.context),
+                viewLifecycleOwner = viewLifecycleOwner,
+                interactor = interactor,
+            )
+            CollectionViewHolder.LAYOUT_ID -> CollectionViewHolder(
+                composeView = ComposeView(parent.context),
+                viewLifecycleOwner = viewLifecycleOwner,
+                interactor = interactor,
+            )
+            TabInCollectionViewHolder.LAYOUT_ID -> TabInCollectionViewHolder(
+                composeView = ComposeView(parent.context),
+                viewLifecycleOwner = viewLifecycleOwner,
+                interactor = interactor,
+            )
+            else -> {
+                throw IllegalArgumentException("Unknown view type: $viewType")
+            }
         }
     }
 

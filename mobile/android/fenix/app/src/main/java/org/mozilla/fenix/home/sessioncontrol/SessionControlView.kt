@@ -25,7 +25,6 @@ import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 internal fun normalModeAdapterItems(
     collections: List<TabCollection>,
     expandedCollections: Set<Long>,
-    showCollectionsPlaceholder: Boolean,
     nimbusMessageCard: Message? = null,
 ): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
@@ -34,11 +33,7 @@ internal fun normalModeAdapterItems(
         items.add(AdapterItem.NimbusMessageCard(it))
     }
 
-    if (collections.isEmpty()) {
-        if (showCollectionsPlaceholder) {
-            items.add(AdapterItem.NoCollectionsMessage)
-        }
-    } else {
+    if (!collections.isEmpty()) {
         showCollections(collections, expandedCollections, items)
     }
 
@@ -65,7 +60,6 @@ private fun AppState.toAdapterList(): List<AdapterItem> =
     normalModeAdapterItems(
         collections,
         expandedCollections,
-        showCollectionPlaceholder,
         messaging.messageToShow[FenixMessageSurfaceId.HOMESCREEN],
     )
 
@@ -92,7 +86,6 @@ class SessionControlView(
     private val sessionControlAdapter = SessionControlAdapter(
         interactor,
         viewLifecycleOwner,
-        containerView.context.components,
     )
 
     init {
