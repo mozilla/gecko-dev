@@ -20,7 +20,6 @@ import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
 import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
-import org.mozilla.fenix.home.recentvisits.view.RecentlyVisitedViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
 import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
@@ -125,8 +124,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
      */
     object RecentSyncedTabItem : AdapterItem(RecentSyncedTabViewHolder.LAYOUT_ID)
 
-    object RecentVisitsItems : AdapterItem(RecentlyVisitedViewHolder.LAYOUT_ID)
-
     object PocketStoriesItem : AdapterItem(PocketStoriesViewHolder.LAYOUT_ID)
 
     /**
@@ -180,11 +177,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 recentSyncedTabInteractor = interactor,
             )
-            RecentlyVisitedViewHolder.LAYOUT_ID -> return RecentlyVisitedViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
             CollectionViewHolder.LAYOUT_ID -> return CollectionViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
@@ -219,7 +211,6 @@ class SessionControlAdapter(
 
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
-            is RecentlyVisitedViewHolder,
             is RecentSyncedTabViewHolder,
             is PocketStoriesViewHolder,
             -> {
@@ -287,7 +278,6 @@ class SessionControlAdapter(
                 val (collection, tab, isLastTab) = item as AdapterItem.TabInCollectionItem
                 holder.bindSession(collection, tab, isLastTab)
             }
-            is RecentlyVisitedViewHolder,
             is RecentSyncedTabViewHolder,
             is PocketStoriesViewHolder,
             -> {
