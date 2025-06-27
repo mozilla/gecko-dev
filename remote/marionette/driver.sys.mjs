@@ -3141,7 +3141,7 @@ GeckoDriver.prototype._handleUserPrompts = async function () {
 
   if (handlerConfig.notify) {
     throw new lazy.error.UnexpectedAlertOpenError(
-      `Unexpected ${promptType} dialog detected. Performed handler "${handlerConfig.handler}". Dialog text: ${textContent}`,
+      `Unexpected ${promptType} dialog detected. Performed handler "${handlerConfig.handler}"`,
       {
         text: textContent,
       }
