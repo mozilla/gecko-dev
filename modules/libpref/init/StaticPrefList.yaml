@@ -3871,6 +3871,44 @@
   value: true
   mirror: always
 
+# Should we try to load origin information from the secondary cache?
+#
+# When enabled, quota information may be initialized from metadata files
+# instead of scanning origin directories, if the cached data is considered
+# valid.
+#
+# For the L2 quota info cache to work effectively, the following pref must also
+# be enabled:
+#   dom.quotaManager.originInitialization.updateOriginMetadata
+#
+# That pref ensures that cached metadata is written back to disk after full
+# origin initialization. Without it, usable cached info may become outdated or
+# missing, and this pref alone will have limited effect.
+#
+# Expected behavior for various combinations of the two prefs:
+#
+#   update: false, load: false
+#     -> No L2 cache write or read. Full scan is always used.
+#
+#   update: true, load: false
+#     -> Metadata is updated, but not used. Sets up infrastructure without
+#        activating the performance optimization.
+#
+#   update: false, load: true
+#     -> Cache read is enabled, but metadata files are not continuously
+#        updated, reducing cache effectiveness. Useful only for incremental
+#        rollout and testing purposes.
+#
+#   update: true, load: true
+#     -> Full L2 quota info cache functionality is active. Metadata is
+#        maintained and used for optimized quota initialization.
+#
+# See bug 1953860 for background and additional details.
+- name: dom.quotaManager.loadQuotaFromSecondaryCache
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Should we check build ID as part of the cache validation?
 # When enabled, the cache is invalidated on any upgrade (or downgrade),
 # ensuring that changes in how quota usage is calculated can't cause
