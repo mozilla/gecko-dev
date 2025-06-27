@@ -220,6 +220,9 @@ add_task(async function test_invalid_cookie_fix() {
   // Assert inserted cookies are in the db and correctly handled by services.
   Assert.equal(Services.cookies.countCookiesFromHost("foo.com"), 5);
 
+  // Close the profile.
+  await promise_close_profile();
+
   // Check if the sameSite issues were fixed
   {
     const dbConnection = Services.storage.openDatabase(
@@ -277,6 +280,7 @@ add_task(async function test_invalid_cookie_fix() {
   }
 
   // Cleanup
+  await promise_load_profile();
   Services.cookies.removeAll();
   do_close_profile();
 });
