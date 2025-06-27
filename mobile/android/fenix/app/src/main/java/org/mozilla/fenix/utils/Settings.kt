@@ -1981,15 +1981,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if the Compose Homepage is enabled.
-     */
-    var enableComposeHomepage by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_enable_compose_homepage),
-        default = { FxNimbus.features.composeHomepage.value().enabled },
-        featureFlag = true,
-    )
-
-    /**
      * Indicates if the menu redesign is enabled.
      */
     var enableMenuRedesign by lazyFeatureFlagPreference(
