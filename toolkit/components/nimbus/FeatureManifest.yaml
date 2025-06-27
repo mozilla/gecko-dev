@@ -1446,6 +1446,18 @@ newtabRefinedCardsLayout:
       description: Enables the refined cards layout for newtab
 
 
+newtabPublisherFavicons:
+  description: Enabled publihser favicons on cards in newtab
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.publisherFavicon.enabled
+      description: Enables publisher favicons on cards in newtab
+
 pocketNewtab:
   description: The Pocket section in newtab
   owner: sdowne@mozilla.com
