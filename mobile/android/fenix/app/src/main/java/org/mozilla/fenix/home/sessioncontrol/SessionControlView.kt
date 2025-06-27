@@ -51,10 +51,6 @@ internal fun normalModeAdapterItems(
         items.add(AdapterItem.TopSitePager(topSites))
     }
 
-    if (settings.showSetupChecklist) {
-        items.add(AdapterItem.SetupChecklist)
-    }
-
     if (showRecentTab && showRecentSyncedTab) {
         items.add(AdapterItem.RecentSyncedTabItem)
     }

@@ -23,7 +23,6 @@ import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisitedViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
-import org.mozilla.fenix.home.setup.ui.SetupChecklistViewHolder
 import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
@@ -131,11 +130,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
     object PocketStoriesItem : AdapterItem(PocketStoriesViewHolder.LAYOUT_ID)
 
     /**
-     * Adapter item to hold the setup checklist feature view.
-     */
-    data object SetupChecklist : AdapterItem(SetupChecklistViewHolder.LAYOUT_ID)
-
-    /**
      * True if this item represents the same value as other. Used by [AdapterItemDiffCallback].
      */
     open fun sameAs(other: AdapterItem) = this::class == other::class
@@ -201,11 +195,6 @@ class SessionControlAdapter(
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
             )
-            SetupChecklistViewHolder.LAYOUT_ID -> return SetupChecklistViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
         }
 
         val view = LayoutInflater.from(parent.context).inflate(viewType, parent, false)
@@ -233,7 +222,6 @@ class SessionControlAdapter(
             is RecentlyVisitedViewHolder,
             is RecentSyncedTabViewHolder,
             is PocketStoriesViewHolder,
-            is SetupChecklistViewHolder,
             -> {
                 // no op
                 // This previously called "composeView.disposeComposition" which would have the
