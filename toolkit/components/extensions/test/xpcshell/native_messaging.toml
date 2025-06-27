@@ -20,4 +20,9 @@ environment = ["XPCSHELL_TEST=1"]
 run-if = ["os == 'linux' && toolkit == 'gtk' && dbus_enabled"]
 tags = "portal"
 
+["test_ext_native_messaging_portal_real.js"]
+environment = ["GTK_USE_PORTAL=1"]
+run-if = ["os == 'linux' && toolkit == 'gtk' && dbus_enabled"]
+tags = "portal"
+
 ["test_ext_native_messaging_unresponsive.js"]
