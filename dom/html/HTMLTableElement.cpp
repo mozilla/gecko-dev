@@ -412,7 +412,8 @@ int32_t TableRowsCollection::HandleInsert(nsIContent* aContainer,
 
 // nsIMutationObserver
 
-void TableRowsCollection::ContentAppended(nsIContent* aFirstNewContent) {
+void TableRowsCollection::ContentAppended(nsIContent* aFirstNewContent,
+                                          const ContentAppendInfo&) {
   nsIContent* container = aFirstNewContent->GetParent();
   if (!nsContentUtils::IsInSameAnonymousTree(mParent, aFirstNewContent) ||
       !InterestingContainer(container)) {
@@ -433,7 +434,8 @@ void TableRowsCollection::ContentAppended(nsIContent* aFirstNewContent) {
   }
 }
 
-void TableRowsCollection::ContentInserted(nsIContent* aChild) {
+void TableRowsCollection::ContentInserted(nsIContent* aChild,
+                                          const ContentInsertInfo&) {
   if (!nsContentUtils::IsInSameAnonymousTree(mParent, aChild) ||
       !InterestingContainer(aChild->GetParent())) {
     return;
@@ -443,7 +445,7 @@ void TableRowsCollection::ContentInserted(nsIContent* aChild) {
 }
 
 void TableRowsCollection::ContentWillBeRemoved(nsIContent* aChild,
-                                               const BatchRemovalState*) {
+                                               const ContentRemoveInfo&) {
   if (!nsContentUtils::IsInSameAnonymousTree(mParent, aChild) ||
       !InterestingContainer(aChild->GetParent())) {
     return;

@@ -161,31 +161,33 @@ void MutationObservers::NotifyAttributeSetToCurrentValue(Element* aElement,
 }
 
 void MutationObservers::NotifyContentAppended(nsIContent* aContainer,
-                                              nsIContent* aFirstNewContent) {
+                                              nsIContent* aFirstNewContent,
+                                              const ContentAppendInfo& aInfo) {
   aContainer->OwnerDoc()->Changed();
-  Notify(aContainer, NOTIFIER(ContentAppended, aFirstNewContent),
+  Notify(aContainer, NOTIFIER(ContentAppended, aFirstNewContent, aInfo),
          nsIMutationObserver::kContentAppended);
 }
 
 void MutationObservers::NotifyContentInserted(nsINode* aContainer,
-                                              nsIContent* aChild) {
+                                              nsIContent* aChild,
+                                              const ContentInsertInfo& aInfo) {
   MOZ_ASSERT(aContainer->IsContent() || aContainer->IsDocument(),
              "container must be an nsIContent or an Document");
   aContainer->OwnerDoc()->Changed();
-  Notify(aContainer, NOTIFIER(ContentInserted, aChild),
+  Notify(aContainer, NOTIFIER(ContentInserted, aChild, aInfo),
          nsIMutationObserver::kContentInserted);
 }
 
 void MutationObservers::NotifyContentWillBeRemoved(
-    nsINode* aContainer, nsIContent* aChild, const BatchRemovalState* aState) {
+    nsINode* aContainer, nsIContent* aChild, const ContentRemoveInfo& aInfo) {
   MOZ_ASSERT(aContainer->IsContent() || aContainer->IsDocument(),
              "container must be an nsIContent or an Document");
   MOZ_ASSERT(aChild->GetParentNode() == aContainer,
              "We expect the parent link to be still around at this point");
   aContainer->OwnerDoc()->Changed();
-  Notify<NotifyPresShell::Before>(
-      aContainer, NOTIFIER(ContentWillBeRemoved, aChild, aState),
-      nsIMutationObserver::kContentWillBeRemoved);
+  Notify<NotifyPresShell::Before>(aContainer,
+                                  NOTIFIER(ContentWillBeRemoved, aChild, aInfo),
+                                  nsIMutationObserver::kContentWillBeRemoved);
 }
 
 void MutationObservers::NotifyARIAAttributeDefaultWillChange(

@@ -49,16 +49,18 @@ void HTMLTitleElement::CharacterDataChanged(nsIContent* aContent,
   SendTitleChangeEvent(false);
 }
 
-void HTMLTitleElement::ContentAppended(nsIContent* aFirstNewContent) {
+void HTMLTitleElement::ContentAppended(nsIContent* aFirstNewContent,
+                                       const ContentAppendInfo&) {
   SendTitleChangeEvent(false);
 }
 
-void HTMLTitleElement::ContentInserted(nsIContent* aChild) {
+void HTMLTitleElement::ContentInserted(nsIContent* aChild,
+                                       const ContentInsertInfo&) {
   SendTitleChangeEvent(false);
 }
 
 void HTMLTitleElement::ContentWillBeRemoved(nsIContent* aChild,
-                                            const BatchRemovalState*) {
+                                            const ContentRemoveInfo&) {
   SendTitleChangeEvent(false);
 }
 

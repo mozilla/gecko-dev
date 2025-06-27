@@ -62,7 +62,8 @@ void L10nMutations::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
   }
 }
 
-void L10nMutations::ContentAppended(nsIContent* aChild) {
+void L10nMutations::ContentAppended(nsIContent* aChild,
+                                    const ContentAppendInfo&) {
   if (!mObserving) {
     return;
   }
@@ -83,7 +84,8 @@ void L10nMutations::ContentAppended(nsIContent* aChild) {
   }
 }
 
-void L10nMutations::ContentInserted(nsIContent* aChild) {
+void L10nMutations::ContentInserted(nsIContent* aChild,
+                                    const ContentInsertInfo&) {
   if (!mObserving) {
     return;
   }
@@ -106,7 +108,7 @@ void L10nMutations::ContentInserted(nsIContent* aChild) {
 }
 
 void L10nMutations::ContentWillBeRemoved(nsIContent* aChild,
-                                         const BatchRemovalState*) {
+                                         const ContentRemoveInfo&) {
   if (!mObserving || mPendingElements.IsEmpty()) {
     return;
   }

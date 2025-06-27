@@ -40,16 +40,18 @@ void SVGTitleElement::CharacterDataChanged(nsIContent* aContent,
   SendTitleChangeEvent(false);
 }
 
-void SVGTitleElement::ContentAppended(nsIContent* aFirstNewContent) {
+void SVGTitleElement::ContentAppended(nsIContent* aFirstNewContent,
+                                      const ContentAppendInfo&) {
   SendTitleChangeEvent(false);
 }
 
-void SVGTitleElement::ContentInserted(nsIContent* aChild) {
+void SVGTitleElement::ContentInserted(nsIContent* aChild,
+                                      const ContentInsertInfo&) {
   SendTitleChangeEvent(false);
 }
 
 void SVGTitleElement::ContentWillBeRemoved(nsIContent* aChild,
-                                           const BatchRemovalState*) {
+                                           const ContentRemoveInfo&) {
   SendTitleChangeEvent(false);
 }
 

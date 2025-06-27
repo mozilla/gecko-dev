@@ -324,17 +324,19 @@ void SVGRenderingObserver::AttributeChanged(dom::Element* aElement,
   OnRenderingChange();
 }
 
-void SVGRenderingObserver::ContentAppended(nsIContent* aFirstNewContent) {
+void SVGRenderingObserver::ContentAppended(nsIContent* aFirstNewContent,
+                                           const ContentAppendInfo&) {
   OnRenderingChange();
 }
 
-void SVGRenderingObserver::ContentInserted(nsIContent* aChild) {
+void SVGRenderingObserver::ContentInserted(nsIContent* aChild,
+                                           const ContentInsertInfo&) {
   OnRenderingChange();
 }
 
 void SVGRenderingObserver::ContentWillBeRemoved(
-    nsIContent* aChild, const BatchRemovalState* aState) {
-  if (aState && !aState->mIsFirst) {
+    nsIContent* aChild, const ContentRemoveInfo& aInfo) {
+  if (aInfo.mBatchRemovalState && !aInfo.mBatchRemovalState->mIsFirst) {
     return;
   }
   OnRenderingChange();

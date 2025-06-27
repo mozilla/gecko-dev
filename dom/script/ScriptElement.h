@@ -30,6 +30,7 @@ class ScriptElement : public nsIScriptElement, public nsStubMutationObserver {
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
+  NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   explicit ScriptElement(FromParser aFromParser)
       : nsIScriptElement(aFromParser) {}
@@ -47,6 +48,9 @@ class ScriptElement : public nsIScriptElement, public nsStubMutationObserver {
   virtual bool HasExternalScriptContent() = 0;
 
   virtual bool MaybeProcessScript() override;
+
+  // https://github.com/w3c/trusted-types/pull/579
+  void UpdateTrustWorthiness(MutationEffectOnScript aMutationEffectOnScript);
 };
 
 }  // namespace mozilla::dom

@@ -3028,7 +3028,7 @@ void Document::DisconnectNodeTree() {
 
     while (nsCOMPtr<nsIContent> content = GetLastChild()) {
       nsMutationGuard::DidMutate();
-      MutationObservers::NotifyContentWillBeRemoved(this, content, nullptr);
+      MutationObservers::NotifyContentWillBeRemoved(this, content, {});
       DisconnectChild(content);
       if (content == mCachedRootElement) {
         // Immediately clear mCachedRootElement, now that it's been removed
@@ -7769,7 +7769,7 @@ void Document::RemoveChildNode(nsIContent* aKid, bool aNotify,
     // Notify early so that we can clear the cached element after notifying,
     // without having to slow down nsINode::RemoveChildNode.
     if (aNotify) {
-      MutationObservers::NotifyContentWillBeRemoved(this, aKid, aState);
+      MutationObservers::NotifyContentWillBeRemoved(this, aKid, {aState});
       aNotify = false;
     }
 
@@ -8760,7 +8760,7 @@ void Document::RemoveCustomContentContainer() {
     container->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ true);
   }
   if (PresShell* ps = GetPresShell()) {
-    ps->ContentWillBeRemoved(container, nullptr);
+    ps->ContentWillBeRemoved(container, {});
   }
   container->UnbindFromTree();
 }
@@ -8807,7 +8807,7 @@ void Document::CreateCustomContentContainerIfNeeded() {
     container->QueueDevtoolsAnonymousEvent(/* aIsRemove = */ false);
   }
   if (PresShell* ps = GetPresShell()) {
-    ps->ContentAppended(container);
+    ps->ContentAppended(container, {});
   }
   for (auto& anonContent : mAnonymousContents) {
     BindAnonymousContent(*anonContent, *container);
@@ -14784,13 +14784,15 @@ void DevToolsMutationObserver::AttributeChanged(Element* aElement,
   FireEvent(aElement, u"devtoolsattrmodified"_ns);
 }
 
-void DevToolsMutationObserver::ContentAppended(nsIContent* aFirstNewContent) {
+void DevToolsMutationObserver::ContentAppended(nsIContent* aFirstNewContent,
+                                               const ContentAppendInfo& aInfo) {
   for (nsIContent* c = aFirstNewContent; c; c = c->GetNextSibling()) {
-    ContentInserted(c);
+    ContentInserted(c, aInfo);
   }
 }
 
-void DevToolsMutationObserver::ContentInserted(nsIContent* aChild) {
+void DevToolsMutationObserver::ContentInserted(nsIContent* aChild,
+                                               const ContentInsertInfo&) {
   FireEvent(aChild, u"devtoolschildinserted"_ns);
 }
 
