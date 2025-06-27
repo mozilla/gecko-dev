@@ -601,7 +601,7 @@ class HTMLEditUtils final {
    *                                creating the block boundary.
    */
   template <typename EditorDOMPointType>
-  static bool IsVisiblePreformattedNewLine(
+  [[nodiscard]] static bool IsVisiblePreformattedNewLine(
       const EditorDOMPointType& aPoint,
       Element** aFollowingBlockElement = nullptr) {
     if (aFollowingBlockElement) {
@@ -620,13 +620,15 @@ class HTMLEditUtils final {
       }
       const nsTextFragment& textFragment =
           aPoint.template ContainerAs<Text>()->TextFragment();
-      for (uint32_t offset = aPoint.Offset() + 1;
-           offset < textFragment.GetLength(); ++offset) {
-        char16_t ch = textFragment.CharAt(AssertedCast<int32_t>(offset));
-        if (nsCRT::IsAsciiSpace(ch) && ch != HTMLEditUtils::kNewLine) {
-          continue;  // ASCII white-space which is collapsed into the linefeed.
-        }
-        return true;  // There is a visible character after it.
+      const uint32_t nextVisibleCharOffset = textFragment.FindNonWhitespaceChar(
+          EditorUtils::IsNewLinePreformatted(
+              *aPoint.template ContainerAs<Text>())
+              ? WhitespaceOptions{WhitespaceOption::FormFeedIsSignificant,
+                                  WhitespaceOption::NewLineIsSignificant}
+              : WhitespaceOptions{WhitespaceOption::FormFeedIsSignificant},
+          aPoint.Offset() + 1);
+      if (nextVisibleCharOffset != nsTextFragment::kNotFound) {
+        return true;  // There is a visible character after the point.
       }
     }
     // If followed by a block boundary without visible content, it's invisible
