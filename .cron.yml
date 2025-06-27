@@ -248,8 +248,9 @@ jobs:
               mozilla-release:
                   - {hour: 7, minute: 0}
                   - {hour: 19, minute: 0}
-              # Bug 1965205: Enable this after esr140 got a release
-              mozilla-esr140: []
+              mozilla-esr140:
+                  - {hour: 7, minute: 0}
+                  - {hour: 19, minute: 0}
 
     - name: periodic-update
       job:
