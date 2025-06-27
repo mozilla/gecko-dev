@@ -798,11 +798,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "1.2.0 -> 1.2.3"
 
-[[audits.arraydeque]]
-who = "Lars Eggert <lars@eggert.org>"
-criteria = "safe-to-deploy"
-version = "0.5.1"
-
 [[audits.arraystring]]
 who = "Henri Sivonen <hsivonen@hsivonen.fi>"
 criteria = "safe-to-deploy"
@@ -6612,11 +6607,6 @@ who = "Henri Sivonen <hsivonen@hsivonen.fi>"
 criteria = "safe-to-deploy"
 version = "0.2.0"
 notes = "I, Henri Sivonen, wrote this crate myself for Gecko even though it's published on crates.io."
-
-[[audits.yaml-rust2]]
-who = "Lars Eggert <lars@eggert.org>"
-criteria = "safe-to-deploy"
-version = "0.10.3"
 
 [[audits.yoke]]
 who = "Makoto Kato <m_kato@ga2.so-net.ne.jp>"
