@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.service.nimbus.messaging.Message
-import mozilla.components.service.pocket.PocketStory
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
@@ -36,8 +35,6 @@ internal fun normalModeAdapterItems(
     nimbusMessageCard: Message? = null,
     showRecentTab: Boolean,
     showRecentSyncedTab: Boolean,
-    pocketStories: List<PocketStory>,
-    firstFrameDrawn: Boolean = false,
 ): List<AdapterItem> {
     val items = mutableListOf<AdapterItem>()
 
@@ -59,14 +56,6 @@ internal fun normalModeAdapterItems(
         }
     } else {
         showCollections(collections, expandedCollections, items)
-    }
-
-    // When Pocket is enabled and the initial layout of the app is done, then we can add these items
-    // to render to the home screen.
-    // This is only useful while we have a RecyclerView + Compose implementation. We can remove this
-    // when we switch to a Compose-only home screen.
-    if (firstFrameDrawn && settings.showPocketRecommendationsFeature && pocketStories.isNotEmpty()) {
-        items.add(AdapterItem.PocketStoriesItem)
     }
 
     return items
@@ -98,8 +87,6 @@ private fun AppState.toAdapterList(settings: Settings): List<AdapterItem> =
         messaging.messageToShow[FenixMessageSurfaceId.HOMESCREEN],
         shouldShowRecentTabs(settings),
         shouldShowRecentSyncedTabs(),
-        recommendationState.pocketStories,
-        firstFrameDrawn,
     )
 
 private fun collectionTabItems(collection: TabCollection) =

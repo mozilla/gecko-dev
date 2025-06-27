@@ -18,7 +18,6 @@ import mozilla.components.service.nimbus.messaging.Message
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.home.collections.CollectionViewHolder
 import org.mozilla.fenix.home.collections.TabInCollectionViewHolder
-import org.mozilla.fenix.home.pocket.view.PocketStoriesViewHolder
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTabViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.NoCollectionsMessageViewHolder
 import org.mozilla.fenix.home.sessioncontrol.viewholders.onboarding.MessageCardViewHolder
@@ -124,8 +123,6 @@ sealed class AdapterItem(@LayoutRes val viewType: Int) {
      */
     object RecentSyncedTabItem : AdapterItem(RecentSyncedTabViewHolder.LAYOUT_ID)
 
-    object PocketStoriesItem : AdapterItem(PocketStoriesViewHolder.LAYOUT_ID)
-
     /**
      * True if this item represents the same value as other. Used by [AdapterItemDiffCallback].
      */
@@ -163,11 +160,6 @@ class SessionControlAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         when (viewType) {
             MessageCardViewHolder.LAYOUT_ID -> return MessageCardViewHolder(
-                composeView = ComposeView(parent.context),
-                viewLifecycleOwner = viewLifecycleOwner,
-                interactor = interactor,
-            )
-            PocketStoriesViewHolder.LAYOUT_ID -> return PocketStoriesViewHolder(
                 composeView = ComposeView(parent.context),
                 viewLifecycleOwner = viewLifecycleOwner,
                 interactor = interactor,
@@ -212,7 +204,6 @@ class SessionControlAdapter(
     override fun onViewRecycled(holder: RecyclerView.ViewHolder) {
         when (holder) {
             is RecentSyncedTabViewHolder,
-            is PocketStoriesViewHolder,
             -> {
                 // no op
                 // This previously called "composeView.disposeComposition" which would have the
@@ -279,7 +270,6 @@ class SessionControlAdapter(
                 holder.bindSession(collection, tab, isLastTab)
             }
             is RecentSyncedTabViewHolder,
-            is PocketStoriesViewHolder,
             -> {
                 // no-op. This ViewHolder receives the HomeStore as argument and will observe that
                 // without the need for us to manually update from here the data to be displayed.
