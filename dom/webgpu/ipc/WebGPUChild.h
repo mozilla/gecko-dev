@@ -118,7 +118,6 @@ class WebGPUChild final : public PWebGPUChild, public SupportsWeakPtr {
     RefPtr<Adapter> adapter;
     RefPtr<SupportedFeatures> features;
     RefPtr<SupportedLimits> limits;
-    RefPtr<AdapterInfo> adapter_info;
   };
 
   std::deque<PendingRequestDevicePromise> mPendingRequestDevicePromises;

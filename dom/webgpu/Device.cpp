@@ -44,8 +44,7 @@ mozilla::LazyLogModule gWebGPULog("WebGPU");
 
 GPU_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_INHERITED(Device, DOMEventTargetHelper,
                                                  mBridge, mQueue, mFeatures,
-                                                 mLimits, mAdapterInfo,
-                                                 mLostPromise);
+                                                 mLimits, mLostPromise);
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(Device, DOMEventTargetHelper)
 GPU_IMPL_JS_WRAP(Device)
 
@@ -60,13 +59,11 @@ RefPtr<WebGPUChild> Device::GetBridge() { return mBridge; }
 
 Device::Device(Adapter* const aParent, RawId aDeviceId, RawId aQueueId,
                RefPtr<SupportedFeatures> aFeatures,
-               RefPtr<SupportedLimits> aLimits,
-               RefPtr<webgpu::AdapterInfo> aAdapterInfo)
+               RefPtr<SupportedLimits> aLimits)
     : DOMEventTargetHelper(aParent->GetParentObject()),
       mId(aDeviceId),
       mFeatures(std::move(aFeatures)),
       mLimits(std::move(aLimits)),
-      mAdapterInfo(std::move(aAdapterInfo)),
       mSupportExternalTextureInSwapChain(
           aParent->SupportExternalTextureInSwapChain()),
       mBridge(aParent->mBridge),
