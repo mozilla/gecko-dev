@@ -23,10 +23,6 @@ struct Keyframe;
 struct PseudoStyleRequest;
 struct StyleLockedDeclarationBlock;
 
-namespace gfx {
-class DataSourceSurface;
-}
-
 namespace layers {
 class RenderRootStateManager;
 }
