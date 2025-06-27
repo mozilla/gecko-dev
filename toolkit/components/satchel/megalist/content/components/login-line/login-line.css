@@ -42,7 +42,7 @@
 }
 
 :host(login-line:hover),
-:host(login-line:focus) {
+:host(login-line:focus-visible) {
   > .line-container {
     background-color: var(--button-background-color-hover);
   }
