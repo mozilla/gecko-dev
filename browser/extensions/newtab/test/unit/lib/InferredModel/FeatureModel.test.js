@@ -22,14 +22,15 @@ const jsonData = {
 describe("Inferred Model", () => {
   it("create model", () => {
     const model = FeatureModel.fromJSON(jsonData);
-    assert.equal(model.model_id, jsonData.model_id);
+    assert.equal(model.model_id, jsonData.modelId);
   });
   it("create time intervals", () => {
     const model = FeatureModel.fromJSON(jsonData);
-    assert.equal(model.model_id, jsonData.model_id);
-    const intervals = model.getDateIntervals();
+    assert.equal(model.model_id, jsonData.modelId);
 
     const curTime = new Date();
+    const intervals = model.getDateIntervals(curTime);
+
     assert.equal(intervals.length, jsonData.day_time_weighting.days.length);
     for (const interval of intervals) {
       assert.isTrue(interval.start < curTime.getTime());

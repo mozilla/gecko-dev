@@ -282,7 +282,7 @@ describe("<DSCard>", () => {
         innerWidth: 1000,
         innerHeight: 900,
       };
-      wrapper = mount(
+      wrapper = shallow(
         <DSCard {...DEFAULT_PROPS} dispatch={dispatch} windowObj={fakeWindow} />
       );
     });
@@ -551,14 +551,21 @@ describe("<DSCard>", () => {
       assert.calledWith(wrapper.instance().observer.unobserve, "element");
     });
 
-    it("should setup proper placholder ref for isSeen", () => {
+    it("should setup proper placeholder ref for isSeen", () => {
       wrapper.instance().setPlaceholderRef("element");
       assert.equal(wrapper.instance().placeholderElement, "element");
     });
 
     it("should setup observer on componentDidMount", () => {
-      wrapper = mount(<DSCard {...DEFAULT_PROPS} />);
-      assert.isTrue(!!wrapper.instance().observer);
+      const store = createStore(combineReducers(reducers), INITIAL_STATE);
+
+      wrapper = mount(
+        <Provider store={store}>
+          <DSCard {...DEFAULT_PROPS} />
+        </Provider>
+      );
+
+      assert.isTrue(!!wrapper.find(DSCard).instance().observer);
     });
   });
 

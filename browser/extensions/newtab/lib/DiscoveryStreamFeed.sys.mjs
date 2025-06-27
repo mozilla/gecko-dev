@@ -2764,7 +2764,7 @@ export class DiscoveryStreamFeed {
       // Check if spocs was disabled. Remove them if they were.
       case PREF_SHOW_SPONSORED:
       case PREF_SHOW_SPONSORED_TOPSITES: {
-        this.updateOrRemoveSpocs();
+        await this.updateOrRemoveSpocs();
         break;
       }
     }
