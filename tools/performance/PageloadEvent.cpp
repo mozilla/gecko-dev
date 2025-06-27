@@ -256,6 +256,25 @@ mozilla::glean::perf::PageLoadExtra PageloadEventData::ToPageLoadExtra() const {
   return out;
 }
 
+static mozilla::Maybe<uint32_t> AddMultiplicativeNoise(
+    const mozilla::Maybe<uint32_t>& input, double relativeRange = 0.10) {
+  mozilla::Maybe<uint64_t> rand = mozilla::RandomUint64();
+  if (!input || !rand) {
+    return mozilla::Nothing{};
+  }
+
+  // Generate a range based on the relative range.
+  double normalizedRand =
+      static_cast<double>(rand.value()) /
+      (static_cast<double>(std::numeric_limits<uint64_t>::max()) + 1.0);
+
+  double multiplier = 1.0 + (normalizedRand * 2.0 - 1.0) * relativeRange;
+  uint32_t output =
+      static_cast<uint32_t>(std::round(input.value() * multiplier));
+  ;
+  return mozilla::Some(output);
+}
+
 mozilla::glean::perf::PageLoadDomainExtra
 PageloadEventData::ToPageLoadDomainExtra() const {
   mozilla::glean::perf::PageLoadDomainExtra out;
@@ -264,7 +283,10 @@ PageloadEventData::ToPageLoadDomainExtra() const {
   out.sameOriginNav = this->sameOriginNav;
   out.documentFeatures = this->documentFeatures;
   out.loadType = this->loadType;
-  out.lcpTime = this->lcpTime;
+
+  // Add some noise to any numerical metrics.
+  out.lcpTime = AddMultiplicativeNoise(this->lcpTime);
+
   return out;
 }
 
