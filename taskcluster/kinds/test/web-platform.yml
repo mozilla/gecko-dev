@@ -396,10 +396,7 @@ web-platform-tests-webgpu-backlog:
             .*/debug: 5400  # 90m
             default: 3200  # 60m
     variants: []  # We don't need sw or nofis testing.
-    run-on-projects:
-        by-test-platform:
-            android.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1836811
-            default: ['mozilla-central']
+    run-on-projects: []  # Only run this manually, i.e., `mach try --preset webgpu`.
     mozharness:
         chunked: true
         extra-options:
@@ -431,10 +428,7 @@ web-platform-tests-webgpu-backlog-long:
             default: 4
     max-run-time: 5400  # 90m
     variants: []  # We don't need sw or nofis testing.
-    run-on-projects:
-        by-test-platform:
-            android.*: []  # https://bugzilla.mozilla.org/show_bug.cgi?id=1836811
-            default: ['mozilla-central']
+    run-on-projects: []  # Only run this manually, i.e., `mach try --preset webgpu`.
     mozharness:
         chunked: true
         extra-options:
