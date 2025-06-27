@@ -25,7 +25,6 @@
 #include "GMPServiceParent.h"
 #include "HandlerServiceParent.h"
 #include "IHistory.h"
-#include <cstdint>
 #include <map>
 #include <utility>
 
@@ -61,6 +60,7 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/NullPrincipal.h"
+#include "mozilla/PageloadEvent.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/ProcessHangMonitor.h"
@@ -6259,9 +6259,10 @@ static bool WebdriverRunning() {
 }
 
 mozilla::ipc::IPCResult ContentParent::RecvRecordPageLoadEvent(
-    mozilla::glean::perf::PageLoadExtra&& aPageLoadEventExtra) {
+    mozilla::performance::pageload_event::PageloadEventData&&
+        aPageloadEventData) {
   // Check whether a webdriver is running.
-  aPageLoadEventExtra.usingWebdriver = mozilla::Some(WebdriverRunning());
+  aPageloadEventData.set_usingWebdriver(WebdriverRunning());
 
 #if defined(XP_WIN)
   // The "hasSSD" property is only set on Windows during the first
@@ -6275,13 +6276,16 @@ mozilla::ipc::IPCResult ContentParent::RecvRecordPageLoadEvent(
   bool hasSSD;
   rv = infoService->GetPropertyAsBool(u"hasSSD"_ns, &hasSSD);
   if (NS_SUCCEEDED(rv)) {
-    aPageLoadEventExtra.hasSsd = Some(hasSSD);
+    aPageloadEventData.set_hasSsd(hasSSD);
   }
 #endif
-  mozilla::glean::perf::page_load.Record(mozilla::Some(aPageLoadEventExtra));
 
-  // Send the PageLoadPing after every 30 page loads, or on startup.
-  if (++sPageLoadEventCounter >= 30) {
+  mozilla::glean::perf::PageLoadExtra extra =
+      aPageloadEventData.ToPageLoadExtra();
+  mozilla::glean::perf::page_load.Record(mozilla::Some(extra));
+
+  // Send the PageLoadPing after every 10 page loads, or on startup.
+  if (++sPageLoadEventCounter >= 10) {
     Unused << NS_WARN_IF(NS_FAILED(NS_DispatchToMainThreadQueue(
         NS_NewRunnableFunction(
             "PageLoadPingIdleTask",

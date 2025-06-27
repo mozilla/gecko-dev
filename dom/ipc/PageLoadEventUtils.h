@@ -8,66 +8,27 @@
 #define mozilla_dom_page_load_event_utils_h__
 
 #include "ipc/IPCMessageUtils.h"
-#include "mozilla/glean/DomMetrics.h"
-
-#include <cstdint>
-
-namespace mozilla {
-namespace pageload_event {
-
-/*
- *  Features utilized within a document, represented as bitfield in the pageload
- * event.
- */
-enum FeatureBits : uint32_t {
-  FETCH_PRIORITY_IMAGES = 1 << 0,
-  USING_A11Y = 1 << 1
-};
-}  // namespace pageload_event
-}  // namespace mozilla
+#include "mozilla/PageloadEvent.h"
 
 namespace IPC {
 
 template <>
-struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
-  typedef mozilla::glean::perf::PageLoadExtra paramType;
+struct ParamTraits<mozilla::performance::pageload_event::PageloadEventData> {
+  typedef mozilla::performance::pageload_event::PageloadEventData paramType;
 
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    WriteParam(aWriter, aParam.fcpTime);
-    WriteParam(aWriter, aParam.lcpTime);
-    WriteParam(aWriter, aParam.jsExecTime);
-    WriteParam(aWriter, aParam.delazifyTime);
-    WriteParam(aWriter, aParam.loadTime);
-    WriteParam(aWriter, aParam.loadType);
-    WriteParam(aWriter, aParam.timeToRequestStart);
-    WriteParam(aWriter, aParam.tlsHandshakeTime);
-    WriteParam(aWriter, aParam.responseTime);
-    WriteParam(aWriter, aParam.httpVer);
-    WriteParam(aWriter, aParam.redirectCount);
-    WriteParam(aWriter, aParam.redirectTime);
-    WriteParam(aWriter, aParam.sameOriginNav);
-    WriteParam(aWriter, aParam.trrDomain);
-    WriteParam(aWriter, aParam.dnsLookupTime);
-    WriteParam(aWriter, aParam.features);
+#define WRITE_METRIC_PARAM(name, type) WriteParam(aWriter, aParam.name);
+    FOR_EACH_PAGELOAD_METRIC(WRITE_METRIC_PARAM)
+#undef WRITE_METRIC_PARAM
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadParam(aReader, &aResult->fcpTime) &&
-           ReadParam(aReader, &aResult->lcpTime) &&
-           ReadParam(aReader, &aResult->jsExecTime) &&
-           ReadParam(aReader, &aResult->delazifyTime) &&
-           ReadParam(aReader, &aResult->loadTime) &&
-           ReadParam(aReader, &aResult->loadType) &&
-           ReadParam(aReader, &aResult->timeToRequestStart) &&
-           ReadParam(aReader, &aResult->tlsHandshakeTime) &&
-           ReadParam(aReader, &aResult->responseTime) &&
-           ReadParam(aReader, &aResult->httpVer) &&
-           ReadParam(aReader, &aResult->redirectCount) &&
-           ReadParam(aReader, &aResult->redirectTime) &&
-           ReadParam(aReader, &aResult->sameOriginNav) &&
-           ReadParam(aReader, &aResult->trrDomain) &&
-           ReadParam(aReader, &aResult->dnsLookupTime) &&
-           ReadParam(aReader, &aResult->features);
+    bool ok = true;
+#define READ_METRIC_PARAM(name, type) \
+  ok = ok && ReadParam(aReader, &aResult->name);
+    FOR_EACH_PAGELOAD_METRIC(READ_METRIC_PARAM)
+#undef READ_METRIC_PARAM
+    return ok;
   }
 };
 

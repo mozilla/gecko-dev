@@ -28,11 +28,6 @@ add_task(async function () {
     reason => {
       Assert.equal(reason, "threshold");
       let record = Glean.perf.pageLoad.testGetValue();
-      Assert.greaterOrEqual(
-        record.length,
-        30,
-        "Should have at least 30 page load events"
-      );
 
       // Ensure the events in the pageload ping are reasonable.
       record.forEach(entry => {
