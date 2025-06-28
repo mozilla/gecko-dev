@@ -159,9 +159,8 @@ class Translator {
     mDependentSurfaces = aDependentSurfaces;
   }
 
-  DrawTarget* GetCurrentDrawTarget() const {
-    return mCurrentDT && mCurrentDT->IsValid() ? mCurrentDT : nullptr;
-  }
+  // NOTE that the returned DrawTarget may be in an error state!
+  DrawTarget* GetCurrentDrawTarget() const { return mCurrentDT; }
 
   nsRefPtrHashtable<nsUint64HashKey, RecordedDependentSurface>*
       mDependentSurfaces = nullptr;
