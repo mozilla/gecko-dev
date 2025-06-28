@@ -459,16 +459,6 @@ class RefTest:
         prefs["reftest.focusFilterMode"] = options.focusFilterMode
         prefs["reftest.logLevel"] = options.log_tbpl_level or "info"
         prefs["reftest.suite"] = options.suite
-        prefs["gfx.font_rendering.ahem_antialias_none"] = True
-        # Run the "deferred" font-loader immediately, because if it finishes
-        # mid-test, the extra reflow that is triggered can disrupt the test.
-        prefs["gfx.font_loader.delay"] = 0
-        # Ensure bundled fonts are activated, even if not enabled by default
-        # on the platform, so that tests can rely on them.
-        prefs["gfx.bundled-fonts.activate"] = 1
-        # Disable dark scrollbars because it's semi-transparent.
-        prefs["widget.disable-dark-scrollbar"] = True
-
         prefs["sandbox.mozinfo"] = json.dumps(mozinfo.info)
 
         # Set tests to run or manifests to parse.
