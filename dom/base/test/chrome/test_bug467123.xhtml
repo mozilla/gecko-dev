@@ -17,18 +17,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=467123
 
   <!-- test code goes here -->
   <script type="application/javascript"><![CDATA[
-    /** Test for Bug 467123 **/
-    let url = Services.io.newURI(document.location.href);
-    let file = Cc["@mozilla.org/chrome/chrome-registry;1"]
-                 .getService(Ci.nsIChromeRegistry)
-                 .convertChromeURL(url)
-                 .QueryInterface(Ci.nsIFileURL)
-                 .file.parent;
-    file.append("clonedoc");
-    Components.manager.addBootstrappedManifestLocation(file);
-
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "chrome://clonedoc/content/doc.xml", false);
+    xhr.open("GET", " chrome://global/content/win.xhtml", false);
     xhr.send();
     ok(xhr.responseXML, "We should have response document!");
     var e = null;

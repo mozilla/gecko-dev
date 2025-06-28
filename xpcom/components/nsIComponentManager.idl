@@ -9,8 +9,6 @@
 
 #include "nsISupports.idl"
 
-interface nsIFile;
-interface nsIFactory;
 interface nsIArray;
 interface nsIUTF8StringEnumerator;
 
@@ -68,26 +66,6 @@ interface nsIComponentManager : nsISupports
     void createInstanceByContractID(in string aContractID,
                                     in nsIIDRef aIID,
                                     [iid_is(aIID),retval] out nsQIResult result);
-
-    /**
-     * addBootstrappedManifestLocation
-     *
-     * Adds a bootstrapped manifest location on runtime.
-     *
-     * @param aLocation : A directory where chrome.manifest resides,
-     *                    or an XPI with it on the root.
-     */
-    void addBootstrappedManifestLocation(in nsIFile aLocation);
-
-    /**
-     * removeBootstrappedManifestLocation
-     *
-     * Removes a bootstrapped manifest location on runtime.
-     *
-     * @param aLocation : A directory where chrome.manifest resides,
-     *                    or an XPI with it on the root.
-     */
-    void removeBootstrappedManifestLocation(in nsIFile aLocation);
 
     /**
      * getManifestLocations

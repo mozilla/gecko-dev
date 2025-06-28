@@ -587,26 +587,6 @@ void nsChromeRegistryChrome::ManifestOverride(ManifestProcessingContext& cx,
     return;
   }
 
-  if (cx.mType == NS_SKIN_LOCATION) {
-    bool chromeSkinOnly =
-        chromeuri->SchemeIs("chrome") && resolveduri->SchemeIs("chrome");
-    if (chromeSkinOnly) {
-      nsAutoCString chromePath, resolvedPath;
-      chromeuri->GetPathQueryRef(chromePath);
-      resolveduri->GetPathQueryRef(resolvedPath);
-      chromeSkinOnly = StringBeginsWith(chromePath, "/skin/"_ns) &&
-                       StringBeginsWith(resolvedPath, "/skin/"_ns);
-    }
-    if (!chromeSkinOnly) {
-      LogMessageWithContext(
-          cx.GetManifestURI(), lineno, nsIScriptError::warningFlag,
-          "Cannot register non-chrome://.../skin/ URIs '%s' and '%s' as "
-          "overrides and/or to be overridden from a skin manifest.",
-          chrome, resolved);
-      return;
-    }
-  }
-
   if (!CanLoadResource(resolveduri)) {
     LogMessageWithContext(
         cx.GetManifestURI(), lineno, nsIScriptError::warningFlag,

@@ -127,14 +127,6 @@ class nsComponentManagerImpl final : public nsIComponentManager,
     mozilla::FileLocation location;
   };
 
-  class ComponentLocationComparator {
-   public:
-    bool Equals(const ComponentLocation& aA,
-                const ComponentLocation& aB) const {
-      return (aA.type == aB.type && aA.location.Equals(aB.location));
-    }
-  };
-
   static nsTArray<ComponentLocation>* sModuleLocations;
 
   // Mutex not held

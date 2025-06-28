@@ -87,8 +87,6 @@ static const ManifestDirective kParsingTable[] = {
     nullptr, &nsChromeRegistry::ManifestSkin,
   },
   {
-    // NB: note that while skin manifests can use this, they are only allowed
-    // to use it for chrome://../skin/ URLs
     "override",         2, true, false,
     nullptr, &nsChromeRegistry::ManifestOverride,
   },
@@ -531,13 +529,6 @@ void ParseManifest(NSLocationType aType, FileLocation& aFile, char* aBuf,
       LogMessageWithContext(
           aFile, line, "Ignoring unrecognized chrome manifest directive '%s'.",
           token);
-      continue;
-    }
-
-    if (!directive->ischrome && NS_BOOTSTRAPPED_LOCATION == aType) {
-      LogMessageWithContext(
-          aFile, line,
-          "Bootstrapped manifest not allowed to use '%s' directive.", token);
       continue;
     }
 

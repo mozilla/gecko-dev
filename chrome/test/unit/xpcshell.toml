@@ -16,9 +16,6 @@ support-files = ["data/**"]
 
 ["test_bug415367.js"]
 
-["test_bug564667.js"]
-tags = "addons"
-
 ["test_create_channel_chrome_url.js"]
 
 ["test_crlf.js"]

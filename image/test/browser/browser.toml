@@ -6,7 +6,6 @@ support-files = [
   "head.js",
   "image.html",
   "imageX2.html",
-  "browser_docshell_type_editor/**"
 ]
 
 ["browser_animated_css_image.js"]
