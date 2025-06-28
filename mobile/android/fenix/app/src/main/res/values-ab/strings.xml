@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Егьырҭ архиарақәа</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Ахатә ԥшаара аҿактәуп</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Ахатә ԥшаара аҿактәуп</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Ихатәу абраузер аҿыхтәуп</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Ихатәу абраузер аҿыхтәуп</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Иҭажәгал шәзыҳәара ма шәҭыӡҭыԥ</string>
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
@@ -451,7 +451,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Абжьажьра</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Уара уҭаӡҩырақәа асинхронизациа ҟаҵоуп! Даҽа ҳәагак аҿы иахьаанужьыз иацҵа.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">Уара уҭаӡҩырақәа асинхронизациа ҟаҵоуп! Даҽа ҳәагак аҿы иахьаанужьыз иацҵа.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">Аркра</string>
   <!--

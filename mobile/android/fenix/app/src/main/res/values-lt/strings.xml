@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Daugiau parinkčių</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Įjungti privatųjį naršymą</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Įjungti privatųjį naršymą</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Išjungti privatųjį naršymą</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Išjungti privatųjį naršymą</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Ieškokite arba įveskite adresą</string>
   <!-- Placeholder text shown in search bar when using history search -->

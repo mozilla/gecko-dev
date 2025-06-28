@@ -30,6 +30,8 @@
     %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission.
   -->
   <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">Atzèdere a is datos tuos in àteros %1$d domìnios</string>
+  <!-- When an add-on requires access to domains, this entry is used to describe the total number of domains. Underneath it will be the list of all the domains. %1$d is the number of all the domains that will be shown to the user as required. -->
+  <string name="mozac_feature_addons_permissions_all_domain_count_description" tools:ignore="PluralsCandidate">Atzede a is datos tuos de is sitos de domìnios %1$d</string>
   <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
   <string name="mozac_feature_addons_permissions_content_description_item">%1$s, %2$d de %3$d</string>
   <!-- Description for tabs add-on permission. -->
@@ -78,8 +80,50 @@
   <string name="mozac_feature_addons_permissions_top_sites_description">Atzèdere a sa cronologia de navigatzione</string>
   <!-- Description for trialML permission. -->
   <string name="mozac_feature_addons_permissions_trial_ml_description">Iscàrriga e esecuta modellos de IA in su dispositivu tuo</string>
+  <!-- Description for userScripts permission. -->
+  <string name="mozac_feature_addons_permissions_user_scripts_description">Permìtere chi scripts non verificados de àtere atzedant a is datos tuos</string>
+  <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
+  <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Is scripts non verificados podent cumportare un’arriscu de seguresa e de riservadesa. Esecuta isceti is scripts dae estensiones o mitzas fidadas.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">S’iscuadra de isvilupu narat chi custa estensione regollet: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">S’iscuadra de isvilupu narat chi custa estensione regollet: %1$s</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">S’iscuadra de isvilupu narat chi custa estensione non rechedet sa regorta de datos.</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Abèrrere is ainas de isvilupu pro atzèdere a is datos tuos in is ischedas abertas</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">Ammustra totu is sitos</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">Ammustra prus pagu sitos</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">informatzione de autenticatzione</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">sinnalibros</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">atividade de navigatzione</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">informatziones de finàntzias e de pagamentos</string>
+  <!-- Short description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">informatziones in pitzus de sa salude</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">positzione</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">comunicatziones personales</string>
+  <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">informatziones de identificatzione personale</string>
+  <!-- Short description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">tèrmines de chirca</string>
+  <!-- Short description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">datos tècnicos e de interatzione</string>
+  <!-- Short description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">atividade de is sitos web</string>
+  <!-- Short description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">cuntenutu de is sitos web</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Cumpartzi informatziones de autenticatzione cun s’iscuadra de isvilupu de s’estensione</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Cumpartzi informatziones de is sinnalibros cun s’iscuadra de isvilupu de s’estensione</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Versione</string>
   <!-- The author of an add-on. -->

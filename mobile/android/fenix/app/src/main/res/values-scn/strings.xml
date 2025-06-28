@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Cchiù upzioni</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Abbìlita navicazzioni privata</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Abbìlita navicazzioni privata</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Sdisabbìlita navicazzioni privata</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Sdisabbìlita navicazzioni privata</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">Navicazzioni privata</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -518,7 +518,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Sauta</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">I to schedi si stannu sincrunizzanu! Cuntinua di unni i lassasti ncapu a l’autru to dispusitivu.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">I to schedi si stannu sincrunizzanu! Cuntinua di unni i lassasti ncapu a l’autru to dispusitivu.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">Chiuji</string>
   <!--
@@ -859,6 +859,8 @@
   <string name="preferences_category_account">Cuntu</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">Pusizzioni dâ barra dû nnirizzu</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">Arringu dâ barra dî stigghi</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Tema</string>
   <!-- Preference for customizing the home screen -->
@@ -941,6 +943,14 @@
   <string name="preferences_open_links_in_apps_never">Mai</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Manijaturi dî scarricamenti di fora</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Manija i scarricamenti cu n’autra applicazzioni</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Scancella di %s e dû dispusitivu</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Scancillari i prichi dû to manijaturi dî scarricamenti i leva macari dû to dispusitivu</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Scarricamenti</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Abbìlita i riggistri di Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1106,6 +1116,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Criata di @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Culura chiatti</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Sfumaturi</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Autru</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1265,6 +1281,10 @@
   <string name="preference_top_toolbar">Susu</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Jusu</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Sìmprici</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Allargata</string>
   <!--
     Theme Preferences
 
@@ -1633,17 +1653,27 @@
   -->
   <string name="download_item_in_progress_description_2">%1$s / %2$s • nna %3$s.</string>
   <!--
-    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    Description of an in progress download item, displayed in the downloads list when the estimated download time remaining is still being calculated.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • tempu scanusciutu</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • tempu scanusciutu</string>
   <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • misu ’n pausa</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • misu ’n pausa</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">’n pausa</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1752,8 +1782,12 @@
   <string name="unsubmitted_crash_dialog_checkbox_label">Manna ’n autumàticu i signalijazzioni di scasciu</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Chiuji</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Nun mustrari cchiù</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Manna signalijazzioni di scasciu</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Cchiù nfurmazzioni</string>
   <!--
     Bookmarks
 
@@ -2613,6 +2647,14 @@
   <string name="saved_login_clear_username">Scancella u nomu utenti</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Scancella u nomu dû sirburi</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">Minù dî minutagghi dâ trasuta</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">Torna nn’arrè</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">Cancia</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">Scancella</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Grapi situ nnô navicaturi</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

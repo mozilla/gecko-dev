@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">थप बिकल्पहरु</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">निजी ब्राउजिङ्ग सक्षम पार्नुहोस्</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">निजी ब्राउजिङ्ग सक्षम पार्नुहोस्</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">निजी ब्राउजिङ्ग असक्षम पार्नुहोस्</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">निजी ब्राउजिङ्ग असक्षम पार्नुहोस्</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">खोज्नुहोस् वा ठेगाना प्रविष्ट गर्नुहोस्</string>
   <!-- No Open Tabs Message Description -->

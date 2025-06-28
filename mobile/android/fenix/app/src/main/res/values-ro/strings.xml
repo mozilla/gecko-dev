@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Mai multe opțiuni</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Activează navigarea privată</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Activează navigarea privată</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Dezactivează navigarea privată</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Dezactivează navigarea privată</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Caută sau introdu adresa</string>
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->

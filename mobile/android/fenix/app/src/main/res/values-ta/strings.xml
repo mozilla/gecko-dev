@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">கூடுதல் தேர்வுகள்</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">கமுக்க உலாவல் முறை செயலில்</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">கமுக்க உலாவல் முறை செயலில்</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">கமுக்க உலாவல் முறை முடக்கத்தில்</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">கமுக்க உலாவல் முறை முடக்கத்தில்</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">தேடு/முகவரியை உள்ளிடு</string>
   <!-- No Open Tabs Message Description -->

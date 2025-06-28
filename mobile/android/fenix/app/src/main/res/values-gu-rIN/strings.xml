@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">વધુ વિકલ્પ</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">ખાનગી બ્રાઉઝિંગ સક્ષમ કરો</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">ખાનગી બ્રાઉઝિંગ સક્ષમ કરો</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">ખાનગી બ્રાઉઝિંગ નિષ્ક્રિય કરો</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">ખાનગી બ્રાઉઝિંગ નિષ્ક્રિય કરો</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">શોધ અથવા સરનામું દાખલ કરો</string>
   <!-- No Open Tabs Message Description -->

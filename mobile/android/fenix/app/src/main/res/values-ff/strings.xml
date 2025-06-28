@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Cuɓe Goɗɗe</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Hurmin banngogol suturo</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Hurmin banngogol suturo</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Ñif banngagol suturo</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Ñif banngagol suturo</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Yiilo walla naatnu ñiiɓirde</string>
   <!-- Placeholder text shown in search bar when using history search -->
@@ -154,7 +154,7 @@
   <!-- Home onboarding dialog sign into sync screen description text. -->
   <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Ɓamtu ɗo dartino-ɗaa e tabbe iwɗe e kaɓirɗi goɗɗi gonɗi jooni e jaɓɓorgo maa.</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Tabbe maa ko canngoɗinaaɗe! Fuɗɗo ɗoon ɗo darnunu-ɗaa e kaɓirgol maa goɗngol.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">Tabbe maa ko canngoɗinaaɗe! Fuɗɗo ɗoon ɗo darnunu-ɗaa e kaɓirgol maa goɗngol.</string>
   <!--
     Search Widget
 

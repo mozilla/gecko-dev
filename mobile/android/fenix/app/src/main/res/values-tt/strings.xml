@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Күбрәк опцияләр</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Хосусый гизү режимын кабызу</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Хосусый гизү режимын кабызу</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Хосусый гизү режимын сүндерү</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Хосусый гизү режимын сүндерү</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">Хосусый гизү</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -389,7 +389,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Калдырып тору</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Сезнең таблар синхронлана! Башка җиһазыгызда туктап калган җирегездән дәвам итегез.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">Сезнең таблар синхронлана! Башка җиһазыгызда туктап калган җирегездән дәвам итегез.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">Ябу</string>
   <!--

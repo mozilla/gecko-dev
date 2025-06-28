@@ -26,7 +26,7 @@
   -->
   <string name="mozac_feature_downloads_dialog_title_3">Llwytho ffeil i lawr? (%1$s)</string>
   <!-- This string is used as the title for the download confirmation dialog when the size of the file is not known. -->
-  <string name="mozac_feature_downloads_dialog_title_with_unknown_size">Lawrlwytho ffeil?</string>
+  <string name="mozac_feature_downloads_dialog_title_with_unknown_size">Llwytho ffeil i lawr?</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Llwytho i Lawr</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->

@@ -40,6 +40,8 @@
   <string name="mozac_feature_prompts_before_unload_stay">ala</string>
   <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
   <string name="mozac_feature_prompts_before_unload_leave">weka</string>
+  <!-- Option in expanded select password prompt that links to password settings -->
+  <string name="mozac_feature_prompts_manage_logins_2">o nasin e nimi open</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
   <string name="mozac_feature_prompt_repost_title">o pana ala pana sin e sona tawa lipu ni?</string>
   <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->

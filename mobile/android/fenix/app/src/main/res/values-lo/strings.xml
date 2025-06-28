@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">ຕົວເລືອກເພີ່ມເຕີມ</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">ເປີດນຳໃຊ້ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">ເປີດນຳໃຊ້ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">ປຶດນຳໃຊ້ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">ປຶດນຳໃຊ້ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">ການທ່ອງເວັບແບບສ່ວນຕົວ</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -487,7 +487,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">ຂ້າມ</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">ແຖບຂອງທ່ານກຳລັງຊິ້ງຢູ່! ເອົາບ່ອນທີ່ເຈົ້າຄ້າງໄວ້ໃນອຸປະກອນອື່ນຂອງເຈົ້າ.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">ແຖບຂອງທ່ານກຳລັງຊິ້ງຢູ່! ເອົາບ່ອນທີ່ເຈົ້າຄ້າງໄວ້ໃນອຸປະກອນອື່ນຂອງເຈົ້າ.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">ປິດ</string>
   <!--

@@ -1,17 +1,50 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">Downloads</string>
+  <!--
+    Summary text shown on an in progress download notification.
+    %1$s will be replaced with the estimated time remaining to complete the download.
+  -->
+  <string name="mozac_feature_downloads_time_remaining">in %1$s</string>
+  <!-- Summary text shown on an in progress download notification when the estimated time remaining is unknown. -->
+  <string name="mozac_feature_downloads_time_remaining_unknown">unknown time</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Download paused</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_completed_notification_text2">Download completed</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">Download failed</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">Download file again? (%1$s)</string>
+  <!--
+    Alert dialog confirmation before downloading a file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_dialog_title_3">Download file? (%1$s)</string>
+  <!-- This string is used as the title for the download confirmation dialog when the size of the file is not known. -->
+  <string name="mozac_feature_downloads_dialog_title_with_unknown_size">Download file?</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Download</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Download again</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">Cancel</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s already exists.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s wasn’t downloaded.</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Check your connection and try again.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s can’t download this file type</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

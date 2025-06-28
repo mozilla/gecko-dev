@@ -124,9 +124,9 @@
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Na</string>
   <!-- Strings show in a dialog that appear when user confirm folder upload -->
-  <string name="mozac_feature_prompt_folder_upload_confirm_title">Uwchlwytho ffeiliau?</string>
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Llwytho ffeil i fyny?</string>
   <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
-  <string name="mozac_feature_prompt_folder_upload_confirm_message">Gwnewch yn siŵr eich bod yn ymddiried yn y wefan hon cyn i chi uwchlwytho o \"%1$s\".</string>
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Gwnewch yn siŵr eich bod yn ymddiried yn y wefan hon cyn i chi lwytho i fyny o “%1$s”.</string>
   <!-- Pressing this will dismiss the dialog and allow to upload folder -->
   <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Llwytho i fyny</string>
   <!-- Pressing this will dismiss the dialog and disallow to upload folder -->

@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Boshqa parametrlar</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Maxfiy koʻrish rejimini yoqish</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Maxfiy koʻrish rejimini yoqish</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Maxfiy koʻrishni oʻchirish</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Maxfiy koʻrishni oʻchirish</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Qidiring yoki manzilni kiriting</string>
   <!-- Placeholder text shown in search bar when using history search -->
@@ -246,7 +246,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Tashlab ketish</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Varaqlar sinxronlanmoqda! Ishni qolgan joyidan boshqa qurilmada davom ettiring.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">Varaqlar sinxronlanmoqda! Ishni qolgan joyidan boshqa qurilmada davom ettiring.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">Yopish</string>
   <!--

@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Rhagor o ddewisiadau</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Galluogi pori preifat</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Galluogi pori preifat</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Analluogi pori preifat</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Analluogi pori preifat</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">Pori preifat</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -319,7 +319,7 @@
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">Cydweddu cyfrineiriau, tabiau, a rhagor</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
-  <string name="browser_menu_sign_in_caption_3">Cysoni cyfrineiriau, nodau tudalen, a mwy</string>
+  <string name="browser_menu_sign_in_caption_3">Cydweddu cyfrineiriau, nodau tudalen, a rhagor</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Ail fewngofnodi i gydweddu</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -518,7 +518,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Hepgor</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Mae eich tabiau’n cydweddu! Ewch ymlaen o’r lle roeddech chi ar eich dyfais arall.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">Mae eich tabiau’n cydweddu! Ewch ymlaen o’r lle roeddech chi ar eich dyfais arall.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">Cau</string>
   <!--
@@ -859,6 +859,8 @@
   <string name="preferences_category_account">Cyfrif</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">Lleoliad y bar cyfeiriad</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">Cynllun bar offer</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Thema</string>
   <!-- Preference for customizing the home screen -->
@@ -942,11 +944,11 @@
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Rheolwr llwytho i lawr allanol</string>
   <!-- Preference title for choosing an app to handle downloads -->
-  <string name="preferences_choose_app_for_downloads">Rheoli lawrlwythiadau gydag ap arall</string>
+  <string name="preferences_choose_app_for_downloads">Rheoli\'r llwytho i lawr gydag ap arall</string>
   <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
   <string name="preferences_downloads_settings_clean_up_files_title">Dileu o %s a dyfais</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
-  <string name="preferences_downloads_settings_clean_up_files_summary">Mae tynnu ffeiliau o\'ch rheolwr lawrlwytho hefyd yn eu tynnu oddi ar eich dyfais</string>
+  <string name="preferences_downloads_settings_clean_up_files_summary">Mae tynnu ffeiliau o\'ch rheolwr llwytho i lawr hefyd yn eu tynnu oddi ar eich dyfais</string>
   <!-- Preference for downloads -->
   <string name="preferences_downloads">Llwytho i Lawr</string>
   <!-- Preference for enabling gecko engine logs -->
@@ -986,7 +988,7 @@
   <!-- The title of the required permissions section from addon's permissions screen. -->
   <string name="addons_permissions_heading_required_permissions">Caniatâd gofynnol:</string>
   <!-- The title of the optional permissions section from addon's permissions screen. -->
-  <string name="addons_permissions_heading_optional_permissions">Caniatadau dewisol:</string>
+  <string name="addons_permissions_heading_optional_permissions">Caniatâd dewisol:</string>
   <!-- The title of the required data collection permissions section from addon's permissions screen. -->
   <string name="addons_permissions_heading_required_data_collection">Casglu data gofynnol:</string>
   <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
@@ -1279,6 +1281,10 @@
   <string name="preference_top_toolbar">Brig</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Gwaelod</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Syml</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Estynnwyd</string>
   <!--
     Theme Preferences
 
@@ -1647,17 +1653,27 @@
   -->
   <string name="download_item_in_progress_description_2">%1$s / %2$s • ymhen %3$s.</string>
   <!--
-    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    Description of an in progress download item, displayed in the downloads list when the estimated download time remaining is still being calculated.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • ar y gweill</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • amser anhysbys</string>
   <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • wedi\'i oedi</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • oedwyd</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">oedwyd</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1763,9 +1779,9 @@
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">Roedd yn rhaid i %s ailgychwyn</string>
   <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Mae gennych adroddiad damwain heb ei anfon yn ymwneud â damweiniau yr ymchwilir iddynt. Bydd ei anfon yn ein helpu i wella %1$s. Bydd cau\'r hysbysiad hwn yn anwybyddu\'r adroddiad hwn.</string>
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Mae gennych adroddiad chwalu heb ei anfon yn ymwneud â chwaliadau sy\'n cael eu hymchwilio. Bydd ei anfon yn ein helpu i wella %1$s. Bydd cau\'r hysbysiad hwn yn anwybyddu\'r adroddiad hwn.</string>
   <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
-  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Mae gennych adroddiadau chwalfa heb eu hanfon (%1$d) yn ymwneud â damweiniau sy\'n cael eu hymchwilio. Bydd eu hanfon yn ein helpu i wella %2$s. Bydd cau\'r hysbysiad hwn yn anwybyddu\'r adroddiadau hyn.</string>
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Mae gennych adroddiadau chwalu heb eu hanfon (%1$d) yn ymwneud â chwaliadau sy\'n cael eu hymchwilio. Bydd eu hanfon yn ein helpu i wella %2$s. Bydd cau\'r hysbysiad hwn yn anwybyddu\'r adroddiadau hyn.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Anfonwch adroddiadau damwain yn awtomatig</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
@@ -1775,7 +1791,7 @@
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Anfonwch adroddiad chwalu</string>
   <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
-  <string name="unsubmitted_crash_requested_by_devs_learn_more">Dysgu rhagor</string>
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Dysgu Rhagor</string>
   <!--
     Bookmarks
 
@@ -2635,6 +2651,14 @@
   <string name="saved_login_clear_username">Clirio’r enw defnyddiwr</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Clirio’r enw gwesteiwr</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">Dewislen manylion mewngofnodi</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">Symud nôl</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">Golygu</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">Dileu</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Agor y wefan yn y porwr</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

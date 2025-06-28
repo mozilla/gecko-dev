@@ -50,6 +50,8 @@
   <string name="mozac_feature_prompts_allow">Permite</string>
   <!-- Text of a negative button in dialog requesting to open a new window. -->
   <string name="mozac_feature_prompts_deny">Refuda</string>
+  <!-- Text of the title of a dialog when a page is requesting to open a new window. -->
+  <string name="mozac_feature_prompts_popup_dialog_title">Boles permìtere chi s’abèrgiat custu situ?</string>
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
   <string name="mozac_feature_prompt_before_unload_dialog_title">Seguru?</string>
   <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
@@ -102,6 +104,8 @@
   <string name="mozac_feature_prompts_suggest_strong_password_message">Imprea una crae segura: %1$s</string>
   <!-- Title for using the suggest strong password confirmation dialog -->
   <string name="mozac_feature_prompts_suggest_strong_password_title">Boles impreare una crae segura?</string>
+  <!-- Content description for the suggest strong password confirmation dialog -->
+  <string name="mozac_feature_prompts_suggest_strong_password_description_3">Ampara su contu tuo impreende una crae forte, generada in manera aleatòria. At a èssere sarvada in su contu tuo pro su benidore.</string>
   <!-- Pressing this will use the suggested strong password -->
   <string name="mozac_feature_prompts_suggest_strong_password_use_password">Imprea una crae</string>
   <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -110,12 +114,20 @@
   <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Crae sarvada</string>
   <!-- Title for showing the suggest strong password updated confirmation snackbar -->
   <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Crae atualizada</string>
+  <!-- Title for showing the username updated confirmation snackbar -->
+  <string name="mozac_feature_prompt_login_snackbar_username_updated">Nòmine de utente atualizadu</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
   <string name="mozac_feature_prompt_repost_title">Boles torrare a inviare is datos a su situ?</string>
   <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
   <string name="mozac_feature_prompt_repost_positive_button_text">Torra a imbiare is datos</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
   <string name="mozac_feature_prompt_repost_negative_button_text">Annulla</string>
+  <!-- Strings show in a dialog that appear when user confirm folder upload -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_title">Boles carrigare is archìvios?</string>
+  <!-- Pressing this will dismiss the dialog and allow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Càrriga</string>
+  <!-- Pressing this will dismiss the dialog and disallow to upload folder -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_negative_button_text">Annulla</string>
   <!--
     Credit Card Autofill
 
