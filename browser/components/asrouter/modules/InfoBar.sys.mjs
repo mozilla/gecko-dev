@@ -171,7 +171,7 @@ class InfoBarNotification {
 
     if (content.type === TYPES.UNIVERSAL) {
       InfoBar._universalInfobars.push({
-        box: browser.ownerGlobal.gNotificationBox,
+        box: notificationContainer,
         notification: this.notification,
       });
     }
@@ -310,18 +310,30 @@ class InfoBarNotification {
   }
 
   removeUniversalInfobars() {
+    // Remove the new window observer
     try {
       Services.obs.removeObserver(InfoBar, "domwindowopened");
     } catch (error) {
       console.error(
-        "Error removing domwindowopened observer on InfoBar:",
+        "Error removing domwindowopened observer on InfoBar: ",
         error
       );
     }
+    // Remove the universal infobar
     InfoBar._universalInfobars.forEach(({ box, notification }) => {
-      box.removeNotification(notification);
+      try {
+        if (box && notification) {
+          box.removeNotification(notification);
+        }
+      } catch (error) {
+        console.error("Failed to remove notification: ", error);
+      }
     });
     InfoBar._universalInfobars = [];
+
+    if (InfoBar._activeInfobar?.message.content.type === TYPES.UNIVERSAL) {
+      InfoBar._activeInfobar = null;
+    }
   }
 
   sendUserEventTelemetry(event) {
@@ -368,9 +380,9 @@ export const InfoBar = {
       return null;
     }
 
+    const isUniversal = message.content.type === TYPES.UNIVERSAL;
     // Check if this is the first instance of a universal infobar
-    const isFirstUniversal =
-      !universalInNewWin && message.content.type === TYPES.UNIVERSAL;
+    const isFirstUniversal = !universalInNewWin && isUniversal;
     const win = browser?.ownerGlobal;
 
     if (!win || lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
@@ -387,6 +399,7 @@ export const InfoBar = {
     } else {
       await notification.showNotification(browser);
     }
+
     if (!universalInNewWin) {
       this._activeInfobar = { message, dispatch };
       // If the window closes before the user interacts with the active infobar,
@@ -394,7 +407,20 @@ export const InfoBar = {
       win.addEventListener(
         "unload",
         () => {
-          if (InfoBar._activeInfobar?.message === message) {
+          // Remove this window’s stale entry
+          InfoBar._universalInfobars = InfoBar._universalInfobars.filter(
+            ({ box }) => box.ownerGlobal !== win
+          );
+
+          if (isUniversal) {
+            // If there’s still at least one live universal infobar,
+            // make it the active infobar; otherwise clear the active infobar
+            const nextEntry = InfoBar._universalInfobars.find(
+              ({ box }) => !box.ownerGlobal?.closed
+            );
+            InfoBar._activeInfobar = nextEntry ? { message, dispatch } : null;
+          } else {
+            // Non-universal always clears on unload
             InfoBar._activeInfobar = null;
           }
         },
@@ -406,25 +432,36 @@ export const InfoBar = {
   },
 
   observe(aSubject, aTopic) {
-    const { message, dispatch } = this._activeInfobar;
-    if (
-      aTopic !== "domwindowopened" ||
-      message?.content.type !== TYPES.UNIVERSAL
-    ) {
+    if (aTopic !== "domwindowopened") {
       return;
     }
-    if (aSubject.document.readyState === "complete") {
-      let browser = aSubject.gBrowser.selectedBrowser;
-      this.showInfoBarMessage(browser, message, dispatch, true);
-    } else {
-      aSubject.addEventListener(
-        "load",
-        () => {
-          let browser = aSubject.gBrowser.selectedBrowser;
-          this.showInfoBarMessage(browser, message, dispatch, true);
-        },
-        { once: true }
+    const win = aSubject;
+
+    if (win.closed || lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
+      return;
+    }
+
+    const { message, dispatch } = this._activeInfobar || {};
+    if (!message || message.content.type !== TYPES.UNIVERSAL) {
+      return;
+    }
+
+    const onWindowReady = () => {
+      if (!win.gBrowser || win.closed) {
+        return;
+      }
+      this.showInfoBarMessage(
+        win.gBrowser.selectedBrowser,
+        message,
+        dispatch,
+        true
       );
+    };
+
+    if (win.document?.readyState === "complete") {
+      onWindowReady();
+    } else {
+      win.addEventListener("load", onWindowReady, { once: true });
     }
   },
 };
