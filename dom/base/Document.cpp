@@ -17827,7 +17827,8 @@ void Document::SetUserHasInteracted() {
           ("Document %p has been interacted by user.", this));
 
   // We maybe need to update the user-interaction permission.
-  bool alreadyHadUserInteractionPermission = ContentBlockingUserInteraction::Exists(NodePrincipal());
+  bool alreadyHadUserInteractionPermission =
+      ContentBlockingUserInteraction::Exists(NodePrincipal());
   MaybeStoreUserInteractionAsPermission();
 
   // For purposes of reducing irrelevant session history entries on
