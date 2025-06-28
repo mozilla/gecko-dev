@@ -472,6 +472,6 @@ impl KeyValuePair {
     }
 
     fn get_value(&self) -> Result<RefPtr<nsIVariant>, KeyValueError> {
-        Ok(owned_to_variant(self.value.clone())?)
+        owned_to_variant(self.value.clone())
     }
 }
