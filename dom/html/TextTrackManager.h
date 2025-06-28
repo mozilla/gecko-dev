@@ -10,7 +10,6 @@
 #include "mozilla/dom/TextTrack.h"
 #include "mozilla/dom/TextTrackList.h"
 #include "mozilla/dom/TextTrackCueList.h"
-#include "mozilla/StateWatching.h"
 #include "mozilla/StaticPtr.h"
 #include "nsContentUtils.h"
 #include "nsIDOMEventListener.h"
@@ -95,7 +94,9 @@ class TextTrackManager final : public nsIDOMEventListener {
   // The HTMLMediaElement that this TextTrackManager manages the TextTracks of.
   RefPtr<HTMLMediaElement> mMediaElement;
 
+  void DispatchTimeMarchesOn();
   void TimeMarchesOn();
+  void DispatchUpdateCueDisplay();
 
   void NotifyShutdown() { mShutdown = true; }
 
@@ -103,15 +104,9 @@ class TextTrackManager final : public nsIDOMEventListener {
 
   void NotifyReset();
 
-  void NotifyUpdateCueDisplay();
-
   bool IsLoaded();
 
  private:
-  // This function will check media element's show poster flag to decide whether
-  // we need to run `TimeMarchesOn`.
-  void MaybeRunTimeMarchesOn();
-
   /**
    * Converts the TextTrackCue's cuetext into a tree of DOM objects
    * and attaches it to a div on its owning TrackElement's
@@ -119,10 +114,6 @@ class TextTrackManager final : public nsIDOMEventListener {
    */
   void UpdateCueDisplay();
 
-  // Watch manager to run some hot methods lazily, once per task.
-  WatchManager<TextTrackManager> mWatchManager;
-  // Dummy watchable so mWatchManager.ManualNotify can work.
-  Watchable<bool> mDummyWatchable{false, "TextTrackManager::mDummyWatchable"};
   // List of the TextTrackManager's owning HTMLMediaElement's TextTracks.
   RefPtr<TextTrackList> mTextTracks;
   // List of text track objects awaiting loading.
@@ -137,6 +128,9 @@ class TextTrackManager final : public nsIDOMEventListener {
   bool mHasSeeked;
   // Playback position at the time of last "Time Marches On" call
   media::TimeUnit mLastTimeMarchesOnCalled;
+
+  bool mTimeMarchesOnDispatched;
+  bool mUpdateCueDisplayDispatched;
 
   static StaticRefPtr<nsIWebVTTParserWrapper> sParserWrapper;
 
@@ -156,6 +150,10 @@ class TextTrackManager final : public nsIDOMEventListener {
   bool TrackIsDefault(TextTrack* aTextTrack);
 
   bool IsShutdown() const;
+
+  // This function will check media element's show poster flag to decide whether
+  // we need to run `TimeMarchesOn`.
+  void MaybeRunTimeMarchesOn();
 
   class ShutdownObserverProxy final : public nsIObserver {
     NS_DECL_ISUPPORTS
