@@ -23,29 +23,6 @@ server.registerPathHandler("/dummy", (request, response) => {
     <script>localStorage.foo = "42"</script></html>`);
 });
 
-server.registerPathHandler("/worker.js", (request, response) => {
-  populateResults(request);
-
-  response.setStatusLine(request.httpVersion, 200, "OK");
-  response.setHeader("Content-Type", "application/javascript", false);
-  response.write(`
-    self.onmessage = () => {
-      try {
-        const request = indexedDB.open('TestDB');
-
-        request.onsuccess = () => {
-          self.postMessage(true);
-          request.result.close();
-          indexedDB.deleteDatabase('TestDB');
-        };
-
-        request.onerror = () => self.postMessage(false);
-      } catch (err) {
-        self.postMessage(false);
-      }
-    }`);
-});
-
 server.registerPathHandler("/iframe", (request, response) => {
   response.setStatusLine(request.httpVersion, 200, "OK");
   response.setHeader("Content-Type", "text/html", false);
@@ -113,11 +90,6 @@ async function runTest(pref) {
           matches: ["http://example.com/*", "http://example.org/*"],
           run_at: "document_end",
           js: ["contentscript.js"],
-        },
-        {
-          matches: ["http://example.com/*", "http://example.org/*"],
-          run_at: "document_end",
-          js: ["contentscript_worker.js"],
         },
         {
           all_frames: true,
@@ -191,11 +163,6 @@ async function runTest(pref) {
           );
         }
       },
-      "contentscript_worker.js": async () => {
-        const w = new Worker("/worker.js");
-        w.onmessage = e => browser.test.sendMessage("worker", e.data);
-        w.postMessage(42);
-      },
       "content.css": `
         body {
           background-image: url("http://example.com/img_from_style.png");
@@ -213,20 +180,17 @@ async function runTest(pref) {
   await extension.awaitMessage("images_loaded");
 
   const storageSO = await extension.awaitMessage("storageSO");
-  Assert.equal(storageSO, true, "Same-Origin storage access granted");
+  Assert.equal(storageSO, !pref, "Same-Origin storage access granted");
 
   const storageCO = await extension.awaitMessage("storageCO");
-  Assert.equal(storageCO, true, "Cross-Origin storage access granted");
-
-  const storageWorker = await extension.awaitMessage("worker");
-  Assert.equal(storageWorker, true, "Worker storage access granted");
+  Assert.equal(storageCO, !pref, "Cross-Origin storage access granted");
 
   await contentPage.close();
   await extension.unload();
 
   Assert.equal(
     seenRequests.length,
-    7,
+    6,
     "All the requests are correctly processed"
   );
 
@@ -278,15 +242,5 @@ async function runTest(pref) {
     seenRequests[5],
     { path: "/img_from_style.png", referrer: null },
     "Image request from CSS received"
-  );
-
-  // The Referer header should not be present when this preference is enabled.
-  // However, workers inherit the referrer policy from their parent context.
-  // As a follow-up, we should consider using the triggering principal and
-  // enforce a 'no-referrer' policy if this worker was injected.
-  Assert.deepEqual(
-    seenRequests[6],
-    { path: "/worker.js", referrer: "http://example.com/dummy" },
-    "Worker request from content-script received"
   );
 }

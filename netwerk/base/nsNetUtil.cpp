@@ -521,9 +521,8 @@ NS_NewChannelWithTriggeringPrincipal(
 
   nsCOMPtr<nsICookieJarSettings> cookieJarSettings;
 
-  // Special treatment for resources injected by add-ons if not document,
-  // iframe, workers.
-  if (!nsContentUtils::IsNonSubresourceInternalPolicyType(aContentPolicyType) &&
+  // Special treatment for resources injected by add-ons.
+  if (aContentPolicyType != nsIContentPolicy::TYPE_DOCUMENT &&
       aTriggeringPrincipal &&
       StaticPrefs::privacy_antitracking_isolateContentScriptResources() &&
       nsContentUtils::IsExpandedPrincipal(aTriggeringPrincipal)) {
