@@ -99,6 +99,7 @@ class mozJSModuleLoader final {
   static bool IsDevToolsLoaderGlobal(nsIGlobalObject* aGlobal);
 
   // Public methods for use from SyncModuleLoader.
+  static bool IsTrustedScheme(nsIURI* aURI);
   static nsresult LoadSingleModuleScript(
       mozilla::loader::SyncModuleLoader* aModuleLoader, JSContext* aCx,
       JS::loader::ModuleLoadRequest* aRequest,

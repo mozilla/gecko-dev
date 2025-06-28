@@ -13,7 +13,6 @@
 #include "js/PropertyAndElement.h"  // JS_SetProperty
 #include "js/Value.h"               // JS::Value, JS::NumberValue
 #include "mozJSModuleLoader.h"
-#include "nsContentSecurityUtils.h"
 
 using namespace JS::loader;
 
@@ -131,7 +130,7 @@ void SyncModuleLoader::OnDynamicImportStarted(ModuleLoadRequest* aRequest) {
 
 bool SyncModuleLoader::CanStartLoad(ModuleLoadRequest* aRequest,
                                     nsresult* aRvOut) {
-  return nsContentSecurityUtils::IsTrustedScheme(aRequest->mURI);
+  return mozJSModuleLoader::IsTrustedScheme(aRequest->mURI);
 }
 
 nsresult SyncModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {

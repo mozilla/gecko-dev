@@ -116,12 +116,6 @@ bool nsContentSecurityUtils::IsConsideredSameOriginForUIR(
   return compareTriggeringPrincipal->Equals(compareResultPrincipal);
 }
 
-/* static */
-bool nsContentSecurityUtils::IsTrustedScheme(nsIURI* aURI) {
-  return aURI->SchemeIs("resource") || aURI->SchemeIs("chrome") ||
-         aURI->SchemeIs("moz-src");
-}
-
 /*
  * Performs a Regular Expression match, optionally returning the results.
  * This function is not safe to use OMT.

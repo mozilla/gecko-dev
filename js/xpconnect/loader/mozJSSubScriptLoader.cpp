@@ -37,7 +37,6 @@
 #include "mozilla/Unused.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 #include "nsContentUtils.h"
-#include "nsContentSecurityUtils.h"
 #include "nsString.h"
 
 using namespace mozilla::scache;
@@ -391,13 +390,6 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
   rv = uri->GetScheme(scheme);
   if (NS_FAILED(rv)) {
     ReportError(cx, LOAD_ERROR_NOSCHEME, uri);
-    return NS_OK;
-  }
-
-  // TODO(bug 1974213): Disallow jar: and file:.
-  if (!nsContentSecurityUtils::IsTrustedScheme(uri) && !uri->SchemeIs("jar") &&
-      !uri->SchemeIs("file")) {
-    ReportError(cx, LOAD_ERROR_URI_NOT_LOCAL, uri);
     return NS_OK;
   }
 
