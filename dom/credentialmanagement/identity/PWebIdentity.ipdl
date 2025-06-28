@@ -59,6 +59,8 @@ async protocol PWebIdentity {
 
     async ResolveContinuationWindow(nsCString token, IdentityResolveOptions options) returns (nsresult rv);
 
+    async IsActiveContinuationWindow() returns (bool result);
+
   child:
     async OpenContinuationWindow(nsIURI aContinueURI) returns (OpenContinuationWindowResponse response);
 

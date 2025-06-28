@@ -49,6 +49,9 @@ class WebIdentityParent final : public PWebIdentityParent {
       nsCString&& aToken, IdentityResolveOptions&& aOptions,
       const ResolveContinuationWindowResolver& aResolver);
 
+  mozilla::ipc::IPCResult RecvIsActiveContinuationWindow(
+      const IsActiveContinuationWindowResolver& aResolver);
+
  private:
   ~WebIdentityParent() = default;
 };

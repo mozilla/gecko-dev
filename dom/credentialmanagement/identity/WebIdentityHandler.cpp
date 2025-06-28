@@ -189,6 +189,19 @@ WebIdentityHandler::ResolveContinuationWindow(
   return promise.forget();
 }
 
+RefPtr<MozPromise<bool, nsresult, true>>
+WebIdentityHandler::IsContinuationWindow() {
+  RefPtr<MozPromise<bool, nsresult, true>::Private> promise =
+      new MozPromise<bool, nsresult, true>::Private(__func__);
+  mActor->SendIsActiveContinuationWindow()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise](bool result) { promise->Resolve(result, __func__); },
+      [promise](mozilla::ipc::ResponseRejectReason reject) {
+        promise->Resolve(false, __func__);
+      });
+  return promise.forget();
+}
+
 void WebIdentityHandler::ActorDestroyed() {
   MOZ_ASSERT(NS_IsMainThread());
   mActor = nullptr;
