@@ -374,6 +374,8 @@
   <string name="browser_menu_edit_bookmark">Ẓreg tacreḍt n usebter</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Kles d PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Sekles d PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Rmed timeẓri n tɣuṛi</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -382,8 +384,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Senkez ar yiccer aruslig</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Suqel asebter…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Suqqel asebter</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">Cegger asmel yerẓen…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Mmel asmel yerẓen</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -393,11 +399,15 @@
   <string name="browser_menu_translated">Yettwasuqqel</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Siggez…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Siggez</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Ffeɣ si %1$s</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">Zgel</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1489,6 +1499,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Iferdisen i yettwakksen: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Sader afaylu s:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Yettwakkes “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1533,6 +1545,16 @@
   <string name="download_navigate_back_description">Inig ar deffir</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">Uɣal ɣer deffir syen mdel anadi</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Asteɛfu</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Kemmel</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Ɛreḍ i tikkelt niḍen</string>
   <string name="download_clear_search_description">Sfeḍ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Bḍu URL</string>
@@ -1678,8 +1700,12 @@
   <string name="unsubmitted_crash_dialog_checkbox_label">Azen s wudem awurman ineqqisen n truẓi</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Mdel</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Ur d-skan ara tikkelt niḍen</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Azen aneqqis n uɣelluy</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Issin ugar</string>
   <!--
     Bookmarks
 
@@ -3606,4 +3632,12 @@
   <string name="private_tab_cfr_negative">Ala, tanemmirt</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Mdel accaren</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Acu i tenniḍ ɣef %1$s?</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Igerrez!</string>
 </resources>

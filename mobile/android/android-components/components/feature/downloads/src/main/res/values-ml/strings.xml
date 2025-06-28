@@ -23,6 +23,8 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">ഫയൽ ഇറക്കിവയ്ക്കട്ടെ? (%1$s)</string>
+  <!-- This string is used as the title for the download confirmation dialog when the size of the file is not known. -->
+  <string name="mozac_feature_downloads_dialog_title_with_unknown_size">ഫയൽ ഇറക്കിവയ്ക്കണോ?</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">ഇറക്കിവയ്ക്കൂ</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->

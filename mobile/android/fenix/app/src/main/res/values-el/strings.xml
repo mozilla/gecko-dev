@@ -2340,7 +2340,7 @@
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict">Αυστηρή</string>
   <!-- Preference description for enhanced tracking protection for the strict protection settings -->
-  <string name="preference_enhanced_tracking_protection_strict_description_4">Ισχυρότερη προστασία από καταγραφή και καλύτερες επιδόσεις, αλλά ορισμένοι ιστότοποι ενδέχεται να μη λειτουργούν σωστά.</string>
+  <string name="preference_enhanced_tracking_protection_strict_description_4">Ισχυρότερη προστασία από καταγραφή και καλύτερες επιδόσεις, αλλά ορισμένοι ιστότοποι ενδέχεται να μην λειτουργούν σωστά.</string>
   <!-- Accessibility text for the Strict protection information icon -->
   <string name="preference_enhanced_tracking_protection_strict_info_button">Τι αποκλείει η αυστηρή προστασία από καταγραφή</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
@@ -2582,7 +2582,7 @@
   <!-- Preference option for asking to save passwords in Fenix -->
   <string name="preferences_passwords_save_logins_ask_to_save">Να γίνεται ερώτηση για αποθήκευση</string>
   <!-- Preference option for never saving passwords in Fenix -->
-  <string name="preferences_passwords_save_logins_never_save">Να μη γίνεται ποτέ αποθήκευση</string>
+  <string name="preferences_passwords_save_logins_never_save">Να μην γίνεται ποτέ αποθήκευση</string>
   <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
   <string name="preferences_passwords_autofill2">Αυτόματη συμπλήρωση στο %1$s</string>
   <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
@@ -3151,7 +3151,7 @@
   <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_never_translate_in_language">Ποτέ μετάφραση για τα %1$s</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
-  <string name="translation_option_bottom_sheet_never_translate_site">Να μη μεταφράζεται ποτέ αυτός ο ιστότοπος</string>
+  <string name="translation_option_bottom_sheet_never_translate_site">Να μην μεταφράζεται ποτέ αυτός ο ιστότοπος</string>
   <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
   <string name="translation_option_bottom_sheet_switch_never_translate_site_description">Παρακάμπτει όλες τις άλλες ρυθμίσεις</string>
   <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
@@ -3179,7 +3179,7 @@
   <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
   <string name="translation_settings_automatic_translation">Αυτόματη μετάφραση</string>
   <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
-  <string name="translation_settings_automatic_never_translate_sites">Να μη μεταφράζονται ποτέ αυτοί οι ιστότοποι</string>
+  <string name="translation_settings_automatic_never_translate_sites">Να μην μεταφράζονται ποτέ αυτοί οι ιστότοποι</string>
   <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
   <string name="translation_settings_download_language">Λήψη γλωσσών</string>
   <!--
@@ -3205,7 +3205,7 @@
   <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_always_translate_summary_preference">Το %1$s θα μεταφράζει αυτόματα αυτήν τη γλώσσα κατά τη φόρτωση των σελίδων.</string>
   <!-- Preference option for never translate. Radio button title text. -->
-  <string name="automatic_translation_option_never_translate_title_preference">Να μη γίνεται ποτέ μετάφραση</string>
+  <string name="automatic_translation_option_never_translate_title_preference">Να μην γίνεται ποτέ μετάφραση</string>
   <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_never_translate_summary_preference">Το %1$s δεν θα προτείνει ποτέ τη μετάφραση ιστοτόπων σε αυτήν τη γλώσσα.</string>
   <!--
@@ -3213,9 +3213,9 @@
 
     Title of the never translate site preference screen that will appear on the toolbar.
   -->
-  <string name="never_translate_site_toolbar_title_preference">Να μη μεταφράζονται ποτέ αυτοί οι ιστότοποι</string>
+  <string name="never_translate_site_toolbar_title_preference">Να μην μεταφράζονται ποτέ αυτοί οι ιστότοποι</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">Για να προσθέσετε νέο ιστότοπο: Επισκεφτείτε τον και επιλέξτε «Να μη μεταφράζεται ποτέ αυτός ο ιστότοπος» από το μενού μετάφρασης.</string>
+  <string name="never_translate_site_header_preference">Για να προσθέσετε έναν νέο ιστότοπο: Επισκεφθείτε τον και επιλέξτε «Να μην μεταφράζεται ποτέ αυτός ο ιστότοπος» από το μενού μετάφρασης.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")

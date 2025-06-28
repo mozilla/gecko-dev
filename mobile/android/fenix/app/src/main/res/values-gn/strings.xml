@@ -941,6 +941,14 @@
   <string name="preferences_open_links_in_apps_never">Araka’eve</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Mboguejy okaygua ñangarekoha</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Eñangareko ñemboguejýre ambue tembiporu’i ndive</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Embogue %s ha mba’e’okágui</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Emboguévo marandurenda ñangarekoha mboguejyhágui embogue avei mba’e’okágui</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Ñemboguejy</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Embojuruja Gecko jehaikue</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1106,6 +1114,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Omoheñóiva @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Sa’y ipeteĩva</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Sa’yguejy</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Ambue</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1748,12 +1762,20 @@
   <string name="tab_crash_restore">Embojevy tendayke</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s oñemoñepyrũ jey</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Oĩ marandu’i jejavygua oñemondo’ỹva jejavy ojehapykuehóva rehegua. Emondóramo orepytyvõta iporãve hag̃ua %1$s. Embotývo ko ñemomarandu omboykéta ko marandu’i.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Oĩ heta marandu’i jejavygua (%1$d) oñemondo’ỹva jejavy ojehapykuehóva rehegua. Emondórõ orepytyvõta iporãve hag̃ua %2$s. Embotývo ñemomarandu omboykéta ko’ã marandu’i.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Emondo marandu jejavy rehegua</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Mboty</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Anive ehechauka</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Emondo marandu javygua</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Eikuaave</string>
   <!--
     Bookmarks
 
