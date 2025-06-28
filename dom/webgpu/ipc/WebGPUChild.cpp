@@ -114,7 +114,7 @@ void resolve_request_device_promise(ffi::WGPUWebGPUChildPtr child,
     RefPtr<Device> device =
         new Device(pending_promise.adapter, pending_promise.device_id,
                    pending_promise.queue_id, pending_promise.features,
-                   pending_promise.limits);
+                   pending_promise.limits, pending_promise.adapter_info);
     device->SetLabel(pending_promise.label);
     pending_promise.promise->MaybeResolve(device);
   } else {
@@ -461,7 +461,7 @@ void WebGPUChild::ClearAllPendingPromises() {
       RefPtr<Device> device =
           new Device(pending_promise.adapter, pending_promise.device_id,
                      pending_promise.queue_id, pending_promise.features,
-                     pending_promise.limits);
+                     pending_promise.limits, pending_promise.adapter_info);
       device->SetLabel(pending_promise.label);
       device->ResolveLost(Nothing(), u"WebGPUChild destroyed"_ns);
       pending_promise.promise->MaybeResolve(device);
