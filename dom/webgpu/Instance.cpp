@@ -22,9 +22,7 @@
 #include "nsString.h"
 #include "nsStringFwd.h"
 
-#ifndef EARLY_BETA_OR_EARLIER
-#  include "mozilla/dom/WorkerPrivate.h"
-#endif
+#include "mozilla/dom/WorkerPrivate.h"
 
 #include <optional>
 #include <string_view>
@@ -48,7 +46,12 @@ static inline nsDependentCString ToCString(const std::string_view s) {
     return true;
   }
 
-  return StaticPrefs::dom_webgpu_workers_enabled();
+  dom::WorkerPrivate* wp = dom::GetCurrentThreadWorkerPrivate();
+  if (wp && wp->IsServiceWorker()) {
+    return StaticPrefs::dom_webgpu_service_workers_enabled();
+  }
+
+  return true;
 }
 
 /*static*/
