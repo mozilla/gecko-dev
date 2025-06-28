@@ -97,6 +97,19 @@ struct ParamTraits<mozilla::dom::IdentityCredentialRequestOptionsMode>
     : public mozilla::dom::WebIDLEnumSerializer<
           mozilla::dom::IdentityCredentialRequestOptionsMode> {};
 
+template <>
+struct ParamTraits<mozilla::dom::IdentityResolveOptions> {
+  typedef mozilla::dom::IdentityResolveOptions paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    WriteParam(aWriter, aParam.mAccountId);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    return ReadParam(aReader, &aResult->mAccountId);
+  }
+};
+
 }  // namespace IPC
 
 #endif  // mozilla_dom_identitycredentialserializationhelpers_h__

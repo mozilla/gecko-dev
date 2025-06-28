@@ -15,6 +15,10 @@ skip-if = [
 
 support-files = [
   "head.js",
+  "helper_continue_on.html",
+  "helper_continue_on_close.html",
+  "helper_continue_on_override.html",
+  "helper_continue_on_reject.html",
   "helper_set_cookie.html",
   "helper_set_cookie.html^headers^",
   "/.well-known/web-identity",
@@ -42,6 +46,14 @@ support-files = [
   "server_accounts_redirect_idtoken.sjs",
   "server_idtoken_redirect_accounts.sjs",
   "server_idtoken_redirect_idtoken.sjs",
+  "server_continue_on_accounts.sjs",
+  "server_continue_on_idtoken.sjs",
+  "server_continue_on_close_accounts.sjs",
+  "server_continue_on_close_idtoken.sjs",
+  "server_continue_on_override_accounts.sjs",
+  "server_continue_on_override_idtoken.sjs",
+  "server_continue_on_reject_accounts.sjs",
+  "server_continue_on_reject_idtoken.sjs",
   "web-identity-multiple-config",
   "web-identity-multiple-config^headers^",
 ]
@@ -51,6 +63,14 @@ support-files = [
 ["test_accounts_error.html"]
 
 ["test_accounts_redirect.html"]
+
+["test_continue_on.html"]
+
+["test_continue_on_close.html"]
+
+["test_continue_on_override.html"]
+
+["test_continue_on_reject.html"]
 
 ["test_delay_reject.html"]
 

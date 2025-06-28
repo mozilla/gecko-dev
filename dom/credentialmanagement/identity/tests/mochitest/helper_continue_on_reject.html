@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script>
+    SpecialPowers.wrap(document).notifyUserGestureActivation();
+    // eslint-disable-next-line no-undef
+    let foo = IdentityProvider.close();
+</script>
+
+See ya! (This window will close itself)
