@@ -35,7 +35,7 @@ def get_failures(task_id, task_definition):
             test = test.replace(".window.html", ".window.js")
 
         if test.startswith("/_mozilla"):
-            test = "testing/web-platform/mozilla/tests" + test[len("_mozilla") :]
+            test = "testing/web-platform/mozilla/tests" + test[len("/_mozilla") :]
         else:
             test = "testing/web-platform/tests/" + test.strip("/")
         # some wpt tests have params, those are not supported
