@@ -1364,11 +1364,6 @@ static bool ModuleLink(JSContext* cx, Handle<ModuleObject*> module) {
 static bool InnerModuleLinking(JSContext* cx, Handle<ModuleObject*> module,
                                MutableHandle<ModuleVector> stack, size_t index,
                                size_t* indexOut) {
-  AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.check(cx)) {
-    return false;
-  }
-
   // Step 1. If module is not a Cyclic Module Record, then
   if (!module->hasCyclicModuleFields()) {
     // Step 1.a. Perform ? module.Link(). (Skipped)
@@ -1412,6 +1407,11 @@ static bool InnerModuleLinking(JSContext* cx, Handle<ModuleObject*> module,
 
   // Step 7. Set index to index + 1.
   index++;
+
+  AutoCheckRecursionLimit recursion(cx);
+  if (!recursion.check(cx)) {
+    return false;
+  }
 
   // Step 9. For each String required that is an element of
   //         module.[[RequestedModules]], do:
