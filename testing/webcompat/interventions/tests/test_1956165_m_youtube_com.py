@@ -28,54 +28,56 @@ async def pip_activates_properly(client, also_test_fullscreen_button=False):
         """
     )
 
-    orig_video_dims = client.execute_script(
-        """
-      const { width, height } = document.querySelector("video").getBoundingClientRect();
-      return `${width}:${height}`;
-    """
-    )
-
-    client.soft_click(client.await_css(FULLSCREEN_ICON_CSS, is_displayed=True))
-    await asyncio.sleep(1)
-
-    # confirm that the video went into fullscreen mode
-    client.execute_async_script(
-        """
-        const [orig_dims, done] = arguments;
-        const timer = setInterval(() => {
-          const { width, height } = document.querySelector("video").getBoundingClientRect();
-          if (`${width}:${height}` !== orig_dims) {
-            clearInterval(timer);
-            done();
-          }
-        }, 100);
-    """,
-        orig_video_dims,
-    )
-
-    if also_test_fullscreen_button:
-        # bring up the video UI (hides when entering fullscreen)
-        client.click(client.await_css(VIDEO_UI_CSS, is_displayed=True))
-        # confirm that exiting fullscreen works
-        client.soft_click(client.await_css(FULLSCREEN_ICON_CSS, is_displayed=True))
-        await asyncio.sleep(1)
-        client.execute_async_script(
+    def get_video_dims(video):
+        return client.execute_script(
             """
-            const [orig_dims, done] = arguments;
-            const timer = setInterval(() => {
-              const { width, height } = document.querySelector("video").getBoundingClientRect();
-              if (`${width}:${height}` === orig_dims) {
-                clearInterval(timer);
-                done();
-              }
-            }, 100);
+            const { width, height } = arguments[0].getBoundingClientRect();
+            return `${width}:${height}`;
         """,
-            orig_video_dims,
+            video,
         )
 
+    # give ads up to 30 seconds to play
+    fs = client.await_css(FULLSCREEN_ICON_CSS, timeout=30)
+
+    video = client.await_css("video", is_displayed=True)
+    last_known_dims = get_video_dims(video)
+
+    async def toggle_fullscreen():
+        nonlocal last_known_dims, video
+
+        for _ in range(5):
+            await asyncio.sleep(0.5)
+
+            if client.find_css(FULLSCREEN_ICON_CSS, is_displayed=True):
+                await client.apz_click(element=fs, offset=[5, 5])
+            else:
+                await client.apz_click(element=video, offset=[50, 50])
+                await asyncio.sleep(0.25)
+                await client.apz_click(element=fs, offset=[5, 5])
+
+            await asyncio.sleep(0.5)
+
+            # confirm that the video went into fullscreen mode
+            dims = get_video_dims(video)
+            if dims != last_known_dims:
+                last_known_dims = dims
+                return True
+
+        return False
+
+    assert await toggle_fullscreen()
+
+    if also_test_fullscreen_button:
+        # test that we can toggle back out of fullscreen
+        assert await toggle_fullscreen()
+
+        await asyncio.sleep(0.5)
+
         # go back into fullscreen mode for the rest of the test
-        client.soft_click(client.await_css(FULLSCREEN_ICON_CSS, is_displayed=True))
-        await asyncio.sleep(1)
+        assert await toggle_fullscreen()
+
+    await asyncio.sleep(1)
 
     with client.using_context("chrome"):
         client.execute_script(
@@ -87,8 +89,9 @@ async def pip_activates_properly(client, also_test_fullscreen_button=False):
     await asyncio.sleep(1)
     return client.execute_script(
         """
-            return !(document.querySelector("video")?.paused);
-        """
+            return !(arguments[0]?.paused);
+        """,
+        video,
     )
 
 
