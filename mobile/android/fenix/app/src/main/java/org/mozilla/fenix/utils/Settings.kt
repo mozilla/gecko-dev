@@ -332,15 +332,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = false,
     )
 
-    var privateBrowsingLockedFeatureEnabled by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_private_browsing_locked_enabled),
-        featureFlag = true,
-        default = { FxNimbus.features.privateBrowsingLock.value().enabled },
-    )
-
-    var privateBrowsingModeLocked by booleanPreference(
-        appContext.getString(R.string.pref_key_private_browsing_locked),
-        false,
+    var privateBrowsingLockedEnabled by lazyFeatureFlagPreference(
+        appContext.getPreferenceKey(R.string.pref_key_private_browsing_locked_enabled),
+        featureFlag = FxNimbus.features.privateBrowsingLock.value().enabled,
+        default = { false },
     )
 
     var shouldReturnToBrowser by booleanPreference(
@@ -1235,9 +1230,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = true,
     )
 
-    var shouldShowLockPbmBanner by booleanPreference(
+    var shouldShowLockPbmBanner by lazyFeatureFlagPreference(
         appContext.getPreferenceKey(R.string.pref_key_should_show_lock_pbm_banner),
-        true,
+        featureFlag = FxNimbus.features.privateBrowsingLock.value().enabled,
+        default = { true },
     )
 
     var shouldShowInactiveTabsOnboardingPopup by booleanPreference(

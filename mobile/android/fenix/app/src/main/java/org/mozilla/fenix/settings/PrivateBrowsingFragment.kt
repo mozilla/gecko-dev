@@ -21,6 +21,7 @@ import org.mozilla.fenix.components.PrivateShortcutCreateManager
 import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 import org.mozilla.fenix.settings.biometric.ext.isAuthenticatorAvailable
 import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
@@ -85,13 +86,13 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         // Show divider only if user does not have a device lock set
         requirePreference<PreferenceCategory>(R.string.pref_key_pbm_lock_category_divider).apply {
             isVisible =
-                deviceCapable && !userHasEnabledCapability && context.settings().privateBrowsingLockedFeatureEnabled
+                deviceCapable && !userHasEnabledCapability && FxNimbus.features.privateBrowsingLock.value().enabled
         }
 
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
-            isChecked =
-                context.settings().privateBrowsingModeLocked && biometricManager.isAuthenticatorAvailable()
-            isVisible = context.settings().privateBrowsingLockedFeatureEnabled && deviceCapable
+            isChecked = context.settings().privateBrowsingLockedEnabled &&
+                    biometricManager.isAuthenticatorAvailable()
+            isVisible = deviceCapable && FxNimbus.features.privateBrowsingLock.value().enabled
             isEnabled = userHasEnabledCapability
 
             setOnPreferenceChangeListener { preference, newValue ->
@@ -126,7 +127,7 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
 
         requirePreference<Preference>(R.string.pref_key_private_browsing_lock_device_feature_enabled).apply {
             isVisible =
-                deviceCapable && !userHasEnabledCapability && context.settings().privateBrowsingLockedFeatureEnabled
+                deviceCapable && !userHasEnabledCapability && FxNimbus.features.privateBrowsingLock.value().enabled
 
             setOnPreferenceClickListener {
                 context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
@@ -138,9 +139,9 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
     private fun onSuccessfulAuthenticationUsingFallbackPrompt() {
         PrivateBrowsingLocked.authSuccess.record()
 
-        val newValue = !requireContext().settings().privateBrowsingModeLocked
+        val newValue = !requireContext().settings().privateBrowsingLockedEnabled
         recordPbmLockFeatureEnabledStateTelemetry(newValue)
-        requireContext().settings().privateBrowsingModeLocked = newValue
+        requireContext().settings().privateBrowsingLockedEnabled = newValue
         // Update switch state manually
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
             isChecked = !isChecked
@@ -154,7 +155,7 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         PrivateBrowsingLocked.authSuccess.record()
 
         recordPbmLockFeatureEnabledStateTelemetry(pbmLockEnabled)
-        requireContext().settings().privateBrowsingModeLocked = pbmLockEnabled
+        requireContext().settings().privateBrowsingLockedEnabled = pbmLockEnabled
         // Update switch state manually
         (preference as? SwitchPreference)?.isChecked = pbmLockEnabled
     }
