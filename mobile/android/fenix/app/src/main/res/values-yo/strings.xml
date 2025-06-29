@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Àwọn àṣàyàn si</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Ṣe ìgbàláyè fún bíráwúsínnì ìkọ̀kọ̀</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Ṣe ìgbàláyè fún bíráwúsínnì ìkọ̀kọ̀</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Má ṣe ìgbàláyè fún bíráwúsìnnì ìkọ̀kọ̀</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Má ṣe ìgbàláyè fún bíráwúsìnnì ìkọ̀kọ̀</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Ṣàwárí tàbí fi àdìrẹ́sì si</string>
   <!-- Placeholder text shown in the search bar when using application search engines -->
@@ -230,7 +230,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Fò</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">Àwọn táàbù rẹ ti ń ṣiṣẹ́ pọ̀! Mú u sókè níbi tí o ti kúrò lóri ẹ̀rọ rẹ mìíràn.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">Àwọn táàbù rẹ ti ń ṣiṣẹ́ pọ̀! Mú u sókè níbi tí o ti kúrò lóri ẹ̀rọ rẹ mìíràn.</string>
   <!--
     Search Widget
 

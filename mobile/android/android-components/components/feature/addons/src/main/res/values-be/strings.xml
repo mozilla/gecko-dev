@@ -90,6 +90,48 @@
   <string name="mozac_feature_addons_permissions_show_all_sites">Паказваць усе сайты</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">Паказваць менш сайтаў</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">закладкі</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">актыўнасць аглядання</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">фінансавая і\u00a0плацежная інфармацыя</string>
+  <!-- Short description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">інфармацыя пра здароўе</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">месцазнаходжанне</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">асабістыя зносіны</string>
+  <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">інфармацыя, якая вызначае асобу</string>
+  <!-- Short description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">пошукавыя запыты</string>
+  <!-- Short description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">тэхнічныя дадзеныя і\u00a0звесткі аб узаемадзеянні</string>
+  <!-- Short description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">актыўнасць на сайце</string>
+  <!-- Short description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">змесціва сайтаў</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Дзяліцца інфармацыяй для аўтэнтыфікацыі з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Дзяліцца інфармацыяй аб закладках з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Дзяліцца актыўнасцю агляданне з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Дзяліцца фінансавай і\u00a0плацежнай інфармацыяй з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Дзяліцца інфармацыяй пра здароўе з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">Дзяліцца інфармацыяй пра месцазнаходжанне з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">Дзяліцца асабістымі паведамленнямі з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">Дзяліцца асабістай інфармацыяй з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">Дзяліцца пошукавымі тэрмінамі з\u00a0распрацоўшчыкам пашырэння</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">Дзяліцца тэхнічнымі дадзенымі і\u00a0звесткамі ўзаемадзеянні з\u00a0распрацоўшчыкам пашырэння</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Версія</string>
   <!-- The author of an add-on. -->
@@ -110,6 +152,8 @@
   <string name="mozac_feature_addons_settings_on">Укл.</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">Дазволена ў прыватным агляданні</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing_2">Дазволіць пашырэнню дзейнічаць у прыватных вокнах</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">Запуск у прыватным агляданні</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->

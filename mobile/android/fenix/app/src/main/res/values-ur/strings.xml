@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">مزید اختیارات</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">نجی براؤزنگ فعال کریں</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">نجی براؤزنگ فعال کریں</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">نجی براؤزنگ غیر فعال کریں</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">نجی براؤزنگ غیر فعال کریں</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">پتہ تلاش یا داخل کریں</string>
   <!-- No Open Tabs Message Description -->

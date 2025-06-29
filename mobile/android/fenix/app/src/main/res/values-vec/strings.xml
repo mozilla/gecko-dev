@@ -7,9 +7,9 @@
   -->
   <string name="content_description_menu">Altre opsion</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Ativa navigasion anonima</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Ativa navigasion anonima</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Dixativa navigasion anonima</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Dixativa navigasion anonima</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Serca o scrìvi on indiriso</string>
   <!-- No Open Tabs Message Description -->

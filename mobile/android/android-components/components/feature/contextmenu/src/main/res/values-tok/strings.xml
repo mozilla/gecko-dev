@@ -3,7 +3,7 @@
   <!-- Text for context menu item to open the link in a new tab. -->
   <string name="mozac_feature_contextmenu_open_link_in_new_tab">o pana e lipu ni tawa poki sin</string>
   <!-- Text for context menu item to open the link in a private tab. -->
-  <string name="mozac_feature_contextmenu_open_link_in_private_tab">o pana e lipu ni tawa poki len</string>
+  <string name="mozac_feature_contextmenu_open_link_in_private_tab">o pana e lipu ni tawa poki len sin</string>
   <!-- Text for context menu item to open the image in a new tab. -->
   <string name="mozac_feature_contextmenu_open_image_in_new_tab">o pana e sitelen ni tawa poki sin</string>
   <!-- Text for context menu item to save / download the link. -->
@@ -31,7 +31,7 @@
   <!-- Action shown in a "snacbkar" after opening a new/private tab. Clicking this action will switch to the newly opened tab. -->
   <string name="mozac_feature_contextmenu_snackbar_action_switch">o lukin</string>
   <!-- Text for context menu item to open the link in an external app. -->
-  <string name="mozac_feature_contextmenu_open_link_in_external_app">o open e nimi nasin lon ilo ante</string>
+  <string name="mozac_feature_contextmenu_open_link_in_external_app">o open e lipu ni lon ilo ante</string>
   <!-- Text for context menu item to share the email with another app. -->
   <string name="mozac_feature_contextmenu_share_email_address">o pana e nimi ni pi poki lipu</string>
   <!-- Text for context menu item to copy the email address to the clipboard. -->

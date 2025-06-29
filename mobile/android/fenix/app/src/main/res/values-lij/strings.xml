@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">Ciù inpostaçioin</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Abilita Navegaçion privâ</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Abilita Navegaçion privâ</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Dizabilita Navegaçion privâ</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Dizabilita Navegaçion privâ</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Scrivi ò çerca indirisso</string>
   <!-- No Open Tabs Message Description -->

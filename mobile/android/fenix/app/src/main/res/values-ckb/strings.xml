@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">هەڵبژاردەی زیاتر</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">گەڕانی تایبەتی شاراوە کارابکە</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">گەڕانی تایبەتی شاراوە کارابکە</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">گەڕانی تایبەتی شاراوە ناچالاک بکە</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">گەڕانی تایبەتی شاراوە ناچالاک بکە</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">بگەڕێ یان ناونیشان بنووسە</string>
   <!-- No Open Tabs Message Description -->

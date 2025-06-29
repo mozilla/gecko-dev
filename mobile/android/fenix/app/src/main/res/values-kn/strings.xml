@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">ಮತ್ತಷ್ಟು ಆಯ್ಕೆಗಳು</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">ಖಾಸಗಿ ಬ್ರೌಸಿಂಗ್ ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">ಖಾಸಗಿ ಬ್ರೌಸಿಂಗ್ ಅನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">ಖಾಸಗಿ ಬ್ರೌಸಿಂಗ್ ಅನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">ಖಾಸಗಿ ಬ್ರೌಸಿಂಗ್ ಅನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">ಹುಡುಕಿ ಅಥವಾ ವಿಳಾಸವನ್ನು ನಮೂದಿಸಿ</string>
   <!-- No Open Tabs Message Description -->

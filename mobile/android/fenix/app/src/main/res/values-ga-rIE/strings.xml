@@ -7,9 +7,9 @@
   -->
   <string name="content_description_menu">Tuilleadh roghanna</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Cumasaigh brabhsáil phríobháideach</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Cumasaigh brabhsáil phríobháideach</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Díchumasaigh brabhsáil phríobháideach</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Díchumasaigh brabhsáil phríobháideach</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">Cuardaigh nó cuir seoladh isteach</string>
   <!-- No Open Tabs Message Description -->

@@ -11,9 +11,9 @@
   -->
   <string name="content_description_menu">További beállítások</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_private_browsing_button">Privát böngészés engedélyezése</string>
+  <string name="content_description_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Privát böngészés engedélyezése</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">Privát böngészés letiltása</string>
+  <string name="content_description_disable_private_browsing_button" moz:removedIn="142" tools:ignore="UnusedResources">Privát böngészés letiltása</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">Privát böngészés</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -518,7 +518,7 @@
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Kihagyás</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
-  <string name="sync_cfr_message">A lapjai szinkronizálódnak! Folytassa onnan, ahol abbahagyta a másik eszközén.</string>
+  <string name="sync_cfr_message" moz:removedIn="142" tools:ignore="UnusedResources">A lapjai szinkronizálódnak! Folytassa onnan, ahol abbahagyta a másik eszközén.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">Bezárás</string>
   <!--
@@ -859,6 +859,8 @@
   <string name="preferences_category_account">Fiók</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">Címsáv helye</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">Eszköztár elrendezése</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Téma</string>
   <!-- Preference for customizing the home screen -->
@@ -1279,6 +1281,10 @@
   <string name="preference_top_toolbar">Felül</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Alul</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Egyszerű</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Kinyitott</string>
   <!--
     Theme Preferences
 
@@ -1647,17 +1653,27 @@
   -->
   <string name="download_item_in_progress_description_2">%1$s / %2$s • %3$s múlva.</string>
   <!--
-    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    Description of an in progress download item, displayed in the downloads list when the estimated download time remaining is still being calculated.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • függőben</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • ismeretlen idő</string>
   <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • szüneteltetve</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • szünet</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">szüneteltetve</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->

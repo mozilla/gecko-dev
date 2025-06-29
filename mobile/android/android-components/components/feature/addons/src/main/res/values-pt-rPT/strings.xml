@@ -43,7 +43,7 @@
   <!-- Description for browser_setting permission. -->
   <string name="mozac_feature_addons_permissions_browser_setting_description">Ler e modificar as definições do navegador</string>
   <!-- Description for browser_data permission. -->
-  <string name="mozac_feature_addons_permissions_browser_data_description">Limpar histórico de navegação recente, cookies e dados relacionados</string>
+  <string name="mozac_feature_addons_permissions_browser_data_description">Limpar histórico de navegação, cookies e dados relacionados recentes</string>
   <!-- Description for clipboard_read permission. -->
   <string name="mozac_feature_addons_permissions_clipboard_read_description">Obter dados da área de transferência</string>
   <!-- Description for clipboard_write permission. -->
