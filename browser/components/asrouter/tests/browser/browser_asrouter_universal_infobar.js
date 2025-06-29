@@ -30,9 +30,18 @@ const cleanupInfobars = () => {
 add_task(async function showNotificationAllWindows() {
   let fakeNotification = { showNotification: sinon.stub().resolves() };
   let fakeWins = [
-    { gBrowser: { selectedBrowser: "win1" } },
-    { gBrowser: { selectedBrowser: "win2" } },
-    { gBrowser: { selectedBrowser: "win3" } },
+    {
+      gBrowser: { selectedBrowser: "win1" },
+      document: { readyState: "complete" },
+    },
+    {
+      gBrowser: { selectedBrowser: "win2" },
+      document: { readyState: "complete" },
+    },
+    {
+      gBrowser: { selectedBrowser: "win3" },
+      document: { readyState: "complete" },
+    },
   ];
 
   sinon.stub(InfoBar, "maybeLoadCustomElement");
@@ -136,10 +145,10 @@ add_task(async function initialUniversal_showsAllWindows_andSendsTelemetry() {
   cleanupInfobars();
   browser.ownerGlobal.gNotificationBox = origBox;
   sinon.restore();
-  Services.obs.removeObserver(InfoBar, "domwindowopened");
 });
 
 add_task(async function observe_domwindowopened_withLoadEvent() {
+  sinon.stub(PrivateBrowsingUtils, "isWindowPrivate").returns(false);
   let stub = sinon.stub(InfoBar, "showInfoBarMessage").resolves();
 
   InfoBar._activeInfobar = {
@@ -188,6 +197,7 @@ add_task(async function observe_domwindowopened() {
 
 add_task(async function observe_skips_nonUniversal() {
   let stub = sinon.stub(InfoBar, "showInfoBarMessage").resolves();
+  sinon.stub(PrivateBrowsingUtils, "isWindowPrivate").returns(false);
   InfoBar._activeInfobar = {
     message: { content: { type: "global" } },
     dispatch: sinon.stub(),
@@ -197,7 +207,7 @@ add_task(async function observe_skips_nonUniversal() {
 
   // Cleanup
   cleanupInfobars();
-  stub.restore();
+  sinon.restore();
 });
 
 add_task(async function infobarCallback_dismissed_universal() {
@@ -263,4 +273,48 @@ add_task(async function removeObserver_on_removeUniversalInfobars() {
   Services.obs = origObs;
   sandbox.restore();
   cleanupInfobars();
+});
+
+add_task(async function universalInfobar_persists_original_window_closure() {
+  sinon.stub(PrivateBrowsingUtils, "isWindowPrivate").returns(false);
+
+  // Fake window so we can safely close it
+  let fakeWindow = {
+    closed: false,
+    gBrowser: { selectedBrowser: "win1" },
+  };
+
+  InfoBar._activeInfobar = {
+    message: UNIVERSAL_MESSAGE,
+    dispatch: sinon.stub(),
+  };
+  InfoBar._universalInfobars = [
+    { box: { ownerGlobal: fakeWindow }, notification: {} },
+  ];
+
+  Assert.ok(InfoBar._activeInfobar, "Got a universal infobar");
+
+  // Mock closing the original window
+  fakeWindow.closed = true;
+
+  Assert.ok(
+    InfoBar._activeInfobar,
+    "_activeInfobar should persist through window closure"
+  );
+
+  let fakeNewWindow = {
+    closed: false,
+    document: { readyState: "complete" },
+    gBrowser: { selectedBrowser: "win2" },
+  };
+
+  let showInfobarStub = sinon.stub(InfoBar, "showInfoBarMessage").resolves();
+  InfoBar.observe(fakeNewWindow, "domwindowopened");
+  Assert.ok(
+    showInfobarStub.calledOnce,
+    "New window should receive the universal infobar"
+  );
+
+  cleanupInfobars();
+  sinon.restore();
 });
