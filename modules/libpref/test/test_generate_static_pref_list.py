@@ -16,7 +16,7 @@ except ImportError:
     from io import StringIO
 
 sys.path.append(path.join(path.dirname(__file__), ".."))
-from init.generate_static_pref_list import generate_code
+from init.generate_static_pref_list import check_pref_list, generate_code
 
 test_data_path = mozpath.abspath(mozpath.dirname(__file__))
 test_data_path = mozpath.join(test_data_path, "data")
@@ -451,7 +451,8 @@ class TestGenerateStaticPrefList(unittest.TestCase):
         "Test various pieces of good input."
         inp = StringIO(good_input)
         pref_list = yaml.safe_load(inp)
-        code = generate_code(pref_list, "(string input)")
+        check_pref_list(pref_list)
+        code = generate_code(pref_list, ["(string input)"])
 
         self.assertEqual(good["static_pref_list_all_h"], code["static_pref_list_all_h"])
 
@@ -483,7 +484,8 @@ class TestGenerateStaticPrefList(unittest.TestCase):
             inp = StringIO(input_string)
             try:
                 pref_list = yaml.safe_load(inp)
-                generate_code(pref_list, "(string input")
+                check_pref_list(pref_list)
+                generate_code(pref_list, ["(string input"])
                 self.assertEqual(0, 1)
             except ValueError as e:
                 self.assertEqual(str(e), expected)
