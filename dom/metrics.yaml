@@ -140,16 +140,11 @@ perf:
         description:
           "TRR domain used."
         type: string
-      document_features:
-        description: >
-          Bitfield of web features in use within this document:
+      features:
+        description:
+          "Bitfield of features in use within this document:
             1 - fetchpriority applied to images
-        type: quantity
-        unit: integer
-      user_features:
-        description: >
-          Bitfield of features the user is enabling:
-            1 - assistive technology in use
+            2 - assistive technology in use"
         type: quantity
         unit: integer
       has_ssd:
@@ -158,50 +153,6 @@ perf:
         type: boolean
     send_in_pings:
       - pageload
-  page_load_domain:
-    type: event
-    description: >
-        Recorded when a top level content document has been loaded.
-        Includes ETLD+1 information and sent with ohttp.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1967780
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D250521
-    notification_emails:
-      - perf-telemetry-alerts@mozilla.com
-      - dpalmeiro@mozilla.com
-    expires: never
-    extra_keys:
-      lcp_time:
-        description:
-          "Time between largestContentfulPaint and navigationStart, at the point of onLoad firing, in ms. This may differ from the final LCP value as reported through the LCP histogram."
-        type: quantity
-        unit: ms
-      load_type:
-        description:
-          "One of normal,reload,stop,link,history,error or other."
-        type: string
-      same_origin_nav:
-        description:
-          "If true, a normal navigation was performed on the same origin."
-        type: boolean
-      http_ver:
-        description:
-          "Version of HTTP protocol used."
-        type: quantity
-        unit: integer
-      document_features:
-        description: >
-          Bitfield of web features in use within this document:
-            1 - fetchpriority applied to images
-        type: quantity
-        unit: integer
-      domain:
-        description:
-          "ETLD+1 domain of website visited."
-        type: string
-    send_in_pings:
-      - pageload-domain
 
   http3_page_load_time:
     type: labeled_timing_distribution

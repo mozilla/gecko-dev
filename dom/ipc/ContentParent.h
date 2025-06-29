@@ -84,10 +84,6 @@ class PreallocatedProcessManagerImpl;
 
 using mozilla::loader::PScriptCacheParent;
 
-namespace performance::pageload_event {
-class PageloadEventData;
-}  // namespace performance::pageload_event
-
 namespace ipc {
 class CrashReporterHost;
 class TestShellParent;
@@ -1187,8 +1183,7 @@ class ContentParent final : public PContentParent,
   mozilla::ipc::IPCResult RecvRecordDiscardedData(
       const DiscardedData& aDiscardedData);
   mozilla::ipc::IPCResult RecvRecordPageLoadEvent(
-      mozilla::performance::pageload_event::PageloadEventData&&
-          aPageloadEventData);
+      mozilla::glean::perf::PageLoadExtra&& aPageLoadEventExtra);
   mozilla::ipc::IPCResult RecvRecordOrigin(const uint32_t& aMetricId,
                                            const nsACString& aOrigin);
   mozilla::ipc::IPCResult RecvReportContentBlockingLog(
