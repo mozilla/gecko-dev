@@ -55,7 +55,7 @@
   <string name="menu_settings">Parametros</string>
   <string name="menu_about">A proposito</string>
   <string name="menu_help">Adjuta</string>
-  <string name="menu_terms_of_use">Terminos de uso</string>
+  <string name="menu_terms_of_use">Conditiones de uso</string>
   <!--
     Menu item: This is the label for a menu entry that shows how many trackers have been blocked
     for the currently loaded website. The number of blocked trackers is shown below this label.

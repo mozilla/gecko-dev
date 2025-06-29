@@ -939,6 +939,8 @@
   <string name="preferences_open_links_in_apps_never">Ешқашан</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Сыртқы жүктеу менеджері</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Жүктемелер</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko журналдарын іске қосу</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -967,6 +969,12 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">Бұл кеңейтуге сенсеңіз, оған әрбір веб-сайтта рұқсат бере аласыз.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Бұл кеңейту ешқандай рұқсаттарды қажет етпейді.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Әзірлеуші бұл кеңейту келесіні жинайтынын хабарлады: %1$s.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">Әзірлеуші бұл кеңейту келесіні жинайтынын хабарлады: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">Әзірлеуші бұл кеңейту деректер жинауды қажет етпейтінін хабарлады.</string>
   <!-- The title of the required permissions section from addon's permissions screen. -->
   <string name="addons_permissions_heading_required_permissions">Керек рұқсаттар:</string>
   <!-- The title of the optional permissions section from addon's permissions screen. -->
@@ -1098,6 +1106,12 @@
   <string name="alternative_app_icon_option_momo">Момо</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">\u0040heyheymomodraws жасаған</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Тұтас түстер</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Градиенттер</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Басқа</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1257,6 +1271,10 @@
   <string name="preference_top_toolbar">Жоғары</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Төмен</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Қарапайым</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Кеңейтілген</string>
   <!--
     Theme Preferences
 
@@ -1631,11 +1649,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • күту</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • уақыты белгісіз</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • аялдатылған</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • аялдатылған</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">аялдатылған</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->

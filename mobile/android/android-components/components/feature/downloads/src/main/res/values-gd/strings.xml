@@ -1,17 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">Luchdaidhean a-nuas</string>
+  <!--
+    Summary text shown on an in progress download notification.
+    %1$s will be replaced with the estimated time remaining to complete the download.
+  -->
+  <string name="mozac_feature_downloads_time_remaining">ann an %1$s</string>
+  <!-- Summary text shown on an in progress download notification when the estimated time remaining is unknown. -->
+  <string name="mozac_feature_downloads_time_remaining_unknown">chan eil fhios dè cho fada ’s a bheir e</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Tha an luchdadh a-nuas na stad</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_completed_notification_text2">Chaidh a luchdadh a-nuas</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">Dh’fhàillig an luchdadh a-nuas</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">A bheil thu airson am faidhle a luchdadh a-nuas a-rithist? (%1$s)</string>
+  <!--
+    Alert dialog confirmation before downloading a file, this is the title.
+    %1$s will be replaced with the size of the file.
+  -->
+  <string name="mozac_feature_downloads_dialog_title_3">A bheil thu airson am faidhle a luchdadh a-nuas? (%1$s)</string>
+  <!-- This string is used as the title for the download confirmation dialog when the size of the file is not known. -->
+  <string name="mozac_feature_downloads_dialog_title_with_unknown_size">A bheil thu airson am faidhle a luchdadh a-nuas?</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Luchdaich a-nuas</string>
+  <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
+  <string name="mozac_feature_downloads_dialog_download_again" tools:ignore="UnusedResources">Luchdaich a-nuas a-rithist</string>
   <!-- Alert dialog confirmation before download a file, this is the negative action. -->
   <string name="mozac_feature_downloads_dialog_cancel">Sguir dheth</string>
+  <!--
+    Alert dialog confirmation before downloading a previously downloaded file, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">Tha %1$s ann mu thràth.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">Chan urrainn dha %1$s a leithid seo a dh’fhaidhle a luchdadh a-nuas</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

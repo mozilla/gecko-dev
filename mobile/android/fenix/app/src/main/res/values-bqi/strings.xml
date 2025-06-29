@@ -859,6 +859,8 @@
   <string name="preferences_category_account">هساو منتوری</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">جاگه نوار نشۊوی</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">تئر نوار ٱوزار</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">زمینه</string>
   <!-- Preference for customizing the home screen -->
@@ -1279,6 +1281,10 @@
   <string name="preference_top_toolbar">روء</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">بلم</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">ساڌه</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">بولند وابیڌه</string>
   <!--
     Theme Preferences
 
@@ -1653,11 +1659,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • هونی واجۊری بۊ</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • زمووݩ ن دیاری</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • واستا</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • واڌاشته</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">واڌاشتن</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2635,6 +2651,14 @@
   <string name="saved_login_clear_username">پاک کردن نوم منتوری</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">پاک کردن نوم هاست</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">نومگه جۊزیات و من ٱووڌن</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">وورگشتن و عقب</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">آلشت</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">پاک کردن</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">گۊشیڌن وبگه من گشت گر</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

@@ -69,7 +69,7 @@
   <!-- Description for notifications permission. -->
   <string name="mozac_feature_addons_permissions_notifications_description">Vise deg varsel</string>
   <!-- Description for pkcs11 permission. -->
-  <string name="mozac_feature_addons_permissions_pkcs11_description">Tilby kryptografiske godkjenningstenester</string>
+  <string name="mozac_feature_addons_permissions_pkcs11_description">Tilby kryptografiske autentiserings-tenester</string>
   <!-- Description for proxy permission. -->
   <string name="mozac_feature_addons_permissions_proxy_description">Kontrollere proxy-innstillingar for nettlesar</string>
   <!-- Description for sessions permission. -->

@@ -120,6 +120,14 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">веб-сайттардағы белсенділік</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">веб-сайттар мазмұны</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">Кеңейту әзірлеушісімен аутентификация ақпаратын бөлісу</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Кеңейту әзірлеушісімен бетбелгілер ақпаратын бөлісу</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Кеңейту әзірлеушісімен шолу әрекеттерін бөлісу</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">Кеңейту әзірлеушісімен қаржылық пен төлемдер ақпаратын бөлісу</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Нұсқасы</string>
   <!-- The author of an add-on. -->
