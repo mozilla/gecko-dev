@@ -1078,8 +1078,6 @@ class PresShell final : public nsStubDocumentObserver,
   /* Whether or not the displayport is currently suppressed. */
   bool IsDisplayportSuppressed();
 
-  bool IsDocumentLoading() const { return mDocumentLoading; }
-
   void AddSizeOfIncludingThis(nsWindowSizes& aWindowSizes) const;
 
   /**
