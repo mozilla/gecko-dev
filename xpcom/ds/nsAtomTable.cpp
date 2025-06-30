@@ -17,7 +17,6 @@
 #include "nsAtom.h"
 #include "nsAtomTable.h"
 #include "nsGkAtoms.h"
-#include "nsIThread.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
@@ -458,24 +457,11 @@ void nsAtomSubTable::GCLocked(GCKind aKind) {
   nsDynamicAtom::gUnusedAtomCount -= removedCount;
 }
 
-void nsDynamicAtom::ScheduleAtomTableGC() {
+void nsDynamicAtom::GCAtomTable() {
   MOZ_ASSERT(gAtomTable);
-  static Atomic<bool, Relaxed> sScheduled;
-  if (sScheduled.exchange(true)) {
-    return;
+  if (NS_IsMainThread()) {
+    gAtomTable->GC(GCKind::RegularOperation);
   }
-  nsCOMPtr<nsIThread> mainThread = do_GetMainThread();
-  if (NS_WARN_IF(!mainThread)) {
-    // If we're during shutdown, just don't do anything, NS_ShutdownAtomTable
-    // will GC if needed.
-    return;
-  }
-  mainThread->Dispatch(NS_NewRunnableFunction("nsAtomTable::GC", []() {
-    sScheduled = false;
-    if (MOZ_LIKELY(gAtomTable)) {
-      gAtomTable->GC(GCKind::RegularOperation);
-    }
-  }));
 }
 
 //----------------------------------------------------------------------
