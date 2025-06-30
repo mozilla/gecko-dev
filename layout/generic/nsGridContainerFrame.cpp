@@ -793,33 +793,26 @@ struct nsGridContainerFrame::GridItemInfo {
     // always unset for eFirstBaseline.  In a masonry-axis, it's set for
     // baseline groups in the EndStretch set and unset for the StartStretch set.
     eEndSideBaseline = 0x20,
-
-    // Set when the grid item is in the last baseline sharing group, otherwise
-    // assume the first baseline sharing group. The baseline sharing group might
-    // differ from the specified baseline alignment due to baseline alignment
-    // rules.
-    eLastBaselineSharingGroup = 0x40,
-
     eAllBaselineBits = eIsBaselineAligned | eSelfBaseline | eContentBaseline |
-                       eEndSideBaseline | eLastBaselineSharingGroup,
+                       eEndSideBaseline,
 
     // Automatic Minimum Size is content based. If not set, automatic minimum
     // size is zero.
     // https://drafts.csswg.org/css-grid-2/#min-size-auto
     // https://drafts.csswg.org/css-grid-2/#content-based-minimum-size
-    eContentBasedAutoMinSize = 0x80,
+    eContentBasedAutoMinSize = 0x40,
     // Clamp per https://drafts.csswg.org/css-grid-2/#min-size-auto
-    eClampMarginBoxMinSize = 0x100,
-    eIsSubgrid = 0x200,
+    eClampMarginBoxMinSize = 0x80,
+    eIsSubgrid = 0x100,
     // set on subgrids and items in subgrids if they are adjacent to the grid
     // start/end edge (excluding grid-aligned abs.pos. frames)
-    eStartEdge = 0x400,
-    eEndEdge = 0x800,
+    eStartEdge = 0x200,
+    eEndEdge = 0x400,
     eEdgeBits = eStartEdge | eEndEdge,
     // Set if this item was auto-placed in this axis.
-    eAutoPlacement = 0x1000,
+    eAutoPlacement = 0x800,
     // Set if this item is the last item in its track (masonry layout only)
-    eIsLastItemInMasonryTrack = 0x2000,
+    eIsLastItemInMasonryTrack = 0x1000,
 
     // Bits set during the track sizing step.
     eTrackSizingBits =
@@ -4441,11 +4434,6 @@ static void AlignSelf(const nsGridContainerFrame::GridItemInfo& aGridItem,
     flags |= AlignJustifyFlags::SameSide;
   }
 
-  if (aGridItem.mState[LogicalAxis::Block] &
-      GridItemInfo::eLastBaselineSharingGroup) {
-    flags |= AlignJustifyFlags::LastBaselineSharingGroup;
-  }
-
   // Grid's 'align-self' axis is never parallel to the container's inline axis.
   if (aAlignSelf == StyleAlignFlags::LEFT ||
       aAlignSelf == StyleAlignFlags::RIGHT) {
@@ -4482,11 +4470,6 @@ static void JustifySelf(const nsGridContainerFrame::GridItemInfo& aGridItem,
   WritingMode childWM = aRI.GetWritingMode();
   if (aCBWM.ParallelAxisStartsOnSameSide(LogicalAxis::Inline, childWM)) {
     flags |= AlignJustifyFlags::SameSide;
-  }
-
-  if (aGridItem.mState[LogicalAxis::Inline] &
-      GridItemInfo::eLastBaselineSharingGroup) {
-    flags |= AlignJustifyFlags::LastBaselineSharingGroup;
   }
 
   if (MOZ_LIKELY(aJustifySelf == StyleAlignFlags::NORMAL)) {
@@ -6633,20 +6616,10 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
       BaselineSharingGroup baselineAlignment = isFirstBaseline
                                                    ? BaselineSharingGroup::First
                                                    : BaselineSharingGroup::Last;
-      // Baseline alignment occurs along `mAxis`, but baselines are defined in
-      // the orthogonal axis (the axis of the baseline context that defines the
-      // baseline sharing group).
-      auto baselineWM = WritingMode::DetermineWritingModeForBaselineSynthesis(
-          containerWM, childWM, GetOrthogonalAxis(mAxis));
-
-      auto sameSideInBaselineWM =
-          containerWM.ParallelAxisStartsOnSameSide(mAxis, baselineWM);
-      auto baselineSharingGroup = BaselineSharingGroup::First;
-      if (sameSideInBaselineWM != isFirstBaseline) {
-        baselineSharingGroup = BaselineSharingGroup::Last;
-        state |= ItemState::eLastBaselineSharingGroup;
-      }
-
+      auto sameSide = containerWM.ParallelAxisStartsOnSameSide(mAxis, childWM);
+      BaselineSharingGroup baselineSharingGroup =
+          isFirstBaseline == sameSide ? BaselineSharingGroup::First
+                                      : BaselineSharingGroup::Last;
       // XXXmats if |child| is a descendant of a subgrid then the metrics
       // below needs to account for the accumulated MPB somehow...
 
@@ -6719,22 +6692,29 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
               // https://bugzilla.mozilla.org/show_bug.cgi?id=1964417
               baseline.emplace(frameSize / 2);
             } else {
-              // The baseline offset is measured from the block-{start,end} edge
-              // of the container, using the block axis of 'baselineWM' (which
-              // may differ from the child or container’s writing mode).
-              //
-              // If we're synthesizing a baseline from the edge nearest to the
-              // container's reference side (start for the first baseline group,
-              // end for the last), the offset is `0`. Otherwise, it's from the
-              // opposite edge, so we use `frameSize`.
-              //
-              // This logic depends on whether we're in the first or last
-              // baseline-sharing group, and whether the line is inverted (e.g.,
-              // in vertical-rl mode), which affects which edge is considered
-              // the "start" or "end".
-              baseline.emplace((isFirstBaseline == baselineWM.IsLineInverted())
-                                   ? 0
-                                   : frameSize);
+              // Account for writing modes like vertical-lr that invert the
+              // line-over/line-under direction.
+              bool isInverted =
+                  (mAxis == LogicalAxis::Block)
+                      ? containerWM.IsLineInverted()
+                      : (!containerWM.IsVertical() && containerWM.IsBidiLTR());
+
+              // Determine whether the child's line-under side matches the
+              // container's start side along the axis.
+              bool isLineUnderSameSide = sameSide && !isInverted;
+
+              // Emulate the 'baseline' measurement that
+              // `GetNaturalBOffsetBaseline()` would provide, if it supported
+              // synthesizing baselines on inline container axes.
+              // To do this, we express the baseline as an offset from the
+              // item's block-start or block-end edge, depending on whether
+              // we're aligning to the first or last baseline.
+              const bool baselineOffsetIsFrameSize =
+                  itemHasBaselineParallelToTrack
+                      ? (!childWM.IsLineInverted() == isFirstBaseline)
+                      : (isLineUnderSameSide == isFirstBaseline);
+
+              baseline.emplace(baselineOffsetIsFrameSize ? frameSize : 0);
             }
           }
         }

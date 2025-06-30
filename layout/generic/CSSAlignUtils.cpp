@@ -34,9 +34,6 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
   const bool isOverflowSafe = !!(aFlags & AlignJustifyFlags::OverflowSafe);
   const bool isSameSide = !!(aFlags & AlignJustifyFlags::SameSide);
 
-  const bool isFirstBaselineSharingGroup =
-      !(aFlags & AlignJustifyFlags::LastBaselineSharingGroup);
-
   StyleAlignFlags alignment = aAlignment;
   // Map some alignment values to 'start' / 'end'.
   if (alignment == StyleAlignFlags::SELF_START) {
@@ -124,7 +121,7 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
   nscoord offset = 0;
   if (alignment == StyleAlignFlags::BASELINE ||
       alignment == StyleAlignFlags::LAST_BASELINE) {
-    if (MOZ_LIKELY(isFirstBaselineSharingGroup)) {
+    if (MOZ_LIKELY(isSameSide == (alignment == StyleAlignFlags::BASELINE))) {
       offset = marginStart + aBaselineAdjust;
     } else {
       nscoord size = aChildSize.Size(aAxis, wm);
