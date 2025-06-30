@@ -123,6 +123,10 @@ add_task(async function testInlinePreviews() {
     { previews: [{ identifier: "ids:", value: "Array [ 1, 2 ]" }], line: 21 },
   ]);
 
+  // Make sure the next breakpoint source is selected, parsed etc...
+  // Bug 1974236: This should not be necessary.
+  await selectSource(dbg, "inline-preview.js");
+
   // Checks that open in inspector button works in inline preview
   invokeInTab("btnClick");
   await assertInlinePreviews(
@@ -130,6 +134,7 @@ add_task(async function testInlinePreviews() {
     [{ previews: [{ identifier: "btn:", value: "button" }], line: 53 }],
     "onBtnClick"
   );
+
   await checkInspectorIcon(dbg);
 
   await dbg.toolbox.selectTool("jsdebugger");
@@ -219,12 +224,29 @@ async function checkInspectorIcon(dbg) {
   // Ensure hovering over button highlights the node in content pane
   const view = node.ownerDocument.defaultView;
   const { toolbox } = dbg;
-  const onNodeHighlight = toolbox.getHighlighter().waitForHighlighterShown();
 
-  EventUtils.synthesizeMouseAtCenter(node, { type: "mousemove" }, view);
+  // Setup a promise that will set `nodeHighlighted` to the highlighter-shown
+  // event payload.
+  let nodeHighlighted;
+  toolbox
+    .getHighlighter()
+    .waitForHighlighterShown()
+    .then(event => {
+      nodeHighlighted = event;
+    });
 
   info("Wait for node to be highlighted");
-  const { nodeFront } = await onNodeHighlight;
+  const nodeFront = await waitFor(() => {
+    // The test intermittently fails when we try to mouseover only once.
+    // Setup a simple polling mechanism to avoid this. See Bug 1607636.
+    if (nodeHighlighted) {
+      return nodeHighlighted.nodeFront;
+    }
+
+    EventUtils.synthesizeMouseAtCenter(node, { type: "mousemove" }, view);
+    return false;
+  });
+
   is(nodeFront.displayName, "button", "The correct node was highlighted");
 
   // Ensure panel changes when button is clicked
