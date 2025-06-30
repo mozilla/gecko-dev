@@ -373,12 +373,14 @@ nsClipboard::GetNativeClipboardSequenceNumber(ClipboardType aWhichClipboard) {
 // So if clipboard contains images only remove text MIME offer.
 bool nsClipboard::HasSuitableData(int32_t aWhichClipboard,
                                   const nsACString& aFlavor) {
-  MOZ_CLIPBOARD_LOG("nsClipboard::HasSuitableData");
+  MOZ_CLIPBOARD_LOG("%s for %s", __FUNCTION__, PromiseFlatCString(aFlavor).get());
 
   auto targets = mContext->GetTargets(aWhichClipboard);
   if (!targets) {
     MOZ_CLIPBOARD_LOG("    X11: no targes at clipboard (null), quit.\n");
-    return false;
+    // It is possible that clipboard owner doesn't provide TARGETS properly, but
+    // the text data is still available.
+    return aFlavor.EqualsLiteral(kTextMime);
   }
 
   for (const auto& atom : targets.AsSpan()) {
@@ -402,6 +404,7 @@ bool nsClipboard::HasSuitableData(int32_t aWhichClipboard,
     }
     // We have some other MIME type on clipboard which can be hopefully
     // converted to text without any problem.
+    // XXX should only return true for text/plain type?
     MOZ_CLIPBOARD_LOG(
         "    X11: text types in clipboard, no need to filter them.\n");
     return true;
