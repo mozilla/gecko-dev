@@ -37,6 +37,8 @@ Finding something to work on
   to work on the bug. You might receive some extra information, perhaps
   also made the assignee.
 
+.. _good-first-bug-guide:
+
 Find a bug we've identified as a good fit for new contributors.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -170,8 +172,9 @@ Thank you. You've fixed your very first bug, and the Open Web is
 stronger for it. But don't stop now.
 
 Go back to step 3, as there is plenty more to do. Your mentor might
-suggest a new bug for you to work on, or `find one that interests
-you <https://moztw.org/~petercpg/asknot/>`_. Now that you've got your
+suggest a new bug for you to work on, or
+:ref:`find one that interests you <good-first-bug-guide>`
+Now that you've got your
 first bug fixed you should request level 1 access to the repository to
 push to the try server and get automated feedback about your changes on
 multiple platforms. After fixing a nontrivial number of bugs you should
