@@ -4237,9 +4237,9 @@ void EditorBase::OnCompositionEnd(
     return;
   }
 
-  EditAction editAction = aCompositionEndEvent.mData.IsEmpty()
-                              ? EditAction::eCancelComposition
-                              : EditAction::eCommitComposition;
+  const EditAction editAction = aCompositionEndEvent.mData.IsEmpty()
+                                    ? EditAction::eCancelComposition
+                                    : EditAction::eCommitComposition;
   AutoEditActionDataSetter editActionData(*this, editAction);
   // If Input Events Level 2 is enabled, EditAction::eCancelComposition is
   // mapped to EditorInputType::eDeleteCompositionText and it requires null
@@ -4252,18 +4252,45 @@ void EditorBase::OnCompositionEnd(
     editActionData.SetData(aCompositionEndEvent.mData);
   }
 
+  const RefPtr<PlaceholderTransaction> placeholderTransaction =
+      [&]() -> PlaceholderTransaction* {
+    if (!mTransactionManager) {
+      return nullptr;
+    }
+    const nsCOMPtr<nsITransaction> transaction =
+        mTransactionManager->PeekUndoStack();
+    if (MOZ_UNLIKELY(!transaction)) {
+      return nullptr;
+    }
+    const RefPtr<EditTransactionBase> transactionBase =
+        transaction->GetAsEditTransactionBase();
+    if (MOZ_UNLIKELY(!transactionBase)) {
+      return nullptr;
+    }
+    return transactionBase->GetAsPlaceholderTransaction();
+  }();
   // commit the IME transaction..we can get at it via the transaction mgr.
   // Note that this means IME won't work without an undo stack!
-  if (mTransactionManager) {
-    if (nsCOMPtr<nsITransaction> transaction =
-            mTransactionManager->PeekUndoStack()) {
-      if (RefPtr<EditTransactionBase> transactionBase =
-              transaction->GetAsEditTransactionBase()) {
-        if (PlaceholderTransaction* placeholderTransaction =
-                transactionBase->GetAsPlaceholderTransaction()) {
-          placeholderTransaction->Commit();
-        }
-      }
+  if (placeholderTransaction) {
+    placeholderTransaction->Commit();
+  }
+
+  // If the composition is canceled and the composition hasn't remove any
+  // content, we should remove the transaction from the undo stack because
+  // user "canceled" it, so, undoing the canceled composition is odd.  That
+  // would appear as a noop undo transaction.
+  if (editAction == EditAction::eCancelComposition && placeholderTransaction) {
+    const nsTArray<OwningNonNull<EditTransactionBase>>& childTransactions =
+        placeholderTransaction->ChildTransactions();
+    MOZ_ASSERT(!childTransactions.IsEmpty());
+    // If the first transaction is inserting composition string, we didn't
+    // replace selection with the composition string.  Then, all of the
+    // operations during the composition is canceled by the user.  So, we should
+    // not record it as an undo transaction.
+    if (childTransactions[0]->GetAsCompositionTransaction()) {
+      nsCOMPtr<nsITransaction> transaction =
+          mTransactionManager->PopUndoStack();
+      MOZ_DIAGNOSTIC_ASSERT(transaction == placeholderTransaction);
     }
   }
 

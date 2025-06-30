@@ -674,15 +674,6 @@ function runUndoRedoTest()
 
   synthesizeKey("Z", {accelKey: true});
 
-  // XXX this is unexpected behavior, see bug 258291
-  if (!checkContent("\u732B",
-                    "runUndoRedoTest", "#" + ++i) ||
-      !checkSelection(1, "", "runUndoRedoTest", "#" + i)) {
-    return;
-  }
-
-  synthesizeKey("Z", {accelKey: true});
-
   if (!checkContent("",
                     "runUndoRedoTest", "#" + ++i) ||
       !checkSelection(0, "", "runUndoRedoTest", "#" + i)) {
@@ -699,15 +690,6 @@ function runUndoRedoTest()
 
   synthesizeKey("Z", {accelKey: true, shiftKey: true});
 
-  if (!checkContent("\u732B",
-                    "runUndoRedoTest", "#" + ++i) ||
-      !checkSelection(1, "", "runUndoRedoTest", "#" + i)) {
-    return;
-  }
-
-  synthesizeKey("Z", {accelKey: true, shiftKey: true});
-
-  // XXX this is unexpected behavior, see bug 258291
   if (!checkContent("\u732B",
                     "runUndoRedoTest", "#" + ++i) ||
       !checkSelection(1, "", "runUndoRedoTest", "#" + i)) {
@@ -2202,15 +2184,8 @@ async function runCompositionTest()
   }
 
   // Undo tests for the testcases for bug 23558 and bug 271815
-  synthesizeKey("z", { accelKey: true });
-
-  // XXX this is unexpected behavior, see bug 258291
-  if (!checkContent("\u30E9\u30FC\u30E1\u30F3",
-                    "runCompositionTest", "#6-1") ||
-      !checkSelection(4, "", "runCompositionTest", "#6-1")) {
-    return;
-  }
-
+  // The last composition was canceled by the user and the composition didn't delete selection.
+  // Therefore, that should not appear as an undoable transaction.
   synthesizeKey("z", { accelKey: true });
 
   if (!checkContent("\u30E9\u30FC\u30E1\u30F3\u9AD8",
@@ -2229,21 +2204,64 @@ async function runCompositionTest()
 
   synthesizeKey("z", { accelKey: true });
 
-  // XXX this is unexpected behavior, see bug 258291
-  if (!checkContent("\u30E9\u30FC\u30E1\u30F3\u6700",
-                    "runCompositionTest", "#6-4") ||
-      !checkSelection(5, "", "runCompositionTest", "#6-4")) {
-    return;
-  }
-
-  synthesizeKey("z", { accelKey: true });
-
   if (!checkContent("\u30E9\u30FC\u30E1\u30F3",
                     "runCompositionTest", "#6-5") ||
       !checkSelection(4, "", "runCompositionTest", "#6-5")) {
     // eslint-disable-next-line no-useless-return
     return;
   }
+}
+
+function runUndoCompositionWhichDeletedSelection() {
+  const kDescription = "runUndoCompositionWhichDeletedSelection";
+  input.value = "";
+  input.focus();
+
+  synthesizeKey("a");
+  synthesizeKey("b");
+  synthesizeKey("c");
+  synthesizeKey("KEY_ArrowLeft", {shiftKey: true});
+  // Replace "c" with a Japanese character,
+  synthesizeCompositionChange({
+    composition: {
+      string: "\u3042",
+      clauses: [
+        { length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE },
+      ],
+    },
+    caret: { start: 1, length: 0 },
+  });
+  // then, cancel the composition,
+  synthesizeCompositionChange({
+    composition: {
+      string: "",
+      clauses: [
+        { length: 0, attr: 0 },
+      ],
+    },
+    caret: { start: 0, length: 0 },
+  });
+  synthesizeComposition({type: "compositioncommitasis"});
+  // finally, undoing it should not cancel deleting "c".
+  {
+    synthesizeKey("z", { accelKey: true });
+    const kSummary = "first undo should restore the replaced char by the composition";
+    if (!checkContent("abc", kDescription, kSummary) ||
+        !checkSelection(2, "", kDescription, kSummary)) {
+      return;
+    }
+  }
+  // another undoing should cancel the text insertion before the composition.
+  {
+    synthesizeKey("z", { accelKey: true });
+    const kSummary = "second undo should cancel the text insertion before the composition";
+    if (!checkContent("", kDescription, kSummary) ||
+        !checkSelection(0, "", kDescription, kSummary)) {
+      return;
+    }
+  }
+
+  input.value = "";
 }
 
 function runCompositionEventTest()
@@ -11490,6 +11508,7 @@ async function runTest()
   await runSetSelectionEventTest();
 
   runUndoRedoTest();
+  runUndoCompositionWhichDeletedSelection();
   runCompositionCommitAsIsTest();
   runCompositionEventTest();
   runCompositionTestWhoseTextNodeModified();

@@ -54,6 +54,12 @@ class TransactionManager final : public nsITransactionManager,
     return true;
   }
 
+  /**
+   * Delete the last undoable transaction from the undo stack.  This does
+   * nothing if there is a redoable transactions.
+   */
+  already_AddRefed<nsITransaction> PopUndoStack();
+
   void Attach(HTMLEditor& aHTMLEditor);
   void Detach(const HTMLEditor& aHTMLEditor);
 
