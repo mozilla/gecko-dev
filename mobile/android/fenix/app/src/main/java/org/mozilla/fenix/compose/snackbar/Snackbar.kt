@@ -176,6 +176,7 @@ class Snackbar private constructor(
                         behavior = SnackbarBehavior<FrameLayout>(
                             context = snackBarParentView.context,
                             toolbarPosition = snackBarParentView.context.settings().toolbarPosition,
+                            shouldUseSimpleToolbar = snackBarParentView.context.settings().shouldUseSimpleToolbar,
                         )
                     }
                 }
