@@ -1029,7 +1029,10 @@ fn change_bits_for_longhand(longhand: LonghandId) -> WillChangeBits {
             WillChangeBits::BACKDROP_ROOT |
             WillChangeBits::FIXPOS_CB_NON_SVG
         },
-        LonghandId::ViewTransitionName => WillChangeBits::VIEW_TRANSITION_NAME,
+        LonghandId::ViewTransitionName => {
+            WillChangeBits::VIEW_TRANSITION_NAME |
+            WillChangeBits::BACKDROP_ROOT
+        },
         LonghandId::MixBlendMode => {
             WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL |
             WillChangeBits::BACKDROP_ROOT

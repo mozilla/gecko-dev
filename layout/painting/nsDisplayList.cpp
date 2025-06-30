@@ -4733,13 +4733,14 @@ nsresult nsDisplayItemWrapper::WrapListsInPlace(
 nsDisplayOpacity::nsDisplayOpacity(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
     const ActiveScrolledRoot* aActiveScrolledRoot, bool aForEventsOnly,
-    bool aNeedsActiveLayer, bool aWrapsBackdropFilter)
+    bool aNeedsActiveLayer, bool aWrapsBackdropFilter, bool aForceBackdropRoot)
     : nsDisplayWrapList(aBuilder, aFrame, aList, aActiveScrolledRoot, true),
       mOpacity(aFrame->StyleEffects()->mOpacity),
       mForEventsOnly(aForEventsOnly),
       mNeedsActiveLayer(aNeedsActiveLayer),
       mChildOpacityState(ChildOpacityState::Unknown),
-      mWrapsBackdropFilter(aWrapsBackdropFilter) {
+      mWrapsBackdropFilter(aWrapsBackdropFilter),
+      mForceBackdropRoot(aForceBackdropRoot) {
   MOZ_COUNT_CTOR(nsDisplayOpacity);
 }
 
@@ -5027,6 +5028,9 @@ bool nsDisplayOpacity::CreateWebRenderCommands(
       wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
   if (mWrapsBackdropFilter) {
     params.flags |= wr::StackingContextFlags::WRAPS_BACKDROP_FILTER;
+  }
+  if (mForceBackdropRoot) {
+    params.flags |= wr::StackingContextFlags::IS_BACKDROP_ROOT;
   }
   StackingContextHelper sc(aSc, GetActiveScrolledRoot(), mFrame, this, aBuilder,
                            params);
