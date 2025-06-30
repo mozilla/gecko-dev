@@ -513,6 +513,11 @@ void Navigation::Navigate(JSContext* aCx, const nsAString& aUrl,
   //     historyHandling set to options["history"] and navigationAPIState set to
   //     serializedState.
 
+  RefPtr bc = document->GetBrowsingContext();
+  MOZ_DIAGNOSTIC_ASSERT(bc);
+  bc->Navigate(urlRecord, *document->NodePrincipal(),
+               /* per spec, error handling defaults to false */ IgnoreErrors());
+
   // 12. If this's upcoming non-traverse API method tracker is apiMethodTracker,
   //     then:
   if (mUpcomingNonTraverseAPIMethodTracker == apiMethodTracker) {
