@@ -164,11 +164,7 @@ class SuspenderObjectData
   inline SuspenderState state() const { return state_; }
   void setState(SuspenderState state) { state_ = state; }
 
-  inline bool traceable() const {
-    return state_ == SuspenderState::Active ||
-           state_ == SuspenderState::Suspended;
-  }
-  inline bool hasStackEntry() const { return suspendedBy_ != nullptr; }
+  inline bool traceable() const { return suspendedBy_ != nullptr; }
   inline SuspenderContext* suspendedBy() const { return suspendedBy_; }
   void setSuspendedBy(SuspenderContext* suspendedBy) {
     suspendedBy_ = suspendedBy;
