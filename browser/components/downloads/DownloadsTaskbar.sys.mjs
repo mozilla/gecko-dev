@@ -11,13 +11,36 @@
 // Globals
 
 const lazy = {};
+const gInterfaces = {};
+
+function defineResettableGetter(object, name, callback) {
+  let result = undefined;
+
+  Object.defineProperty(object, name, {
+    get() {
+      if (typeof result == "undefined") {
+        result = callback();
+      }
+
+      return result;
+    },
+    set(value) {
+      if (value === null) {
+        result = undefined;
+      } else {
+        throw new Error("don't set this to nonnull");
+      }
+    },
+  });
+}
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   Downloads: "resource://gre/modules/Downloads.sys.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
 
-ChromeUtils.defineLazyGetter(lazy, "gWinTaskbar", function () {
+defineResettableGetter(gInterfaces, "winTaskbar", function () {
   if (!("@mozilla.org/windows-taskbar;1" in Cc)) {
     return null;
   }
@@ -27,14 +50,14 @@ ChromeUtils.defineLazyGetter(lazy, "gWinTaskbar", function () {
   return winTaskbar.available && winTaskbar;
 });
 
-ChromeUtils.defineLazyGetter(lazy, "gMacTaskbarProgress", function () {
+defineResettableGetter(gInterfaces, "macTaskbarProgress", function () {
   return (
     "@mozilla.org/widget/macdocksupport;1" in Cc &&
     Cc["@mozilla.org/widget/macdocksupport;1"].getService(Ci.nsITaskbarProgress)
   );
 });
 
-ChromeUtils.defineLazyGetter(lazy, "gGtkTaskbarProgress", function () {
+defineResettableGetter(gInterfaces, "gtkTaskbarProgress", function () {
   return (
     "@mozilla.org/widget/taskbarprogress/gtk;1" in Cc &&
     Cc["@mozilla.org/widget/taskbarprogress/gtk;1"].getService(
@@ -43,24 +66,45 @@ ChromeUtils.defineLazyGetter(lazy, "gGtkTaskbarProgress", function () {
   );
 });
 
-// DownloadsTaskbar
-
 /**
  * Handles the download progress indicator in the taskbar.
  */
-export var DownloadsTaskbar = {
+class DownloadsTaskbarInstance {
   /**
    * Underlying DownloadSummary providing the aggregate download information, or
    * null if the indicator has never been initialized.
    */
-  _summary: null,
+  #summary = null;
 
   /**
    * nsITaskbarProgress object to which download information is dispatched.
    * This can be null if the indicator has never been initialized or if the
    * indicator is currently hidden on Windows.
    */
-  _taskbarProgress: null,
+  #taskbarProgress = null;
+
+  /**
+   * The kind of downloads that will be summarized.
+   *
+   * At registration time, this helps create the DownloadsSummary. When the
+   * progress representative unloads, this determines whether the replacement
+   * should be a public or a private window.
+   */
+  #filter = null;
+
+  /**
+   * Creates a new DownloadsTaskbarInstance.
+   *
+   * A given instance of the browser has two instances of this: one for public
+   * windows (where aFilter is Downloads.PUBLIC) and the other for private windows
+   * (Downloads.PRIVATE).
+   *
+   * This function doesn't actually register the taskbar with a window; you should
+   * call registerIndicator when you add a new window.
+   */
+  constructor(aFilter) {
+    this.#filter = aFilter;
+  }
 
   /**
    * This method is called after a new browser window is opened, and ensures
@@ -78,24 +122,33 @@ export var DownloadsTaskbar = {
    *        nsIDOMWindow object of the newly opened browser window to which the
    *        indicator may be attached.
    */
-  registerIndicator(aBrowserWindow) {
-    if (!this._taskbarProgress) {
-      if (lazy.gMacTaskbarProgress) {
+  async registerIndicator(aBrowserWindow, aForcedBackend) {
+    if (!this.#taskbarProgress) {
+      if (
+        aForcedBackend == "mac" ||
+        (!aForcedBackend && gInterfaces.macTaskbarProgress)
+      ) {
         // On Mac OS X, we have to register the global indicator only once.
-        this._taskbarProgress = lazy.gMacTaskbarProgress;
+        this.#taskbarProgress = gInterfaces.macTaskbarProgress;
         // Free the XPCOM reference on shutdown, to prevent detecting a leak.
         Services.obs.addObserver(() => {
-          this._taskbarProgress = null;
-          lazy.gMacTaskbarProgress = null;
+          this.#taskbarProgress = null;
+          gInterfaces.macTaskbarProgress = null;
         }, "quit-application-granted");
-      } else if (lazy.gWinTaskbar) {
+      } else if (
+        aForcedBackend == "windows" ||
+        (!aForcedBackend && gInterfaces.winTaskbar)
+      ) {
         // On Windows, the indicator is currently hidden because we have no
         // previous browser window, thus we should attach the indicator now.
-        this._attachIndicator(aBrowserWindow);
-      } else if (lazy.gGtkTaskbarProgress) {
-        this._taskbarProgress = lazy.gGtkTaskbarProgress;
+        this.#attachIndicator(aBrowserWindow);
+      } else if (
+        aForcedBackend == "linux" ||
+        (!aForcedBackend && gInterfaces.gtkTaskbarProgress)
+      ) {
+        this.#taskbarProgress = gInterfaces.gtkTaskbarProgress;
 
-        this._attachGtkTaskbarProgress(aBrowserWindow);
+        this.#attachGtkTaskbarProgress(aBrowserWindow);
       } else {
         // The taskbar indicator is not available on this platform.
         return;
@@ -103,96 +156,116 @@ export var DownloadsTaskbar = {
     }
 
     // Ensure that the DownloadSummary object will be created asynchronously.
-    if (!this._summary) {
-      lazy.Downloads.getSummary(lazy.Downloads.ALL)
-        .then(summary => {
-          // In case the method is re-entered, we simply ignore redundant
-          // invocations of the callback, instead of keeping separate state.
-          if (this._summary) {
-            return undefined;
-          }
-          this._summary = summary;
-          return this._summary.addView(this);
-        })
-        .catch(console.error);
+    if (!this.#summary) {
+      try {
+        let summary = await lazy.Downloads.getSummary(this.#filter);
+
+        if (!this.#summary) {
+          this.#summary = summary;
+          await this.#summary.addView(this);
+        }
+      } catch (e) {
+        console.error(e);
+      }
     }
-  },
+  }
 
   /**
    * On Windows, attaches the taskbar indicator to the specified browser window.
    */
-  _attachIndicator(aWindow) {
+  #attachIndicator(aWindow) {
     // Activate the indicator on the specified window.
     let { docShell } = aWindow.browsingContext.topChromeWindow;
-    this._taskbarProgress = lazy.gWinTaskbar.getTaskbarProgress(docShell);
+    this.#taskbarProgress = gInterfaces.winTaskbar.getTaskbarProgress(docShell);
 
     // If the DownloadSummary object has already been created, we should update
     // the state of the new indicator, otherwise it will be updated as soon as
     // the DownloadSummary view is registered.
-    if (this._summary) {
+    if (this.#summary) {
       this.onSummaryChanged();
     }
 
     aWindow.addEventListener("unload", () => {
       // Locate another browser window, excluding the one being closed.
-      let browserWindow = lazy.BrowserWindowTracker.getTopWindow();
+      let browserWindow = this.#determineProgressRepresentative();
       if (browserWindow) {
         // Move the progress indicator to the other browser window.
-        this._attachIndicator(browserWindow);
+        this.#attachIndicator(browserWindow);
       } else {
         // The last browser window has been closed.  We remove the reference to
         // the taskbar progress object so that the indicator will be registered
         // again on the next browser window that is opened.
-        this._taskbarProgress = null;
+        this.#taskbarProgress = null;
       }
     });
-  },
+  }
 
   /**
    * In gtk3, the window itself implements the progress interface.
    */
-  _attachGtkTaskbarProgress(aWindow) {
+  #attachGtkTaskbarProgress(aWindow) {
     // Set the current window.
-    this._taskbarProgress.setPrimaryWindow(aWindow);
+    this.#taskbarProgress.setPrimaryWindow(aWindow);
 
     // If the DownloadSummary object has already been created, we should update
     // the state of the new indicator, otherwise it will be updated as soon as
     // the DownloadSummary view is registered.
-    if (this._summary) {
+    if (this.#summary) {
       this.onSummaryChanged();
     }
 
     aWindow.addEventListener("unload", () => {
       // Locate another browser window, excluding the one being closed.
-      let browserWindow = lazy.BrowserWindowTracker.getTopWindow();
+      let browserWindow = this.#determineProgressRepresentative();
       if (browserWindow) {
         // Move the progress indicator to the other browser window.
-        this._attachGtkTaskbarProgress(browserWindow);
+        this.#attachGtkTaskbarProgress(browserWindow);
       } else {
         // The last browser window has been closed.  We remove the reference to
         // the taskbar progress object so that the indicator will be registered
         // again on the next browser window that is opened.
-        this._taskbarProgress = null;
+        this.#taskbarProgress = null;
       }
     });
-  },
+  }
+
+  /**
+   * Determines the next window to represent the downloads' progress.
+   */
+  #determineProgressRepresentative() {
+    if (this.#filter == lazy.Downloads.ALL) {
+      return lazy.BrowserWindowTracker.getTopWindow();
+    }
+
+    return lazy.BrowserWindowTracker.getTopWindow({
+      private: this.#filter == lazy.Downloads.PRIVATE,
+    });
+  }
+
+  reset() {
+    if (this.#summary) {
+      this.#summary.removeView(this);
+    }
+
+    this.#taskbarProgress = null;
+  }
 
   // DownloadSummary view
 
   onSummaryChanged() {
     // If the last browser window has been closed, we have no indicator any more.
-    if (!this._taskbarProgress) {
+    if (!this.#taskbarProgress) {
       return;
     }
 
-    if (this._summary.allHaveStopped || this._summary.progressTotalBytes == 0) {
-      this._taskbarProgress.setProgressState(
+    if (this.#summary.allHaveStopped || this.#summary.progressTotalBytes == 0) {
+      this.#taskbarProgress.setProgressState(
         Ci.nsITaskbarProgress.STATE_NO_PROGRESS,
         0,
         0
       );
-    } else if (this._summary.allUnknownSize) {
-      this._taskbarProgress.setProgressState(
+    } else if (this.#summary.allUnknownSize) {
+      this.#taskbarProgress.setProgressState(
         Ci.nsITaskbarProgress.STATE_INDETERMINATE,
         0,
         0
@@ -202,14 +275,65 @@ export var DownloadsTaskbar = {
       // report more transferred bytes than the total number of bytes.  Thus,
       // ensure that we never break the expectations of the progress indicator.
       let progressCurrentBytes = Math.min(
-        this._summary.progressTotalBytes,
-        this._summary.progressCurrentBytes
+        this.#summary.progressTotalBytes,
+        this.#summary.progressCurrentBytes
       );
-      this._taskbarProgress.setProgressState(
+      this.#taskbarProgress.setProgressState(
         Ci.nsITaskbarProgress.STATE_NORMAL,
         progressCurrentBytes,
-        this._summary.progressTotalBytes
+        this.#summary.progressTotalBytes
       );
     }
+  }
+}
+
+const gDownloadsTaskbarInstances = {};
+
+export var DownloadsTaskbar = {
+  async registerIndicator(aWindow, aForcedBackend) {
+    let filter = this._selectFilterForWindow(aWindow, aForcedBackend);
+    if (!(filter in gDownloadsTaskbarInstances)) {
+      gDownloadsTaskbarInstances[filter] = new DownloadsTaskbarInstance(filter);
+    }
+
+    await gDownloadsTaskbarInstances[filter].registerIndicator(
+      aWindow,
+      aForcedBackend
+    );
+  },
+
+  _selectFilterForWindow(aWindow, aForcedBackend) {
+    if (
+      aForcedBackend == "windows" ||
+      (!aForcedBackend && gInterfaces.winTaskbar)
+    ) {
+      // On Windows, the private and public windows are separated. Plus, the native code
+      // supports multiple taskbar progresses at a time. Therefore, have a separate
+      // instance for each.
+      return lazy.PrivateBrowsingUtils.isBrowserPrivate(aWindow)
+        ? lazy.Downloads.PRIVATE
+        : lazy.Downloads.PUBLIC;
+    }
+
+    // macOS has a single application icon for all Firefox windows, both private and
+    // public. As a result, the Downloads.ALL filter should always be used.
+    //
+    // On GTK, taskbar progress is indicated by the _NET_WM_XAPP_PROGRESS property for
+    // X11, with no Wayland equivalent. Since X11 panels are likely to not group
+    // applications, it'd be better to have separate progress bars; however, the native
+    // code only supports a single progress bar right now. As such, don't try to have
+    // multiple.
+    return lazy.Downloads.ALL;
+  },
+
+  resetBetweenTests() {
+    for (const key of Object.keys(gDownloadsTaskbarInstances)) {
+      gDownloadsTaskbarInstances[key].reset();
+      delete gDownloadsTaskbarInstances[key];
+    }
+
+    gInterfaces.macTaskbarProgress = null;
+    gInterfaces.winTaskbar = null;
+    gInterfaces.gtkTaskbarProgress = null;
   },
 };

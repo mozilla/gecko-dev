@@ -85,6 +85,13 @@ support-files = [
 
 ["browser_downloads_pauseResume.js"]
 
+["browser_downloads_taskbar_perapp.js"]
+
+["browser_downloads_taskbar_perwindow.js"]
+# This requires either nsIWinTaskbar or nsIGtkTaskbarProgress, neither
+# of which are available on non-Linux/Windows systems.
+skip-if = ["os != 'win' && os != 'linux'"]
+
 ["browser_first_download_panel.js"]
 
 ["browser_go_to_download_page.js"]
