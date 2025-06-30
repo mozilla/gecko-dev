@@ -946,7 +946,7 @@
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">Gerir transferências com outra aplicação</string>
   <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
-  <string name="preferences_downloads_settings_clean_up_files_title">Eliminar de %s e dispositivo</string>
+  <string name="preferences_downloads_settings_clean_up_files_title">Eliminar de %s e do dispositivo</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">Remover ficheiros do seu gestor de transferências também os remove do seu dispositivo</string>
   <!-- Preference for downloads -->
@@ -1284,7 +1284,7 @@
   <!-- Preference for using simple toolbar -->
   <string name="preference_simple_toolbar">Simples</string>
   <!-- Preference for using expanded toolbar -->
-  <string name="preference_expanded_toolbar">Expandido</string>
+  <string name="preference_expanded_toolbar">Expandida</string>
   <!--
     Theme Preferences
 
@@ -1662,7 +1662,7 @@
     Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
     %1$s is the current file size that has been downloaded.
   -->
-  <string name="download_item_in_progress_description_unknown_total_size">%1$s • hora desconhecida</string>
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • tempo desconhecido</string>
   <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1781,13 +1781,13 @@
   <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_requested_by_devs_dialog_title">Tem um relatório de falha não enviado relacionado com falhas sob investigação. O envio irá ajudar-nos a melhorar o %1$s. Fechar esta notificação irá ignorar este relatório.</string>
   <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
-  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Tem relatórios de falha não enviados (%1$d) relacionados com falhas em investigação. Enviá-los irá ajudar-nos a melhorar o %2$s. Fechar esta notificação irá ignorar estas denúncias.</string>
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Tem relatórios de falha não enviados (%1$d) relacionados com falhas em investigação. O respetivo envio irá ajudar-nos a melhorar o %2$s. Fechar esta notificação irá ignorar estes relatórios.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Enviar relatórios de falha automaticamente</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Fechar</string>
   <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
-  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Nunca mostrar</string>
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Não mostrar novamente</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Enviar relatório de falha</string>
   <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
@@ -2658,7 +2658,7 @@
   <!-- Edit text for the login detail menu edit button -->
   <string name="login_detail_menu_edit_button">Editar</string>
   <!-- Delete text for the login detail menu delete button -->
-  <string name="login_detail_menu_delete_button">Apagar</string>
+  <string name="login_detail_menu_delete_button">Eliminar</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Abrir site no navegador</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

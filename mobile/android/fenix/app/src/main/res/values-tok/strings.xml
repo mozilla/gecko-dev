@@ -200,7 +200,7 @@
   <!-- Browser menu button that opens a user's library -->
   <string name="browser_menu_library">kulupu lipu</string>
   <!-- Browser menu toggle that requests a desktop site -->
-  <string name="browser_menu_desktop_site">nasin lukin pi ilo suli</string>
+  <string name="browser_menu_desktop_site">nasin lukin</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_regular_tab">o pana tawa poki</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
@@ -292,6 +292,8 @@
   <string name="browser_menu_save" moz:removedIn="141" tools:ignore="UnusedResources">o awen e ni</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">o awen e lipu ni</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">o awen e lipu</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">o ante e lipu awen</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -334,7 +336,7 @@
   -->
   <string name="browser_menu_default_banner_title">o open e lipu ale kepeken ilo %1$s</string>
   <!-- Label text within the set as default banner -->
-  <string name="browser_menu_default_banner_subtitle">ni li wile e tenpo lili. sina ken ante e ni lon wile.</string>
+  <string name="browser_menu_default_banner_subtitle">ni li wile e tenpo lili taso. sina ken ante e ni lon wile.</string>
   <!--
     Extensions management fragment
 
@@ -1133,6 +1135,8 @@
   <string name="quick_setting_option_autoplay_block_audio">o ken ala e kalama taso</string>
   <!-- Label for global setting that indicates that all video and audio autoplay is blocked -->
   <string name="preference_option_autoplay_blocked3">o ken ala e kalama e sitelen</string>
+  <!-- Label for site specific setting that indicates that all video and audio autoplay is blocked -->
+  <string name="quick_setting_option_autoplay_blocked">o ken ala e kalama e sitelen</string>
   <!-- Summary of delete browsing data on quit preference if it is set to on -->
   <string name="delete_browsing_data_quit_on">ken</string>
   <!-- Summary of delete browsing data on quit preference if it is set to off -->
@@ -1141,8 +1145,10 @@
   <string name="studies_on">ken</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">ken ala</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">suli</string>
   <!-- Toggle if desktop site is turned off -->
-  <string name="browser_feature_desktop_site_off">ala</string>
+  <string name="browser_feature_desktop_site_off">lili</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">nasin ken</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -1494,6 +1500,10 @@
   <string name="search_engine_add_custom_search_engine_button_content_description">o pana e ilo alasa sin</string>
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. o lukin e nasin ilo lon ilo Android</string>
+  <!-- Label that indicates a site is using a secure connection -->
+  <string name="quick_settings_sheet_secure_connection_2">linja toki li len</string>
+  <!-- Label that indicates a site is using a insecure connection -->
+  <string name="quick_settings_sheet_insecure_connection_2">linja toki li len ala</string>
   <!-- Error text displayed underneath the password field when it is in an error case. -->
   <string name="saved_login_password_required_2">o pana e nimi open</string>
   <!-- The error message in add login view when username field is blank. -->
@@ -1552,6 +1562,8 @@
   <string name="translations_bottom_sheet_title_translation_completed">toki lipu la %1$s li kama %2$s</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
   <string name="translations_bottom_sheet_translate_from">toki tan</string>
+  <!-- Description text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_description">linja toki li len ala.</string>
   <!-- TextField Design System Component -->
 
   <!--

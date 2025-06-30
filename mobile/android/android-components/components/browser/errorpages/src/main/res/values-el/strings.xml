@@ -3,9 +3,9 @@
   <!-- The button that appears at the bottom of an error page. -->
   <string name="mozac_browser_errorpages_page_refresh">Δοκιμή ξανά</string>
   <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_title">Αδυναμία ολοκλήρωσης αιτήματος</string>
+  <string name="mozac_browser_errorpages_generic_title">Δεν είναι δυνατή η ολοκλήρωση του αιτήματος</string>
   <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>Αυτή τη στιγμή, δεν διατίθενται επιπρόσθετες πληροφορίες σχετικά με αυτό το πρόβλημα ή σφάλμα.</p>]]></string>
+  <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>Δεν υπάρχουν προς το παρόν επιπρόσθετες πληροφορίες σχετικά με αυτό το πρόβλημα ή σφάλμα.</p>]]></string>
   <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
   <string name="mozac_browser_errorpages_security_ssl_title">Αποτυχία ασφαλούς σύνδεσης</string>
   <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
@@ -41,7 +41,7 @@
   <!-- The error message shown when a website took long to load. -->
   <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[<p>Η ζητούμενη ιστοσελίδα δεν αποκρίθηκε στο αίτημα σύνδεσης και το πρόγραμμα περιήγησης σταμάτησε να περιμένει απάντηση.</p> <ul> <li>Μήπως ο διακομιστής αντιμετωπίζει υψηλή ζήτηση ή προσωρινή διακοπή λειτουργίας; Δοκιμάστε ξανά αργότερα.</li> <li>Δεν μπορείτε να περιηγηθείτε σε άλλες ιστοσελίδες; Ελέγξτε τη σύνδεση δικτύου της συσκευής σας.</li> <li>Προστατεύεται η συσκευή ή το δίκτυό σας από τείχος προστασίας ή διακομιστή μεσολάβησης; Οι εσφαλμένες ρυθμίσεις μπορούν να επηρεάσουν την περιήγηση.</li> <li>Έχετε ακόμη πρόβλημα; Συμβουλευτείτε τον διαχειριστή του δικτύου ή τον πάροχό σας για βοήθεια.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website could not be reached. -->
-  <string name="mozac_browser_errorpages_connection_failure_title">Αδυναμία σύνδεσης</string>
+  <string name="mozac_browser_errorpages_connection_failure_title">Δεν είναι δυνατή η σύνδεση</string>
   <!-- The error message shown when a website could not be reached. -->
   <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[<ul> <li>Η σελίδα ενδέχεται να είναι προσωρινά μη διαθέσιμη ή πολύ απασχολημένη. Δοκιμάστε ξανά σε λίγο.</li> <li>Αν δεν μπορείτε να φορτώσετε καμία σελίδα, ελέγξτε τη σύνδεση δεδομένων ή Wi-Fi σας.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
@@ -55,7 +55,7 @@
   <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
   <string name="mozac_browser_errorpages_offline_title">Λειτουργία εκτός σύνδεσης</string>
   <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
-  <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>Το πρόγραμμα περιήγησης είναι σε λειτουργεία εκτός σύνδεσης και δεν μπορεί να συνδεθεί στο ζητούμενο στοιχείο.</p> <ul> <li>Είναι συνδεδεμένη η συσκευή σε ενεργό δίκτυο;</li> <li>Πατήστε “Δοκιμή ξανά” για σύνδεση στο διαδίκτυο και ανανέωση της σελίδας.</li> </ul>]]></string>
+  <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>Το πρόγραμμα περιήγησης είναι σε λειτουργία εκτός σύνδεσης και δεν μπορεί να συνδεθεί στο ζητούμενο στοιχείο.</p> <ul> <li>Είναι συνδεδεμένη η συσκευή σε ενεργό δίκτυο;</li> <li>Πατήστε «Δοκιμή ξανά» για σύνδεση στο διαδίκτυο και ανανέωση της σελίδας.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
   <string name="mozac_browser_errorpages_port_blocked_title">Περιορισμός θύρας για λόγους ασφαλείας</string>
   <!-- The error message shown when the browser prevents loading a website on a restricted port. -->

@@ -109,6 +109,12 @@
   <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Air làrach-lìn, crìonaidh am bàr seo air falbh is tu a’ sgroladh sìos airson ’s gum bi barrachd àite agad.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Thoir gnogag air na saighdean is cùm iad airson leum a ghearradh eadar duilleagan eachdraidh an taba seo.</string>
+  <!--
+    Address bar swipe "contextual feature recommendation" (CFR)
+
+    Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar.
+  -->
+  <string name="address_bar_swipe_cfr_message_2">Dèan grad-shlaighdeadh air a’ bhàr-inneal airson leum gu taba eile.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Tha feum air inntrigeadh dhan chamara. Tadhail air roghainnean Android, thoir gnogag air na ceadan is an uairsin air “Ceadaich”.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -216,6 +222,10 @@
   <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Barrachd fiosrachaidh</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Stiùirich na leudachain</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Barrachd</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Nas lugha</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Leudachain a mholamaid</string>
   <!--
@@ -229,6 +239,8 @@
   <string name="browser_menu_extensions_disabled_description">À comas an-dràsta fhèin</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Chan eil leudachan sam bith an comas</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Feuch leudachan a mholamaid</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Fiosrachadh mun chunntas</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -245,8 +257,12 @@
   <string name="browser_menu_open_in_regular_tab">Fosgail ann an taba àbhaisteach</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">Cuir ris an sgrìn mhòr</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen">Cuir an aplacaid ris an sgrìn mhòr</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Cuir ris an sgrìn-dhachaigh…</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen_2" moz:removedIn="141" tools:ignore="UnusedResources">Cuir an aplacaid ris an sgrìn mhòr…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
   <string name="browser_menu_add_to_homescreen_xiaomi">Dh’fhaoidte gum feum uidheaman Xiaomi ceadan a bharrachd mus urrainn dhut ath-ghoiridean a chur ris an sgrìn-dhachaigh. Thoir sùil air na roghainnean.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
@@ -300,6 +316,10 @@
   <string name="browser_menu_sign_in">Clàraich a-steach</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">Sioncronaich faclan-faire, tabaichean is mòran a bharrachd</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">Sioncronaich comharran-lìn, faclan-faire, tabaichean is mòran a bharrachd</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">Sioncronaich faclan-faire, comharran-lìn is mòran a bharrachd</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">Clàraich a-steach a-rithist a dhèanamh sioncronachadh</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -323,6 +343,10 @@
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Air ais gun phrìomh-chlàr-taice</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
   <string name="browser_main_menu_handlebar_content_description">An siota airson am prìomh-chlàr-taice a dhùnadh</string>
+  <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
+  <string name="browser_main_menu_content_description_help_button">Cobhair</string>
+  <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
+  <string name="browser_main_menu_content_description_settings_button">Roghainnean</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
   <string name="browser_extensions_menu_handlebar_content_description">An siota airson clàr-taice nan leudachan a dhùnadh</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -331,6 +355,14 @@
   <string name="browser_tools_menu_handlebar_content_description">An siota airson clàr-taice nan innealan a dhùnadh</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">An siota airson clàr-taice nan tabaichean gnàthaichte a dhùnadh</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Sealladh an leughadair, eadar-theangaich, dèan aithris air làrach bhriste, clò-bhuail, co-roinn, fosgail aplacaid</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_with_translate_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Sealladh an leughadair, clò-bhuail, co-roinn, fosgail aplacaid</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2" moz:removedIn="141" tools:ignore="UnusedResources">Sealladh an leughadair, \u0020dèan aithris air làrach bhriste, clò-bhuail, co-roinn, fosgail aplacaid</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_without_report_site" moz:removedIn="141" tools:ignore="UnusedResources">Sealladh an leughadair, clò-bhuail, co-roinn, fosgail aplacaid</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
@@ -340,28 +372,53 @@
   <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">Cuir comharra-lìn ris, ath-ghoirid, dhachaigh, cruinneachadh, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Dèan comharra-lìn dhen duilleag seo</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Dèan comharra-lìn dhen duilleag</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Deasaich an comharra-lìn</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">Sàbhail mar PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">Sàbhail mar PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Cuir an sealladh leughaidh air</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
   <string name="browser_menu_turn_off_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">Cuir an sealladh leughaidh dheth</string>
+  <!-- Browser menu button that reopens a private tab as a regular tab -->
+  <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">Gluais gu taba neo-phrìobhaideach</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">Eadar-theangaich an duilleag…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">Eadar-theangaich an duilleag</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter">Dèan aithris air làrach bhriste…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">Dèan aithris air làrach bhriste</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">Chaidh %1$s a chur air</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Air eadar-theangachadh</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Clò-bhuail…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Clò-bhuail</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Fàg %1$s</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">Cleachd %1$s mar am brabhsair bunaiteach agad</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">Cha toir e ach diog. Atharraich e uair sam bith.</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">Leig seachad</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -436,6 +493,12 @@
     %s is the search engine name (for example: DuckDuckGo).
   -->
   <string name="search_engine_icon_content_description_1">An t-einnsean-luirg: %s</string>
+  <!--
+    Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    %s is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
+  -->
+  <string name="search_engine_selector_content_description">%s: ròghnaichear an einnsein-luirg</string>
   <!--
     Home onboarding
 
@@ -556,10 +619,46 @@
   <string name="onboarding_add_on_reviews_label" moz:removedIn="140" tools:ignore="UnusedResources">Lèirmheasan: %1$s</string>
   <!-- Content description for the add-on icon. -->
   <string name="onboarding_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Ìomhaigheag an tuilleadain</string>
+  <!-- Content description for the an installed add-on icon. -->
+  <string name="onboarding_installed_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Tuilleadan a chaidh a stàladh</string>
+  <!-- Content description for the an installing add-on icon. -->
+  <string name="onboarding_installing_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">A’ stàladh an tuilleadain</string>
   <!-- Content description for the add add-on button. -->
   <string name="onboarding_add_on_add_button_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Am putan airson tuilleadan a chur ris</string>
   <!-- Content description for the star rating group. %1$s is the rating. -->
   <string name="onboarding_add_on_star_rating_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Rangaichte %1$s à 5</string>
+  <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Cuidich leinn a’ dèanamh Firefox nas fheàrr</string>
+  <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_title">Cuir aithisgean tuislidh gu fèin-obrachail</string>
+  <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Ma chuireas tu aithisgean tuislidh thugainn, bidh e nas fhasa dhuinn diagnosachd a dhèanamh air duilgheasan sa bhrabhsair is an cur ceart. Dh’fhaoidte gum bi dàta pearsanta no dìomhair sna h-aithisgean seo.</string>
+  <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Barrachd fiosrachaidh</string>
+  <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_usage_data_title">Cuir dàta teicnigeach is dàta mun eadar-ghabhail gu Mozilla</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">Ma bheir thu dhuin dàta mun uidheam agad, mun bhathar-chruaidh is mar a chleachdas tu Firefox, bheir sin comas dhuinn piseach a thoirt air gleusan, dèanadas is seasmhachd dhan a h-uile duine.</string>
+  <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Barrachd fiosrachaidh</string>
+  <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_positive_button">Deiseil</string>
+  <!-- Terms of service onboarding title card label. 'Firefox' intentionally hardcoded here -->
+  <string name="onboarding_welcome_to_firefox" tools:ignore="BrandUsage">Fàilte gu Firefox</string>
+  <!-- Terms of service sub header label. -->
+  <string name="onboarding_terms_of_service_sub_header_2">Brabhsadh-lìn luath ’s tèarainte</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Thoir aonta is lean air adhart</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Lean air adhart</string>
+  <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
+  <string name="onboarding_term_of_service_line_one_2">Ma leanas tu air adhart, bidh tu ag aontachadh ri %1$s.</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
+  <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">Teirmichean a’ chleachdaidh aig Firefox</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+  <string name="onboarding_term_of_service_line_two_link_text">Sanas prìobhaideachd</string>
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Airson piseach a thoirt air a’ bhrabhsair, cuiridh Firefox dàta diagnosachd is dàta eadar-ghabhalach gu Mozilla. %1$s</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
+  <string name="onboarding_term_of_service_line_three_link_text">Stiùirich</string>
   <!--
     Search Widget
 
@@ -751,6 +850,12 @@
   <string name="preferences_show_nonsponsored_suggestions">Molaidhean o %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Faigh molaidhean on lìon co-cheangailte ris na lorg thu</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">Thoir cuireadh dha do charaidean gu brabhsadh nas luaithe ’s nas tèarainte le %1$s gach turas a cho-roinneas tu ceangal air WhatsApp.</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">Chaidh an ceangal a cho-roinneadh</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">Stiùirich na roghainnean</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">Fosgail ceanglaichean ann an aplacaidean</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -761,6 +866,14 @@
   <string name="preferences_open_links_in_apps_never">Chan ann idir</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Manaidsear nan luchdadh a-nuas on taobh a-muigh</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Stiùirich na luchdaidhean a-nuas le aplacaid eile</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Sguabh à %s agus às an uidheam</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Ma bheir thu air falbh faidhle o mhanaidsear nan luchdadh a-nuas, bheir thu air falbh on uidheam agad e cuideachd</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Luchdaidhean a-nuas</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Cuir an comas logaichean Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -789,6 +902,20 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">Ma tha earbsa agad san leudachan seo, ’s urrainn dhut a cheadachadh air gach làrach-lìn.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">Chan eil an leudachan seo feumach air cead sam bith.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Tha an luchd-leasachaidh ag ràdh gun cruinnich na leudachan seo na leanas: %1$s.</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">Tha an luchd-leasachaidh ag ràdh gun cruinnich na leudachan seo na leanas: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">Tha an luchd-leasachaidh ag ràdh nach cruinnich an leudachadh seo dàta.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">Ceadan riatanach:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">Ceadan roghainneil:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">Cruinneachadh dàta riatanaich:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">Cruinneachadh dàta roghainneil:</string>
   <!--
     Add-on Preferences
 
@@ -820,6 +947,8 @@
   <string name="customize_toggle_recently_visited">Air tadhal orra o chionn goirid</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Sgeulachdan smuainteachail</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">Sgeulachdan</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Artaigealan le cumhachd %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -860,6 +989,56 @@
   <string name="wallpapers_onboarding_dialog_body_text">Tagh pàipear-balla a tha a’ còrdadh riut-sa.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Rùraich pàipearan-balla eile</string>
+  <!--
+    Icon picker
+
+    Title for the "Default" alternative app icon variant in the icon picker screen.
+  -->
+  <string name="alternative_app_icon_option_default">Bun-roghainn</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">Soilleir</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">Dorcha</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">Dearg</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">Uaine</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">Gorm</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">Purpaidh</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">Dorch-phurpaidh</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">Èirigh na grèine</string>
+  <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
+  <string name="alternative_app_icon_option_gradient_golden_hour">Uair an òir</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">Laighe na grèine</string>
+  <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
+  <string name="alternative_app_icon_option_gradient_blue_hour">An uair ghorm</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">Camhanaich</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">Meadhan-oidhche</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">Na Fir Chlis</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">Retro 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Retro 2017</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">Piogsailichte</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">Minimeileach</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">Pròis</string>
+  <!-- Title for the "Cute" themed alternative app icon variant in the icon picker screen. The app icon features a playful design with an adorable aesthetic. -->
+  <string name="alternative_app_icon_option_cute">Stampail</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Air a chruthachadh le @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -966,6 +1145,20 @@
   <string name="exceptions_empty_message_description">Bheir eisgeachdan comas dhut an dìon o thracadh a chur à comas air làraichean àraidh.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Barrachd fiosrachaidh</string>
+  <!-- Preference switch for usage and technical learn more link -->
+  <string name="preference_usage_data_learn_more">Barrachd fiosrachaidh</string>
+  <!-- Learn more link for marketing data preference -->
+  <string name="preferences_marketing_data_learn_more">Barrachd fiosrachaidh mun dàta mhargaideachd</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping a’ chleachdaidh làitheil</string>
+  <string name="preferences_daily_usage_ping_description">Air an dòigh seo, is urrainn dha Mozilla tuairmse a dhèanamh air co mheud neach-cleachdaidh gnìomhach a th’ ann.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Barrachd fiosrachaidh mu phing a’ chleachdaidh làitheil</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Cuir aithisgean tuislidh gu fèin-obrachail</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Bidh e nas fhasa dhuinn mar seo diagnosachd a dhèanamh air duilgheasan sa bhrabhsair is an cur ceart. Dh’fhaoidte gum bi dàta pearsanta no dìomhair sna h-aithisgean seo.</string>
+  <!-- Learn more link for crash reporting preference -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Barrachd fiosrachaidh mu na h-aithisgean tuislidh</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Rannsachadh</string>
   <!-- Summary for studies preferences -->
