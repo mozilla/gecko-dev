@@ -2546,6 +2546,22 @@ generated_password_dialog:
       tags:
         - Logins
 metrics:
+  client_association:
+    type: string
+    description: |
+      The Mozilla Account UID associated with the user.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1970661
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1970661
+    data_sensitivity:
+      - highly_sensitive
+    notification_emails:
+      - fmasalha@mozilla.com
+      - mtighe@mozilla.com
+    expires: never
+    send_in_pings:
+      - fx-accounts
   default_browser:
     type: boolean
     lifetime: application
