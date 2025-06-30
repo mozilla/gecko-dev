@@ -23,7 +23,6 @@ interface nsINotificationStorageEntry : nsISupports {
   readonly attribute boolean silent;
   readonly attribute AString dataSerialized;
   readonly attribute Array<nsINotificationActionStorageEntry> actions;
-  readonly attribute AString serviceWorkerRegistrationScope;
 };
 
 [scriptable, function, uuid(c1622232-259c-43b0-b52e-89c39dcd9796)]
@@ -72,14 +71,6 @@ interface nsINotificationStorage : nsISupports
            in AString scope,
            in AString tag,
            in nsINotificationStorageCallback aCallback);
-
-  /**
-   * Retrieve a notification by ID.
-   *
-   * @param origin: the origin/app for which to fetch notifications from
-   * @param tag: used to fetch only a specific tag
-   */
-  Promise getById(in AUTF8String origin, in AString id);
 
   /**
    * Remove a notification from storage.

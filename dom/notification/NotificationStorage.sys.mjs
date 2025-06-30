@@ -11,12 +11,8 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
   });
 });
 
-// TODO(krosylight): We should remove this pingpong with NotificationDB
-// See also bug 1937194.
 const kMessageGetAllOk = "GetAll:Return:OK";
 const kMessageGetAllKo = "GetAll:Return:KO";
-const kMessageGetOk = "Get:Return:OK";
-const kMessageGetKo = "Get:Return:KO";
 const kMessageSaveKo = "Save:Return:KO";
 const kMessageDeleteKo = "Delete:Return:KO";
 
@@ -53,8 +49,6 @@ export class NotificationStorage {
     return [
       this.formatMessageType(kMessageGetAllOk),
       this.formatMessageType(kMessageGetAllKo),
-      this.formatMessageType(kMessageGetOk),
-      this.formatMessageType(kMessageGetKo),
       this.formatMessageType(kMessageSaveKo),
       this.formatMessageType(kMessageDeleteKo),
     ];
@@ -107,18 +101,6 @@ export class NotificationStorage {
     this.#fetchFromDB(origin, scope, tag, callback);
   }
 
-  /**
-   * @param {string} origin The site origin
-   * @param {string} id The notification ID
-   */
-  async getById(origin, id) {
-    lazy.console.debug(`GETBYID: ${origin} ${id}`);
-
-    const { promise, resolve } = Promise.withResolvers();
-    this.#fetchById(origin, id, resolve);
-    return promise;
-  }
-
   delete(origin, id) {
     lazy.console.debug(`DELETE: ${id}`);
     Services.cpmm.sendAsyncMessage(this.formatMessageType("Delete"), {
@@ -151,12 +133,6 @@ export class NotificationStorage {
           lazy.console.debug(`Error calling callback done: ${e}`);
         }
         break;
-      case this.formatMessageType(kMessageGetOk):
-        delete this.#requests[message.data.requestID];
-        request.callback(message.data.notification);
-        break;
-
-      case this.formatMessageType(kMessageGetKo):
       case this.formatMessageType(kMessageSaveKo):
       case this.formatMessageType(kMessageDeleteKo):
         lazy.console.debug(
@@ -190,21 +166,6 @@ export class NotificationStorage {
       origin,
       scope,
       tag,
-      requestID,
-    });
-  }
-
-  #fetchById(origin, id, callback) {
-    var request = {
-      origin,
-      id,
-      callback,
-    };
-    var requestID = this.#getUniqueRequestID();
-    this.#requests[requestID] = request;
-    Services.cpmm.sendAsyncMessage(this.formatMessageType("Get"), {
-      origin,
-      id,
       requestID,
     });
   }
