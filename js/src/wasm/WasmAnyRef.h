@@ -253,7 +253,7 @@ class AnyRef {
     if (!mozilla::NumberIsInt32(value, &intValue)) {
       return true;
     }
-    return int32NeedsBoxing(value);
+    return int32NeedsBoxing(intValue);
   }
 
   // Returns whether a JS value will need to be boxed.
