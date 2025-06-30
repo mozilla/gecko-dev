@@ -457,11 +457,18 @@ void nsAtomSubTable::GCLocked(GCKind aKind) {
   nsDynamicAtom::gUnusedAtomCount -= removedCount;
 }
 
-void nsDynamicAtom::GCAtomTable() {
+void nsDynamicAtom::ScheduleAtomTableGC() {
   MOZ_ASSERT(gAtomTable);
-  if (NS_IsMainThread()) {
-    gAtomTable->GC(GCKind::RegularOperation);
+  static Atomic<bool, Relaxed> sScheduled;
+  if (sScheduled.exchange(true)) {
+    return;
   }
+  NS_DispatchToMainThread(NS_NewRunnableFunction("nsAtomTable::GC", []() {
+    sScheduled = false;
+    if (MOZ_LIKELY(gAtomTable)) {
+      gAtomTable->GC(GCKind::RegularOperation);
+    }
+  }));
 }
 
 //----------------------------------------------------------------------
