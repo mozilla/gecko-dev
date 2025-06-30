@@ -757,6 +757,12 @@ impl<Impl: selectors::parser::SelectorImpl> MallocSizeOf
     }
 }
 
+impl MallocSizeOf for selectors::parser::AnPlusB {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        0
+    }
+}
+
 impl MallocSizeOf for Void {
     #[inline]
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {

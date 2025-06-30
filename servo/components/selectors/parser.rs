@@ -1639,6 +1639,49 @@ impl NthType {
     }
 }
 
+/// The properties that comprise an An+B syntax
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
+#[cfg_attr(feature = "to_shmem", shmem(no_bounds))]
+pub struct AnPlusB(pub i32, pub i32);
+
+impl AnPlusB {
+    #[inline]
+    pub fn matches_index(&self, i: i32) -> bool {
+        // Is there a non-negative integer n such that An+B=i?
+        match i.checked_sub(self.1) {
+            None => false,
+            Some(an) => match an.checked_div(self.0) {
+                Some(n) => n >= 0 && self.0 * n == an,
+                None /* a == 0 */ => an == 0,
+            },
+        }
+    }
+}
+
+impl ToCss for AnPlusB {
+    /// Serialize <an+b> (part of the CSS Syntax spec).
+    /// <https://drafts.csswg.org/css-syntax-3/#serialize-an-anb-value>
+    #[inline]
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        match (self.0, self.1) {
+            (0, 0) => dest.write_char('0'),
+
+            (1, 0) => dest.write_char('n'),
+            (-1, 0) => dest.write_str("-n"),
+            (_, 0) => write!(dest, "{}n", self.0),
+
+            (0, _) => write!(dest, "{}", self.1),
+            (1, _) => write!(dest, "n{:+}", self.1),
+            (-1, _) => write!(dest, "-n{:+}", self.1),
+            (_, _) => write!(dest, "{}n{:+}", self.0, self.1),
+        }
+    }
+}
+
 /// The properties that comprise an :nth- pseudoclass as of Selectors 3 (e.g.,
 /// nth-child(An+B)).
 /// https://www.w3.org/TR/selectors-3/#nth-child-pseudo
@@ -1648,8 +1691,7 @@ impl NthType {
 pub struct NthSelectorData {
     pub ty: NthType,
     pub is_function: bool,
-    pub a: i32,
-    pub b: i32,
+    pub an_plus_b: AnPlusB
 }
 
 impl NthSelectorData {
@@ -1663,8 +1705,7 @@ impl NthSelectorData {
                 NthType::OnlyChild
             },
             is_function: false,
-            a: 0,
-            b: 1,
+            an_plus_b: AnPlusB(0, 1),
         }
     }
 
@@ -1678,8 +1719,7 @@ impl NthSelectorData {
                 NthType::Child
             },
             is_function: false,
-            a: 0,
-            b: 1,
+            an_plus_b: AnPlusB(0, 1),
         }
     }
 
@@ -1693,15 +1733,14 @@ impl NthSelectorData {
                 NthType::LastChild
             },
             is_function: false,
-            a: 0,
-            b: 1,
+            an_plus_b: AnPlusB(0, 1),
         }
     }
 
     /// Returns true if this is an edge selector that is not `:*-of-type``
     #[inline]
     pub fn is_simple_edge(&self) -> bool {
-        self.a == 0 && self.b == 1 && !self.ty.is_of_type() && !self.ty.is_only()
+        self.an_plus_b.0 == 0 && self.an_plus_b.1 == 1 && !self.ty.is_of_type() && !self.ty.is_only()
     }
 
     /// Writes the beginning of the selector.
@@ -1721,22 +1760,9 @@ impl NthSelectorData {
         })
     }
 
-    /// Serialize <an+b> (part of the CSS Syntax spec, but currently only used here).
-    /// <https://drafts.csswg.org/css-syntax-3/#serialize-an-anb-value>
     #[inline]
     fn write_affine<W: fmt::Write>(&self, dest: &mut W) -> fmt::Result {
-        match (self.a, self.b) {
-            (0, 0) => dest.write_char('0'),
-
-            (1, 0) => dest.write_char('n'),
-            (-1, 0) => dest.write_str("-n"),
-            (_, 0) => write!(dest, "{}n", self.a),
-
-            (0, _) => write!(dest, "{}", self.b),
-            (1, _) => write!(dest, "n{:+}", self.b),
-            (-1, _) => write!(dest, "-n{:+}", self.b),
-            (_, _) => write!(dest, "{}n{:+}", self.a, self.b),
-        }
+        self.an_plus_b.to_css(dest)
     }
 }
 
@@ -3407,8 +3433,7 @@ where
     let nth_data = NthSelectorData {
         ty,
         is_function: true,
-        a,
-        b,
+        an_plus_b: AnPlusB(a, b),
     };
     if !parser.parse_nth_child_of() || ty.is_of_type() {
         return Ok(Component::Nth(nth_data));

@@ -1359,7 +1359,7 @@ where
         };
     }
 
-    let NthSelectorData { ty, a, b, .. } = *nth_data;
+    let NthSelectorData { ty, an_plus_b, .. } = *nth_data;
     let is_of_type = ty.is_of_type();
     if ty.is_only() {
         debug_assert!(
@@ -1459,15 +1459,7 @@ where
         "invalid cache"
     );
 
-    // Is there a non-negative integer n such that An+B=index?
-    match index.checked_sub(b) {
-        None => false,
-        Some(an) => match an.checked_div(a) {
-            Some(n) => n >= 0 && a * n == an,
-            None /* a == 0 */ => an == 0,
-        },
-    }
-    .into()
+    an_plus_b.matches_index(index).into()
 }
 
 #[inline]
