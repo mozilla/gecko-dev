@@ -452,7 +452,7 @@ script.preloader:
     notification_emails:
       - dothayer@mozilla.com
       - plawless@mozilla.com
-    expires: "100"
+    expires: 100
 ```
 
 **GIFFT:** This type of collection is mirrorable back to Firefox Telemetry via the
