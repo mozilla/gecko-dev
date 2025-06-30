@@ -44,12 +44,22 @@ export function ModuleLoader(base, depth, proto) {
       exported_symbols: module.exported_symbols,
     };
 
-    // Create a new object in this sandbox, that will be used as the scope
+    // Create a new object in this sandbox, that will be used as the "scope"
     // object for this particular module.
-    const sandbox = sharedGlobalSandbox.Object();
-    Object.assign(sandbox, properties);
+    const pseudoSandbox = SpecialPowers.Cu.createObjectIn(sharedGlobalSandbox, {
+      defineAs: "tempGlobalScope",
+    });
+    Object.assign(pseudoSandbox, properties);
 
-    SpecialPowers.Services.scriptloader.loadSubScript(url.href, sandbox);
+    const request = new XMLHttpRequest();
+    request.open("GET", url, false); // `false` makes the request synchronous
+    request.send(null);
+    const code = request.responseText;
+
+    SpecialPowers.Cu.evalInSandbox(
+      `with (tempGlobalScope) { ${code} }`,
+      sharedGlobalSandbox
+    );
 
     return module.exported_symbols;
   };
