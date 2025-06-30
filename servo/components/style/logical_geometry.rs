@@ -107,6 +107,23 @@ bitflags!(
         ///
         /// Never set without VERTICAL.
         const UPRIGHT = 1 << 7;
+        /// Writing mode combinations that can be specified in CSS.
+        ///
+        /// * writing-mode: horizontal-tb;
+        const WRITING_MODE_HORIZONTAL_TB = 0;
+        /// * writing-mode: vertical_rl;
+        const WRITING_MODE_VERTICAL_RL = WritingMode::VERTICAL.bits();
+        /// * writing-mode: vertcail-lr;
+        const WRITING_MODE_VERTICAL_LR = WritingMode::VERTICAL.bits() |
+                                         WritingMode::VERTICAL_LR.bits() |
+                                         WritingMode::LINE_INVERTED.bits();
+        /// * writing-mode: sideways-rl;
+        const WRITING_MODE_SIDEWAYS_RL = WritingMode::VERTICAL.bits() |
+                                         WritingMode::VERTICAL_SIDEWAYS.bits();
+        /// * writing-mode: sideways-lr;
+        const WRITING_MODE_SIDEWAYS_LR = WritingMode::VERTICAL.bits() |
+                                         WritingMode::VERTICAL_LR.bits() |
+                                         WritingMode::VERTICAL_SIDEWAYS.bits();
     }
 );
 
@@ -134,32 +151,27 @@ impl WritingMode {
                 }
             },
             WritingModeProperty::VerticalRl => {
-                flags.insert(WritingMode::VERTICAL);
+                flags.insert(WritingMode::WRITING_MODE_VERTICAL_RL);
                 if direction == Direction::Rtl {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
             },
             WritingModeProperty::VerticalLr => {
-                flags.insert(WritingMode::VERTICAL);
-                flags.insert(WritingMode::VERTICAL_LR);
-                flags.insert(WritingMode::LINE_INVERTED);
+                flags.insert(WritingMode::WRITING_MODE_VERTICAL_LR);
                 if direction == Direction::Rtl {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
             },
             #[cfg(feature = "gecko")]
             WritingModeProperty::SidewaysRl => {
-                flags.insert(WritingMode::VERTICAL);
-                flags.insert(WritingMode::VERTICAL_SIDEWAYS);
+                flags.insert(WritingMode::WRITING_MODE_SIDEWAYS_RL);
                 if direction == Direction::Rtl {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
             },
             #[cfg(feature = "gecko")]
             WritingModeProperty::SidewaysLr => {
-                flags.insert(WritingMode::VERTICAL);
-                flags.insert(WritingMode::VERTICAL_LR);
-                flags.insert(WritingMode::VERTICAL_SIDEWAYS);
+                flags.insert(WritingMode::WRITING_MODE_SIDEWAYS_LR);
                 if direction == Direction::Ltr {
                     flags.insert(WritingMode::INLINE_REVERSED);
                 }
