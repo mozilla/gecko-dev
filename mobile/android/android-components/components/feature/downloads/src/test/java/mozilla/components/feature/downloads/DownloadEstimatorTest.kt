@@ -4,9 +4,10 @@
 
 package mozilla.components.feature.downloads
 
-import junit.framework.TestCase.assertEquals
-import junit.framework.TestCase.assertNull
 import mozilla.components.feature.downloads.fake.FakeDateTimeProvider
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class DownloadEstimatorTest {
@@ -107,5 +108,55 @@ class DownloadEstimatorTest {
 
         val actual = downloadEstimator.estimatedRemainingTime(bytesDownloaded = 100)
         assertNull(actual)
+    }
+
+    @Test
+    fun `GIVEN the download speed is very slow, meaning the elapsed download time is really large and the bytes downloaded is very small, WHEN calculating the time remaining THEN the estimated time remaining can be calculated`() {
+        val downloadEstimator = DownloadEstimator(
+            totalBytes = 2,
+            dateTimeProvider = FakeDateTimeProvider(
+                startTime = 0,
+                currentTime = Long.MAX_VALUE
+            ),
+        )
+
+        val actual = downloadEstimator.estimatedRemainingTime(
+            bytesDownloaded = 1,
+        )
+
+        assertNotNull(actual)
+    }
+
+    @Test
+    fun `GIVEN the download speed is very fast, meaning the elapsed download time is really small and the bytes downloaded is very large, WHEN calculating the time remaining THEN the estimated time remaining can be calculated`() {
+        val downloadEstimator = DownloadEstimator(
+            totalBytes = Long.MAX_VALUE,
+            dateTimeProvider = FakeDateTimeProvider(
+                startTime = 0,
+                currentTime = 1,
+            ),
+        )
+
+        val actual = downloadEstimator.estimatedRemainingTime(
+            bytesDownloaded = Long.MAX_VALUE - 1,
+        )
+
+        assertNotNull(actual)
+    }
+
+    @Test
+    fun `GIVEN half of the file has been downloaded in 2 seconds WHEN calculating the time remaining THEN the estimated time remaining is 2 seconds`() {
+        val downloadEstimator = DownloadEstimator(
+            totalBytes = 2,
+            dateTimeProvider = FakeDateTimeProvider(
+                startTime = 0,
+                currentTime = 2000,
+            ),
+        )
+
+        val actual = downloadEstimator.estimatedRemainingTime(
+            bytesDownloaded = 1,
+        )
+        assertEquals(2L, actual)
     }
 }
