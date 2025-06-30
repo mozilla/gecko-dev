@@ -31,11 +31,11 @@ add_task(async function test_in_process_tab() {
         async (bgColor, textColor) => {
           let style = content.document.documentElement.style;
           Assert.notEqual(
-            style.getPropertyValue("--lwt-sidebar-background-color"),
+            style.getPropertyValue("--sidebar-background-color"),
             bgColor
           );
           Assert.notEqual(
-            style.getPropertyValue("--lwt-sidebar-text-color"),
+            style.getPropertyValue("--sidebar-text-color"),
             textColor
           );
         }
@@ -60,13 +60,13 @@ add_task(async function test_in_process_tab() {
         async (bgColor, textColor) => {
           let style = content.document.documentElement.style;
           Assert.equal(
-            style.getPropertyValue("--lwt-sidebar-background-color"),
+            style.getPropertyValue("--sidebar-background-color"),
             bgColor,
             "The sidebar background text color should have been set by " +
               "contentTheme.js"
           );
           Assert.equal(
-            style.getPropertyValue("--lwt-sidebar-text-color"),
+            style.getPropertyValue("--sidebar-text-color"),
             textColor,
             "The sidebar background text color should have been set by " +
               "contentTheme.js"
