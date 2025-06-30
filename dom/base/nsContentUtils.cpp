@@ -12392,6 +12392,18 @@ nsIContent* nsContentUtils::AttachDeclarativeShadowRoot(nsIContent* aHost,
   return shadowRoot;
 }
 
+// https://html.spec.whatwg.org/#the-navigation-must-be-a-replace
+/* static */ bool nsContentUtils::NavigationMustBeAReplace(
+    nsIURI& aURI, const Document& aDocument) {
+  // The navigation must be a replace, given a URL url and a Document document,
+  // if any of the following are true:
+  // - url's scheme is "javascript"; or
+  // - document's is initial about:blank is true.
+  return aURI.SchemeIs("javascript") ||
+         (NS_IsAboutBlank(aDocument.GetDocumentURI()) &&
+          aDocument.IsInitialDocument());
+}
+
 template int32_t nsContentUtils::CompareTreePosition<TreeKind::DOM>(
     const nsINode*, const nsINode*, const nsINode*, NodeIndexCache*);
 template int32_t nsContentUtils::CompareTreePosition<TreeKind::Flat>(

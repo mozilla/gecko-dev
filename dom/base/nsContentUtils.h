@@ -3596,6 +3596,8 @@ class nsContentUtils {
       nsIContent* aHost, mozilla::dom::ShadowRootMode aMode, bool aIsClonable,
       bool aIsSerializable, bool aDelegatesFocus);
 
+  static bool NavigationMustBeAReplace(nsIURI& aURI, const Document& aDocument);
+
  private:
   static bool InitializeEventTable();
 

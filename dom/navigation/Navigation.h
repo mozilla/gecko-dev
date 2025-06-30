@@ -65,7 +65,7 @@ class Navigation final : public DOMEventTargetHelper {
 
   void Navigate(JSContext* aCx, const nsAString& aUrl,
                 const NavigationNavigateOptions& aOptions,
-                NavigationResult& aResult) {}
+                NavigationResult& aResult);
 
   MOZ_CAN_RUN_SCRIPT void Reload(JSContext* aCx,
                                  const NavigationReloadOptions& aOptions,
