@@ -2,28 +2,29 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Tests for DisplayPorts</title>
+    <title>Tests for DisplayPorts (involving http server)</title>
     <script src="/tests/SimpleTest/SimpleTest.js"></script>
     <script type="application/javascript" src="apz_test_native_event_utils.js"></script>
     <script type="application/javascript" src="apz_test_utils.js"></script>
     <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
     <script type="application/javascript">
 
-    // Set the displayport expiry timeout to a small value, but in order to
-    // trigger the behavior seen in bug 1758760 this value must be greater
-    // than zero.
-    let displayportExpiryPrefs = [["apz.displayport_expiry_ms", 5]];
     let subtests = [
-        { "file": "helper_displayport_expiry.html", "prefs": displayportExpiryPrefs },
-        { "file": "helper_displayport_estimation.html",
+        { "file": "helper_displayport_suppression_during_page_load.html",
           "prefs": [["apz.test.logging_enabled", true],
-                    ["layout.disable-pixel-alignment", true],
-                    // To calculate displayport easier.
-                    ["apz.y_stationary_size_multiplier", 1.0],
-                    ["apz.danger_zone_y", 0],
-                    ["apz.enlarge_displayport_when_clipped", false],
+                    ["apz.wr.activate_all_scroll_frames", true],
           ]},
     ];
+
+    if (getPlatform() != "android") {
+        // Native wheel is not supported on Android.
+        subtests.push(
+            { "file": "helper_displayport_suppression_stop_by_wheel_scroll.html",
+              "prefs": [["apz.test.logging_enabled", true],
+                        ["apz.wr.activate_all_scroll_frames", true],
+          ]},
+        );
+    }
 
     if (isApzEnabled()) {
         SimpleTest.waitForExplicitFinish();
