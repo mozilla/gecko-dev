@@ -943,6 +943,90 @@
   }
 }
 
+#pinned-drop-indicator-icon,
+#pinned-drop-indicator-text {
+  display: none;
+}
+
+#pinned-drop-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent-primary);
+
+  &[visible] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-small);
+    background: color-mix(in srgb, currentColor 12%, transparent);
+
+    #pinned-drop-indicator-icon {
+      width: var(--size-item-small);
+      height: var(--size-item-small);
+      -moz-context-properties: fill;
+      fill: currentColor;
+      display: inline;
+    }
+  }
+
+  &[interactive] {
+    outline: 1px solid var(--focus-outline-color);
+  }
+}
+
+#tabbrowser-tabs[orient="vertical"] > #pinned-drop-indicator {
+  /* We need to explicitly set height to 0 to ensure the animation runs*/
+  height: 0;
+
+  @media not (prefers-reduced-motion) {
+    transition: height 0.25s ease-in-out;
+  }
+
+  &[visible] {
+    height: 70px;
+    width: calc(100% - 2 * var(--tab-inner-inline-margin));
+    gap: var(--space-small);
+    margin: var(--space-small) var(--tab-inner-inline-margin);
+
+    > #pinned-drop-indicator-text {
+      display: inline;
+      text-align: center;
+    }
+
+    #tabbrowser-tabs:not([expanded]) > & {
+      width: var(--tab-collapsed-background-width);
+      height: var(--size-item-large);
+
+      /* stylelint-disable max-nesting-depth */
+      > #pinned-drop-indicator-text {
+        display: none;
+      }
+    }
+  }
+}
+
+#tabbrowser-tabs[orient="horizontal"] > #pinned-drop-indicator {
+  /* We need to explicitly set width to 0 to ensure the animation runs*/
+  width: 0;
+
+  @media not (prefers-reduced-motion) {
+    transition: width 0.25s ease-in-out;
+  }
+
+  &[visible] {
+    margin-inline: var(--space-small);
+    align-self: center;
+    width: var(--size-item-large);
+    height: var(--size-item-large);
+
+    > #pinned-drop-indicator-text {
+      display: none;
+    }
+  }
+}
+
 /* Tab Groups */
 
 /*
