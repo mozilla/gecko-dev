@@ -107,7 +107,8 @@ class RenderCompositorANGLE final : public RenderCompositor {
   void AttachExternalImage(wr::NativeSurfaceId aId,
                            wr::ExternalImageId aExternalImage) override;
   void CreateSwapChainSurface(wr::NativeSurfaceId aId, wr::DeviceIntSize aSize,
-                              bool aIsOpaque) override;
+                              bool aIsOpaque,
+                              bool aNeedsSyncDcompCommit) override;
   void ResizeSwapChainSurface(wr::NativeSurfaceId aId,
                               wr::DeviceIntSize aSize) override;
   void AddSurface(wr::NativeSurfaceId aId,

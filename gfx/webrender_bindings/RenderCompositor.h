@@ -136,8 +136,8 @@ class RenderCompositor {
                              wr::DeviceIntPoint aVirtualOffset,
                              wr::DeviceIntSize aTileSize, bool aIsOpaque) {}
   virtual void CreateSwapChainSurface(wr::NativeSurfaceId aId,
-                                      wr::DeviceIntSize aSize, bool aIsOpaque) {
-  }
+                                      wr::DeviceIntSize aSize, bool aIsOpaque,
+                                      bool aNeedsSyncDcompCommit) {}
   virtual void ResizeSwapChainSurface(wr::NativeSurfaceId aId,
                                       wr::DeviceIntSize aSize) {}
   virtual void BindSwapChain(wr::NativeSurfaceId aId,

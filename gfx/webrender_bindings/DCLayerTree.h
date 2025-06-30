@@ -147,7 +147,7 @@ class DCLayerTree {
   void CreateSurface(wr::NativeSurfaceId aId, wr::DeviceIntPoint aVirtualOffset,
                      wr::DeviceIntSize aTileSize, bool aIsOpaque);
   void CreateSwapChainSurface(wr::NativeSurfaceId aId, wr::DeviceIntSize aSize,
-                              bool aIsOpaque);
+                              bool aIsOpaque, bool aNeedsSyncDcompCommit);
   void ResizeSwapChainSurface(wr::NativeSurfaceId aId, wr::DeviceIntSize aSize);
   void CreateExternalSurface(wr::NativeSurfaceId aId, bool aIsOpaque);
   void DestroySurface(NativeSurfaceId aId);

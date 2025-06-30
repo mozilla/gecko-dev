@@ -78,9 +78,11 @@ void wr_compositor_create_external_surface(void* aCompositor,
 void wr_compositor_create_swapchain_surface(void* aCompositor,
                                             wr::NativeSurfaceId aId,
                                             wr::DeviceIntSize aSize,
-                                            bool aIsOpaque) {
+                                            bool aIsOpaque,
+                                            bool aNeedsSyncDcompCommit) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
-  compositor->CreateSwapChainSurface(aId, aSize, aIsOpaque);
+  compositor->CreateSwapChainSurface(aId, aSize, aIsOpaque,
+                                     aNeedsSyncDcompCommit);
 }
 
 void wr_compositor_resize_swapchain(void* aCompositor, wr::NativeSurfaceId aId,

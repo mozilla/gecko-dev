@@ -7615,9 +7615,9 @@
 #endif
 
 #ifdef XP_WIN
-- name: gfx.webrender.layer-compositor-use-composition-surface
+- name: gfx.webrender.layer-compositor-force-composition-surface
   type: bool
-  value: true
+  value: false
   mirror: once
 #endif
 

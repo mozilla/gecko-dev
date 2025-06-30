@@ -884,8 +884,10 @@ void RenderCompositorANGLE::CreateSurface(wr::NativeSurfaceId aId,
 
 void RenderCompositorANGLE::CreateSwapChainSurface(wr::NativeSurfaceId aId,
                                                    wr::DeviceIntSize aSize,
-                                                   bool aIsOpaque) {
-  mDCLayerTree->CreateSwapChainSurface(aId, aSize, aIsOpaque);
+                                                   bool aIsOpaque,
+                                                   bool aNeedsSyncDcompCommit) {
+  mDCLayerTree->CreateSwapChainSurface(aId, aSize, aIsOpaque,
+                                       aNeedsSyncDcompCommit);
 }
 
 void RenderCompositorANGLE::ResizeSwapChainSurface(wr::NativeSurfaceId aId,
