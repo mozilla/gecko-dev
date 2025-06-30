@@ -226,12 +226,7 @@ already_AddRefed<Path> SVGRectElement::BuildPath(PathBuilder* aBuilder) {
 
   if (rx == 0 && ry == 0) {
     // Optimization for the no rounded corners case.
-    Rect r(x, y, width, height);
-    aBuilder->MoveTo(r.TopLeft());
-    aBuilder->LineTo(r.TopRight());
-    aBuilder->LineTo(r.BottomRight());
-    aBuilder->LineTo(r.BottomLeft());
-    aBuilder->Close();
+    AppendRectToPath(aBuilder, Rect(x, y, width, height));
   } else {
     // Clamp rx and ry to half the rect's width and height respectively:
     rx = std::min(rx, width / 2);
