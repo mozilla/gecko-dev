@@ -38,6 +38,9 @@ macro_rules! with_metric {
     (TIMING_DISTRIBUTION_MAP, $id:ident, $m:ident, $f:expr) => {
         maybe_labeled_with_metric!(TIMING_DISTRIBUTION_MAP, $id, $m, $f)
     };
+    (DUAL_COUNTER_MAP, $id:ident, $m:ident, $f: expr) => {
+        just_labeled_with_metric!(DUAL_COUNTER_MAP, $id, $m, $f)
+    };
     ($map:ident, $id:ident, $m:ident, $f:expr) => {
         just_with_metric!($map, $id, $m, $f)
     };
@@ -115,17 +118,36 @@ macro_rules! just_with_metric {
 macro_rules! maybe_labeled_with_metric {
     ($map:ident, $id:ident, $m:ident, $f:expr) => {
         if $id & (1 << $crate::metrics::__glean_metric_maps::submetric_maps::SUBMETRIC_BIT) > 0 {
-            let map = $crate::metrics::__glean_metric_maps::submetric_maps::$map
-                .read()
-                .expect("Read lock for labeled metric map was poisoned");
-            match map.get(&$id.into()) {
-                Some($m) => $f,
-                None => panic!("No submetric for id {}", $id),
-            }
+            just_labeled_with_metric!($map, $id, $m, $f)
         } else {
             just_with_metric!($map, $id, $m, $f)
         }
     };
+}
+
+/// Get a submetric object instance by id from the corresponding map,
+/// then execute the providing closure with it.
+///
+/// # Arguments
+///
+/// * `$map` - The name of the hash map within
+///            `metrics::__glean_metric_maps::submetric_maps` as generated
+///            by glean_parser.
+/// * `$id`  - The ID of the metric to get.
+///            Definitely has `submetric_maps::SUBMETRIC_BIT` set.
+/// * `$m`   - The identifier to use for the retrieved metric.
+///            The expression `$f` can use this identifier.
+/// * `$f`   - The expression to execute with the retrieved metric `$m`.
+macro_rules! just_labeled_with_metric {
+    ($map:ident, $id:ident, $m:ident, $f:expr) => {{
+        let map = $crate::metrics::__glean_metric_maps::submetric_maps::$map
+            .read()
+            .expect("Read lock for labeled metric map was poisoned");
+        match map.get(&$id.into()) {
+            Some($m) => $f,
+            None => panic!("No submetric for id {}", $id),
+        }
+    }};
 }
 
 /// Test whether a value is stored for the given metric.

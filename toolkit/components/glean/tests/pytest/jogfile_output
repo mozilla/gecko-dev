@@ -214,6 +214,24 @@
     ],
     "test.nested": [
       [
+        "dual_labeled_counter",
+        "a_dual_labeled_counter",
+        [
+          "metrics"
+        ],
+        "ping",
+        false,
+        {
+          "ordered_categories": [
+            "cat1",
+            "cat2",
+            "catred",
+            "catblu"
+          ],
+          "ordered_keys": null
+        }
+      ],
+      [
         "object",
         "an_object",
         [

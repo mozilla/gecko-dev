@@ -704,6 +704,13 @@ TEST_F(FOGFixture, TestComplexObjectWorks) {
   ASSERT_THAT(json.get(), testing::HasSubstr("failure"));
 }
 
+TEST_F(FOGFixture, TestDualLabeledCounterWorks) {
+  ASSERT_EQ(mozilla::Nothing(),
+            test_only_ipc::a_dual_labeled_counter.Get("key"_ns, "category"_ns)
+                .TestGetValue()
+                .unwrap());
+}
+
 extern "C" void Rust_TestRustInGTest();
 TEST_F(FOGFixture, TestRustInGTest) { Rust_TestRustInGTest(); }
 
