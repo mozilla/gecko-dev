@@ -20,6 +20,9 @@
 #include "builtin/intl/CommonFunctions.h"
 #include "gc/AllocKind.h"
 #include "gc/GCContext.h"
+#include "icu4x/GraphemeClusterSegmenter.hpp"
+#include "icu4x/SentenceSegmenter.hpp"
+#include "icu4x/WordSegmenter.hpp"
 #include "js/CallArgs.h"
 #include "js/PropertyDescriptor.h"
 #include "js/PropertySpec.h"
@@ -36,10 +39,6 @@
 
 #include "vm/JSObject-inl.h"
 #include "vm/NativeObject-inl.h"
-
-#include "icu4x/GraphemeClusterSegmenter.hpp"
-#include "icu4x/SentenceSegmenter.hpp"
-#include "icu4x/WordSegmenter.hpp"
 
 using namespace js;
 

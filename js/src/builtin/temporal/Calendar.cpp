@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <utility>
 
+
+#include "diplomat_runtime.hpp"
 #include "jsnum.h"
 #include "jstypes.h"
 #include "NamespaceImports.h"
@@ -52,6 +54,9 @@
 #include "builtin/temporal/ZonedDateTime.h"
 #include "gc/Barrier.h"
 #include "gc/GCEnum.h"
+#include "icu4x/Calendar.hpp"
+#include "icu4x/Date.hpp"
+#include "icu4x/IsoDate.hpp"
 #include "js/AllocPolicy.h"
 #include "js/ErrorReport.h"
 #include "js/friend/ErrorMessages.h"
@@ -71,11 +76,6 @@
 #include "vm/JSContext-inl.h"
 #include "vm/JSObject-inl.h"
 #include "vm/ObjectOperations-inl.h"
-
-#include "diplomat_runtime.hpp"
-#include "icu4x/Calendar.hpp"
-#include "icu4x/Date.hpp"
-#include "icu4x/IsoDate.hpp"
 
 // diplomat_simple_write isn't defined in C++ headers, but we have to use it to
 // avoid memory allocation.

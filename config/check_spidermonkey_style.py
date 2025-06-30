@@ -267,7 +267,7 @@ class FileKind:
         if filename.endswith(("inlines.h", "-inl.h")):
             return FileKind.INL_H
 
-        if filename.endswith(".h"):
+        if filename.endswith((".h", ".hpp")):
             return FileKind.H
 
         if filename.endswith(".tbl"):
@@ -462,7 +462,7 @@ class Include:
         if self.is_system:
             return 2
 
-        if not self.inclname.endswith(".h"):
+        if not self.inclname.endswith((".h", ".hpp")):
             return 7
 
         # A couple of modules have the .h file in js/ and the .cpp file elsewhere and so need
