@@ -1048,7 +1048,7 @@ renaming_overrides_prefixing = true
 """
 
 "Zoom" = """
- float ToFloat() const { return _0; }
+ SERVO_FIXED_POINT_HELPERS(StyleZoom, uint16_t, StyleZOOM_FRACTION_BITS);
  inline float Zoom(float) const;
  inline float Unzoom(float) const;
  inline nscoord ZoomCoord(nscoord) const;
