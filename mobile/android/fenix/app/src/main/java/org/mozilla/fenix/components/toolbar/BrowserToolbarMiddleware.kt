@@ -90,7 +90,6 @@ import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDi
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
 import org.mozilla.fenix.components.menu.MenuAccessPoint
-import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
@@ -118,7 +117,6 @@ import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
 internal sealed class DisplayActions : BrowserToolbarEvent {
-    data object HomeClicked : DisplayActions()
     data object MenuClicked : DisplayActions()
     data object NavigateBackClicked : DisplayActions()
     data object NavigateForwardClicked : DisplayActions()
@@ -232,14 +230,6 @@ class BrowserToolbarMiddleware(
 
             is StartPageActions.SiteInfoClicked -> {
                 onSiteInfoClicked()
-            }
-
-            is HomeClicked -> {
-                dependencies.browserAnimator.captureEngineViewAndDrawStatically {
-                    dependencies.navController.navigate(
-                        BrowserFragmentDirections.actionGlobalHome(),
-                    )
-                }
             }
 
             is MenuClicked -> {
@@ -505,7 +495,6 @@ class BrowserToolbarMiddleware(
 
     private fun buildStartBrowserActions(): List<Action> {
         return listOf(
-            ToolbarActionConfig(ToolbarAction.Home),
             ToolbarActionConfig(ToolbarAction.Back) { dependencies.context.isLargeWindow() },
             ToolbarActionConfig(ToolbarAction.Forward) { dependencies.context.isLargeWindow() },
             ToolbarActionConfig(ToolbarAction.RefreshOrStop) { dependencies.context.isLargeWindow() },
@@ -533,6 +522,7 @@ class BrowserToolbarMiddleware(
 
     private fun buildEndBrowserActions(): List<Action> {
         return listOf(
+            ToolbarActionConfig(ToolbarAction.NewTab) { !dependencies.context.isTabStripEnabled() },
             ToolbarActionConfig(ToolbarAction.TabCounter) { !dependencies.context.isTabStripEnabled() },
             ToolbarActionConfig(ToolbarAction.Menu),
         ).filter { config ->
@@ -762,7 +752,7 @@ class BrowserToolbarMiddleware(
 
     @VisibleForTesting
     internal enum class ToolbarAction {
-        Home,
+        NewTab,
         Back,
         Forward,
         RefreshOrStop,
@@ -783,10 +773,18 @@ class BrowserToolbarMiddleware(
     internal fun buildAction(
         toolbarAction: ToolbarAction,
     ): Action = when (toolbarAction) {
-        ToolbarAction.Home -> ActionButtonRes(
-            drawableResId = R.drawable.mozac_ic_home_24,
-            contentDescription = R.string.browser_toolbar_home,
-            onClick = HomeClicked,
+        ToolbarAction.NewTab -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_plus_24,
+            contentDescription = if (dependencies.browsingModeManager.mode == Private) {
+                R.string.home_screen_shortcut_open_new_private_tab_2
+            } else {
+                R.string.home_screen_shortcut_open_new_tab_2
+            },
+            onClick = if (dependencies.browsingModeManager.mode == Private) {
+                AddNewPrivateTab
+            } else {
+                AddNewTab
+            },
         )
 
         ToolbarAction.Back -> ActionButtonRes(
