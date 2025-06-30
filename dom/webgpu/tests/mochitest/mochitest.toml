@@ -6,7 +6,10 @@ subsuite = "webgpu"
 #
 # This condition should be the exact complement of the `run-if`
 # condition in `mochitest-disabled.html`.
-run-if = ["nightly_build || (os == 'win' && early_beta_or_earlier)"]
+run-if = [
+  "nightly_build",
+  "os == 'win'",
+]
 
 # `test-verify` jobs don't guarantee a GPU, so skip them.
 skip-if = ["verify"]

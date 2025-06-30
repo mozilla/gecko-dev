@@ -2,7 +2,7 @@
 subsuite = "webgpu"
 # This file's tests should run when 'modules/libpref/init/StaticPrefList.yaml'
 # defaults the 'dom.webgpu.enabled' pref to true.
-run-if = ["!early_beta_or_earlier"]
+run-if = ["!early_beta_or_earlier && os != 'win'"]
 skip-if = ["verify"] # `test-verify` jobs don't guarantee a GPU, so skip them.
 
 # Even if the pref were enabled, WebGPU is only available in secure contexts.

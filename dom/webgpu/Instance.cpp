@@ -117,7 +117,11 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
   };
 
 #ifndef EARLY_BETA_OR_EARLIER
-  rejectIf(true, "WebGPU is not yet available in Release or late Beta builds.");
+#  ifndef XP_WIN
+  rejectIf(true,
+           "WebGPU is only available on Windows, and in Nightly and Early Beta "
+           "builds on other platforms.");
+#  endif
 
   // NOTE: Deliberately left after the above check so that we only enter
   // here if it's removed. Above is a more informative diagnostic, while the

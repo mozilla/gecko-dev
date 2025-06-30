@@ -5506,7 +5506,11 @@
 # Is support for the Web GPU API enabled?
 - name: dom.webgpu.enabled
   type: RelaxedAtomicBool
+#ifdef XP_WIN
+  value: true
+#else
   value: @IS_EARLY_BETA_OR_EARLIER@
+#endif
   mirror: always
 
 # Is support for the Web GPU API enabled on service workers?
