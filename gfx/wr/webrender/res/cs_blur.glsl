@@ -8,6 +8,7 @@
 
 varying highp vec2 vUv;
 flat varying highp vec4 vUvRect;
+flat varying highp vec4 vUvClampRect;
 flat varying mediump vec2 vOffsetScale;
 // The number of pixels on each end that we apply the blur filter over.
 // Packed in to vector to work around bug 1630356.
@@ -92,24 +93,31 @@ void main(void) {
 
     switch (aBlurDirection) {
         case DIR_HORIZONTAL:
-            vOffsetScale = vec2(1.0 / texture_size.x, 0.0);
+            vOffsetScale = vec2(
+                1.0 / (src_rect.p1.x - src_rect.p0.x),
+                0.0
+            );
             break;
         case DIR_VERTICAL:
-            vOffsetScale = vec2(0.0, 1.0 / texture_size.y);
+            vOffsetScale = vec2(
+                0.0,
+                1.0 / (src_rect.p1.y - src_rect.p0.y)
+            );
             break;
         default:
             vOffsetScale = vec2(0.0);
     }
 
-    vUvRect = vec4(src_rect.p0 + vec2(0.5),
-                   src_rect.p0 + blur_task.blur_region - vec2(0.5));
+    vUvRect = vec4(src_rect.p0, src_rect.p1);
     vUvRect /= texture_size.xyxy;
+
+    vUvClampRect = vec4(src_rect.p0 + vec2(0.5),
+                        src_rect.p0 + blur_task.blur_region - vec2(0.5));
+    vUvClampRect /= texture_size.xyxy;
 
     vec2 pos = mix(target_rect.p0, target_rect.p1, aPosition.xy);
 
-    vec2 uv0 = src_rect.p0 / texture_size;
-    vec2 uv1 = src_rect.p1 / texture_size;
-    vUv = mix(uv0, uv1, aPosition.xy);
+    vUv = aPosition.xy;
 
     gl_Position = uTransform * vec4(pos, 0.0, 1.0);
 }
@@ -130,7 +138,8 @@ void main(void) {
 //           loop iteration count!
 
 void main(void) {
-    SAMPLE_TYPE original_color = SAMPLE_TEXTURE(vUv);
+    vec2 uv = mix(vUvRect.xy, vUvRect.zw, vUv);
+    SAMPLE_TYPE original_color = SAMPLE_TEXTURE(uv);
 
     // Incremental Gaussian Coefficent Calculation (See GPU Gems 3 pp. 877 - 889)
     vec3 gauss_coefficient = vec3(vGaussCoefficients,
@@ -171,9 +180,16 @@ void main(void) {
 
         vec2 offset = vOffsetScale * (float(i) + gauss_ratio);
 
-        vec2 st0 = max(vUv - offset, vUvRect.xy);
-        vec2 st1 = min(vUv + offset, vUvRect.zw);
-        avg_color += (SAMPLE_TEXTURE(st0) + SAMPLE_TEXTURE(st1)) *
+        vec2 uv0 = vUv - offset;
+        vec2 uv1 = vUv + offset;
+
+        uv0 = mix(vUvRect.xy, vUvRect.zw, uv0);
+        uv1 = mix(vUvRect.xy, vUvRect.zw, uv1);
+
+        uv0 = max(uv0, vUvClampRect.xy);
+        uv1 = min(uv1, vUvClampRect.zw);
+
+        avg_color += (SAMPLE_TEXTURE(uv0) + SAMPLE_TEXTURE(uv1)) *
                      gauss_coefficient_subtotal;
     }
 
@@ -183,12 +199,14 @@ void main(void) {
 #ifdef SWGL_DRAW_SPAN
     #ifdef WR_FEATURE_COLOR_TARGET
 void swgl_drawSpanRGBA8() {
-    swgl_commitGaussianBlurRGBA8(sColor0, vUv, vUvRect, vOffsetScale.x != 0.0,
+    vec2 uv = mix(vUvRect.xy, vUvRect.zw, vUv);
+    swgl_commitGaussianBlurRGBA8(sColor0, uv, vUvClampRect, vOffsetScale.x != 0.0,
                                  vSupport.x, vGaussCoefficients);
 }
     #else
 void swgl_drawSpanR8() {
-    swgl_commitGaussianBlurR8(sColor0, vUv, vUvRect, vOffsetScale.x != 0.0,
+    vec2 uv = mix(vUvRect.xy, vUvRect.zw, vUv);
+    swgl_commitGaussianBlurR8(sColor0, uv, vUvClampRect, vOffsetScale.x != 0.0,
                               vSupport.x, vGaussCoefficients);
 }
     #endif
