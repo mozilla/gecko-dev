@@ -1188,7 +1188,7 @@ nsresult nsObjectLoadingContent::LoadObject(bool aNotify, bool aForceLoad,
   // "about", "blob", "data", "file", "http", "https".
   //
   // Some accessibility tests use our internal "chrome" scheme.
-  if (mType != ObjectType::Fallback) {
+  if (mType != ObjectType::Fallback && mURI) {
     ObjectType type = ObjectType::Fallback;
     for (const auto& candidate :
          {"about", "blob", "chrome", "data", "file", "http", "https"}) {
