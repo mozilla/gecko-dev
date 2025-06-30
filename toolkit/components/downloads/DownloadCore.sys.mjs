@@ -408,7 +408,8 @@ Download.prototype = {
     this.stopped = false;
     this.canceled = false;
     if (!this._batch) {
-      this._assignBatch();
+      this._batch = this.source.isPrivate ? gPrivateBatch : gPublicBatch;
+      this._batch.add(this);
     }
     this.error = null;
     // Avoid serializing the previous error, or it would be restored on the next
@@ -625,20 +626,6 @@ Download.prototype = {
     // Notify the new download state before returning.
     this._notifyChange();
     return currentAttempt;
-  },
-
-  /**
-   * Assigns this download to the correct batch for progress accounting.
-   *
-   * This is used from start(), and otherwise should only be used from
-   * tests where you need the batch to be set. Anywhere else, call
-   * start() to start the download and assign a batch for you.
-   */
-  _assignBatch() {
-    // This is also used from browser_downloads_taskbar_perapp.js and
-    // browser_downloads_taskbar_perwindow.js.
-    this._batch = this.source.isPrivate ? gPrivateBatch : gPublicBatch;
-    this._batch.add(this);
   },
 
   /**

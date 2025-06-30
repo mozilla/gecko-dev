@@ -890,7 +890,7 @@ var gBrowserInit = {
     });
 
     scheduleIdleTask(
-      async () => {
+      () => {
         // Initialize the download manager some time after the app starts so that
         // auto-resume downloads begin (such as after crashing or quitting with
         // active downloads) and speeds up the first-load of the download manager UI.
@@ -898,14 +898,14 @@ var gBrowserInit = {
         // downloads will start right away, and initializing again won't hurt.
         try {
           DownloadsCommon.initializeAllDataLinks();
+          ChromeUtils.importESModule(
+            "resource:///modules/DownloadsTaskbar.sys.mjs"
+          ).DownloadsTaskbar.registerIndicator(window);
           if (AppConstants.platform == "macosx") {
             ChromeUtils.importESModule(
               "resource:///modules/DownloadsMacFinderProgress.sys.mjs"
             ).DownloadsMacFinderProgress.register();
           }
-          await ChromeUtils.importESModule(
-            "resource:///modules/DownloadsTaskbar.sys.mjs"
-          ).DownloadsTaskbar.registerIndicator(window);
         } catch (ex) {
           console.error(ex);
         }
