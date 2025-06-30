@@ -50,7 +50,7 @@ fuzzy-if(winWidget,0-177,0-1) == 23605-5.html 23605-5-ref.html # Antialiased pix
 == 399941-5.html 399941-5-ref.html
 == 399941-6.html 399941-6-ref.html
 == 399941-7.html 399941-7-ref.html
-== 399941-8.html 399941-8-ref.html
+pref(gfx.font_rendering.fallback.async,false) == 399941-8.html 399941-8-ref.html
 == 399941-9.html 399941-9-ref.html
 == 429968-1a.html 429968-1-ref.html
 == 429968-1b.html 429968-1-ref.html

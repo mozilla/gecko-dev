@@ -9,14 +9,14 @@ fuzzy-if(Android,0-1,0-1) == bidi-002.html bidi-002-ref.html
 fuzzy-if(Android||winWidget,0-1,0-1) == bidi-003.html bidi-003-ref.html
 fuzzy-if(gtkWidget,0-255,0-17) == bidi-004.html bidi-004-ref.html # inconsistency in the Hebrew font that gets used
 fuzzy-if(gtkWidget,0-255,0-17) == bidi-004-j.html bidi-004-ref.html # inconsistency in the Hebrew font that gets used
-fuzzy-if(gtkWidget&&isDebugBuild,0-255,0-2102) == bidi-005.html bidi-005-ref.html
+pref(gfx.font_rendering.fallback.async,false) == bidi-005.html bidi-005-ref.html
 random-if(cocoaWidget) == bidi-006.html bidi-006-ref.html # bug 734313
 random-if(cocoaWidget) == bidi-006-j.html bidi-006-ref.html # bug 734313
 fuzzy-if(winWidget,0-1,0-1) == bidiSVG-01.svg bidiSVG-01-ref.svg
 fuzzy-if(Android,0-1,0-1) == bidiSVG-02.svg bidiSVG-02-ref.svg # Bug 1392106
 fuzzy-if(Android,0-253,0-77) == bidiSVG-03.svg bidiSVG-03-ref.svg
 fuzzy(0-1,0-1) fuzzy-if(winWidget,0-1,0-2) == bidiSVG-04.svg bidiSVG-04-ref.svg
-== bidiSVG-05.svg bidiSVG-05-ref.svg
+pref(gfx.font_rendering.fallback.async,false) == bidiSVG-05.svg bidiSVG-05-ref.svg
 == bidiMirroring.svg bidiMirroring-ref.svg # Bug 1392106
 fuzzy-if(Android,0-9,0-134) random == visualmarquee.html marquee-ref.html
 fuzzy-if(Android,0-9,0-134) random == logicalmarquee.html marquee-ref.html
@@ -108,7 +108,7 @@ fuzzy(0-137,0-1) == 562169-1a.html 562169-1-ref.html
 == 588739-1.html 588739-ref.html
 != 588739-2.html 588739-ref.html
 == 588739-3.html 588739-ref.html
-== 612843-1.html 612843-1-ref.html
+pref(gfx.font_rendering.fallback.async,false) == 612843-1.html 612843-1-ref.html
 fuzzy-if(Android,0-1,0-1) == 613149-1a.html 613149-1-ref.html # Bug 1392106
 fuzzy-if(Android,0-1,0-1) == 613149-1b.html 613149-1-ref.html # Bug 1392106
 == 613149-2a.html 613149-2-ref.html # Bug 1392106
