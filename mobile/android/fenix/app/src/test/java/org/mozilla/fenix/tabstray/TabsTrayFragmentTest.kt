@@ -171,7 +171,7 @@ class TabsTrayFragmentTest {
             mockk(),
             mockk(),
         )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
+        every { fragment.requireContext().settings().privateBrowsingModeLocked } returns true
         every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
         every { fragment.verificationResultLauncher } returns mockk()
 
@@ -209,7 +209,7 @@ class TabsTrayFragmentTest {
             mockk(),
             mockk(),
         )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+        every { fragment.requireContext().settings().privateBrowsingModeLocked } returns false
         every { fragment.tabsTrayStore.state.selectedPage } returns Page.PrivateTabs
 
         val biometricAuthenticationNeededInfo =
@@ -248,7 +248,7 @@ class TabsTrayFragmentTest {
             mockk(),
             mockk(),
         )
-        every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns false
+        every { fragment.requireContext().settings().privateBrowsingModeLocked } returns false
         every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
 
         val biometricAuthenticationNeededInfo =
