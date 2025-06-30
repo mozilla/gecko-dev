@@ -212,7 +212,7 @@ export class GeckoViewContent extends GeckoViewModule {
 
         const { force } = aData;
         let gotResize = false;
-        const onResize = function () {
+        const onResize = () => {
           gotResize = true;
           if (this.window.windowUtils.isMozAfterPaintPending) {
             this.window.addEventListener(
