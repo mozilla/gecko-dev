@@ -614,13 +614,6 @@ void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
     }
   }
 
-  // In the case of HTTP/3 with 0-RTT, NS_NET_STATUS_SENDING_TO is sent before
-  // NS_NET_STATUS_CONNECTED_TO. This means that SetConnectEnd wont't be called
-  // above. To ensure connectEnd is always set, we explicitly set it here.
-  if (status == NS_NET_STATUS_CONNECTED_TO) {
-    SetConnectEnd(TimeStamp::Now(), true);
-  }
-
   if (!mTransportSink) return;
 
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
