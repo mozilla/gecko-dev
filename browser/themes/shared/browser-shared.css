@@ -425,7 +425,7 @@ body {
   position: relative;
   border-top: 0.01px var(--tabs-navbar-separator-style) var(--tabs-navbar-separator-color);
 
-  &[tabs-hidden] {
+  #navigator-toolbox[tabs-hidden] > & {
     border-top-style: none;
   }
 
