@@ -407,8 +407,8 @@ class LoadInfo final : public nsILoadInfo {
   nsILoadInfo::StoragePermissionState mStoragePermission =
       nsILoadInfo::NoStoragePermission;
   // IP Address space of the parent browsing context.
-  nsILoadInfo::IPAddressSpace mParentIPAddressSpace = nsILoadInfo::Unknown;
-  nsILoadInfo::IPAddressSpace mIPAddressSpace = nsILoadInfo::Unknown;
+  nsILoadInfo::IPAddressSpace mParentIPAddressSpace = nsILoadInfo::Public;
+  nsILoadInfo::IPAddressSpace mIPAddressSpace = nsILoadInfo::Public;
 
   Maybe<RFPTargetSet> mOverriddenFingerprintingSettings;
 #ifdef DEBUG
