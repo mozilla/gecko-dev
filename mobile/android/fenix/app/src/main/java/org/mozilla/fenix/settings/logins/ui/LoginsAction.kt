@@ -20,11 +20,6 @@ internal data class InitEditLoaded(
     val login: LoginItem,
 ) : LoginsAction
 
-internal data object InitAdd : LoginsAction
-internal data class InitAddLoaded(
-    val login: LoginItem,
-) : LoginsAction
-
 internal data object ViewDisposed : LoginsAction
 internal data object LoginsListBackClicked : LoginsAction
 
@@ -55,6 +50,7 @@ internal sealed class DetailLoginMenuAction : LoginsAction {
 }
 
 internal data object LoginsDetailBackClicked : LoginsAction
+internal data object AddLoginBackClicked : LoginsAction
 
 internal sealed class EditLoginAction : LoginsAction {
     data class UsernameChanged(val usernameChanged: String) : EditLoginAction()
@@ -67,14 +63,11 @@ internal sealed class EditLoginAction : LoginsAction {
 }
 
 internal sealed class AddLoginAction : LoginsAction {
-    data class UrlChanged(val urlChanged: String) : AddLoginAction()
+    data object InitAdd : AddLoginAction()
+    data object AddLoginSaveClicked : AddLoginAction()
+    data class HostChanged(val hostChanged: String) : AddLoginAction()
     data class UsernameChanged(val usernameChanged: String) : AddLoginAction()
     data class PasswordChanged(val passwordChanged: String) : AddLoginAction()
-    data object UrlClearClicked : AddLoginAction()
-    data object UsernameClearClicked : AddLoginAction()
-    data object PasswordClearClicked : AddLoginAction()
-    data object SaveAddClicked : AddLoginAction()
-    data object BackAddClicked : AddLoginAction()
 }
 
 internal sealed class DetailLoginAction : LoginsAction {

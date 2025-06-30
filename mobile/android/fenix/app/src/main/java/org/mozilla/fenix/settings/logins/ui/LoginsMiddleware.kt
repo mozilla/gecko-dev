@@ -14,6 +14,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import mozilla.appservices.logins.LoginsApiException
+import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.concept.storage.LoginsStorage
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
@@ -60,35 +62,36 @@ internal class LoginsMiddleware(
             Init -> {
                 context.store.loadLoginsList()
             }
-            is InitEdit -> scope.launch {
-                Result.runCatching {
-                    val login = loginsStorage.get(action.guid)
-                    val loginItem = login?.let {
-                        LoginItem(
-                            guid = it.guid,
-                            url = it.formActionOrigin ?: "",
-                            username = it.username,
-                            password = it.password,
-                        )
+            is InitEdit -> {
+                scope.launch {
+                    Result.runCatching {
+                        val login = loginsStorage.get(action.guid)
+                        val loginItem = login?.let {
+                            LoginItem(
+                                guid = it.guid,
+                                url = it.formActionOrigin ?: "",
+                                username = it.username,
+                                password = it.password,
+                            )
+                        }
+                        InitEditLoaded(login = loginItem!!)
+                    }.getOrNull()?.also {
+                        context.store.dispatch(it)
                     }
-                    InitEditLoaded(login = loginItem!!)
-                }.getOrNull()?.also {
-                    context.store.dispatch(it)
                 }
-            }
-            is InitAdd -> {
-                getNavController().navigate(LoginsDestinations.ADD_LOGIN)
             }
             is SearchLogins -> {
                 context.store.loadLoginsList()
             }
-            is LoginsListBackClicked -> exitLogins()
+            is LoginsListBackClicked -> {
+                exitLogins()
+            }
             is LoginClicked -> {
                 getNavController().navigate(LoginsDestinations.LOGIN_DETAILS)
             }
-            is DetailLoginMenuAction.EditLoginMenuItemClicked -> getNavController().navigate(
-                LoginsDestinations.EDIT_LOGIN,
-            )
+            is DetailLoginMenuAction.EditLoginMenuItemClicked -> {
+                getNavController().navigate(LoginsDestinations.EDIT_LOGIN)
+            }
             is DetailLoginMenuAction.DeleteLoginMenuItemClicked -> {
                 scope.launch {
                     loginsStorage.delete(action.item.guid)
@@ -111,7 +114,7 @@ internal class LoginsMiddleware(
                 openTab(action.url, true)
             }
             is LoginsDetailBackClicked -> {
-                getNavController().navigate(LoginsDestinations.LIST)
+                context.store.handleLoginsDetailsBackPressed()
             }
             is DetailLoginAction.CopyUsernameClicked -> {
                 handleUsernameClicked(action.username)
@@ -119,25 +122,28 @@ internal class LoginsMiddleware(
             is DetailLoginAction.CopyPasswordClicked -> {
                 handlePasswordClicked(action.password)
             }
+            is AddLoginAction.InitAdd -> {
+                getNavController().navigate(LoginsDestinations.ADD_LOGIN)
+            }
+            is AddLoginBackClicked -> {
+                getNavController().navigate(LoginsDestinations.LIST)
+            }
+            is AddLoginAction.AddLoginSaveClicked -> {
+                context.store.handleAddLogin()
+            }
             is InitEditLoaded,
             is EditLoginAction.UsernameChanged,
-            is AddLoginAction.BackAddClicked,
             is EditLoginAction.BackEditClicked,
-            is InitAddLoaded,
             is LoginsLoaded,
             is EditLoginAction.PasswordChanged,
-            is AddLoginAction.PasswordChanged,
             is EditLoginAction.PasswordClearClicked,
-            is AddLoginAction.PasswordClearClicked,
             is EditLoginAction.PasswordVisible,
             is DetailLoginAction.PasswordVisibleClicked,
-            is AddLoginAction.SaveAddClicked,
             is EditLoginAction.SaveEditClicked,
-            is AddLoginAction.UrlChanged,
-            is AddLoginAction.UrlClearClicked,
-            is AddLoginAction.UsernameChanged,
             is EditLoginAction.UsernameClearClicked,
-            is AddLoginAction.UsernameClearClicked,
+            is AddLoginAction.HostChanged,
+            is AddLoginAction.UsernameChanged,
+            is AddLoginAction.PasswordChanged,
             is ViewDisposed,
             -> Unit
         }
@@ -192,6 +198,44 @@ internal class LoginsMiddleware(
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             showPasswordCopiedSnackbar()
+        }
+    }
+
+    private fun Store<LoginsState, LoginsAction>.handleAddLogin() =
+        scope.launch {
+            val host = state.loginsAddLoginState?.host ?: ""
+            val newLoginToAdd = LoginEntry(
+                origin = host,
+                formActionOrigin = host,
+                httpRealm = host,
+                username = state.loginsAddLoginState?.username ?: "",
+                password = state.loginsAddLoginState?.password ?: "",
+            )
+
+            try {
+                val loginAdded = loginsStorage.add(newLoginToAdd)
+                dispatch(
+                    LoginClicked(
+                        LoginItem(
+                            guid = loginAdded.guid,
+                            url = loginAdded.origin,
+                            username = loginAdded.username,
+                            password = loginAdded.password,
+                        ),
+                    ),
+                )
+            } catch (exception: LoginsApiException) {
+                exception.printStackTrace()
+            }
+        }
+
+    private fun Store<LoginsState, LoginsAction>.handleLoginsDetailsBackPressed() = scope.launch {
+        dispatch(
+            Init,
+        )
+
+        withContext(Dispatchers.Main) {
+            getNavController().navigate(LoginsDestinations.LIST)
         }
     }
 }

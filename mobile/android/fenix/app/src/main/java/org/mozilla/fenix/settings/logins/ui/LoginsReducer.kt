@@ -28,8 +28,15 @@ internal fun loginsReducer(state: LoginsState, action: LoginsAction) = when (act
         state.copy(loginsEditLoginState = it.handleEditLoginAction(action))
     } ?: state
     is AddLoginAction -> state.loginsAddLoginState?.let {
-        state.copy(loginsAddLoginState = handleAddLoginAction(action))
-    } ?: state
+        state.handleAddLoginAction(action)
+    } ?: state.copy(
+        loginsAddLoginState = LoginsAddLoginState(
+            host = "",
+            username = "",
+            password = "",
+        ),
+        newLoginState = NewLoginState.None,
+    )
     is DetailLoginAction -> state
     is DetailLoginMenuAction.EditLoginMenuItemClicked -> state
     is DetailLoginMenuAction.DeleteLoginMenuItemClicked -> state.copy(
@@ -39,8 +46,9 @@ internal fun loginsReducer(state: LoginsState, action: LoginsAction) = when (act
         loginsLoginDetailState = null,
     )
     is LoginsListBackClicked -> state.respondToLoginsListBackClick()
+    is AddLoginBackClicked -> state.respondToAddLoginBackClick()
     ViewDisposed,
-    is InitEdit, Init, InitAdd, LearnMoreAboutSync, is InitAddLoaded,
+    is InitEdit, Init, LearnMoreAboutSync,
     -> state
 }
 
@@ -95,17 +103,51 @@ private fun LoginsEditLoginState.handleEditLoginAction(action: EditLoginAction):
         -> null
     }
 
-private fun handleAddLoginAction(action: AddLoginAction): LoginsAddLoginState? =
+private fun LoginsState.handleAddLoginAction(action: AddLoginAction): LoginsState =
     when (action) {
-        is AddLoginAction.UrlChanged,
-        is AddLoginAction.PasswordChanged,
-        is AddLoginAction.UsernameChanged,
-        is AddLoginAction.UrlClearClicked,
-        is AddLoginAction.PasswordClearClicked,
-        is AddLoginAction.UsernameClearClicked,
-        is AddLoginAction.SaveAddClicked,
-        is AddLoginAction.BackAddClicked,
-        -> null
+        is AddLoginAction.InitAdd -> copy(
+            loginsAddLoginState = LoginsAddLoginState(
+                host = "",
+                username = "",
+                password = "",
+            ),
+        )
+        is AddLoginAction.AddLoginSaveClicked -> copy(
+            newLoginState = NewLoginState.None,
+        )
+        is AddLoginAction.HostChanged -> copy(
+            loginsAddLoginState = this.loginsAddLoginState?.copy(
+                host = action.hostChanged,
+            ),
+            newLoginState = if (loginItems.hasDuplicate(
+                    action.hostChanged,
+                    this.loginsAddLoginState?.username,
+                )
+            ) {
+                NewLoginState.Duplicate
+            } else {
+                NewLoginState.None
+            },
+        )
+        is AddLoginAction.UsernameChanged -> copy(
+            loginsAddLoginState = this.loginsAddLoginState?.copy(
+                username = action.usernameChanged,
+            ),
+            newLoginState = if (loginItems.hasDuplicate(
+                    this.loginsAddLoginState?.host,
+                    action.usernameChanged,
+                )
+            ) {
+                NewLoginState.Duplicate
+            } else {
+                NewLoginState.None
+            },
+        )
+        is AddLoginAction.PasswordChanged -> copy(
+            loginsAddLoginState = this.loginsAddLoginState?.copy(
+                password = action.passwordChanged,
+            ),
+        )
     }
 
 private fun LoginsState.respondToLoginsDetailBackClick(): LoginsState = when {
@@ -116,3 +158,15 @@ private fun LoginsState.respondToLoginsDetailBackClick(): LoginsState = when {
 
     else -> this
 }
+
+private fun LoginsState.respondToAddLoginBackClick(): LoginsState = when {
+    loginsAddLoginState != null -> copy(
+        newLoginState = null,
+        loginsAddLoginState = null,
+    )
+
+    else -> this
+}
+
+private fun List<LoginItem>.hasDuplicate(host: String?, username: String?): Boolean =
+    this.isNotEmpty() && this.any { it.url == host && it.username == username }

@@ -76,7 +76,7 @@ class LoginsMiddlewareTest {
 
             val middleware = buildMiddleware()
             val store = middleware.makeStore()
-            store.dispatch(InitAdd)
+            store.dispatch(AddLoginAction.InitAdd)
             store.waitUntilIdle()
             verify(navController).navigate(LoginsDestinations.ADD_LOGIN)
         }

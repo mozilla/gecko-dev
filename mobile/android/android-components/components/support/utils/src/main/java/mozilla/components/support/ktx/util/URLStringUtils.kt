@@ -5,6 +5,7 @@
 package mozilla.components.support.ktx.util
 
 import android.text.TextUtils
+import android.util.Patterns
 import androidx.annotation.VisibleForTesting
 import androidx.core.net.toUri
 import java.util.regex.Pattern
@@ -139,4 +140,9 @@ object URLStringUtils {
         val containsToken = trimmedUrl.contains("%s")
         return isNetworkUrl && containsToken
     }
+
+    /**
+     * Determines whether a string is a valid host.
+     */
+    fun isValidHost(host: String): Boolean = host.isNotBlank() && Patterns.WEB_URL.matcher(host).matches()
 }

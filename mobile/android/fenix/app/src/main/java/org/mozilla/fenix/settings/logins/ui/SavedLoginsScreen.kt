@@ -88,7 +88,8 @@ internal fun SavedLoginsScreen(
             LoginsList(store = store)
         }
         composable(route = LoginsDestinations.ADD_LOGIN) {
-            BackHandler { store.dispatch(AddLoginAction.BackAddClicked) }
+            BackHandler { store.dispatch(AddLoginBackClicked) }
+            AddLoginScreen(store = store)
         }
         composable(route = LoginsDestinations.EDIT_LOGIN) {
             BackHandler { store.dispatch(EditLoginAction.BackEditClicked) }
@@ -152,7 +153,7 @@ private fun LoginsList(store: LoginsStore) {
 
             item {
                 AddPasswordItem(
-                    onAddPasswordClicked = { store.dispatch(InitAdd) },
+                    onAddPasswordClicked = { store.dispatch(AddLoginAction.InitAdd) },
                 )
             }
         }
@@ -212,7 +213,7 @@ private fun EmptyList(
             )
 
             AddPasswordItem(
-                onAddPasswordClicked = { dispatcher(InitAdd) },
+                onAddPasswordClicked = { dispatcher(AddLoginAction.InitAdd) },
             )
         }
     }

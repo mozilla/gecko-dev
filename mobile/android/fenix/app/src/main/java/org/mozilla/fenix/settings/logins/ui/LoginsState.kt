@@ -18,6 +18,7 @@ import mozilla.components.lib.state.State
  * @property loginsEditLoginState State representing the edit login subscreen, if visible.
  * @property loginsLoginDetailState State representing the login detail subscreen, if visible.
  * @property loginsDeletionState State representing the deletion state.
+ * @property newLoginState State representing the new login to be added state.
  */
 internal data class LoginsState(
     val loginItems: List<LoginItem> = listOf(),
@@ -30,12 +31,18 @@ internal data class LoginsState(
     val loginsEditLoginState: LoginsEditLoginState? = null,
     val loginsLoginDetailState: LoginsLoginDetailState? = null,
     val loginsDeletionState: LoginDeletionState? = null,
+    val newLoginState: NewLoginState? = NewLoginState.None,
 ) : State
 
 internal sealed class BiometricAuthenticationDialogState {
     data object None : BiometricAuthenticationDialogState()
     data object Authorized : BiometricAuthenticationDialogState()
     data object NonAuthorized : BiometricAuthenticationDialogState()
+}
+
+internal sealed class NewLoginState {
+    data object None : NewLoginState()
+    data object Duplicate : NewLoginState()
 }
 
 internal sealed class LoginDeletionState {
@@ -53,10 +60,11 @@ internal data class LoginsEditLoginState(
     val login: LoginItem,
 )
 
-internal sealed class LoginsAddLoginState {
-    data object None : LoginsAddLoginState()
-    data class Presenting(val login: LoginItem) : LoginsAddLoginState()
-}
+internal data class LoginsAddLoginState(
+    val host: String?,
+    val username: String?,
+    val password: String?,
+)
 
 internal data class LoginsLoginDetailState(
     val login: LoginItem,
