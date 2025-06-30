@@ -1,4 +1,12 @@
 {
-  "data": [],
-  "timestamp": 1727212608981
+  "data": [
+    {
+      "to": "addons.mozilla-backup.org",
+      "from": "addons.mozilla.org",
+      "schema": 1750936824485,
+      "id": "e438a41a-05ac-4779-a168-891161358b02",
+      "last_modified": 1751018358372
+    }
+  ],
+  "timestamp": 1751018358372
 }

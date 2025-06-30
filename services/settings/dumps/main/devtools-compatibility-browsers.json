@@ -1,6 +1,42 @@
 {
   "data": [
     {
+      "name": "Edge",
+      "schema": 1751069103311,
+      "status": "planned",
+      "version": "141",
+      "browserid": "edge",
+      "id": "1276177b-8e2c-4677-9839-c39cdb272d9f",
+      "last_modified": 1751266171953
+    },
+    {
+      "name": "Edge",
+      "schema": 1751069103253,
+      "status": "nightly",
+      "version": "140",
+      "browserid": "edge",
+      "id": "2f6ded78-f30e-4477-9175-c32d040041c7",
+      "last_modified": 1751266171946
+    },
+    {
+      "name": "Edge",
+      "schema": 1751069103200,
+      "status": "beta",
+      "version": "139",
+      "browserid": "edge",
+      "id": "c652a9a5-3a1c-4272-8a52-68dd4e9ae1b4",
+      "last_modified": 1751266171943
+    },
+    {
+      "name": "Edge",
+      "schema": 1751069103137,
+      "status": "current",
+      "version": "138",
+      "browserid": "edge",
+      "id": "c9aa191e-ce6c-4f14-89b3-67877f64bc92",
+      "last_modified": 1751266171940
+    },
+    {
       "name": "WebView Android",
       "schema": 1750809904832,
       "status": "planned",
@@ -190,33 +226,6 @@
       "last_modified": 1750757900185
     },
     {
-      "name": "Edge",
-      "schema": 1749859505520,
-      "status": "planned",
-      "version": "140",
-      "browserid": "edge",
-      "id": "2f6ded78-f30e-4477-9175-c32d040041c7",
-      "last_modified": 1750080149347
-    },
-    {
-      "name": "Edge",
-      "schema": 1749859505455,
-      "status": "nightly",
-      "version": "139",
-      "browserid": "edge",
-      "id": "c652a9a5-3a1c-4272-8a52-68dd4e9ae1b4",
-      "last_modified": 1750080149343
-    },
-    {
-      "name": "Edge",
-      "schema": 1749743662731,
-      "status": "beta",
-      "version": "138",
-      "browserid": "edge",
-      "id": "c9aa191e-ce6c-4f14-89b3-67877f64bc92",
-      "last_modified": 1750080149339
-    },
-    {
       "name": "Safari",
       "schema": 1749550693771,
       "status": "beta",
@@ -289,15 +298,6 @@
       "last_modified": 1748854785996
     },
     {
-      "name": "Edge",
-      "schema": 1748649903447,
-      "status": "current",
-      "version": "137",
-      "browserid": "edge",
-      "id": "fd0c0e43-c139-4526-8f78-16d479f71267",
-      "last_modified": 1748854785992
-    },
-    {
       "name": "Opera",
       "schema": 1747440304496,
       "status": "nightly",
@@ -352,5 +352,5 @@
       "last_modified": 1665656484764
     }
   ],
-  "timestamp": 1750835286636
+  "timestamp": 1751266171953
 }
