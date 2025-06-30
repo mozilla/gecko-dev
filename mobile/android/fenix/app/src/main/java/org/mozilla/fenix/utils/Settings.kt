@@ -23,6 +23,7 @@ import mozilla.components.concept.engine.EngineSession.CookieBannerHandlingMode
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.Action
 import mozilla.components.feature.sitepermissions.SitePermissionsRules.AutoplayAction
+import mozilla.components.lib.crash.store.CrashReportOption
 import mozilla.components.support.ktx.android.content.PreferencesHolder
 import mozilla.components.support.ktx.android.content.booleanPreference
 import mozilla.components.support.ktx.android.content.floatPreference
@@ -380,6 +381,11 @@ class Settings(private val appContext: Context) : PreferencesHolder {
                 appContext.getPreferenceKey(R.string.pref_key_crash_reporter),
                 true,
             )
+
+    var crashReportChoice by stringPreference(
+        appContext.getPreferenceKey(R.string.pref_key_crash_reporting_choice),
+        default = CrashReportOption.Ask.toString(),
+    )
 
     val isRemoteDebuggingEnabled by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_remote_debugging),

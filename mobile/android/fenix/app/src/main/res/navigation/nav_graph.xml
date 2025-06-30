@@ -800,7 +800,7 @@
     <fragment
         android:id="@+id/dataChoicesFragment"
         android:name="org.mozilla.fenix.settings.DataChoicesFragment"
-        android:label="@string/preferences_data_choices">
+        android:label="@string/preferences_data_collection">
         <action
             android:id="@+id/action_dataChoicesFragment_to_studiesFragment"
             app:destination="@id/studiesFragment"

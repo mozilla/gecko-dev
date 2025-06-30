@@ -4,7 +4,10 @@
 
 package org.mozilla.fenix.crashes
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import mozilla.components.lib.crash.store.CrashReportCache
+import mozilla.components.lib.crash.store.CrashReportOption
 import mozilla.components.lib.crash.store.TimeInMillis
 import org.mozilla.fenix.utils.Settings
 
@@ -36,5 +39,15 @@ class SettingsCrashReportCache(private val settings: Settings) : CrashReportCach
 
     override suspend fun setCrashPullNeverShowAgain(neverShowAgain: Boolean) {
         settings.crashPullNeverShowAgain = neverShowAgain
+    }
+
+    override suspend fun getReportOption(): CrashReportOption = try {
+        CrashReportOption.valueOf(settings.crashReportChoice)
+    } catch (e: IllegalArgumentException) {
+        CrashReportOption.Never
+    }
+
+    override suspend fun setReportOption(option: CrashReportOption) = withContext(Dispatchers.IO) {
+        settings.crashReportChoice = option.toString()
     }
 }

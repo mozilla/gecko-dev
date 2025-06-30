@@ -6,145 +6,188 @@ package org.mozilla.fenix.settings
 
 import android.content.Context
 import android.os.Bundle
-import androidx.annotation.VisibleForTesting
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.fragment.app.Fragment
 import androidx.navigation.findNavController
-import androidx.preference.Preference
-import androidx.preference.PreferenceFragmentCompat
-import androidx.preference.SwitchPreference
+import kotlinx.coroutines.launch
+import mozilla.components.lib.crash.store.CrashReportOption
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.metrics.MetricServiceType
+import org.mozilla.fenix.crashes.SettingsCrashReportCache
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.getPreferenceKey
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * Lets the user toggle telemetry on/off.
  */
-class DataChoicesFragment : PreferenceFragmentCompat() {
+class DataChoicesFragment : Fragment() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private val crashReportCache by lazy {
+        SettingsCrashReportCache(requireContext().settings())
+    }
 
-        val context = requireContext()
-        preferenceManager.sharedPreferences?.registerOnSharedPreferenceChangeListener(this) { _, key ->
-            if (key == getPreferenceKey(R.string.pref_key_telemetry)) {
-                if (context.settings().isTelemetryEnabled) {
-                    context.components.analytics.metrics.start(MetricServiceType.Data)
-                    if (!context.settings().hasUserDisabledExperimentation) {
-                        context.settings().isExperimentationEnabled = true
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?,
+    ): View {
+        return ComposeView(requireContext()).apply {
+            setContent {
+                FirefoxTheme {
+                    var telemetryEnabled by remember { mutableStateOf(context.settings().isTelemetryEnabled) }
+                    var usagePingEnabled by remember { mutableStateOf(context.settings().isDailyUsagePingEnabled) }
+                    var measurementDataEnabled by remember {
+                        mutableStateOf(context.settings().isMarketingTelemetryEnabled)
                     }
-                    requireComponents.nimbus.sdk.globalUserParticipation = true
-                    context.components.core.engine.notifyTelemetryPrefChanged(true)
-                } else {
-                    context.components.analytics.metrics.stop(MetricServiceType.Data)
-                    context.settings().isExperimentationEnabled = false
-                    requireComponents.nimbus.sdk.globalUserParticipation = false
-                    context.components.core.engine.notifyTelemetryPrefChanged(false)
-                }
-                updateStudiesSection()
-                // Reset experiment identifiers on both opt-in and opt-out; it's likely
-                // that in future we will need to pass in the new telemetry client_id
-                // to this method when the user opts back in.
-                context.components.nimbus.sdk.resetTelemetryIdentifiers()
-            } else if (key == getPreferenceKey(R.string.pref_key_marketing_telemetry)) {
-                if (context.settings().isMarketingTelemetryEnabled) {
-                    context.components.analytics.metrics.start(MetricServiceType.Marketing)
-                } else {
-                    context.components.analytics.metrics.stop(MetricServiceType.Marketing)
-                }
-            } else if (key == getPreferenceKey(R.string.pref_key_daily_usage_ping)) {
-                with(context.components.analytics.metrics) {
-                    if (context.settings().isDailyUsagePingEnabled) {
-                        start(MetricServiceType.UsageReporting)
-                    } else {
-                        stop(MetricServiceType.UsageReporting)
+                    var selectedCrashOption by remember { mutableStateOf(CrashReportOption.Ask) }
+                    val scope = rememberCoroutineScope()
+                    LaunchedEffect(Unit) {
+                        selectedCrashOption = crashReportCache.getReportOption()
                     }
+
+                    DataChoicesScreen(
+                        params = DataChoicesParams(
+                            telemetryEnabled = telemetryEnabled,
+                            usagePingEnabled = usagePingEnabled,
+                            studiesEnabled = context.settings().isExperimentationEnabled,
+                            measurementDataEnabled = measurementDataEnabled,
+                            selectedCrashOption = selectedCrashOption,
+                        ),
+                        onTelemetryToggle = { newValue ->
+                            scope.launch {
+                                updateTelemetryChoice(newValue, context)
+                            }
+                            telemetryEnabled = newValue
+                        },
+                        onUsagePingToggle = { newValue ->
+                            scope.launch {
+                                updateUsageChoice(newValue, context)
+                            }
+                            usagePingEnabled = newValue
+                        },
+                        onMarketingDataToggled = { newValue ->
+                            scope.launch {
+                                updateMarketingDataChoice(newValue, context)
+                            }
+                            measurementDataEnabled = newValue
+                        },
+                        onCrashOptionSelected = { newValue ->
+                            scope.launch {
+                                updateCrashChoice(newValue, context)
+                            }
+                            selectedCrashOption = newValue
+                        },
+                        onStudiesClick = {
+                            val action = DataChoicesFragmentDirections.actionDataChoicesFragmentToStudiesFragment()
+                            view?.findNavController()?.nav(R.id.dataChoicesFragment, action)
+                        },
+                        learnMoreTechnicalData = { learnMoreTechnicalData(context) },
+                        learnMoreDailyUsage = { learnMoreDailyUsage(context) },
+                        learnMoreCrashReport = { learnMoreCrashReport(context) },
+                        learnMoreMarketingData = { learnMoreMarketingData(context) },
+                    )
                 }
             }
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        showToolbar(getString(R.string.preferences_data_collection))
-        updateStudiesSection()
-    }
-
-    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-        setPreferencesFromResource(R.xml.data_choices_preferences, rootKey)
-
-        requirePreference<SwitchPreference>(R.string.pref_key_telemetry).apply {
-            isChecked = context.settings().isTelemetryEnabled
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-        }
-
-        val marketingTelemetryPref =
-            requirePreference<SwitchPreference>(R.string.pref_key_marketing_telemetry).apply {
-                isChecked = context.settings().isMarketingTelemetryEnabled
-                onPreferenceChangeListener = SharedPreferenceUpdater()
-                isVisible = shouldShowMarketingTelemetryPreference(requireContext().settings())
-            }
-
-        requirePreference<Preference>(R.string.pref_key_learn_about_marketing_telemetry).apply {
-            isVisible = marketingTelemetryPref.isVisible
-        }
-
-        requirePreference<SwitchPreference>(R.string.pref_key_daily_usage_ping).apply {
-            isChecked = context.settings().isDailyUsagePingEnabled
-            onPreferenceChangeListener = SharedPreferenceUpdater()
-        }
-
-        requirePreference<SwitchPreference>(R.string.pref_key_crash_reporting_always_report).apply {
-            isChecked = context.settings().crashReportAlwaysSend
-            onPreferenceChangeListener = SharedPreferenceUpdater()
+    private fun updateMarketingDataChoice(newValue: Boolean, context: Context) {
+        context.settings().isMarketingTelemetryEnabled = newValue
+        if (context.settings().isMarketingTelemetryEnabled) {
+            context.components.analytics.metrics.start(MetricServiceType.Marketing)
+        } else {
+            context.components.analytics.metrics.stop(MetricServiceType.Marketing)
         }
     }
 
-    @VisibleForTesting
-    internal fun shouldShowMarketingTelemetryPreference(settings: Settings) =
-        settings.hasMadeMarketingTelemetrySelection
+    private fun updateTelemetryChoice(newValue: Boolean, context: Context) {
+        context.settings().isTelemetryEnabled = newValue
+        if (context.settings().isTelemetryEnabled) {
+            context.components.analytics.metrics.start(MetricServiceType.Data)
+            if (!context.settings().hasUserDisabledExperimentation) {
+                context.settings().isExperimentationEnabled = true
+            }
+            requireComponents.nimbus.sdk.globalUserParticipation = true
+            context.components.core.engine.notifyTelemetryPrefChanged(true)
+        } else {
+            context.components.analytics.metrics.stop(MetricServiceType.Data)
+            context.settings().isExperimentationEnabled = false
+            requireComponents.nimbus.sdk.globalUserParticipation = false
+            context.components.core.engine.notifyTelemetryPrefChanged(false)
+        }
+        // Reset experiment identifiers on both opt-in and opt-out; it's likely
+        // that in future we will need to pass in the new telemetry client_id
+        // to this method when the user opts back in.
+        context.components.nimbus.sdk.resetTelemetryIdentifiers()
+    }
 
-    override fun onPreferenceTreeClick(preference: Preference): Boolean {
-        context?.also { context ->
-            when (preference.key) {
-                getPreferenceKey(R.string.pref_key_learn_about_telemetry) -> openLearnMoreUrlInSandboxedTab(
-                    context,
-                    SupportUtils.getSumoURLForTopic(
-                        context = context,
-                        topic = SupportUtils.SumoTopic.TECHNICAL_AND_INTERACTION_DATA,
-                    ),
-                )
-
-                getPreferenceKey(R.string.pref_key_learn_about_marketing_telemetry) -> openLearnMoreUrlInSandboxedTab(
-                    context,
-                    SupportUtils.getSumoURLForTopic(
-                        context = context,
-                        topic = SupportUtils.SumoTopic.MARKETING_DATA,
-                    ),
-                )
-
-                getPreferenceKey(R.string.pref_key_learn_about_daily_usage_ping) -> openLearnMoreUrlInSandboxedTab(
-                    context,
-                    SupportUtils.getSumoURLForTopic(
-                        context = context,
-                        topic = SupportUtils.SumoTopic.USAGE_PING_SETTINGS,
-                    ),
-                )
-
-                getPreferenceKey(R.string.pref_key_learn_about_crash_reporting) -> openLearnMoreUrlInSandboxedTab(
-                    context,
-                    SupportUtils.getSumoURLForTopic(
-                        context = context,
-                        topic = SupportUtils.SumoTopic.CRASH_REPORTS,
-                    ),
-                )
+    private fun updateUsageChoice(newValue: Boolean, context: Context) {
+        context.settings().isDailyUsagePingEnabled = newValue
+        with(context.components.analytics.metrics) {
+            if (context.settings().isDailyUsagePingEnabled) {
+                start(MetricServiceType.UsageReporting)
+            } else {
+                stop(MetricServiceType.UsageReporting)
             }
         }
-        return super.onPreferenceTreeClick(preference)
+    }
+
+    private suspend fun updateCrashChoice(newValue: CrashReportOption, context: Context) {
+        context.settings().crashReportAlwaysSend = newValue == CrashReportOption.Auto
+        context.settings().useNewCrashReporterDialog = newValue == CrashReportOption.Never
+        crashReportCache.setReportOption(newValue)
+    }
+
+    private fun learnMoreTechnicalData(context: Context) {
+        openLearnMoreUrlInSandboxedTab(
+            context,
+            SupportUtils.getSumoURLForTopic(
+                context = context,
+                topic = SupportUtils.SumoTopic.TECHNICAL_AND_INTERACTION_DATA,
+            ),
+        )
+    }
+
+    private fun learnMoreDailyUsage(context: Context) {
+        openLearnMoreUrlInSandboxedTab(
+            context,
+            SupportUtils.getSumoURLForTopic(
+                context = context,
+                topic = SupportUtils.SumoTopic.USAGE_PING_SETTINGS,
+            ),
+        )
+    }
+
+    private fun learnMoreCrashReport(context: Context) {
+        openLearnMoreUrlInSandboxedTab(
+            context,
+            SupportUtils.getSumoURLForTopic(
+                context = context,
+                topic = SupportUtils.SumoTopic.CRASH_REPORTS,
+            ),
+        )
+    }
+
+    private fun learnMoreMarketingData(context: Context) {
+        openLearnMoreUrlInSandboxedTab(
+            context,
+            SupportUtils.getSumoURLForTopic(
+                context = context,
+                topic = SupportUtils.SumoTopic.MARKETING_DATA,
+            ),
+        )
     }
 
     private fun openLearnMoreUrlInSandboxedTab(context: Context, url: String) {
@@ -152,23 +195,5 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             context = context,
             url = url,
         )
-    }
-
-    private fun updateStudiesSection() {
-        val studiesPreference = requirePreference<Preference>(R.string.pref_key_studies_section)
-        val settings = requireContext().settings()
-        val stringId = if (settings.isExperimentationEnabled) {
-            R.string.studies_on
-        } else {
-            R.string.studies_off
-        }
-        studiesPreference.isEnabled = settings.isTelemetryEnabled
-        studiesPreference.summary = getString(stringId)
-
-        studiesPreference.setOnPreferenceClickListener {
-            val action = DataChoicesFragmentDirections.actionDataChoicesFragmentToStudiesFragment()
-            view?.findNavController()?.nav(R.id.dataChoicesFragment, action)
-            true
-        }
     }
 }

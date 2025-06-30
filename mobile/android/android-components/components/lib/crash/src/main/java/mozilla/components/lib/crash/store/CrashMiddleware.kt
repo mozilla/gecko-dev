@@ -4,10 +4,23 @@
 
 package mozilla.components.lib.crash.store
 
+import androidx.annotation.StringRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.lib.crash.CrashReporter
+import mozilla.components.lib.crash.R
+
+/**
+ * Represents the available options for crash reporting preferences.
+ *
+ * @property labelId The string resource label ID associated with the option.
+ */
+enum class CrashReportOption(@StringRes val labelId: Int) {
+    Ask(R.string.crash_reporting_ask),
+    Auto(R.string.crash_reporting_auto),
+    Never(R.string.crash_reporting_never),
+}
 
 /**
  * An interface to store and retrieve a timestamp to defer submitting unsent crashes until.
@@ -52,6 +65,16 @@ interface CrashReportCache {
      * anymore
      */
     suspend fun setCrashPullNeverShowAgain(neverShowAgain: Boolean)
+
+    /**
+     * Gets the currently set crash report option ('Ask', 'Always' or 'Never')
+     */
+    suspend fun getReportOption(): CrashReportOption
+
+    /**
+     * Stores the currently set crash report option ('Ask', 'Always' or 'Never')
+     */
+    suspend fun setReportOption(option: CrashReportOption)
 }
 
 /**
