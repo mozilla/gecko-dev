@@ -10,6 +10,10 @@
  * Places database and an ML engine for vector operations.
  */
 
+/**
+ * @import {OpenedConnection} from "resource://gre/modules/Sqlite.sys.mjs"
+ */
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -115,7 +119,7 @@ class PlacesSemanticHistoryManager {
     // Add the observer for pages-rank-changed and history-cleared topics
     this.handlePlacesEvents = this.handlePlacesEvents.bind(this);
     lazy.PlacesUtils.observers.addListener(
-      ["pages-rank-changed", "history-cleared"],
+      ["pages-rank-changed", "history-cleared", "page-removed"],
       this.handlePlacesEvents
     );
 
@@ -272,31 +276,12 @@ class PlacesSemanticHistoryManager {
     );
   }
 
-  /**
-   * Observes changes to the "pages-rank-changed" and
-   * "history-cleared" topics.
-   *
-   * @param {object} subject - The subject of the observation.
-   * @param {string} topic - The observed topic.
-   */
-  observe(subject, topic) {
-    if (topic === "pages-rank-changed") {
-      lazy.logger.info("Observed pages-rank-changed topic.");
-      this.onPagesRankChanged();
-    }
-    if (topic === "history-cleared") {
-      lazy.logger.info("Observed history-cleared topic.");
-      this.onPagesRankChanged();
-    }
-  }
-
   handlePlacesEvents(events) {
     for (const { type } of events) {
       switch (type) {
         case "pages-rank-changed":
-          this.onPagesRankChanged();
-          break;
         case "history-cleared":
+        case "page-removed":
           this.onPagesRankChanged();
           break;
       }
@@ -366,7 +351,8 @@ class PlacesSemanticHistoryManager {
           let conn = await this.getConnection();
           let pagesRankChangedCount =
             PlacesObservers.counts.get("pages-rank-changed") +
-            PlacesObservers.counts.get("history-cleared");
+            PlacesObservers.counts.get("history-cleared") +
+            PlacesObservers.counts.get("page-removed");
           if (
             pagesRankChangedCount - this.#prevPagesRankChangedCount <
               this.#changeThresholdCount &&
@@ -384,9 +370,9 @@ class PlacesSemanticHistoryManager {
             `Changes exceed threshold (${this.#changeThresholdCount}).`
           );
 
-          let { count: addCount, rows: addRows } =
+          let { count: addCount, results: addRows } =
             await this.findAddsChunk(conn);
-          let { count: deleteCount, rows: deleteRows } =
+          let { count: deleteCount, results: deleteRows } =
             await this.findDeletesChunk(conn);
 
           // We already have startTime for profile markers, so just use it
@@ -476,6 +462,14 @@ class PlacesSemanticHistoryManager {
     this.#finalized = true;
   }
 
+  /**
+   * Find semantic vector entries to be added.
+   *
+   * @param {OpenedConnection} conn a SQLite connection to the database.
+   * @returns Promise<{count: number, results: { url_hash: string } }>}
+   *   Resolves to an array of objects containing results, limited to
+   *   DEFAULT_CHUNK_SIZE elements, and the total count of found entries.
+   */
   async findAddsChunk(conn) {
     // find any adds after successful checkForChanges
     const rows = await conn.executeCached(
@@ -509,13 +503,23 @@ class PlacesSemanticHistoryManager {
 
     return {
       count: rows[0]?.getResultByName("total") || 0,
-      rows: rows.map(row => ({
+      results: rows.map(row => ({
         url_hash: row.getResultByName("url_hash"),
         content: row.getResultByName("content"),
       })),
     };
   }
 
+  /**
+   * Find semantic vector entries to eventually delete due to:
+   * - Orphaning: URLs no longer in top_places
+   * - Broken Mappings: rowid has no corresponding entry in vec_history
+   *
+   * @param {OpenedConnection} conn a SQLite connection to the database.
+   * @returns Promise<{count: number, results: { url_hash: string } }>}
+   *   Resolves to an array of objects containing results, limited to
+   *   DEFAULT_CHUNK_SIZE elements, and the total count of found entries.
+   */
   async findDeletesChunk(conn) {
     // find any deletes after successful checkForChanges
     const rows = await conn.executeCached(
@@ -530,10 +534,17 @@ class PlacesSemanticHistoryManager {
         ORDER BY ${this.#samplingAttrib} DESC
         LIMIT :rowLimit
       ),
-      updates AS (
+      orphans AS (
         SELECT url_hash FROM vec_history_mapping
         EXCEPT
         SELECT url_hash FROM top_places
+      ),
+      updates AS (
+        SELECT url_hash FROM orphans
+        UNION
+        SELECT url_hash FROM vec_history_mapping
+        LEFT JOIN vec_history v USING (rowid)
+        WHERE v.rowid IS NULL
       )
       SELECT url_hash, (SELECT count(*) FROM updates) AS total
       FROM updates
@@ -548,7 +559,7 @@ class PlacesSemanticHistoryManager {
 
     return {
       count: rows[0]?.getResultByName("total") || 0,
-      rows: rows.map(row => ({
+      results: rows.map(row => ({
         url_hash: row.getResultByName("url_hash"),
       })),
     };
@@ -584,28 +595,65 @@ class PlacesSemanticHistoryManager {
             continue;
           }
 
-          const result = await conn.executeCached(
-            `
-            INSERT INTO vec_history (embedding, embedding_coarse)
-            VALUES (:vector, vec_quantize_binary(:vector))
-            RETURNING rowid
-            `,
-            { vector: this.tensorToBindable(tensor) }
-          );
-          const rowid = result[0].getResultByName("rowid");
-          // Normally there should be no conflict here, as we previously checked
-          // for the existence of the url_hash in vec_history_mapping. Though
-          // since the hash is not unique it may happen that we try to insert
-          // two pages with the same value as part of the same chunk.
-          // In that case we update the rowid for the existing url_hash.
-          await conn.executeCached(
+          // We first insert the url into vec_history_mapping, get the rowid
+          // and then insert the embedding into vec_history using that.
+          // Doing the opposite doesn't work, as RETURNING is not properly
+          // supported by the vec extension.
+          // See https://github.com/asg017/sqlite-vec/issues/229.
+
+          // Normally there should be no conflict on url_hash, as we previously
+          // checked for its existence in vec_history_mapping. Though, since
+          // the hash is not unique, we may try to insert two pages with the
+          // same hash value as part of the same chunk.
+          let rows = await conn.executeCached(
             `
             INSERT INTO vec_history_mapping (rowid, url_hash)
-            VALUES (:rowid, :url_hash)
-            ON CONFLICT(url_hash) DO UPDATE SET rowid = :rowid
+            VALUES (NULL, :url_hash)
+            /* This is apparently useless, but it makes RETURNING always return
+               a value, while DO NOTHING would not. */
+            ON CONFLICT(url_hash) DO UPDATE SET url_hash = :url_hash
+            RETURNING rowid
             `,
-            { rowid, url_hash }
+            { url_hash }
           );
+          const rowid = rows[0].getResultByName("rowid");
+          if (!rowid) {
+            lazy.logger.error(`Unable to get inserted rowid for: ${url_hash}`);
+            continue;
+          }
+
+          // UPSERT or INSERT OR REPLACE are not yet supported by the sqlite-vec
+          // extension, so we must manage the conflict manually.
+          // See https://github.com/asg017/sqlite-vec/issues/127.
+          try {
+            await conn.executeCached(
+              `
+              INSERT INTO vec_history (rowid, embedding, embedding_coarse)
+              VALUES (:rowid, :vector, vec_quantize_binary(:vector))
+              `,
+              { rowid, vector: this.tensorToBindable(tensor) }
+            );
+          } catch (error) {
+            lazy.logger.trace(
+              `Error while inserting new vector, possible conflict. Error (${error.result}): ${error.message}`
+            );
+            // Ideally we'd check for `error.result == Cr.NS_ERROR_STORAGE_CONSTRAINT`,
+            // unfortunately sqlite-vec doesn't generate a SQLITE_CONSTRAINT
+            // error in this case, so we get a generic NS_ERROR_FAILURE.
+            await conn.executeCached(
+              `
+              DELETE FROM vec_history WHERE rowid = :rowid
+              `,
+              { rowid }
+            );
+            await conn.executeCached(
+              `
+              INSERT INTO vec_history (rowid, embedding, embedding_coarse)
+              VALUES (:rowid, :vector, vec_quantize_binary(:vector))
+              `,
+              { rowid, vector: this.tensorToBindable(tensor) }
+            );
+          }
 
           lazy.logger.info(
             `Added embedding and mapping for url_hash: ${url_hash}`
@@ -621,21 +669,21 @@ class PlacesSemanticHistoryManager {
       for (let { url_hash } of rowsToDelete) {
         try {
           // Delete the mapping from vec_history_mapping table
-          const mappingResult = await conn.executeCached(
+          const rows = await conn.executeCached(
             `
-              DELETE FROM vec_history_mapping
-              WHERE url_hash = :url_hash
-              RETURNING rowid
-              `,
+            DELETE FROM vec_history_mapping
+            WHERE url_hash = :url_hash
+            RETURNING rowid
+            `,
             { url_hash }
           );
 
-          if (mappingResult.length === 0) {
+          if (rows.length === 0) {
             lazy.logger.warn(`No mapping found for url_hash: ${url_hash}`);
             continue;
           }
 
-          const rowid = mappingResult[0].getResultByName("rowid");
+          const rowid = rows[0].getResultByName("rowid");
 
           // Delete the embedding from vec_history table
           await conn.executeCached(
@@ -669,7 +717,7 @@ class PlacesSemanticHistoryManager {
     this.#shutdownProgress.state = "Connection closed";
 
     lazy.PlacesUtils.observers.removeListener(
-      ["pages-rank-changed", "history-cleared"],
+      ["pages-rank-changed", "history-cleared", "page-removed"],
       this.handlePlacesEvents
     );
 

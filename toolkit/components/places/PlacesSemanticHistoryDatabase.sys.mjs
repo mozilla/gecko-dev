@@ -29,7 +29,7 @@ ChromeUtils.defineLazyGetter(lazy, "logger", function () {
 // user downgrades, the database will be deleted and recreated.
 // If a migration throws, the database will also be deleted and recreated.
 
-const CURRENT_SCHEMA_VERSION = 1;
+const CURRENT_SCHEMA_VERSION = 2;
 
 export class PlacesSemanticHistoryDatabase {
   #asyncShutdownBlocker;
@@ -183,14 +183,11 @@ export class PlacesSemanticHistoryDatabase {
       // If you want to fully replace the database with a new one, as the data
       // cannot be easily migrated, just throw an Error from the migration.
 
-      // if (version < 2) {
-      //   // This migration adds a new column...
-      //   this.#migrateToVersion2(...);
-      // }
-      // if (version < 3) {
-      //   // This migration adds an index...
-      //   this.#migrateToVersion3(...);
-      // }
+      if (version < 2) {
+        // We found a critical issue in the relations between embeddings
+        // and URLs, so we need to replace the database.
+        throw new Error("Replacing semantic history database");
+      }
 
       await this.#conn.setSchemaVersion(CURRENT_SCHEMA_VERSION);
     });
