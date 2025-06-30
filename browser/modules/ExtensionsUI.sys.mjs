@@ -67,7 +67,7 @@ export var ExtensionsUI = {
 
   async init() {
     Services.obs.addObserver(this, "webextension-permission-prompt");
-    Services.obs.addObserver(this, "webextension-update-permission-prompt");
+    Services.obs.addObserver(this, "webextension-update-permissions");
     Services.obs.addObserver(this, "webextension-install-notify");
     Services.obs.addObserver(this, "webextension-optional-permission-prompt");
     Services.obs.addObserver(this, "webextension-defaultsearch-prompt");
@@ -281,7 +281,7 @@ export var ExtensionsUI = {
           info.reject();
         }
       });
-    } else if (topic == "webextension-update-permission-prompt") {
+    } else if (topic == "webextension-update-permissions") {
       let info = subject.wrappedJSObject;
       info.type = "update";
       let strings = this._buildStrings(info);

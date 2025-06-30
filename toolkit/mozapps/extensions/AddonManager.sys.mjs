@@ -1236,7 +1236,7 @@ var AddonManagerInternal = {
     return uri.replace(/\+/g, "%2B");
   },
 
-  updatePromptHandler(info) {
+  _updatePromptHandler(info) {
     let oldPerms = info.existingAddon.userPermissions;
     if (!oldPerms) {
       // Updating from a legacy add-on, just let it proceed
@@ -1271,10 +1271,7 @@ var AddonManagerInternal = {
           install: info.install,
         },
       };
-      Services.obs.notifyObservers(
-        subject,
-        "webextension-update-permission-prompt"
-      );
+      Services.obs.notifyObservers(subject, "webextension-update-permissions");
     });
   },
 
@@ -1339,7 +1336,7 @@ var AddonManagerInternal = {
                       // not when update-available check completes, no?
                       logger.debug(`Starting upgrade install of ${aAddon.id}`);
                       aInstall.promptHandler = (...args) =>
-                        AddonManagerInternal.updatePromptHandler(...args);
+                        AddonManagerInternal._updatePromptHandler(...args);
                       aInstall.install();
                     }
                   },
@@ -2594,7 +2591,7 @@ var AddonManagerInternal = {
 
     if (!!options.preferUpdateOverInstall && install.existingAddon) {
       install.promptHandler = (...args) =>
-        AddonManagerInternal.updatePromptHandler(...args);
+        AddonManagerInternal._updatePromptHandler(...args);
     } else {
       AddonManagerInternal.setupPromptHandler(
         browser,
@@ -4566,14 +4563,6 @@ export var AddonManager = {
    */
   get beforeShutdown() {
     return gBeforeShutdownBarrier.client;
-  },
-
-  /**
-   * Returns a promise that should be attached to an installation prompt
-   * handler when we update an add-on.
-   */
-  async updatePromptHandler(aInfo) {
-    return AddonManagerInternal.updatePromptHandler(aInfo);
   },
 };
 
