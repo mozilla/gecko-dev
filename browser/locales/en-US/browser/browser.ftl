@@ -1090,10 +1090,6 @@ tabs-toolbar-list-all-tabs =
     .label = List all tabs
     .tooltiptext = List all tabs
 
-## Drop indicator text for pinned tabs when no tabs are pinned.
-
-pinned-tabs-drop-indicator = Drop tab here to pin
-
 ## Infobar shown at startup to suggest session-restore
 
 # <img data-l10n-name="icon"/> will be replaced by the application menu icon
