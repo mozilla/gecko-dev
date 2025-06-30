@@ -525,10 +525,10 @@ nsWebBrowser::GotoIndex(int32_t aIndex, bool aUserActivation) {
 }
 
 NS_IMETHODIMP
-nsWebBrowser::Stop(uint32_t aStopFlags) {
+nsWebBrowser::Stop(uint32_t aStopFlags, bool aUnsetOngoingNavigation) {
   NS_ENSURE_STATE(mDocShell);
 
-  return mDocShell->Stop(aStopFlags);
+  return mDocShell->Stop(aStopFlags, aUnsetOngoingNavigation);
 }
 
 NS_IMETHODIMP
