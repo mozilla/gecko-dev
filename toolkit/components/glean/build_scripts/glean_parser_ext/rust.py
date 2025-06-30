@@ -252,6 +252,14 @@ def output_rust(objs, output_fd, ping_names_by_app_id, options={}):
     #   18 -> "test_only::an_object"
     objects_by_id = {}
 
+    # Map from a metric ID to the fully qualified path of the dual_labeled_counter metric in Rust.
+    # Required for the special handling of dual_labeled_counter metric lookups.
+    #
+    # Example:
+    #
+    #   18 -> "test_only::a_dual_labeled_counter"
+    dual_labeled_counters_by_id = {}
+
     # Map from a labeled type (e.g. "counter") to a map from metric ID to the
     # fully qualified path of the labeled metric object in Rust paired with
     # whether the labeled metric has an enum.
@@ -284,6 +292,9 @@ def output_rust(objs, output_fd, ping_names_by_app_id, options={}):
                     continue
                 if metric.type == "object":
                     objects_by_id[get_metric_id(metric)] = full_path
+                    continue
+                if metric.type == "dual_labeled_counter":
+                    dual_labeled_counters_by_id[get_metric_id(metric)] = full_path
                     continue
 
                 if getattr(metric, "labeled", False):
@@ -324,6 +335,7 @@ def output_rust(objs, output_fd, ping_names_by_app_id, options={}):
             extra_args=util.extra_args,
             events_by_id=events_by_id,
             objects_by_id=objects_by_id,
+            dual_labeled_counters_by_id=dual_labeled_counters_by_id,
             labeleds_by_id_by_type=labeleds_by_id_by_type,
             submetric_bit=ID_BITS - ID_SIGNAL_BITS,
             ping_names_by_app_id=ping_names_by_app_id,

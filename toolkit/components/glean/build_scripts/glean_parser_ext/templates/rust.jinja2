@@ -189,13 +189,16 @@ pub mod {{ category_name|snake_case }} {
         {%- for arg_name in extra_args if not obj.labeled and obj[arg_name] is defined and arg_name not in common_metric_data_args and arg_name != 'allowed_extra_keys' -%}
             , {{ obj[arg_name]|rust }}
         {%- endfor -%}
-        {{ ", " if obj.labeled else ")\n" }}
+        {{ ", " if obj.labeled or obj.dual_labeled else ")\n" }}
         {%- if obj.labeled -%}
         {%- if obj.labels -%}
-        Some({{ obj.labels|rust }})
+        Some({{ obj.labels|rust }}))
         {%- else -%}
-        None
-        {%- endif -%})
+        None)
+        {%- endif -%}
+        {%- elif obj.dual_labeled -%}
+        {{ "Some(" ~ obj.keys|rust ~ ")" if obj.keys else "None" }},
+        {{ "Some(" ~ obj.categories|rust ~ ")" if obj.categories else "None" }})
         {%- endif -%};
         {% if obj.type == "event" or obj.type == "object" %}
         {#
@@ -520,6 +523,25 @@ pub(crate) mod __glean_metric_maps {
         }
     }
 
+{# dual_labeled type support. Only need dual_labeled_counter for now, so specialize. #}
+    pub(crate) fn dual_labeled_counter_get(metric_id: u32, key: &str, category: &str) -> Arc<DualLabeledCounterSubMetric> {
+        match metric_id {
+{% for metric_id, dlc in dual_labeled_counters_by_id.items() %}
+            {{metric_id}} => super::{{dlc}}.get(key, category),
+{% endfor %}
+            _ => panic!("No dual_labeled_counter for metric id {}", metric_id),
+        }
+    }
+
+    pub(crate) fn dual_labeled_submetric_id_get(metric_id: u32, key: &str, category: &str) -> u32 {
+        match metric_id {
+{% for metric_id, dlc in dual_labeled_counters_by_id.items() %}
+            {{metric_id}} => super::{{dlc}}.get_submetric_id(key, category),
+{% endfor %}
+            _ => panic!("No dual-labeled metric for id {}", metric_id),
+        }
+    }
+
     pub(crate) mod submetric_maps {
         use std::sync::{
           atomic::AtomicU32,
@@ -544,6 +566,10 @@ pub(crate) mod __glean_metric_maps {
         );
 {% endif %}
 {% endfor%}
+
+        pub static DUAL_COUNTER_MAP: Lazy<RwLock<HashMap<SubMetricId, Arc<DualLabeledCounterSubMetric>>>> = Lazy::new(||
+            RwLock::new(HashMap::new())
+        );
     }
 }
 {% endif %}

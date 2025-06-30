@@ -7416,6 +7416,29 @@
     "bug_numbers": [1907945],
     "description": "a testing histogram; not meant to be touched"
   },
+  "TELEMETRY_TEST_MIRROR_FOR_DUAL_LABELED_COUNTER": {
+    "record_in_processes": ["all"],
+    "products": ["firefox", "thunderbird"],
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["telemetry-client-dev@mozilla.com"],
+    "expires_in_version": "never",
+    "kind": "categorical",
+    "keyed": true,
+    "labels": ["CommonLabel", "Label2", "Label3"],
+    "bug_numbers": [1973102],
+    "description": "a testing histogram; not meant to be touched"
+  },
+  "TELEMETRY_TEST_ANOTHER_MIRROR_FOR_DUAL_LABELED_COUNTER": {
+    "record_in_processes": ["all"],
+    "products": ["firefox", "thunderbird"],
+    "releaseChannelCollection": "opt-out",
+    "alert_emails": ["telemetry-client-dev@mozilla.com"],
+    "expires_in_version": "never",
+    "kind": "boolean",
+    "keyed": true,
+    "bug_numbers": [1973102],
+    "description": "a testing histogram; not meant to be touched"
+  },
   "SAFE_MODE_USAGE": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],
