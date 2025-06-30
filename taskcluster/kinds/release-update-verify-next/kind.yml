@@ -43,6 +43,12 @@ task-defaults:
         chunks: 12
 
 tasks:
+    firefox-next-linux64-aarch64:
+        description: linux64-aarch64 esr-next update verify
+        shipping-product: firefox
+        attributes:
+            build_platform: linux64-aarch64-shippable
+
     firefox-next-linux64:
         description: linux64 esr-next update verify
         shipping-product: firefox
