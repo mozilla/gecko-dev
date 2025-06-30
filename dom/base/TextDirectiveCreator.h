@@ -45,12 +45,12 @@ class TextDirectiveCreator {
    *         given range, or an error code.
    */
   static Result<nsCString, ErrorResult> CreateTextDirectiveFromRange(
-      Document* aDocument, AbstractRange* aInputRange);
+      Document& aDocument, AbstractRange* aInputRange);
 
   virtual ~TextDirectiveCreator() = default;
 
  protected:
-  TextDirectiveCreator(Document* aDocument, AbstractRange* aRange);
+  TextDirectiveCreator(Document& aDocument, AbstractRange* aRange);
 
   /**
    * @brief Ensures the boundary points of the range point to word boundaries.
@@ -77,7 +77,7 @@ class TextDirectiveCreator {
    * @brief Creates an instance either for exact or range-based matching.
    */
   static Result<UniquePtr<TextDirectiveCreator>, ErrorResult> CreateInstance(
-      Document* aDocument, AbstractRange* aRange);
+      Document& aDocument, AbstractRange* aRange);
 
   /**
    * @brief Collects text content surrounding the target range.
@@ -210,8 +210,8 @@ class TextDirectiveCreator {
   nsString mSuffixFoldCaseContent;
   nsTArray<uint32_t> mSuffixWordEndDistances;
 
-  NotNull<RefPtr<Document>> mDocument;
-  NotNull<RefPtr<AbstractRange>> mRange;
+  Document& mDocument;
+  RefPtr<AbstractRange> mRange;
 
   /**
    * The watchdog ensures that the algorithm exits after a defined time

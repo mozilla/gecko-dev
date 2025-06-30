@@ -28,6 +28,8 @@ class Document;
  */
 class TextDirectiveFinder final {
  public:
+  TextDirectiveFinder(Document& aDocument,
+                      nsTArray<TextDirective>&& aTextDirectives);
   ~TextDirectiveFinder();
 
   /**
@@ -50,10 +52,7 @@ class TextDirectiveFinder final {
       const TextDirective& aTextDirective);
 
  private:
-  friend class FragmentDirective;
-  TextDirectiveFinder(Document* aDocument,
-                      nsTArray<TextDirective>&& aTextDirectives);
-  NotNull<RefPtr<Document>> mDocument;
+  Document& mDocument;
   nsTArray<TextDirective> mUninvokedTextDirectives;
 
   /**
