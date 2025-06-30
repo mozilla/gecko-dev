@@ -244,7 +244,8 @@ open class DefaultComponents(private val applicationContext: Context) {
 
     val appLinksInterceptor by lazy {
         AppLinksInterceptor(
-            context = applicationContext,
+            applicationContext,
+            interceptLinkClicks = true,
             launchInApp = {
                 applicationContext.components.preferences.getBoolean(PREF_LAUNCH_EXTERNAL_APP, false)
             },

@@ -112,6 +112,8 @@ typealias GeckoAntiTracking = ContentBlocking.AntiTracking
 typealias GeckoSafeBrowsing = ContentBlocking.SafeBrowsing
 typealias GeckoCookieBehavior = ContentBlocking.CookieBehavior
 
+private const val AID = "AID"
+
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class GeckoEngineSessionTest {
@@ -3418,8 +3420,6 @@ class GeckoEngineSessionTest {
 
         var observedUrl: String? = null
         var observedIntent: Intent? = null
-        var observedFallbackUrl: String? = null
-        var observedAppName: String? = null
 
         var observedLoadUrl: String? = null
         var observedTriggeredByRedirect: Boolean? = null
@@ -3439,7 +3439,7 @@ class GeckoEngineSessionTest {
                 isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 return when (uri) {
-                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result", "fallback", "app")
+                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result")
                     else -> null
                 }
             }
@@ -3450,13 +3450,9 @@ class GeckoEngineSessionTest {
                 override fun onLaunchIntentRequest(
                     url: String,
                     appIntent: Intent?,
-                    fallbackUrl: String?,
-                    appName: String?,
                 ) {
                     observedUrl = url
                     observedIntent = appIntent
-                    observedFallbackUrl = fallbackUrl
-                    observedAppName = appName
                 }
 
                 override fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
@@ -3480,8 +3476,6 @@ class GeckoEngineSessionTest {
         assertEquals(result!!.poll(0), AllowOrDeny.DENY)
         assertNotNull(observedIntent)
         assertEquals("result", observedUrl)
-        assertNotNull(observedFallbackUrl)
-        assertNotNull(observedAppName)
         assertNull(observedLoadUrl)
         assertNull(observedTriggeredByRedirect)
         assertNull(observedTriggeredByWebContent)
@@ -3515,8 +3509,6 @@ class GeckoEngineSessionTest {
 
         var observedUrl: String? = null
         var observedIntent: Intent? = null
-        var observedFallbackUrl: String? = null
-        var observedAppName: String? = null
 
         var observedLoadUrl: String? = null
         var observedTriggeredByRedirect: Boolean? = null
@@ -3536,7 +3528,7 @@ class GeckoEngineSessionTest {
                 isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 return when (uri) {
-                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result", "fallback", "app")
+                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result")
                     else -> null
                 }
             }
@@ -3547,13 +3539,9 @@ class GeckoEngineSessionTest {
                 override fun onLaunchIntentRequest(
                     url: String,
                     appIntent: Intent?,
-                    fallbackUrl: String?,
-                    appName: String?,
                 ) {
                     observedUrl = url
                     observedIntent = appIntent
-                    observedFallbackUrl = fallbackUrl
-                    observedAppName = appName
                 }
 
                 override fun onLoadRequest(url: String, triggeredByRedirect: Boolean, triggeredByWebContent: Boolean) {
@@ -3578,8 +3566,6 @@ class GeckoEngineSessionTest {
         assertNull(observedIntent)
         assertNull(observedUrl)
         assertNull(observedLoadUrl)
-        assertNull(observedFallbackUrl)
-        assertNull(observedAppName)
         assertNull(observedTriggeredByRedirect)
         assertNull(observedTriggeredByWebContent)
 
@@ -3597,8 +3583,6 @@ class GeckoEngineSessionTest {
         assertNull(observedIntent)
         assertNull(observedUrl)
         assertNull(observedLoadUrl)
-        assertNull(observedFallbackUrl)
-        assertNull(observedAppName)
         assertNull(observedTriggeredByRedirect)
         assertNull(observedTriggeredByWebContent)
     }
@@ -3630,7 +3614,7 @@ class GeckoEngineSessionTest {
                 isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 return when (uri) {
-                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result", null, null)
+                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result")
                     else -> null
                 }
             }
@@ -3780,37 +3764,29 @@ class GeckoEngineSessionTest {
                 isSubframeRequest: Boolean,
             ): RequestInterceptor.InterceptionResponse? {
                 return when (uri) {
-                    "sample:triggeredByRedirect" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result1", "fallback1", "app1")
-                    "sample:NotTriggeredByRedirect" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result2", "fallback2", "app2")
-                    "sample:isDirectNavigation" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result3", "fallback3", "app3")
+                    "sample:triggeredByRedirect" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result1")
+                    "sample:NotTriggeredByRedirect" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result2")
+                    "sample:isDirectNavigation" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result3")
                     else -> null
                 }
             }
         }
 
         val observer = object : EngineSession.Observer {
-            var observedUrl: String? = null
-            var observedIntent: Intent? = null
-            var observedFallbackUrl: String? = null
-            var observedAppName: String? = null
+            var url: String? = null
+            var intent: Intent? = null
 
             override fun onLaunchIntentRequest(
                 url: String,
                 appIntent: Intent?,
-                fallbackUrl: String?,
-                appName: String?,
             ) {
-                observedUrl = url
-                observedIntent = appIntent
-                observedFallbackUrl = fallbackUrl
-                observedAppName = appName
+                this.url = url
+                intent = appIntent
             }
 
             fun reset() {
-                observedUrl = null
-                observedIntent = null
-                observedFallbackUrl = null
-                observedAppName = null
+                url = null
+                intent = null
             }
         }
 
@@ -3821,10 +3797,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:triggeredByRedirect", triggeredByRedirect = true, isDirectNavigation = false),
         )
 
-        assertNotNull(observer.observedIntent)
-        assertEquals("result1", observer.observedUrl)
-        assertEquals("fallback1", observer.observedFallbackUrl)
-        assertEquals("app1", observer.observedAppName)
+        assertNotNull(observer.intent)
+        assertEquals("result1", observer.url)
 
         observer.reset()
         navigationDelegate.value.onLoadRequest(
@@ -3832,10 +3806,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:NotTriggeredByRedirect", triggeredByRedirect = false, isDirectNavigation = false),
         )
 
-        assertNotNull(observer.observedIntent)
-        assertEquals("result2", observer.observedUrl)
-        assertEquals("fallback2", observer.observedFallbackUrl)
-        assertEquals("app2", observer.observedAppName)
+        assertNotNull(observer.intent)
+        assertEquals("result2", observer.url)
 
         observer.reset()
         navigationDelegate.value.onLoadRequest(
@@ -3843,10 +3815,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:isDirectNavigation", triggeredByRedirect = false, isDirectNavigation = true),
         )
 
-        assertNull(observer.observedIntent)
-        assertNull(observer.observedUrl)
-        assertNull(observer.observedFallbackUrl)
-        assertNull(observer.observedAppName)
+        assertNull(observer.intent)
+        assertNull(observer.url)
     }
 
     @Test
@@ -3899,8 +3869,6 @@ class GeckoEngineSessionTest {
 
         var observedUrl: String? = null
         var observedIntent: Intent? = null
-        var observedFallbackUrl: String? = null
-        var observedAppName: String? = null
         var observedIsSubframe = false
 
         engineSession.settings.requestInterceptor = object : RequestInterceptor {
@@ -3918,7 +3886,7 @@ class GeckoEngineSessionTest {
             ): RequestInterceptor.InterceptionResponse? {
                 observedIsSubframe = isSubframeRequest
                 return when (uri) {
-                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result", "fallback", "app")
+                    "sample:about" -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), "result")
                     else -> null
                 }
             }
@@ -3929,13 +3897,9 @@ class GeckoEngineSessionTest {
                 override fun onLaunchIntentRequest(
                     url: String,
                     appIntent: Intent?,
-                    fallbackUrl: String?,
-                    appName: String?,
                 ) {
                     observedUrl = url
                     observedIntent = appIntent
-                    observedFallbackUrl = fallbackUrl
-                    observedAppName = appName
                 }
             },
         )
@@ -3947,14 +3911,8 @@ class GeckoEngineSessionTest {
 
         assertNotNull(observedIntent)
         assertEquals("result", observedUrl)
-        assertEquals("fallback", observedFallbackUrl)
-        assertEquals("app", observedAppName)
         assertEquals(true, observedIsSubframe)
 
-        observedUrl = null
-        observedIntent = null
-        observedFallbackUrl = null
-        observedAppName = null
         navigationDelegate.value.onSubframeLoadRequest(
             mock(),
             mockLoadRequest("sample:about", triggeredByRedirect = false),
@@ -3962,8 +3920,6 @@ class GeckoEngineSessionTest {
 
         assertNotNull(observedIntent)
         assertEquals("result", observedUrl)
-        assertEquals("fallback", observedFallbackUrl)
-        assertEquals("app", observedAppName)
         assertEquals(true, observedIsSubframe)
     }
 
@@ -3976,10 +3932,8 @@ class GeckoEngineSessionTest {
 
         captureDelegates()
 
-        var observedUrl: String? = null
-        var observedIntent: Intent? = null
-        var observedFallbackUrl: String? = null
-        var observedAppName: String? = null
+        var observedLaunchIntentUrl: String? = null
+        var observedLaunchIntent: Intent? = null
         var observedOnLoadRequestUrl: String? = null
         var observedTriggeredByRedirect: Boolean? = null
         var observedTriggeredByWebContent: Boolean? = null
@@ -4009,13 +3963,9 @@ class GeckoEngineSessionTest {
                 override fun onLaunchIntentRequest(
                     url: String,
                     appIntent: Intent?,
-                    fallbackUrl: String?,
-                    appName: String?,
                 ) {
-                    observedUrl = url
-                    observedIntent = appIntent
-                    observedFallbackUrl = fallbackUrl
-                    observedAppName = appName
+                    observedLaunchIntentUrl = url
+                    observedLaunchIntent = appIntent
                 }
 
                 override fun onLoadRequest(
@@ -4035,10 +3985,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:about", triggeredByRedirect = true),
         )
 
-        assertNull(observedUrl)
-        assertNull(observedIntent)
-        assertNull(observedFallbackUrl)
-        assertNull(observedAppName)
+        assertNull(observedLaunchIntentUrl)
+        assertNull(observedLaunchIntent)
         assertNull(observedTriggeredByRedirect)
         assertNull(observedTriggeredByWebContent)
         assertNull(observedOnLoadRequestUrl)
@@ -4048,10 +3996,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:about", triggeredByRedirect = false),
         )
 
-        assertNull(observedUrl)
-        assertNull(observedIntent)
-        assertNull(observedFallbackUrl)
-        assertNull(observedAppName)
+        assertNull(observedLaunchIntentUrl)
+        assertNull(observedLaunchIntent)
         assertNull(observedTriggeredByRedirect)
         assertNull(observedTriggeredByWebContent)
         assertNull(observedOnLoadRequestUrl)
@@ -4066,10 +4012,8 @@ class GeckoEngineSessionTest {
 
         captureDelegates()
 
-        var observedUrl: String? = null
-        var observedIntent: Intent? = null
-        var observedFallbackUrl: String? = null
-        var observedAppName: String? = null
+        var observedLaunchIntentUrl: String? = null
+        var observedLaunchIntent: Intent? = null
         var observedOnLoadRequestUrl: String? = null
         var observedTriggeredByRedirect: Boolean? = null
         var observedTriggeredByWebContent: Boolean? = null
@@ -4080,13 +4024,9 @@ class GeckoEngineSessionTest {
                 override fun onLaunchIntentRequest(
                     url: String,
                     appIntent: Intent?,
-                    fallbackUrl: String?,
-                    appName: String?,
                 ) {
-                    observedUrl = url
-                    observedIntent = appIntent
-                    observedFallbackUrl = fallbackUrl
-                    observedAppName = appName
+                    observedLaunchIntentUrl = url
+                    observedLaunchIntent = appIntent
                 }
 
                 override fun onLoadRequest(
@@ -4106,10 +4046,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:about", triggeredByRedirect = true),
         )
 
-        assertNull(observedUrl)
-        assertNull(observedIntent)
-        assertNull(observedFallbackUrl)
-        assertNull(observedAppName)
+        assertNull(observedLaunchIntentUrl)
+        assertNull(observedLaunchIntent)
         assertNotNull(observedTriggeredByRedirect)
         assertTrue(observedTriggeredByRedirect!!)
         assertNotNull(observedTriggeredByWebContent)
@@ -4121,10 +4059,8 @@ class GeckoEngineSessionTest {
             mockLoadRequest("sample:about", triggeredByRedirect = false),
         )
 
-        assertNull(observedUrl)
-        assertNull(observedIntent)
-        assertNull(observedFallbackUrl)
-        assertNull(observedAppName)
+        assertNull(observedLaunchIntentUrl)
+        assertNull(observedLaunchIntent)
         assertNotNull(observedTriggeredByRedirect)
         assertFalse(observedTriggeredByRedirect!!)
         assertNotNull(observedTriggeredByWebContent)
@@ -4158,7 +4094,7 @@ class GeckoEngineSessionTest {
             ): RequestInterceptor.InterceptionResponse? {
                 return when (uri) {
                     fakeUrl -> null
-                    else -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), fakeUrl, null, null)
+                    else -> RequestInterceptor.InterceptionResponse.AppIntent(mock(), fakeUrl)
                 }
             }
         }

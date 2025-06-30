@@ -40,12 +40,7 @@ interface RequestInterceptor {
             val additionalHeaders: Map<String, String>? = null,
         ) : InterceptionResponse()
 
-        data class AppIntent(
-            val appIntent: Intent,
-            val url: String,
-            val fallbackUrl: String?,
-            val appName: String?,
-        ) : InterceptionResponse()
+        data class AppIntent(val appIntent: Intent, val url: String) : InterceptionResponse()
 
         /**
          * Deny request without further action.

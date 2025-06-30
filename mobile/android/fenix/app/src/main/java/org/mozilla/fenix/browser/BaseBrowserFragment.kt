@@ -76,7 +76,6 @@ import mozilla.components.concept.storage.CreditCardEntry
 import mozilla.components.concept.storage.Login
 import mozilla.components.concept.storage.LoginEntry
 import mozilla.components.feature.accounts.push.SendTabUseCases
-import mozilla.components.feature.app.links.AppLinksFeature
 import mozilla.components.feature.contextmenu.ContextMenuCandidate
 import mozilla.components.feature.contextmenu.ContextMenuFeature
 import mozilla.components.feature.downloads.DownloadsFeature
@@ -296,7 +295,6 @@ abstract class BaseBrowserFragment :
     private val lastTabFeature = ViewBoundFeatureWrapper<LastTabFeature>()
     private val contextMenuFeature = ViewBoundFeatureWrapper<ContextMenuFeature>()
     private val downloadsFeature = ViewBoundFeatureWrapper<DownloadsFeature>()
-    private val appLinksFeature = ViewBoundFeatureWrapper<AppLinksFeature>()
     private val shareResourceFeature = ViewBoundFeatureWrapper<ShareResourceFeature>()
     private val copyDownloadsFeature = ViewBoundFeatureWrapper<CopyDownloadFeature>()
     private val promptsFeature = ViewBoundFeatureWrapper<PromptFeature>()
@@ -922,33 +920,6 @@ abstract class BaseBrowserFragment :
             },
             onShow = ::onAutocompleteBarShow,
             onHide = ::onAutocompleteBarHide,
-        )
-
-        appLinksFeature.set(
-            feature = AppLinksFeature(
-                context = requireContext(),
-                store = store,
-                sessionId = tab.id,
-                fragmentManager = parentFragmentManager,
-                launchInApp = { context.settings().shouldOpenLinksInApp(customTabSessionId != null) },
-                loadUrlUseCase = requireComponents.useCases.sessionUseCases.loadUrl,
-                shouldPrompt = { context.settings().shouldPromptOpenLinksInApp() },
-                alwaysOpenCheckboxAction = {
-                    context.settings().openLinksInExternalApp =
-                        context.getString(R.string.pref_key_open_links_in_apps_always)
-                },
-                failedToLaunchAction = { fallbackUrl ->
-                    fallbackUrl?.let {
-                        val appLinksUseCases = requireComponents.useCases.appLinksUseCases
-                        val getRedirect = appLinksUseCases.appLinkRedirect
-                        val redirect = getRedirect.invoke(fallbackUrl)
-                        redirect.appIntent?.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        appLinksUseCases.openAppLink.invoke(redirect.appIntent)
-                    }
-                },
-            ),
-            owner = this,
-            view = binding.root,
         )
 
         promptsFeature.set(
@@ -1778,6 +1749,16 @@ abstract class BaseBrowserFragment :
         }
         hideToolbar()
 
+        components.services.appLinksInterceptor.updateFragmentManger(
+            fragmentManager = parentFragmentManager,
+        )
+        context?.settings()?.shouldOpenLinksInApp(customTabSessionId != null)
+            ?.let { openLinksInExternalApp ->
+                components.services.appLinksInterceptor.updateLaunchInApp {
+                    openLinksInExternalApp
+                }
+            }
+
         evaluateMessagesForMicrosurvey(components)
 
         BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldShowAuthenticationPrompt =
@@ -1795,6 +1776,10 @@ abstract class BaseBrowserFragment :
         if (findNavController().currentDestination?.id != R.id.searchDialogFragment) {
             view?.hideKeyboard()
         }
+
+        requireComponents.services.appLinksInterceptor.updateFragmentManger(
+            fragmentManager = null,
+        )
     }
 
     @CallSuper

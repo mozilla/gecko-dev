@@ -13,6 +13,8 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.accounts.FirefoxAccountsAuthFeature
 import mozilla.components.feature.app.links.AppLinksInterceptor
 import mozilla.components.service.fxa.manager.FxaAccountManager
+import org.mozilla.fenix.R
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.perf.lazyMonitored
 import org.mozilla.fenix.settings.SupportUtils
@@ -46,9 +48,17 @@ class Services(
     val appLinksInterceptor by lazyMonitored {
         AppLinksInterceptor(
             context = context,
+            interceptLinkClicks = true,
+            showCheckbox = true,
             launchInApp = { context.settings().shouldOpenLinksInApp() },
-            launchFromInterceptor = false,
+            shouldPrompt = { context.settings().shouldPromptOpenLinksInApp() },
+            checkboxCheckedAction = {
+                context.settings().openLinksInExternalApp =
+                    context.getString(R.string.pref_key_open_links_in_apps_always)
+            },
+            launchFromInterceptor = true,
             store = store,
+            loadUrlUseCase = context.components.useCases.sessionUseCases.loadUrl,
         )
     }
 }
