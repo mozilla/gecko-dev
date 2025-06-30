@@ -378,17 +378,9 @@ interface nsIWebNavigation : nsISupports
    *
    * @param aStopFlags
    *        This parameter is one of the stop flags defined above.
-   * @param aUnsetOngoingNavigation
-    *       If true, sets the ongoing navigation to null, as defined in
-    *       https://html.spec.whatwg.org/#aborting-a-document-load:set-the-ongoing-navigation
    */
-  void stop(in unsigned long aStopFlags, [optional] in boolean aUnsetOngoingNavigation);
+  void stop(in unsigned long aStopFlags);
 
-  %{C++
-   NS_IMETHOD Stop(unsigned long aStopFlags) {
-    return Stop(aStopFlags, /*aUnsetOngoingNavigation = */true);
-   }
-  %}
   /**
    * Retrieves the current DOM document for the frame, or lazily creates a
    * blank document if there is none.  This attribute never returns null except

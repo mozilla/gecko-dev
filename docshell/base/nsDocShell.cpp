@@ -4208,10 +4208,9 @@ nsresult nsDocShell::ReloadDocument(nsDocShell* aDocShell, Document* aDocument,
 
 // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
 MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
-nsDocShell::Stop(uint32_t aStopFlags, bool aUnsetOngoingNavigation) {
+nsDocShell::Stop(uint32_t aStopFlags) {
   RefPtr kungFuDeathGrip = this;
-  if (RefPtr<Document> doc = GetDocument();
-      aUnsetOngoingNavigation && doc && !doc->ShouldIgnoreOpens()) {
+  if (RefPtr<Document> doc = GetDocument(); doc && !doc->ShouldIgnoreOpens()) {
     SetOngoingNavigation(Nothing());
   }
 
@@ -9835,10 +9834,9 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     // starts arriving from the new URI...
     if ((mDocumentViewer && mDocumentViewer->GetPreviousViewer()) ||
         LOAD_TYPE_HAS_FLAGS(aLoadState->LoadType(), LOAD_FLAGS_STOP_CONTENT)) {
-      rv = Stop(nsIWebNavigation::STOP_ALL, /*aUnsetOngoingNavigation=*/false);
+      rv = Stop(nsIWebNavigation::STOP_ALL);
     } else {
-      rv = Stop(nsIWebNavigation::STOP_NETWORK,
-                /*aUnsetOngoingNavigation=*/false);
+      rv = Stop(nsIWebNavigation::STOP_NETWORK);
     }
 
     if (NS_FAILED(rv)) {
