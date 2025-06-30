@@ -3906,7 +3906,11 @@
 # See bug 1953860 for background and additional details.
 - name: dom.quotaManager.loadQuotaFromSecondaryCache
   type: RelaxedAtomicBool
+#if defined(NIGHTLY_BUILD) && defined(XP_LINUX) && !defined(ANDROID)
+  value: true
+#else
   value: false
+#endif
   mirror: always
 
 # Should we check build ID as part of the cache validation?
