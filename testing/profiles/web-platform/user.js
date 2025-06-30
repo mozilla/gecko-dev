@@ -59,6 +59,9 @@ user_pref("media.block-autoplay-until-in-foreground", false);
 // Disable dark scrollbars as it can be semi-transparent that many reftests
 // don't expect.
 user_pref("widget.disable-dark-scrollbar", true);
+// The Ubuntu Yaru theme has semi-transparent scrollbar track, which some tests
+// assume doesn't exist.
+user_pref("widget.gtk.theme-scrollbar-colors.enabled", false);
 // Disable scrollbar animations. Otherwise reftests that use overlay scrollbars
 // (only Android right now), might get a snapshot at different times during the
 // animation.

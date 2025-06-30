@@ -56,6 +56,18 @@ user_pref("layout.interruptible-reflow.enabled", false);
 // reftest snapshots at the same point during the fade.
 user_pref("layout.testing.overlay-scrollbars.always-visible", true);
 user_pref("ui.scrollbarFadeDuration", 0);
+// Disable dark and themed scrollbars because they might be
+// semi-transparent.
+user_pref("widget.gtk.theme-scrollbar-colors.enabled", false);
+user_pref("widget.disable-dark-scrollbar", true);
+// Disable antialiasing of ahem font.
+user_pref("gfx.font_rendering.ahem_antialias_none", true);
+// Run the "deferred" font-loader immediately, because if it finishes
+// mid-test, the extra reflow that is triggered can disrupt the test.
+user_pref("gfx.font_loader.delay", 0);
+// Ensure bundled fonts are activated, even if not enabled by default
+// on the platform, so that tests can rely on them.
+user_pref("gfx.bundled-fonts.activate", 1);
 // The broken image icon doesn't block the load event and thus there's no easy
 // way to guarantee it's loaded by the time we take the reftest screenshot.
 user_pref("layout.image.eager_broken_image_icon", true);
