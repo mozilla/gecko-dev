@@ -24,7 +24,6 @@ import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.selector.selectedTab
-import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action
@@ -83,6 +82,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.browser.store.BrowserScreenAction
 import org.mozilla.fenix.browser.store.BrowserScreenStore
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
@@ -190,8 +190,6 @@ class BrowserToolbarMiddleware(
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     private var store: BrowserToolbarStore? = null
-    private val currentTab
-        get() = browserStore.state.selectedTab
 
     /**
      * Updates the [LifecycleDependencies] of this middleware.
@@ -229,7 +227,7 @@ class BrowserToolbarMiddleware(
                 updateCurrentPageOrigin()
                 updateEndBrowserActions()
                 updateCurrentPageOrigin()
-                updateStartPageActions(currentTab)
+                updateStartPageActions()
             }
 
             is StartPageActions.SiteInfoClicked -> {
@@ -411,7 +409,8 @@ class BrowserToolbarMiddleware(
     }
 
     private fun onSiteInfoClicked() {
-        val tab = requireNotNull(currentTab)
+        val tab = browserStore.state.selectedTab ?: return
+
         dependencies.lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             val sitePermissions: SitePermissions? = tab.content.url.getOrigin()?.let { origin ->
                 permissionsStorage.findSitePermissionsBy(origin, private = tab.content.private)
@@ -476,102 +475,25 @@ class BrowserToolbarMiddleware(
         ),
     )
 
-    private fun updateStartPageActions(tab: SessionState?) = store?.dispatch(
+    private fun updateStartPageActions() = store?.dispatch(
         BrowserDisplayToolbarAction.PageActionsStartUpdated(
-            buildStartPageActions(tab),
+            buildStartPageActions(),
         ),
     )
 
     private fun updateEndBrowserActions() = store?.dispatch(
         BrowserActionsEndUpdated(
-            buildEndBrowserActions(getCurrentNumberOfOpenedTabs()),
+            buildEndBrowserActions(),
         ),
     )
 
-    private fun buildStartBrowserActions(): List<Action> = buildList {
-        add(
-            ActionButtonRes(
-                drawableResId = R.drawable.mozac_ic_home_24,
-                contentDescription = R.string.browser_toolbar_home,
-                onClick = HomeClicked,
-            ),
-        )
-        if (dependencies.context.isLargeWindow()) {
-            val canGoForward = browserStore.state.selectedTab?.content?.canGoForward == true
-            val canGoBack = browserStore.state.selectedTab?.content?.canGoBack == true
-            val isCurrentTabRefreshing = browserStore.state.selectedTab?.content?.loading == true
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_back_24,
-                    contentDescription = R.string.browser_menu_back,
-                    state = if (canGoBack) {
-                        ActionButton.State.DEFAULT
-                    } else {
-                        ActionButton.State.DISABLED
-                    },
-                    onClick = NavigateBackClicked,
-                    onLongClick = NavigateSessionLongClicked,
-                ),
-            )
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_forward_24,
-                    contentDescription = R.string.browser_menu_forward,
-                    state = if (canGoForward) {
-                        ActionButton.State.DEFAULT
-                    } else {
-                        ActionButton.State.DISABLED
-                    },
-                    onClick = NavigateForwardClicked,
-                    onLongClick = NavigateSessionLongClicked,
-                ),
-            )
-            when (isCurrentTabRefreshing) {
-                true -> add(
-                    ActionButtonRes(
-                        drawableResId = R.drawable.mozac_ic_cross_24,
-                        contentDescription = R.string.browser_menu_stop,
-                        state = ActionButton.State.DEFAULT,
-                        onClick = StopRefreshClicked,
-                    ),
-                )
-                false -> add(
-                    ActionButtonRes(
-                        drawableResId = R.drawable.mozac_ic_arrow_clockwise_24,
-                        contentDescription = R.string.browser_menu_refresh,
-                        state = ActionButton.State.DEFAULT,
-                        onClick = RefreshClicked(false),
-                        onLongClick = RefreshClicked(true),
-                    ),
-                )
-            }
-        }
-    }
-    private fun buildStartPageActions(tab: SessionState?) = buildList {
-        if (tab?.content?.url?.isContentUrl() == true) {
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_page_portrait_24,
-                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
-                    onClick = StartPageActions.SiteInfoClicked,
-                ),
-            )
-        } else if (tab?.content?.securityInfo?.secure == true) {
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_shield_checkmark_24,
-                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
-                    onClick = StartPageActions.SiteInfoClicked,
-                ),
-            )
-        } else {
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_shield_slash_24,
-                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
-                    onClick = StartPageActions.SiteInfoClicked,
-                ),
-            )
+    private fun buildStartPageActions(): List<Action> {
+        return listOf(
+            ToolbarActionConfig(ToolbarAction.SiteInfo),
+        ).filter { config ->
+            config.isVisible()
+        }.map { config ->
+            buildAction(config.action)
         }
     }
 
@@ -581,61 +503,44 @@ class BrowserToolbarMiddleware(
         ),
     )
 
-    private fun buildEndPageActions(): List<Action> = buildList {
-        val readerModeStatus = browserScreenStore.state.readerModeStatus
-        if (readerModeStatus.isAvailable) {
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.ic_readermode,
-                    contentDescription = when (readerModeStatus.isActive) {
-                        true -> R.string.browser_menu_read_close
-                        false -> R.string.browser_menu_read
-                    },
-                    state = if (readerModeStatus.isActive) {
-                        ActionButton.State.ACTIVE
-                    } else {
-                        ActionButton.State.DEFAULT
-                    },
-                    onClick = ReaderModeClicked(readerModeStatus.isActive),
-                ),
-            )
-        }
-
-        val translationStatus = browserScreenStore.state.pageTranslationStatus
-        if (translationStatus.isTranslationPossible) {
-            add(
-                ActionButtonRes(
-                    drawableResId = R.drawable.mozac_ic_translate_24,
-                    contentDescription = R.string.browser_toolbar_translate,
-                    state = if (translationStatus.isTranslated) {
-                        ActionButton.State.ACTIVE
-                    } else {
-                        ActionButton.State.DEFAULT
-                    },
-                    onClick = TranslateClicked,
-                ),
-            )
+    private fun buildStartBrowserActions(): List<Action> {
+        return listOf(
+            ToolbarActionConfig(ToolbarAction.Home),
+            ToolbarActionConfig(ToolbarAction.Back) { dependencies.context.isLargeWindow() },
+            ToolbarActionConfig(ToolbarAction.Forward) { dependencies.context.isLargeWindow() },
+            ToolbarActionConfig(ToolbarAction.RefreshOrStop) { dependencies.context.isLargeWindow() },
+        ).filter { config ->
+            config.isVisible()
+        }.map { config ->
+            buildAction(config.action)
         }
     }
 
-    private fun buildEndBrowserActions(tabsCount: Int): List<Action> =
-        listOf(
-            TabCounterAction(
-                count = tabsCount,
-                contentDescription = dependencies.context.getString(
-                    R.string.mozac_tab_counter_open_tab_tray,
-                    tabsCount.toString(),
-                ),
-                showPrivacyMask = dependencies.browsingModeManager.mode == Private,
-                onClick = TabCounterClicked,
-                onLongClick = buildTabCounterMenu(),
-            ),
-            ActionButtonRes(
-                drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
-                contentDescription = R.string.content_description_menu,
-                onClick = MenuClicked,
-            ),
-        )
+    private fun buildEndPageActions(): List<Action> {
+        return listOf(
+            ToolbarActionConfig(ToolbarAction.ReaderMode) {
+                browserScreenStore.state.readerModeStatus.isAvailable
+            },
+            ToolbarActionConfig(ToolbarAction.Translate) {
+                browserScreenStore.state.pageTranslationStatus.isTranslationPossible
+            },
+        ).filter { config ->
+            config.isVisible()
+        }.map { config ->
+            buildAction(config.action)
+        }
+    }
+
+    private fun buildEndBrowserActions(): List<Action> {
+        return listOf(
+            ToolbarActionConfig(ToolbarAction.TabCounter) { !dependencies.context.isTabStripEnabled() },
+            ToolbarActionConfig(ToolbarAction.Menu),
+        ).filter { config ->
+            config.isVisible()
+        }.map { config ->
+            buildAction(config.action)
+        }
+    }
 
     private fun buildTabCounterMenu() = BrowserToolbarMenu {
         listOf(
@@ -752,7 +657,7 @@ class BrowserToolbarMiddleware(
         observeWhileActive(browserStore) {
             distinctUntilChangedBy { it.selectedTab?.content?.securityInfo }
                 .collect {
-                    updateStartPageActions(it.selectedTab)
+                    updateStartPageActions()
                 }
         }
     }
@@ -854,6 +759,145 @@ class BrowserToolbarMiddleware(
         val thumbnailsFeature: BrowserThumbnails?,
         val readerModeController: ReaderModeController,
     )
+
+    @VisibleForTesting
+    internal enum class ToolbarAction {
+        Home,
+        Back,
+        Forward,
+        RefreshOrStop,
+        Menu,
+        ReaderMode,
+        Translate,
+        TabCounter,
+        SiteInfo,
+    }
+
+    private data class ToolbarActionConfig(
+        val action: ToolbarAction,
+        val isVisible: () -> Boolean = { true },
+    )
+
+    @Suppress("LongMethod")
+    @VisibleForTesting
+    internal fun buildAction(
+        toolbarAction: ToolbarAction,
+    ): Action = when (toolbarAction) {
+        ToolbarAction.Home -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_home_24,
+            contentDescription = R.string.browser_toolbar_home,
+            onClick = HomeClicked,
+        )
+
+        ToolbarAction.Back -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_back_24,
+            contentDescription = R.string.browser_menu_back,
+            state = if (browserStore.state.selectedTab?.content?.canGoBack == true) {
+                ActionButton.State.DEFAULT
+            } else {
+                ActionButton.State.DISABLED
+            },
+            onClick = NavigateBackClicked,
+            onLongClick = NavigateSessionLongClicked,
+        )
+
+        ToolbarAction.Forward -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_forward_24,
+            contentDescription = R.string.browser_menu_forward,
+            state = if (browserStore.state.selectedTab?.content?.canGoForward == true) {
+                ActionButton.State.DEFAULT
+            } else {
+                ActionButton.State.DISABLED
+            },
+            onClick = NavigateForwardClicked,
+            onLongClick = NavigateSessionLongClicked,
+        )
+
+        ToolbarAction.RefreshOrStop -> {
+            if (browserStore.state.selectedTab?.content?.loading != true) {
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_arrow_clockwise_24,
+                    contentDescription = R.string.browser_menu_refresh,
+                    onClick = RefreshClicked(bypassCache = false),
+                    onLongClick = RefreshClicked(bypassCache = true),
+                )
+            } else {
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_cross_24,
+                    contentDescription = R.string.browser_menu_stop,
+                    onClick = StopRefreshClicked,
+                )
+            }
+        }
+
+        ToolbarAction.Menu -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
+            contentDescription = R.string.content_description_menu,
+            onClick = MenuClicked,
+        )
+
+        ToolbarAction.ReaderMode -> ActionButtonRes(
+            drawableResId = R.drawable.ic_readermode,
+            contentDescription = if (browserScreenStore.state.readerModeStatus.isActive) {
+                R.string.browser_menu_read_close
+            } else {
+                R.string.browser_menu_read
+            },
+            state = if (browserScreenStore.state.readerModeStatus.isActive) {
+                ActionButton.State.ACTIVE
+            } else {
+                ActionButton.State.DEFAULT
+            },
+            onClick = ReaderModeClicked(browserScreenStore.state.readerModeStatus.isActive),
+        )
+
+        ToolbarAction.Translate -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_translate_24,
+            contentDescription = R.string.browser_toolbar_translate,
+            state = if (browserScreenStore.state.pageTranslationStatus.isTranslated) {
+                ActionButton.State.ACTIVE
+            } else {
+                ActionButton.State.DEFAULT
+            },
+            onClick = TranslateClicked,
+        )
+
+        ToolbarAction.TabCounter -> {
+            val tabsCount = getCurrentNumberOfOpenedTabs()
+            TabCounterAction(
+                count = tabsCount,
+                contentDescription = dependencies.context.getString(
+                    R.string.mozac_tab_counter_open_tab_tray,
+                    tabsCount.toString(),
+                ),
+                showPrivacyMask = dependencies.browsingModeManager.mode == Private,
+                onClick = TabCounterClicked,
+                onLongClick = buildTabCounterMenu(),
+            )
+        }
+
+        ToolbarAction.SiteInfo -> {
+            if (browserStore.state.selectedTab?.content?.url?.isContentUrl() == true) {
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_page_portrait_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = StartPageActions.SiteInfoClicked,
+                )
+            } else if (browserStore.state.selectedTab?.content?.securityInfo?.secure == true) {
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_shield_checkmark_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = StartPageActions.SiteInfoClicked,
+                )
+            } else {
+                ActionButtonRes(
+                    drawableResId = R.drawable.mozac_ic_shield_slash_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = StartPageActions.SiteInfoClicked,
+                )
+            }
+        }
+    }
 
     /**
      * Static functionalities of the [BrowserToolbarMiddleware].

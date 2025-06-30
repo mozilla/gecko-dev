@@ -28,6 +28,7 @@ import mozilla.components.browser.state.search.SearchEngine.Type.APPLICATION
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButtonRes
 import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorAction
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
@@ -52,6 +53,7 @@ import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import mozilla.components.support.utils.ClipboardHandler
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -75,6 +77,7 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.HomeToolbarAction
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.home.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.home.toolbar.PageOriginInteractions.OriginClicked
@@ -613,6 +616,68 @@ class BrowserToolbarMiddlewareTest {
         searchEngineShortcuts,
         testContext.resources,
     )
+
+    @Test
+    fun `WHEN building TabCounter action THEN returns TabCounterAction with correct count and menu`() {
+        val browserStore = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(
+                    createTab(id = "a", url = "https://www.mozilla.org"),
+                    createTab(id = "b", url = "https://www.firefox.com"),
+                    createTab(id = "c", url = "https://getpocket.com"),
+                ),
+            ),
+        )
+
+        val dependencies = LifecycleDependencies(
+            context = testContext,
+            lifecycleOwner = lifecycleOwner,
+            navController = mockk(),
+            browsingModeManager = browsingModeManager,
+            useCases = mockk(),
+        )
+
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk()).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
+            )
+        }
+
+        val action = middleware.buildHomeAction(
+            action = HomeToolbarAction.TabCounter,
+        ) as TabCounterAction
+
+        assertEquals(3, action.count)
+        assertEquals(
+            testContext.getString(R.string.mozac_tab_counter_open_tab_tray, 3),
+            action.contentDescription,
+        )
+        assertEquals(
+            dependencies.browsingModeManager.mode == Private,
+            action.showPrivacyMask,
+        )
+        assertEquals(TabCounterClicked, action.onClick)
+        assertNotNull(action.onLongClick)
+    }
+
+    @Test
+    fun `WHEN building Menu action THEN returns Menu ActionButton`() {
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk()).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, mockk(), browsingModeManager, mockk()),
+            )
+        }
+
+        val action = middleware.buildHomeAction(
+            action = HomeToolbarAction.Menu,
+        ) as ActionButtonRes
+
+        assertEquals(R.drawable.mozac_ic_ellipsis_vertical_24, action.drawableResId)
+        assertEquals(R.string.content_description_menu, action.contentDescription)
+        assertEquals(ActionButton.State.DEFAULT, action.state)
+        assertEquals(MenuClicked, action.onClick)
+        assertNull(action.onLongClick)
+    }
 
     private fun assertEqualsToolbarButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)

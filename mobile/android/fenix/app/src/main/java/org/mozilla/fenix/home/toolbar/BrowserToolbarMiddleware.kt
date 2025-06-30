@@ -59,6 +59,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.menu.MenuAccessPoint
@@ -270,7 +271,7 @@ class BrowserToolbarMiddleware(
 
     private fun updateEndBrowserActions() = store?.dispatch(
         BrowserActionsEndUpdated(
-            buildEndBrowserActions(getCurrentNumberOfOpenedTabs()),
+            buildEndBrowserActions(),
         ),
     )
 
@@ -282,24 +283,16 @@ class BrowserToolbarMiddleware(
         ),
     )
 
-    private fun buildEndBrowserActions(tabsCount: Int): List<Action> =
-        listOf(
-            TabCounterAction(
-                count = tabsCount,
-                contentDescription = dependencies.context.getString(
-                    R.string.mozac_tab_counter_open_tab_tray,
-                    tabsCount.toString(),
-                ),
-                showPrivacyMask = dependencies.browsingModeManager.mode == Private,
-                onClick = TabCounterClicked,
-                onLongClick = buildTabCounterMenu(),
-            ),
-            ActionButtonRes(
-                drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
-                contentDescription = R.string.content_description_menu,
-                onClick = MenuClicked,
-            ),
-        )
+    private fun buildEndBrowserActions(): List<Action> {
+        return listOf(
+            HomeToolbarActionConfig(HomeToolbarAction.TabCounter) { !dependencies.context.isTabStripEnabled() },
+            HomeToolbarActionConfig(HomeToolbarAction.Menu),
+        ).filter { config ->
+            config.isVisible()
+        }.map { config ->
+            buildHomeAction(config.action)
+        }
+    }
 
     private fun buildTabCounterMenu() = BrowserToolbarMenu {
         when (dependencies.browsingModeManager.mode) {
@@ -377,6 +370,42 @@ class BrowserToolbarMiddleware(
         val browsingModeManager: BrowsingModeManager,
         val useCases: UseCases,
     )
+
+    @VisibleForTesting
+    internal enum class HomeToolbarAction {
+        TabCounter,
+        Menu,
+    }
+
+    private data class HomeToolbarActionConfig(
+        val action: HomeToolbarAction,
+        val isVisible: () -> Boolean = { true },
+    )
+
+    @VisibleForTesting
+    internal fun buildHomeAction(
+        action: HomeToolbarAction,
+    ): Action = when (action) {
+        HomeToolbarAction.TabCounter -> {
+            val tabsCount = getCurrentNumberOfOpenedTabs()
+            TabCounterAction(
+                count = tabsCount,
+                contentDescription = dependencies.context.getString(
+                    R.string.mozac_tab_counter_open_tab_tray,
+                    tabsCount.toString(),
+                ),
+                showPrivacyMask = dependencies.browsingModeManager.mode == Private,
+                onClick = TabCounterClicked,
+                onLongClick = buildTabCounterMenu(),
+            )
+        }
+
+        HomeToolbarAction.Menu -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
+            contentDescription = R.string.content_description_menu,
+            onClick = MenuClicked,
+        )
+    }
 
     /**
      * Static functionalities of the [BrowserToolbarMiddleware].
