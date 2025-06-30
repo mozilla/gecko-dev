@@ -859,6 +859,8 @@
   <string name="preferences_category_account">Account</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">Posizion de sbare de direzion</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">Disposizion de sbare dai struments</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Teme</string>
   <!-- Preference for customizing the home screen -->
@@ -1279,6 +1281,10 @@
   <string name="preference_top_toolbar">Superiôr</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Inferiôr</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Semplice</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Slargjade</string>
   <!--
     Theme Preferences
 
@@ -1653,11 +1659,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • in spiete</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • timp no cognossût</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • in pause</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • in pause</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">in pause</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2635,6 +2651,14 @@
   <string name="saved_login_clear_username">Scancele non utent</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Scancele non dal servidôr</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">Menù detais acès</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">Torne indaûr</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">Modifiche</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">Elimine</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Vierç sît tal navigadôr</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

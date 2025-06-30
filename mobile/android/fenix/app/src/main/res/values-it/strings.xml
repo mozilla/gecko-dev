@@ -1283,6 +1283,8 @@
   <string name="preference_bottom_toolbar">In basso</string>
   <!-- Preference for using simple toolbar -->
   <string name="preference_simple_toolbar">Semplice</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Estesa</string>
   <!--
     Theme Preferences
 
