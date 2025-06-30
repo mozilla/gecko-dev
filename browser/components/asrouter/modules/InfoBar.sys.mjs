@@ -34,6 +34,101 @@ class InfoBarNotification {
   }
 
   /**
+   * Ensure a hidden container of <a data-l10n-name> templates exists, and
+   * inject the request links using hrefs from message.content.linkUrls.
+   */
+  _ensureLinkTemplatesFor(doc, names) {
+    let container = doc.getElementById("infobar-link-templates");
+    // We inject a hidden <div> of <a data-l10n-name> templates into the
+    // document because Fluent’s DOM-overlay scans the page for those
+    // placeholders.
+    if (!container) {
+      container = doc.createElement("div");
+      container.id = "infobar-link-templates";
+      container.hidden = true;
+      doc.body.appendChild(container);
+    }
+
+    const linkUrls = this.message.content.linkUrls || {};
+    for (let name of names) {
+      if (!container.querySelector(`a[data-l10n-name="${name}"]`)) {
+        const a = doc.createElement("a");
+        a.dataset.l10nName = name;
+        a.href = linkUrls[name];
+        container.appendChild(a);
+      }
+    }
+  }
+
+  /**
+   * Async helper to render a Fluent string. If the translation contains `<a
+   * data-l10n-name>`, it will parse and inject the associated link contained
+   * in the message.
+   */
+  async _buildMessageFragment(doc, browser, stringId, args) {
+    // Get the raw HTML translation
+    const html = await lazy.RemoteL10n.formatLocalizableText({
+      string_id: stringId,
+      ...(args && { args }),
+    });
+
+    // If no inline anchors, just return a span
+    if (!html.includes('data-l10n-name="')) {
+      return lazy.RemoteL10n.createElement(doc, "span", {
+        content: { string_id: stringId, ...(args && { args }) },
+      });
+    }
+
+    // Otherwise parse it and set up a fragment
+    const temp = new DOMParser().parseFromString(html, "text/html").body;
+    const frag = doc.createDocumentFragment();
+
+    // Prepare <a data-l10n-name> templates
+    const names = [...temp.querySelectorAll("a[data-l10n-name]")].map(
+      a => a.dataset.l10nName
+    );
+    this._ensureLinkTemplatesFor(doc, names);
+
+    // Import each node and wire up any anchors it contains
+    for (const node of temp.childNodes) {
+      // Nodes from DOMParser belong to a different document, so importNode()
+      // clones them into our target doc
+      const importedNode = doc.importNode(node, true);
+
+      if (importedNode.nodeType === Node.ELEMENT_NODE) {
+        // collect this node if it's an anchor, and all child anchors
+        const anchors = [];
+        if (importedNode.matches("a[data-l10n-name]")) {
+          anchors.push(importedNode);
+        }
+        anchors.push(...importedNode.querySelectorAll("a[data-l10n-name]"));
+
+        for (const a of anchors) {
+          const name = a.dataset.l10nName;
+          const template = doc
+            .getElementById("infobar-link-templates")
+            .querySelector(`a[data-l10n-name="${name}"]`);
+          if (!template) {
+            continue;
+          }
+          a.href = template.href;
+          a.addEventListener("click", e => {
+            e.preventDefault();
+            lazy.SpecialMessageActions.handleAction(
+              { type: "OPEN_URL", data: { args: a.href, where: "tab" } },
+              browser
+            );
+          });
+        }
+      }
+
+      frag.appendChild(importedNode);
+    }
+
+    return frag;
+  }
+
+  /**
    * Show the infobar notification and send an impression ping
    *
    * @param {object} browser Browser reference for the currently selected tab
@@ -51,10 +146,12 @@ class InfoBarNotification {
 
     let priority = content.priority || notificationContainer.PRIORITY_SYSTEM;
 
+    let labelNode = await this.formatMessageConfig(doc, browser, content.text);
+
     this.notification = await notificationContainer.appendNotification(
       this.message.id,
       {
-        label: this.formatMessageConfig(doc, browser, content.text),
+        label: labelNode,
         image: content.icon || "chrome://branding/content/icon64.png",
         priority,
         eventCallback: this.infobarCallback,
@@ -80,50 +177,62 @@ class InfoBarNotification {
     }
   }
 
-  formatMessageConfig(doc, browser, content) {
+  _createLinkNode(doc, browser, { href, where = "tab", string_id, args, raw }) {
+    const a = doc.createElement("a");
+    a.href = href;
+    a.addEventListener("click", e => {
+      e.preventDefault();
+      lazy.SpecialMessageActions.handleAction(
+        { type: "OPEN_URL", data: { args: a.href, where } },
+        browser
+      );
+    });
+
+    if (string_id) {
+      // wrap a localized span inside
+      const span = lazy.RemoteL10n.createElement(doc, "span", {
+        content: { string_id, ...(args && { args }) },
+      });
+      a.appendChild(span);
+    } else {
+      a.textContent = raw || "";
+    }
+
+    return a;
+  }
+
+  async formatMessageConfig(doc, browser, content) {
     const frag = doc.createDocumentFragment();
     const parts = Array.isArray(content) ? content : [content];
-    for (const part of parts) {
-      let node;
-      if (typeof part === "string") {
-        node = doc.createTextNode(part);
-        // Handle embedded link
-      } else if (part.href) {
-        const a = doc.createElement("a");
-        a.href = part.href;
-        a.addEventListener("click", e => {
-          e.preventDefault();
-          lazy.SpecialMessageActions.handleAction(
-            { type: "OPEN_URL", data: { args: a.href, where: part.where } },
-            browser
-          );
-        });
 
-        if (part.string_id) {
-          const l10n = lazy.RemoteL10n.createElement(doc, "span", {
-            content: {
-              string_id: part.string_id,
-              ...(part.args && { args: part.args }),
-            },
-          });
-          a.appendChild(l10n);
-        } else {
-          a.textContent = part.raw || "";
-        }
-        node = a;
-      } else if (part.string_id) {
-        node = lazy.RemoteL10n.createElement(doc, "span", {
-          content: {
-            string_id: part.string_id,
-            ...(part.args && { args: part.args }),
-          },
-        });
-      } else {
-        const text = part.raw !== null ? part.raw : String(part);
-        node = doc.createTextNode(text);
+    for (const part of parts) {
+      if (!part) {
+        continue;
+      }
+      if (part.href) {
+        frag.appendChild(this._createLinkNode(doc, browser, part));
+        continue;
       }
 
-      frag.appendChild(node);
+      if (part.string_id) {
+        const subFrag = await this._buildMessageFragment(
+          doc,
+          browser,
+          part.string_id,
+          part.args
+        );
+        frag.appendChild(subFrag);
+        continue;
+      }
+
+      if (typeof part === "string") {
+        frag.appendChild(doc.createTextNode(part));
+        continue;
+      }
+
+      if (part.raw && typeof part.raw === "string") {
+        frag.appendChild(doc.createTextNode(part.raw));
+      }
     }
 
     return frag;

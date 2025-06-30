@@ -551,3 +551,106 @@ add_task(async function clear_activeInfobar_on_window_close() {
   testWin.close();
   sinon.restore();
 });
+
+add_task(async function test_buildMessageFragment_withInlineAnchors() {
+  const win = BrowserWindowTracker.getTopWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const doc = browser.ownerGlobal.document;
+
+  // Stub out the Fluent call to return a string with an inline anchor
+  const { RemoteL10n } = ChromeUtils.importESModule(
+    "resource:///modules/asrouter/RemoteL10n.sys.mjs"
+  );
+  sinon
+    .stub(RemoteL10n, "formatLocalizableText")
+    .resolves('<a data-l10n-name="foo">Click Here</a>');
+
+  const linkUrl = "https://example.com/";
+  const message = {
+    id: "TEST_INLINE_ANCHOR",
+    content: {
+      type: "global",
+      priority: win.gNotificationBox.PRIORITY_INFO_LOW,
+      text: { string_id: "test-id" },
+      linkUrls: { foo: linkUrl },
+      buttons: [{ label: "Close", action: { type: "CANCEL" } }],
+    },
+  };
+  const dispatchStub = sinon.stub();
+  const infobar = await InfoBar.showInfoBarMessage(
+    browser,
+    message,
+    dispatchStub
+  );
+
+  const container = doc.getElementById("infobar-link-templates");
+  Assert.ok(container, "Link template container in doc");
+  const template = container.querySelector('a[data-l10n-name="foo"]');
+  Assert.equal(
+    template.href,
+    linkUrl,
+    "Template anchor carries the correct href"
+  );
+
+  const rendered = infobar.notification.messageText.querySelector(
+    'a[data-l10n-name="foo"]'
+  );
+  Assert.ok(rendered, "Rendered anchor is present in infobar");
+  Assert.equal(rendered.href, linkUrl, "Rendered anchor has correct href");
+  Assert.equal(
+    rendered.textContent,
+    "Click Here",
+    "Rendered anchor text matches"
+  );
+
+  // Cleanup
+  container.remove();
+  RemoteL10n.formatLocalizableText.restore();
+  infobar.notification.closeButton.click();
+  await BrowserTestUtils.waitForCondition(() => !InfoBar._activeInfobar);
+  sinon.restore();
+});
+
+add_task(async function test_buildMessageFragment_withoutInlineAnchors() {
+  const win = BrowserWindowTracker.getTopWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const box = win.gNotificationBox;
+  const doc = browser.ownerGlobal.document;
+
+  // Stub Fluent to return plain text (no <a data-l10n-name>)
+  const { RemoteL10n } = ChromeUtils.importESModule(
+    "resource:///modules/asrouter/RemoteL10n.sys.mjs"
+  );
+  sinon.stub(RemoteL10n, "formatLocalizableText").resolves("Just plain text");
+
+  let { infobar } = await showInfobar(
+    { string_id: "existing-user-tou-message" },
+    box,
+    browser
+  );
+
+  Assert.ok(
+    !doc.getElementById("infobar-link-templates"),
+    "No link-template container created for a string without anchors"
+  );
+
+  const nodes = getMeaningfulNodes(infobar);
+  Assert.equal(nodes.length, 1, "One meaningful node for string_id fallback");
+  const [remoteTextEl] = nodes;
+  Assert.equal(
+    remoteTextEl.localName,
+    "remote-text",
+    "Renders via <remote-text>"
+  );
+  Assert.equal(
+    remoteTextEl.getAttribute("fluent-remote-id"),
+    "existing-user-tou-message",
+    "Has the correct fluent-remote-id"
+  );
+
+  // Cleanup
+  RemoteL10n.formatLocalizableText.restore();
+  infobar.notification.closeButton.click();
+  await BrowserTestUtils.waitForCondition(() => !InfoBar._activeInfobar);
+  sinon.restore();
+});

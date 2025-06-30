@@ -671,6 +671,13 @@
                 ],
                 "additionalProperties": true
               }
+            },
+            "linkUrls": {
+              "description": "Map of Fluent data-l10n-name keys to real URLs",
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/linkUrl"
+              }
             }
           },
           "additionalProperties": true,
