@@ -741,9 +741,7 @@ function _cssColorToRGBA(doc, cssColor) {
   if (!cssColor) {
     return null;
   }
-  return (
-    doc.defaultView.InspectorUtils.colorToRGBA(cssColor, doc) || kInvalidColor
-  );
+  return doc.defaultView.InspectorUtils.colorToRGBA(cssColor) || kInvalidColor;
 }
 
 function _rgbaToString(parsedColor) {
