@@ -12,6 +12,7 @@
   --input-text-color: FieldText;
   --input-text-background-color-disabled: var(--button-background-color-disabled);
   --input-text-opacity-disabled: var(--button-opacity-disabled);
+  --input-text-icon-size: var(--icon-size-xsmall);
 }
 
 #input {
@@ -38,9 +39,9 @@
   }
 
   &.with-icon {
-    padding-inline-start: calc(var(--space-xlarge) + var(--icon-size-default));
+    padding-inline-start: calc(2 * var(--space-medium) + var(--input-text-icon-size));
     background-repeat: no-repeat;
-    background-size: var(--icon-size-default);
+    background-size: var(--input-text-icon-size);
     background-position: var(--space-medium) center;
     background-image: var(--input-background-icon);
     -moz-context-properties: fill;
