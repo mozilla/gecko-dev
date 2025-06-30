@@ -2179,18 +2179,25 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
         val isToolbarAtBottom = toolbarPosition == ToolbarPosition.BOTTOM
 
-        val microsurveyHeight =
+        val microsurveyHeight = if (isMicrosurveyEnabled) {
             appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
-        val toolbarHeight =
-            appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
-
-        return when {
-            isMicrosurveyEnabled && isToolbarAtBottom -> microsurveyHeight + toolbarHeight
-            isMicrosurveyEnabled -> microsurveyHeight
-            isToolbarAtBottom -> toolbarHeight
-
-            else -> 0
+        } else {
+            0
         }
+
+        val toolbarHeight = if (isToolbarAtBottom) {
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
+        } else {
+            0
+        }
+
+        val navBarHeight = if (!shouldUseSimpleToolbar) {
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        } else {
+            0
+        }
+
+        return microsurveyHeight + toolbarHeight + navBarHeight
     }
 
     /**
@@ -2219,13 +2226,20 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     fun getBottomToolbarContainerHeight(): Int {
         val isMicrosurveyEnabled = shouldShowMicrosurveyPrompt
-        val microsurveyHeight =
-            appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
 
-        return when {
-            isMicrosurveyEnabled -> microsurveyHeight
-            else -> 0
+        val microsurveyHeight = if (isMicrosurveyEnabled) {
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_microsurvey_height)
+        } else {
+            0
         }
+
+        val navBarHeight = if (!shouldUseSimpleToolbar) {
+            appContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height)
+        } else {
+            0
+        }
+
+        return microsurveyHeight + navBarHeight
     }
 
     /**

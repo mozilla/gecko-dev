@@ -1057,6 +1057,53 @@ class SettingsTest {
     }
 
     @Test
+    fun `GIVEN navigation bar and microsurvey is enabled WHEN getBottomToolbarContainerHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.shouldUseSimpleToolbar } returns false
+
+        val bottomToolbarContainerHeight = settings.getBottomToolbarContainerHeight()
+
+        assertEquals(191, bottomToolbarContainerHeight)
+    }
+
+    @Test
+    fun `GIVEN the address bar, navigation bar and the microsurvey are shown at bottom WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.shouldUseSimpleToolbar } returns false
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        val bottomToolbarHeight = settings.getBottomToolbarHeight()
+
+        assertEquals(247, bottomToolbarHeight)
+    }
+
+    @Test
+    fun `GIVEN navigation bar and microsurvey is shown at bottom WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns true
+        every { settings.shouldUseSimpleToolbar } returns false
+        every { settings.toolbarPosition } returns ToolbarPosition.TOP
+
+        val bottomToolbarHeight = settings.getBottomToolbarHeight()
+
+        assertEquals(191, bottomToolbarHeight)
+    }
+
+    @Test
+    fun `GIVEN the addressbar and navigation bar is shown at bottom WHEN getBottomToolbarHeight THEN returns the combined height`() {
+        val settings = spyk(settings)
+        every { settings.shouldShowMicrosurveyPrompt } returns false
+        every { settings.shouldUseSimpleToolbar } returns false
+        every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
+
+        val bottomToolbarHeight = settings.getBottomToolbarHeight()
+
+        assertEquals(116, bottomToolbarHeight)
+    }
+
+    @Test
     fun `GIVEN recent search is enable THEN should show recent searches only if recent search is visible`() {
         val settings = spyk(settings)
         every { settings.recentSearchSuggestionsEnabled } returns true
