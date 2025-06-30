@@ -814,13 +814,86 @@ add_task(async function test_gifft_labeled_quantity() {
     "Should throw because of a recording error."
   );
 
-  info(JSON.stringify(Telemetry.getSnapshotForKeyedScalars()));
   // In Telemetry there is no invalid label
   let value = keyedScalarValue("telemetry.test.mirror_for_labeled_quantity");
   Assert.deepEqual(
     {
       pants: 42,
       whoseGot: 1,
+    },
+    value
+  );
+});
+
+add_task(function test_gifft_dual_labeled_counter() {
+  Assert.equal(
+    null,
+    Glean.testOnlyIpc.aDualLabeledCounter
+      .get("some key", "CommonLabel")
+      .testGetValue()
+  );
+  Assert.deepEqual(
+    {},
+    Telemetry.getKeyedHistogramById(
+      "TELEMETRY_TEST_MIRROR_FOR_DUAL_LABELED_COUNTER"
+    ).snapshot()
+  );
+  Assert.equal(
+    null,
+    Glean.testOnlyIpc.anotherDualLabeledCounter
+      .get("some key", "true")
+      .testGetValue()
+  );
+  Assert.deepEqual(
+    {},
+    Telemetry.getKeyedHistogramById(
+      "TELEMETRY_TEST_ANOTHER_MIRROR_FOR_DUAL_LABELED_COUNTER"
+    ).snapshot()
+  );
+
+  Glean.testOnlyIpc.aDualLabeledCounter.get("some key", "CommonLabel").add(1);
+  Glean.testOnlyIpc.anotherDualLabeledCounter.get("some key", "true").add(1);
+
+  Assert.equal(
+    1,
+    Glean.testOnlyIpc.aDualLabeledCounter
+      .get("some key", "CommonLabel")
+      .testGetValue()
+  );
+  Assert.equal(
+    1,
+    Glean.testOnlyIpc.anotherDualLabeledCounter
+      .get("some key", "true")
+      .testGetValue()
+  );
+
+  let value = Telemetry.getKeyedHistogramById(
+    "TELEMETRY_TEST_MIRROR_FOR_DUAL_LABELED_COUNTER"
+  ).snapshot();
+  Assert.deepEqual(
+    {
+      "some key": {
+        bucket_count: 51,
+        histogram_type: 5,
+        sum: 0,
+        range: [1, 50],
+        values: { 0: 1, 1: 0 },
+      },
+    },
+    value
+  );
+  value = Telemetry.getKeyedHistogramById(
+    "TELEMETRY_TEST_ANOTHER_MIRROR_FOR_DUAL_LABELED_COUNTER"
+  ).snapshot();
+  Assert.deepEqual(
+    {
+      "some key": {
+        bucket_count: 3,
+        histogram_type: 2,
+        sum: 1,
+        range: [1, 2],
+        values: { 0: 0, 1: 1, 2: 0 },
+      },
     },
     value
   );

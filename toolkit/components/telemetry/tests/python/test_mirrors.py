@@ -177,6 +177,20 @@ def ensure_compatible_histogram(metric, probe):
                 False
             ), f"Metric {metric.identifier()} is a `labeled_counter` mapping to a histogram, but {probe.name()} isn't a 'boolean, keyed 'count', or 'categorical' Histogram (is '{probe.kind()}')."
         return
+    elif metric.type == "dual_labeled_counter":
+        assert (
+            probe.keyed()
+        ), f"Metric {metric.identifier()} must mirror to a keyed histogram."
+        if probe.kind() == "boolean":
+            assert metric.ordered_categories == [
+                "false",
+                "true",
+            ], f"Metric {metric.identifier()} is a `dual_labeled_counter` mapping to a keyed boolean histogram, but it doesn't have labels ['false', 'true'] (has {metric.ordered_labels} instead)."
+        elif probe.kind() == "categorical":
+            assert (
+                metric.ordered_categories == probe.labels()
+            ), f"Metric {metric.identifier()} is a `dual_labeled_counter` mapping to keyed categorical histogram {probe.name()}, but the labels don't match."
+        return
 
     assert probe.kind() in [
         "linear",
