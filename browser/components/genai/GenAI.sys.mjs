@@ -340,7 +340,23 @@ export const GenAI = {
     });
 
     // Record glean metrics after applying nimbus prefs
+    Glean.genaiChatbot.badges.set(
+      Object.entries({
+        footer: "browser.ml.chat.page.footerBadge",
+        menu: "browser.ml.chat.page.menuBadge",
+        sidebar: "sidebar.notification.badge.aichat",
+      })
+        .reduce((acc, [key, pref]) => {
+          if (Services.prefs.getBoolPref(pref)) {
+            acc.push(key);
+          }
+          return acc;
+        }, [])
+        .join(",")
+    );
     Glean.genaiChatbot.enabled.set(lazy.chatEnabled);
+    Glean.genaiChatbot.menu.set(lazy.chatMenu);
+    Glean.genaiChatbot.page.set(lazy.chatPage);
     Glean.genaiChatbot.provider.set(this.getProviderId());
     Glean.genaiChatbot.shortcuts.set(lazy.chatShortcuts);
     Glean.genaiChatbot.shortcutsCustom.set(lazy.chatShortcutsCustom);
@@ -671,18 +687,8 @@ export const GenAI = {
     };
     if (lazy.chatPage && !context.selection) {
       // Get page content for prompts when no selection
-      try {
-        const actor =
-          nsContextMenu.browser.browsingContext.currentWindowContext.getActor(
-            "GenAI"
-          );
-        context.selection = await actor.sendQuery("GetReadableText");
-        context.contentType = "page";
-      } catch (ex) {
-        console.warn("Failed to get page content", ex);
-      }
+      await this.addPageContext(nsContextMenu.browser, context);
     }
-
     await this.addAskChatItems(
       nsContextMenu.browser,
       context,
@@ -693,7 +699,7 @@ export const GenAI = {
         }
         return item;
       },
-      "menu",
+      "page",
       item => {
         // Currently only summarize page shows a badge, so remove when clicked
         if (item.hasAttribute("badge")) {
@@ -721,6 +727,9 @@ export const GenAI = {
       openItem.addEventListener("command", () => {
         const window = nsContextMenu.browser.ownerGlobal;
         window.SidebarController.show("viewGenaiChatSidebar");
+        Glean.genaiChatbot.contextmenuChoose.record({
+          provider: this.getProviderId(),
+        });
       });
     }
 
@@ -879,6 +888,28 @@ export const GenAI = {
   },
 
   /**
+   * Update context with page content.
+   *
+   * @param {MozBrowser} browser for the tab to get content
+   * @param {object} context optional existing context to update
+   * @returns {object} updated context
+   */
+  async addPageContext(browser, context = {}) {
+    context.contentType = "page";
+    try {
+      Object.assign(
+        context,
+        await browser.browsingContext.currentWindowContext
+          .getActor("GenAI")
+          .sendQuery("GetReadableText")
+      );
+    } catch (ex) {
+      console.warn("Failed to get page content", ex);
+    }
+    return context;
+  },
+
+  /**
    * Summarize the current page content.
    *
    * @param {Window} window chrome window with tabs
@@ -886,12 +917,9 @@ export const GenAI = {
    */
   async summarizeCurrentPage(window, entry) {
     const browser = window.gBrowser.selectedBrowser;
-    const actor =
-      browser.browsingContext.currentWindowContext.getActor("GenAI");
-    const selection = await actor.sendQuery("GetReadableText");
     await this.addAskChatItems(
       browser,
-      { contentType: "page", selection },
+      await this.addPageContext(browser),
       (promptObj, context) => {
         if (promptObj.id === "summarize") {
           this.handleAskChat(promptObj, context);
@@ -908,15 +936,33 @@ export const GenAI = {
    * @param {object} context of how the prompt should be handled
    */
   async handleAskChat(promptObj, context) {
-    // TODO: Glean.genaiChatbot record - will have to create for summarization button
-    Glean.genaiChatbot[
-      context.entry == "menu"
-        ? "contextmenuPromptClick"
-        : "shortcutsPromptClick"
-    ].record({
+    // Record up to 3 types of event telemetry for backwards compatibility
+    if (promptObj.id == "summarize" && context.contentType == "page") {
+      Glean.genaiChatbot.summarizePage.record({
+        provider: this.getProviderId(),
+        reader_mode: context.readerMode,
+        selection: context.selection?.length ?? 0,
+        source: context.entry,
+      });
+    }
+    if (["page", "shortcuts"].includes(context.entry)) {
+      Glean.genaiChatbot[
+        context.entry == "page"
+          ? "contextmenuPromptClick"
+          : "shortcutsPromptClick"
+      ].record({
+        prompt: promptObj.id ?? "custom",
+        provider: this.getProviderId(),
+        selection: context.selection?.length ?? 0,
+      });
+    }
+    Glean.genaiChatbot.promptClick.record({
+      content_type: context.contentType,
       prompt: promptObj.id ?? "custom",
       provider: this.getProviderId(),
+      reader_mode: context.readerMode,
       selection: context.selection?.length ?? 0,
+      source: context.entry,
     });
 
     await this.prepareChatPromptPrefix();

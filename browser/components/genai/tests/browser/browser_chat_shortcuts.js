@@ -103,6 +103,14 @@ add_task(async function test_show_shortcuts() {
     Assert.equal(events[0].extra.provider, "localhost", "With localhost");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
 
+    events = Glean.genaiChatbot.promptClick.testGetValue();
+    Assert.equal(events.length, 1, "One shortcut clicked");
+    Assert.equal(events[0].extra.content_type, "selection", "Using selection");
+    Assert.equal(events[0].extra.prompt, "summarize", "Picked summarize");
+    Assert.equal(events[0].extra.provider, "localhost", "With localhost");
+    Assert.equal(events[0].extra.selection, 2, "Selected hi");
+    Assert.equal(events[0].extra.source, "shortcuts", "From shortcuts menu");
+
     SidebarController.hide();
   });
 });

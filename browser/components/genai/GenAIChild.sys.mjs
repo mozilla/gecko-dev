@@ -90,6 +90,7 @@ export class GenAIChild extends JSWindowActorChild {
           ) {
             this.sendAsyncMessage("GenAI:ShowShortcuts", {
               ...selectionInfo,
+              contentType: "selection",
               delay,
               screenXDevPx: screenX * this.contentWindow.devicePixelRatio,
               screenYDevPx: screenY * this.contentWindow.devicePixelRatio,
@@ -150,11 +151,7 @@ export class GenAIChild extends JSWindowActorChild {
    */
   async receiveMessage({ name }) {
     if (name === "GetReadableText") {
-      try {
-        return await this.getContentText();
-      } catch (e) {
-        return e.message;
-      }
+      return await this.getContentText();
     }
     return null;
   }
@@ -168,7 +165,9 @@ export class GenAIChild extends JSWindowActorChild {
     const win = this.browsingContext?.window;
     const doc = win?.document;
     const article = await lazy.ReaderMode.parseDocument(doc);
-
-    return article?.textContent || doc.body.innerText || null;
+    return {
+      readerMode: !!article?.textContent,
+      selection: article?.textContent || doc.body.innerText || "",
+    };
   }
 }
