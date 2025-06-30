@@ -12,9 +12,9 @@ use crate::str::starts_with_ignore_ascii_case;
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::{AtomIdent, AtomString};
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
-use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
-use dom::{DocumentState, ElementState};
-use selectors::parser::SelectorParseErrorKind;
+use cssparser::{CowRcStr, SourceLocation, ToCss, Token, parse_nth};
+use dom::{DocumentState, ElementState, HEADING_LEVEL_OFFSET};
+use selectors::parser::{SelectorParseErrorKind, AnPlusB};
 use std::fmt;
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss as ToCss_};
 use thin_vec::ThinVec;
@@ -45,6 +45,33 @@ pub struct Lang(#[css(iterable)] pub ThinVec<AtomIdent>);
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToShmem)]
 pub struct CustomState(pub AtomIdent);
 
+/// The properties that comprise a :heading() pseudoclass (e.g. a list of An+Bs).
+/// https://drafts.csswg.org/selectors-5/#headings
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
+pub struct HeadingSelectorData(pub ThinVec<AnPlusB>);
+
+impl HeadingSelectorData {
+    /// Matches the heading level from the given state against the list of
+    /// heading level AnPlusB selectors. If AnPlusBs intersect with the level packed in
+    /// ElementState then this will return true.
+    pub fn matches_state(&self, state: ElementState) -> bool {
+        let bits = state.intersection(ElementState::HEADING_LEVEL_BITS).bits();
+        // If none of the HEADING_LEVEL_BITS are set on ElementState,
+        // then this is not a heading level, so return false.
+        if bits == 0 {
+            return false;
+        }
+        // :heading selector will provide an empty levels list. It matches against any
+        // heading level, so we can return true here.
+        if self.0.is_empty() {
+            return true;
+        }
+        let level = (bits >> HEADING_LEVEL_OFFSET) as i32;
+        debug_assert!(level > 0 && level < 16);
+        self.0.iter().any(|anb| anb.matches_index(level))
+    }
+}
+
 macro_rules! pseudo_class_name {
     ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
         /// Our representation of a non tree-structural pseudo-class.
@@ -60,6 +87,8 @@ macro_rules! pseudo_class_name {
             Dir(Direction),
             /// The :state` pseudo-class.
             CustomState(CustomState),
+            /// The `:heading` & `:heading()` pseudo-classes.
+            Heading(HeadingSelectorData),
             /// The non-standard `:-moz-locale-dir` pseudo-class.
             MozLocaleDir(Direction),
         }
@@ -96,6 +125,22 @@ impl ToCss for NonTSPseudoClass {
                         dir.to_css(&mut CssWriter::new(dest))?;
                         return dest.write_char(')')
                     },
+                    NonTSPseudoClass::Heading(ref levels) => {
+                        dest.write_str(":heading")?;
+                        if levels.0.is_empty() {
+                            return Ok(());
+                        }
+                        dest.write_str("(")?;
+                        let mut first = true;
+                        for anb in levels.0.iter() {
+                            if !first {
+                                dest.write_str(", ")?;
+                            }
+                            first = false;
+                            anb.to_css(dest)?;
+                        }
+                        return dest.write_str(")");
+                    },
                 }
             }
         }
@@ -113,6 +158,7 @@ impl NonTSPseudoClass {
             ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => Some(NonTSPseudoClass::$name),)*
+                    "heading" => Some(NonTSPseudoClass::Heading(HeadingSelectorData([].into()))),
                     "-moz-full-screen" => Some(NonTSPseudoClass::Fullscreen),
                     "-moz-read-only" => Some(NonTSPseudoClass::ReadOnly),
                     "-moz-read-write" => Some(NonTSPseudoClass::ReadWrite),
@@ -143,6 +189,7 @@ impl NonTSPseudoClass {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     NonTSPseudoClass::MozLocaleDir(_) => check_flag!(PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
                     NonTSPseudoClass::CustomState(_) |
+                    NonTSPseudoClass::Heading(_) |
                     NonTSPseudoClass::Lang(_) |
                     NonTSPseudoClass::Dir(_) => false,
                 }
@@ -159,6 +206,9 @@ impl NonTSPseudoClass {
         }
         if matches!(*self, Self::ActiveViewTransition) {
             return static_prefs::pref!("dom.viewTransitions.enabled");
+        }
+        if matches!(*self, Self::Heading(..)) {
+            return static_prefs::pref!("layout.css.heading-selector.enabled");
         }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
@@ -178,6 +228,7 @@ impl NonTSPseudoClass {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     NonTSPseudoClass::Dir(ref dir) => dir.element_state(),
+                    NonTSPseudoClass::Heading(..) => ElementState::HEADING_LEVEL_BITS,
                     NonTSPseudoClass::MozLocaleDir(..) |
                     NonTSPseudoClass::CustomState(..) |
                     NonTSPseudoClass::Lang(..) => ElementState::empty(),
@@ -458,6 +509,16 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
             "state" => {
                 let result = AtomIdent::from(parser.expect_ident()?.as_ref());
                 NonTSPseudoClass::CustomState(CustomState(result))
+            },
+            "heading" => {
+                let result = parser.parse_comma_separated(|input| {
+                    let (a, b) = parse_nth(input)?;
+                    Ok(AnPlusB(a,b))
+                })?;
+                if result.is_empty() {
+                    return Err(parser.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+                }
+                NonTSPseudoClass::Heading(HeadingSelectorData(result.into()))
             },
             "-moz-locale-dir" => {
                 NonTSPseudoClass::MozLocaleDir(Direction::parse(parser)?)

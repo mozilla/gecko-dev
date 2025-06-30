@@ -7,6 +7,8 @@
 use bitflags::bitflags;
 use malloc_size_of::malloc_size_of_is_0;
 
+pub const HEADING_LEVEL_OFFSET: usize = 51;
+
 bitflags! {
     /// Event-based element states.
     #[repr(C)]
@@ -140,6 +142,10 @@ bitflags! {
         /// For :active-view-transition.
         /// <https://www.w3.org/TR/css-view-transitions-2/#the-active-view-transition-pseudo>
         const ACTIVE_VIEW_TRANSITION = 1u64 << 50;
+        /// https://drafts.csswg.org/selectors-5/#headings
+        /// These 4 bits are used to pack the elements heading level into the element state
+        /// Heading levels can be from 1-9 so 4 bits allows us to express the full range.
+        const HEADING_LEVEL_BITS = 0b1111u64 << HEADING_LEVEL_OFFSET;
 
         /// Some convenience unions.
         const DIR_STATES = Self::LTR.bits() | Self::RTL.bits();

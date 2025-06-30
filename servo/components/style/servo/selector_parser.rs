@@ -384,7 +384,7 @@ impl ToCss for NonTSPseudoClass {
             Self::UserValid => ":user-valid",
             Self::Valid => ":valid",
             Self::Visited => ":visited",
-            Self::Lang(_) | Self::CustomState(_) => unreachable!(),
+            Self::Lang(_) | Self::CustomState(_) | Self::Heading(_) => unreachable!(),
         })
     }
 }
@@ -427,7 +427,7 @@ impl NonTSPseudoClass {
             Self::UserValid => ElementState::USER_VALID,
             Self::Valid => ElementState::VALID,
             Self::Visited => ElementState::VISITED,
-            Self::CustomState(_) | Self::Lang(_) | Self::ServoNonZeroBorder => ElementState::empty(),
+            Self::CustomState(_) | Self::Lang(_) | Self::Heading(_) | Self::ServoNonZeroBorder => ElementState::empty(),
         }
     }
 

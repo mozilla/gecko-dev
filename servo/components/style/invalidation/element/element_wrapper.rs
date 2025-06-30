@@ -224,6 +224,15 @@ where
                     .match_element_lang(Some(self.get_lang()), lang_arg);
             },
 
+            // :heading should match against snapshot before element
+            NonTSPseudoClass::Heading(ref levels) => {
+                return levels.matches_state(
+                    self.snapshot()
+                        .and_then(|s| s.state())
+                        .unwrap_or_else(|| self.element.state()),
+                );
+            },
+
             // CustomStateSet should match against the snapshot before element
             NonTSPseudoClass::CustomState(ref state) => return self.has_custom_state(&state.0),
 

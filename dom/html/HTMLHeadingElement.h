@@ -18,6 +18,7 @@ class HTMLHeadingElement final : public nsGenericHTMLElement {
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : nsGenericHTMLElement(std::move(aNodeInfo)) {
     MOZ_ASSERT(IsHTMLHeadingElement());
+    UpdateLevel(false);
   }
 
   bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
@@ -35,7 +36,7 @@ class HTMLHeadingElement final : public nsGenericHTMLElement {
     return GetHTMLAttr(nsGkAtoms::align, aAlign);
   }
 
-  int32_t AccessibilityLevel() const {
+  uint32_t ComputedLevel() const {
     nsAtom* name = NodeInfo()->NameAtom();
     if (name == nsGkAtoms::h1) {
       return 1;
@@ -55,6 +56,8 @@ class HTMLHeadingElement final : public nsGenericHTMLElement {
     MOZ_ASSERT(name == nsGkAtoms::h6);
     return 6;
   }
+
+  void UpdateLevel(bool aNotify);
 
   NS_IMPL_FROMNODE_HELPER(HTMLHeadingElement, IsHTMLHeadingElement())
 

@@ -50,7 +50,8 @@ const RARE_PSEUDO_CLASS_STATES: ElementState = ElementState::from_bits_retain(
         ElementState::INERT.bits() |
         ElementState::FOCUS.bits() |
         ElementState::FOCUSRING.bits() |
-        ElementState::TOPMOST_MODAL.bits(),
+        ElementState::TOPMOST_MODAL.bits() |
+        ElementState::HEADING_LEVEL_BITS.bits(),
 );
 
 /// A simple alias for a hashmap using PrecomputedHasher.

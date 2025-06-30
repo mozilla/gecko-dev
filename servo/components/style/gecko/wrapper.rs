@@ -2177,6 +2177,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             },
             NonTSPseudoClass::MozPlaceholder => false,
             NonTSPseudoClass::Lang(ref lang_arg) => self.match_element_lang(None, lang_arg),
+            NonTSPseudoClass::Heading(ref levels) => levels.matches_state(self.state()),
         }
     }
 
