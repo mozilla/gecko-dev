@@ -3,6 +3,32 @@
     {
       "stash": {
         "blocked": [
+          "{862894ac-d730-4d10-8ef0-8f786a76c5b7}:3.1.3",
+          "{862894ac-d730-4d10-8ef0-8f786a76c5b7}:132.18.9",
+          "{1d25ffe2-f3f2-4ceb-8d5d-61b7843ae8ce}:3.49.0",
+          "{1d25ffe2-f3f2-4ceb-8d5d-61b7843ae8ce}:11.1",
+          "{5dd53289-faed-44a6-9b9c-59943a11b176}:0.6.5.1",
+          "{5dd53289-faed-44a6-9b9c-59943a11b176}:101.7",
+          "{5dd53289-faed-44a6-9b9c-59943a11b176}:205.45.0",
+          "supportfirefox1@exodus.com:1.1.3",
+          "supportfirefox1@exodus.com:1.1.4",
+          "bitget-extension@web3.bitget.com:2.16.23",
+          "{0f459ea1-c1d3-4718-93aa-3110e139eddd}:1.0",
+          "labuburbt@outlook.com:1.0",
+          "labuburbt@outlook.com:1.0.1"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1750904128016,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1750962905565,
+      "id": "f6e7dac9-751b-457d-a27a-475fb239ea71",
+      "last_modified": 1750962978029
+    },
+    {
+      "stash": {
+        "blocked": [
           "firefox-extension-single-file@egrajeda.com:1.22.81",
           "firefox-extension-single-file@egrajeda.com:1.22.82"
         ],
@@ -823,5 +849,5 @@
       "last_modified": 1739466430716
     }
   ],
-  "timestamp": 1750854976158
+  "timestamp": 1750962978029
 }
