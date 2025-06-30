@@ -622,6 +622,12 @@ nsAppStartup::GetShuttingDown(bool* aResult) {
 }
 
 NS_IMETHODIMP
+nsAppStartup::GetAttemptingQuit(bool* aResult) {
+  *aResult = mAttemptingQuit;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 nsAppStartup::GetStartingUp(bool* aResult) {
   *aResult = mStartingUp;
   return NS_OK;

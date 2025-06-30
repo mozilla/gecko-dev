@@ -203,6 +203,13 @@ interface nsIAppStartup : nsISupports
     [infallible] readonly attribute boolean shuttingDown;
 
     /**
+     * True if the application is attempting to quit (Quit has been called). This
+     * is an early signal that we are headed to shutdown. It becomes true just
+     * before we start closing windows.
+     */
+    [infallible] readonly attribute boolean attemptingQuit;
+
+    /**
      * True if the application is in the process of starting up.
      *
      * Startup is complete once all observers of final-ui-startup have returned.
