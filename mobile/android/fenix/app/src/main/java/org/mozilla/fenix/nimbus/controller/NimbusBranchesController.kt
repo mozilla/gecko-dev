@@ -4,71 +4,39 @@
 
 package org.mozilla.fenix.nimbus.controller
 
-import android.content.Context
-import androidx.navigation.NavController
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.service.nimbus.ui.NimbusBranchesAdapterDelegate
 import org.mozilla.experiments.nimbus.Branch
-import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.core.Action
-import org.mozilla.fenix.compose.snackbar.Snackbar
-import org.mozilla.fenix.compose.snackbar.SnackbarState
-import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.getRootView
-import org.mozilla.fenix.ext.navigateWithBreadcrumb
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.NimbusBranchesAction
-import org.mozilla.fenix.nimbus.NimbusBranchesFragment
-import org.mozilla.fenix.nimbus.NimbusBranchesFragmentDirections
 import org.mozilla.fenix.nimbus.NimbusBranchesStore
 
 /**
- * [NimbusBranchesFragment] controller. This implements [NimbusBranchesAdapterDelegate] to handle
- * interactions with a Nimbus branch.
+ * Controller for managing Nimbus experiment branches.
  *
- * @param context An Android [Context].
- * @param navController [NavController] used for navigation.
- * @param nimbusBranchesStore An instance of [NimbusBranchesStore] for dispatching
- * [NimbusBranchesAction]s.
- * @param experiments An instance of [NimbusApi] for interacting with the Nimbus experiments.
- * @param experimentId The string experiment-id or "slug" for a Nimbus experiment.
+ * This implements [NimbusBranchesAdapterDelegate] to handle interactions with a Nimbus branch.
+ *
+ * @param isTelemetryEnabled A function that returns true if telemetry is enabled, false otherwise.
+ * @param isExperimentationEnabled A function that returns true if experimentation is enabled, false otherwise.
+ * @param nimbusBranchesStore The store for managing Nimbus branch state.
+ * @param experiments The Nimbus API for interacting with experiments.
+ * @param experimentId The ID of the experiment being managed.
+ * @param notifyUserToEnableExperiments A callback function to notify the user to enable
+ *                                      telemetry and experimentation if they are disabled.
  */
 class NimbusBranchesController(
-    private val context: Context,
-    private val navController: NavController,
+    private val isTelemetryEnabled: () -> Boolean,
+    private val isExperimentationEnabled: () -> Boolean,
     private val nimbusBranchesStore: NimbusBranchesStore,
     private val experiments: NimbusApi,
     private val experimentId: String,
+    private val notifyUserToEnableExperiments: () -> Unit,
 ) : NimbusBranchesAdapterDelegate {
 
     override fun onBranchItemClicked(branch: Branch) {
-        val telemetryEnabled = context.settings().isTelemetryEnabled
-        val experimentsEnabled = context.settings().isExperimentationEnabled
-
         updateOptInState(branch)
 
-        if (!telemetryEnabled && !experimentsEnabled) {
-            context.getRootView()?.let { v ->
-                Snackbar.make(
-                    snackBarParentView = v,
-                    snackbarState = SnackbarState(
-                        message = context.getString(R.string.experiments_snackbar),
-                        duration = SnackbarState.Duration.Preset.Long,
-                        action = Action(
-                            label = context.getString(R.string.experiments_snackbar_button),
-                            onClick = {
-                                navController.navigateWithBreadcrumb(
-                                    directions = NimbusBranchesFragmentDirections
-                                        .actionNimbusBranchesFragmentToDataChoicesFragment(),
-                                    navigateFrom = "NimbusBranchesController",
-                                    navigateTo = "ActionNimbusBranchesFragmentToDataChoicesFragment",
-                                    crashReporter = context.components.analytics.crashReporter,
-                                )
-                            },
-                        ),
-                    ),
-                ).show()
-            }
+        if (!isTelemetryEnabled() && !isExperimentationEnabled()) {
+            notifyUserToEnableExperiments()
         }
     }
 

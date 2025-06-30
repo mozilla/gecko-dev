@@ -18,7 +18,12 @@ import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.support.base.log.logger.Logger
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.StoreProvider
+import org.mozilla.fenix.compose.core.Action
+import org.mozilla.fenix.compose.snackbar.Snackbar
+import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.ext.navigateWithBreadcrumb
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
 import org.mozilla.fenix.nimbus.controller.NimbusBranchesController
 import org.mozilla.fenix.nimbus.view.NimbusBranchesView
@@ -26,7 +31,6 @@ import org.mozilla.fenix.nimbus.view.NimbusBranchesView
 /**
  * A fragment to show the branches of a Nimbus experiment.
  */
-@Suppress("TooGenericExceptionCaught")
 class NimbusBranchesFragment : Fragment() {
 
     private lateinit var nimbusBranchesStore: NimbusBranchesStore
@@ -40,19 +44,21 @@ class NimbusBranchesFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View? {
-        val view =
-            inflater.inflate(R.layout.mozac_service_nimbus_experiment_details, container, false)
+        return inflater.inflate(R.layout.mozac_service_nimbus_experiment_details, container, false)
+    }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         nimbusBranchesStore = StoreProvider.get(this) {
             NimbusBranchesStore(NimbusBranchesState(branches = emptyList()))
         }
 
         controller = NimbusBranchesController(
-            context = requireContext(),
-            navController = findNavController(),
+            isTelemetryEnabled = { requireContext().settings().isTelemetryEnabled },
+            isExperimentationEnabled = { requireContext().settings().isExperimentationEnabled },
             nimbusBranchesStore = nimbusBranchesStore,
             experiments = requireContext().components.nimbus.sdk,
             experimentId = args.experimentId,
+            notifyUserToEnableExperiments = showSnackbarToEnableExperiments(view.rootView),
         )
 
         nimbusBranchesView =
@@ -60,13 +66,41 @@ class NimbusBranchesFragment : Fragment() {
 
         loadExperimentBranches()
 
-        return view
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         consumeFrom(nimbusBranchesStore) { state ->
             nimbusBranchesView.update(state)
         }
+    }
+
+    /**
+     * Shows a snackbar to inform the user that experiments are disabled and provides an action
+     * to navigate to the data choices fragment to enable them.
+     *
+     * @param rootView The [View] to embed the Snackbar in.
+     * @return A lambda function that, when invoked, will display the snackbar.
+     */
+    private fun showSnackbarToEnableExperiments(rootView: View): () -> Unit = {
+        val message = getString(R.string.experiments_snackbar)
+        val actionLabel = getString(R.string.experiments_snackbar_button)
+
+        Snackbar.make(
+            snackBarParentView = rootView,
+            snackbarState = SnackbarState(
+                message = message,
+                duration = SnackbarState.Duration.Preset.Long,
+                action = Action(
+                    label = actionLabel,
+                    onClick = {
+                        findNavController().navigateWithBreadcrumb(
+                            directions = NimbusBranchesFragmentDirections
+                                .actionNimbusBranchesFragmentToDataChoicesFragment(),
+                            navigateFrom = "NimbusBranchesController",
+                            navigateTo = "ActionNimbusBranchesFragmentToDataChoicesFragment",
+                            crashReporter = requireContext().components.analytics.crashReporter,
+                        )
+                    },
+                ),
+            ),
+        ).show()
     }
 
     override fun onResume() {
@@ -74,6 +108,7 @@ class NimbusBranchesFragment : Fragment() {
         showToolbar(args.experimentName)
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private fun loadExperimentBranches() {
         lifecycleScope.launch(Dispatchers.IO) {
             try {

@@ -4,15 +4,8 @@
 
 package org.mozilla.fenix.nimbus
 
-import android.R
-import android.app.Activity
-import android.content.Context
-import android.view.View
-import android.view.ViewGroup
-import androidx.navigation.NavController
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.verify
 import io.mockk.verifyAll
 import mozilla.components.service.nimbus.NimbusApi
@@ -21,10 +14,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.mozilla.experiments.nimbus.Branch
-import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.compose.snackbar.Snackbar
-import org.mozilla.fenix.ext.getRootView
-import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.nimbus.controller.NimbusBranchesController
 import org.mozilla.fenix.utils.Settings
 
@@ -34,51 +23,28 @@ class NimbusBranchesControllerTest {
     private val experimentId = "id"
 
     private lateinit var controller: NimbusBranchesController
-    private lateinit var navController: NavController
     private lateinit var nimbusBranchesStore: NimbusBranchesStore
     private lateinit var settings: Settings
-    private lateinit var activity: Context
-    private lateinit var components: Components
-    private lateinit var snackbar: Snackbar
-    private lateinit var rootView: View
+    private lateinit var notifyUserToEnableExperiments: () -> Unit
 
     @Before
     fun setup() {
-        components = mockk(relaxed = true)
         settings = mockk(relaxed = true)
-        snackbar = mockk(relaxed = true)
-        navController = mockk(relaxed = true)
-
-        rootView = mockk<ViewGroup>(relaxed = true)
-        activity = mockk<Activity>(relaxed = true) {
-            every { findViewById<View>(R.id.content) } returns rootView
-            every { getRootView() } returns rootView
-        }
-
-        mockkObject(Snackbar)
-        every { Snackbar.make(any(), any()) } returns snackbar
-
-        every { activity.settings() } returns settings
-
-        every { navController.currentDestination } returns mockk {
-            every { id } returns org.mozilla.fenix.R.id.nimbusBranchesFragment
-        }
+        notifyUserToEnableExperiments = mockk(relaxed = true)
 
         nimbusBranchesStore = NimbusBranchesStore(NimbusBranchesState(emptyList()))
         controller = NimbusBranchesController(
-            activity,
-            navController,
-            nimbusBranchesStore,
-            experiments,
-            experimentId,
+            isTelemetryEnabled = { true },
+            isExperimentationEnabled = { true },
+            nimbusBranchesStore = nimbusBranchesStore,
+            experiments = experiments,
+            experimentId = experimentId,
+            notifyUserToEnableExperiments = notifyUserToEnableExperiments,
         )
     }
 
     @Test
     fun `WHEN branch item is clicked THEN branch is opted into and selectedBranch state is updated`() {
-        every { settings.isTelemetryEnabled } returns true
-        every { settings.isExperimentationEnabled } returns true
-
         val branch = Branch(
             slug = "slug",
             ratio = 1,
@@ -97,8 +63,6 @@ class NimbusBranchesControllerTest {
 
     @Test
     fun `WHEN branch item is clicked THEN branch is opted out and selectedBranch state is updated`() {
-        every { settings.isTelemetryEnabled } returns true
-        every { settings.isExperimentationEnabled } returns true
         every { experiments.getExperimentBranch(experimentId) } returns "slug"
 
         val branch = Branch(
@@ -117,9 +81,6 @@ class NimbusBranchesControllerTest {
 
     @Test
     fun `WHEN studies and telemetry are ON and item is clicked THEN branch is opted in`() {
-        every { settings.isTelemetryEnabled } returns true
-        every { settings.isExperimentationEnabled } returns true
-
         val branch = Branch(
             slug = "slug",
             ratio = 1,
@@ -138,9 +99,14 @@ class NimbusBranchesControllerTest {
 
     @Test
     fun `WHEN studies and telemetry are Off THEN branch is opted in AND data is not sent`() {
-        every { settings.isTelemetryEnabled } returns false
-        every { settings.isExperimentationEnabled } returns false
-        every { activity.getString(any()) } returns "hello"
+        controller = NimbusBranchesController(
+            isTelemetryEnabled = { false },
+            isExperimentationEnabled = { false },
+            nimbusBranchesStore = nimbusBranchesStore,
+            experiments = experiments,
+            experimentId = experimentId,
+            notifyUserToEnableExperiments = notifyUserToEnableExperiments,
+        )
 
         val branch = Branch(
             slug = "slug",
@@ -154,7 +120,7 @@ class NimbusBranchesControllerTest {
         verifyAll {
             experiments.getExperimentBranch(experimentId)
             experiments.optInWithBranch(experimentId, branch.slug)
-            snackbar.show()
+            notifyUserToEnableExperiments()
         }
 
         assertEquals(branch.slug, nimbusBranchesStore.state.selectedBranch)
@@ -162,8 +128,14 @@ class NimbusBranchesControllerTest {
 
     @Test
     fun `WHEN studies are ON and telemetry Off THEN branch is opted in`() {
-        every { settings.isExperimentationEnabled } returns true
-        every { settings.isTelemetryEnabled } returns false
+        controller = NimbusBranchesController(
+            isTelemetryEnabled = { false },
+            isExperimentationEnabled = { true },
+            nimbusBranchesStore = nimbusBranchesStore,
+            experiments = experiments,
+            experimentId = experimentId,
+            notifyUserToEnableExperiments = notifyUserToEnableExperiments,
+        )
 
         val branch = Branch(
             slug = "slug",
@@ -183,8 +155,14 @@ class NimbusBranchesControllerTest {
 
     @Test
     fun `WHEN studies are OFF and telemetry ON THEN branch is opted in`() {
-        every { settings.isExperimentationEnabled } returns false
-        every { settings.isTelemetryEnabled } returns true
+        controller = NimbusBranchesController(
+            isTelemetryEnabled = { true },
+            isExperimentationEnabled = { false },
+            nimbusBranchesStore = nimbusBranchesStore,
+            experiments = experiments,
+            experimentId = experimentId,
+            notifyUserToEnableExperiments = notifyUserToEnableExperiments,
+        )
 
         val branch = Branch(
             slug = "slug",
