@@ -4,6 +4,9 @@
 
 "use strict";
 
+/* import-globals-from ../../mochitest/role.js */
+loadScripts({ name: "role.js", dir: MOCHITESTS_DIR });
+
 addAccessibleTask(
   `
     <div style="height: 100vh" id="one">one</div>
@@ -160,3 +163,130 @@ addAccessibleTask(
   },
   { chrome: true, topLevel: true, iframe: true, remoteIframe: true }
 );
+
+/**
+ * Test that slow loading pages fire scrolling start events correctly.
+ */
+add_task(async function testSlowLoad() {
+  // We use add_task because this document won't fire a doc load complete event
+  // until it is fully loaded.
+  const scriptUrl =
+    "https://example.com/browser/accessible/tests/browser/events/slow_doc.sjs";
+  info("Testing first (already in tree when anchor jump occurs)");
+  let url = `${scriptUrl}?second#:~:text=first`;
+  let focused = waitForEvent(
+    EVENT_FOCUS,
+    evt =>
+      evt.accessible.role == ROLE_DOCUMENT && evt.accessibleDocument.URL == url
+  );
+  await BrowserTestUtils.withNewTab(
+    { url, gBrowser, waitForLoad: false },
+    async function () {
+      await focused;
+      // At this point, the document contains only "first".
+      info("Finishing load");
+      let scrolled = waitForEvent(
+        EVENT_SCROLLING_START,
+        evt => evt.accessible.name == "first"
+      );
+      await fetch(`${scriptUrl}?scriptFinish`);
+      info("Wait for scroll");
+      await scrolled;
+    }
+  );
+
+  info("Testing second (container already in tree when anchor jump occurs)");
+  url = `${scriptUrl}?secondInContainer#:~:text=second`;
+  focused = waitForEvent(
+    EVENT_FOCUS,
+    evt =>
+      evt.accessible.role == ROLE_DOCUMENT && evt.accessibleDocument.URL == url
+  );
+  await BrowserTestUtils.withNewTab(
+    { url, gBrowser, waitForLoad: false },
+    async function () {
+      await focused;
+      // At this point, the document contains only "first".
+      info("Finishing load");
+      let scrolled = waitForEvent(
+        EVENT_SCROLLING_START,
+        evt => evt.accessible.name == "second"
+      );
+      await fetch(`${scriptUrl}?scriptFinish`);
+      await scrolled;
+    }
+  );
+
+  info("Testing second (not in tree when anchor jump occurs)");
+  url = `${scriptUrl}?second#:~:text=second`;
+  focused = waitForEvent(
+    EVENT_FOCUS,
+    evt =>
+      evt.accessible.role == ROLE_DOCUMENT && evt.accessibleDocument.URL == url
+  );
+  await BrowserTestUtils.withNewTab(
+    { url, gBrowser, waitForLoad: false },
+    async function () {
+      await focused;
+      // At this point, the document contains only "first".
+      info("Finishing load");
+      let scrolled = waitForEvent(
+        EVENT_SCROLLING_START,
+        evt => evt.accessible.name == "second"
+      );
+      await fetch(`${scriptUrl}?scriptFinish`);
+      await scrolled;
+    }
+  );
+
+  info("Testing jump while in background");
+  url = `${scriptUrl}?second#:~:text=second`;
+  focused = waitForEvent(
+    EVENT_FOCUS,
+    evt =>
+      evt.accessible.role == ROLE_DOCUMENT && evt.accessibleDocument.URL == url
+  );
+  await BrowserTestUtils.withNewTab(
+    { url, gBrowser, waitForLoad: false },
+    async function () {
+      await focused;
+      // At this point, the document contains only "first".
+      info("Opening second tab in foreground");
+      const secondUrl = "about:mozilla";
+      focused = waitForEvent(
+        EVENT_FOCUS,
+        evt =>
+          evt.accessible.role == ROLE_DOCUMENT &&
+          evt.accessibleDocument.URL == secondUrl
+      );
+      let secondTab = await BrowserTestUtils.openNewForegroundTab({
+        url: secondUrl,
+        gBrowser,
+      });
+      await focused;
+      // We shouldn't get a scrolling start event until focus returns to the
+      // first document.
+      let events = waitForEvents({
+        expected: [[EVENT_SHOW, "second"]],
+        unexpected: [
+          [EVENT_SCROLLING_START, evt => evt.accessible.name == "second"],
+        ],
+      });
+      info("Finishing load");
+      await fetch(`${scriptUrl}?scriptFinish`);
+      await events;
+      info("Closing second tab");
+      events = waitForEvents([
+        [
+          EVENT_FOCUS,
+          evt =>
+            evt.accessible.role == ROLE_DOCUMENT &&
+            evt.accessibleDocument.URL == url,
+        ],
+        [EVENT_SCROLLING_START, evt => evt.accessible.name == "second"],
+      ]);
+      BrowserTestUtils.removeTab(secondTab);
+      await events;
+    }
+  );
+});

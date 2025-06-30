@@ -217,14 +217,13 @@ class DocAccessible : public HyperTextAccessible,
    */
   void MaybeNotifyOfValueChange(LocalAccessible* aAccessible);
 
-  /**
-   * Get/set the anchor jump.
-   */
-  LocalAccessible* AnchorJump() {
-    return GetAccessibleOrContainer(mAnchorJumpElm);
-  }
-
   void SetAnchorJump(nsIContent* aTargetNode) { mAnchorJumpElm = aTargetNode; }
+
+  /**
+   * Process an anchor jump, if any. Returns false if the current focus caused
+   * us to ignore the anchor jump, true otherwise.
+   */
+  bool ProcessAnchorJump();
 
   /**
    * Bind the child document to the tree.

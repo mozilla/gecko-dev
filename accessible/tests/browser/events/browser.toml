@@ -2,6 +2,7 @@
 subsuite = "a11y"
 support-files = [
   "head.js",
+  "slow_doc.sjs",
   "!/accessible/tests/browser/shared-head.js",
   "!/accessible/tests/mochitest/*.js",
 ]

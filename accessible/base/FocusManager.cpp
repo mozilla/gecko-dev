@@ -396,19 +396,12 @@ void FocusManager::ProcessFocusEvent(AccEvent* aEvent) {
     return;
   }
 
-  // Fire scrolling_start event when the document receives the focus if it has
-  // an anchor jump. If an accessible within the document receive the focus
-  // then null out the anchor jump because it no longer applies.
+  // An anchor jump may have occurred while the document was not focused. This
+  // could even be before the document was first ever focused. Process it now.
   DocAccessible* targetDocument = target->Document();
-  MOZ_ASSERT(targetDocument);
-  LocalAccessible* anchorJump = targetDocument->AnchorJump();
-  if (anchorJump) {
-    if (target == targetDocument || target->IsNonInteractive()) {
-      // XXX: bug 625699, note in some cases the node could go away before we
-      // we receive focus event, for example if the node is removed from DOM.
-      nsEventShell::FireEvent(nsIAccessibleEvent::EVENT_SCROLLING_START,
-                              anchorJump, aEvent->FromUserInput());
-    }
+  if (!targetDocument->ProcessAnchorJump()) {
+    // The anchor jump was ignored due to the focus. That means that this focus
+    // change overrides the anchor jump, so clear the jump.
     targetDocument->SetAnchorJump(nullptr);
   }
 }
