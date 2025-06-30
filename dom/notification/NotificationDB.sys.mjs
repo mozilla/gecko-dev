@@ -49,6 +49,7 @@ export class NotificationDB {
       this.formatMessageType("Save"),
       this.formatMessageType("Delete"),
       this.formatMessageType("GetAll"),
+      this.formatMessageType("Get"),
       this.formatMessageType("DeleteAllExcept"),
     ];
   }
@@ -224,6 +225,24 @@ export class NotificationDB {
           });
         break;
 
+      case this.formatMessageType("Get"):
+        this.queueTask("get", message.data)
+          .then(notification => {
+            returnMessage(this.formatMessageType("Get:Return:OK"), {
+              requestID: message.data.requestID,
+              origin: message.data.origin,
+              notification,
+            });
+          })
+          .catch(error => {
+            returnMessage(this.formatMessageType("Get:Return:KO"), {
+              requestID: message.data.requestID,
+              origin: message.data.origin,
+              errorMsg: error,
+            });
+          });
+        break;
+
       case this.formatMessageType("Save"):
         this.queueTask("save", message.data)
           .then(() => {
@@ -321,6 +340,9 @@ export class NotificationDB {
           case "getall":
             return this.taskGetAll(task.data);
 
+          case "get":
+            return this.taskGet(task.data);
+
           case "save":
             return this.taskSave(task.data);
 
@@ -376,6 +398,12 @@ export class NotificationDB {
       n => n.serviceWorkerRegistrationScope === data.scope
     );
     return notifications;
+  }
+
+  taskGet(data) {
+    let { origin, id } = data;
+    lazy.console.debug(`Task, getting for the origin ${origin} and ID ${id}`);
+    return this.#notifications[origin]?.[id];
   }
 
   taskSave(data) {
