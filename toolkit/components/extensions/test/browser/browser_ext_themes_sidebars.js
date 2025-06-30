@@ -128,8 +128,8 @@ async function test_sidebar_theme(theme, isBrightText) {
     );
     is(
       rootCS.backgroundColor,
-      actualBackground,
-      "Sidebar background should be set."
+      "rgba(0, 0, 0, 0)",
+      "Sidebar background should be transparent (and let the sidebar-box background show through)."
     );
     is(rootCS.color, actualColor, "Sidebar text color should be set.");
   }
