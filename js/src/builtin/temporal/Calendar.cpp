@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <utility>
 
-
 #include "diplomat_runtime.hpp"
 #include "jsnum.h"
 #include "jstypes.h"
