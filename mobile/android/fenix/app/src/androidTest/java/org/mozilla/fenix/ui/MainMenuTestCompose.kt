@@ -609,13 +609,15 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860725
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971959")
     @Test
-    fun verifyTheHomePageMainMenuCFRTest() {
+    fun verifyTheBrowserViewMainMenuCFRTest() {
+        val genericURL = getGenericAsset(mockWebServer, 1)
+
         composeTestRule.activityRule.applySettingsExceptions {
             it.isMenuRedesignCFREnabled = true
         }
-        homeScreen {
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(genericURL.url) {
         }.openThreeDotMenu(composeTestRule) {
             verifyMainMenuCFR()
         }
@@ -868,7 +870,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1807268")
     @Test
     fun verifyTheReportBrokenSiteOptionTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
@@ -1042,7 +1043,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939182
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1807268")
     @Test
     fun verifyReportBrokenSiteFormNotDisplayedWhenTelemetryIsDisabledTest() {
         val defaultWebPage = getGenericAsset(mockWebServer, 1)
