@@ -407,6 +407,15 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
+     * Users who have not accepted ToS will see a popup asking them to accept.
+     * They can select "Not now" to postpone accepting.
+     */
+    var hasPostponedAcceptingTermsOfService by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_terms_postponed),
+        default = false,
+    )
+
+    /**
      * The daily usage ping is not normally tied to normal telemetry.  We set the default value to
      * [isTelemetryEnabled] because this setting was added in early 2025 and we want to make
      * sure that users who upgrade and had telemetry disabled don't start sending the
