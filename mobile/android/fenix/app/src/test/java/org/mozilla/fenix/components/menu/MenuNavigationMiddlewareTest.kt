@@ -9,15 +9,20 @@ import androidx.navigation.NavOptions
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.browser.state.action.ShareResourceAction
+import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.CustomTabConfig
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.state.ReaderState
+import mozilla.components.browser.state.state.content.ShareResourceState
 import mozilla.components.browser.state.state.createCustomTab
 import mozilla.components.browser.state.state.createTab
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.addons.Addon
@@ -448,6 +453,37 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN the current tab is a local PDF WHEN share menu item is pressed THEN trigger ShareResourceAction`() = runTest {
+        val id = "1"
+        val url = "content://pdf.pdf"
+        val tab = createTab(
+            url = url,
+            id = id,
+        )
+        val browserStore = spyk(BrowserStore(BrowserState(tabs = listOf(tab), selectedTabId = id)))
+        val store = createStore(
+            browserStore = browserStore,
+            customTab = null,
+            menuState = MenuState(
+                browserMenuState = BrowserMenuState(
+                    selectedTab = tab,
+                ),
+            ),
+        )
+
+        store.dispatch(MenuAction.Navigate.Share).join()
+
+        verify {
+            browserStore.dispatch(
+                ShareResourceAction.AddShareAction(
+                    id,
+                    ShareResourceState.LocalResource(url),
+                ),
+            )
+        }
+    }
+
+    @Test
     fun `GIVEN the current tab is a custom tab WHEN navigate to share action is dispatched THEN navigate to share sheet`() = runTest {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
@@ -833,6 +869,7 @@ class MenuNavigationMiddlewareTest {
     }
 
     private fun createStore(
+        browserStore: BrowserStore = mockk(relaxed = true),
         customTab: CustomTabSessionState? = mockk(relaxed = true),
         menuState: MenuState = MenuState(),
         openToBrowser: (params: BrowserNavigationParams) -> Unit = {},
@@ -841,6 +878,7 @@ class MenuNavigationMiddlewareTest {
         initialState = menuState,
         middleware = listOf(
             MenuNavigationMiddleware(
+                browserStore = browserStore,
                 navController = navController,
                 openToBrowser = openToBrowser,
                 sessionUseCases = sessionUseCases,
