@@ -9,7 +9,7 @@ const { HttpServer } = ChromeUtils.importESModule(
 );
 
 // eslint-disable-next-line mozilla/no-redeclare-with-import-autofix
-const { Proxy } = ChromeUtils.importESModule(
+const { ProxyConfiguration } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs"
 );
 
@@ -55,7 +55,7 @@ add_task(async function test_global_manual_http_proxy() {
 
   info("Set the global manual proxy");
 
-  const globalProxy = Proxy.fromJSON({
+  const globalProxy = ProxyConfiguration.fromJSON({
     proxyType: "manual",
     httpProxy: PROXY_URL,
   });

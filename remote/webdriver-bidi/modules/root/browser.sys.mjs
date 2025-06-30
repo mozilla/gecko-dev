@@ -13,7 +13,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   getWebDriverSessionById:
     "chrome://remote/content/shared/webdriver/Session.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
-  Proxy: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
+  ProxyConfiguration:
+    "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
   ProxyPerUserContextManager:
     "chrome://remote/content/webdriver-bidi/ProxyPerUserContextManager.sys.mjs",
   ProxyTypes: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
@@ -182,7 +183,7 @@ class BrowserModule extends RootBiDiModule {
 
     let proxyObject;
     if (proxy !== null) {
-      proxyObject = lazy.Proxy.fromJSON(proxy);
+      proxyObject = lazy.ProxyConfiguration.fromJSON(proxy);
 
       if (
         proxyObject.proxyType === lazy.ProxyTypes.System ||

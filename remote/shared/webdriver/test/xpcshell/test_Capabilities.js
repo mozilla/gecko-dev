@@ -15,7 +15,7 @@ const {
   mergeCapabilities,
   PageLoadStrategy,
   processCapabilities,
-  Proxy,
+  ProxyConfiguration,
   Timeouts,
   validateCapabilities,
 } = ChromeUtils.importESModule(
@@ -87,7 +87,7 @@ add_task(function test_PageLoadStrategy() {
 });
 
 add_task(function test_Proxy_ctor() {
-  let p = new Proxy();
+  let p = new ProxyConfiguration();
   let props = [
     "proxyType",
     "httpProxy",
@@ -103,7 +103,7 @@ add_task(function test_Proxy_ctor() {
 });
 
 add_task(function test_Proxy_init() {
-  let p = new Proxy();
+  let p = new ProxyConfiguration();
 
   // no changed made, and 5 (system) is default
   equal(p.init(), false);
@@ -121,26 +121,26 @@ add_task(function test_Proxy_init() {
   );
 
   // direct
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "direct";
   ok(p.init());
   equal(Services.prefs.getIntPref("network.proxy.type"), 0);
 
   // autodetect
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "autodetect";
   ok(p.init());
   equal(Services.prefs.getIntPref("network.proxy.type"), 4);
 
   // system
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "system";
   ok(p.init());
   equal(Services.prefs.getIntPref("network.proxy.type"), 5);
 
   // manual
   for (let proxy of ["http", "ssl", "socks"]) {
-    p = new Proxy();
+    p = new ProxyConfiguration();
     p.proxyType = "manual";
     p.noProxy = ["foo", "bar"];
     p[`${proxy}Proxy`] = "foo";
@@ -163,7 +163,7 @@ add_task(function test_Proxy_init() {
   }
 
   // empty no proxy should reset default exclustions
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "manual";
   p.noProxy = [];
   ok(p.init());
@@ -171,28 +171,28 @@ add_task(function test_Proxy_init() {
 });
 
 add_task(function test_Proxy_toString() {
-  equal(new Proxy().toString(), "[object Proxy]");
+  equal(new ProxyConfiguration().toString(), "[object Proxy]");
 });
 
 add_task(function test_Proxy_toJSON() {
-  let p = new Proxy();
+  let p = new ProxyConfiguration();
   deepEqual(p.toJSON(), {});
 
   // autoconfig url
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "pac";
   p.proxyAutoconfigUrl = "foo";
   deepEqual(p.toJSON(), { proxyType: "pac", proxyAutoconfigUrl: "foo" });
 
   // manual proxy
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "manual";
   deepEqual(p.toJSON(), { proxyType: "manual" });
 
   for (let proxy of ["httpProxy", "sslProxy", "socksProxy"]) {
     let expected = { proxyType: "manual" };
 
-    p = new Proxy();
+    p = new ProxyConfiguration();
     p.proxyType = "manual";
 
     if (proxy == "socksProxy") {
@@ -224,7 +224,7 @@ add_task(function test_Proxy_toJSON() {
   }
 
   // noProxy: add brackets for IPv6 address
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "manual";
   p.noProxy = ["2001:db8::1"];
   let expected = { proxyType: "manual", noProxy: "[2001:db8::1]" };
@@ -232,38 +232,48 @@ add_task(function test_Proxy_toJSON() {
 });
 
 add_task(function test_Proxy_fromJSON() {
-  let p = new Proxy();
-  deepEqual(p, Proxy.fromJSON(undefined));
-  deepEqual(p, Proxy.fromJSON(null));
+  let p = new ProxyConfiguration();
+  deepEqual(p, ProxyConfiguration.fromJSON(undefined));
+  deepEqual(p, ProxyConfiguration.fromJSON(null));
 
   for (let typ of [true, 42, "foo", []]) {
-    Assert.throws(() => Proxy.fromJSON(typ), /InvalidArgumentError/);
+    Assert.throws(
+      () => ProxyConfiguration.fromJSON(typ),
+      /InvalidArgumentError/
+    );
   }
 
   // must contain a valid proxyType
-  Assert.throws(() => Proxy.fromJSON({}), /InvalidArgumentError/);
+  Assert.throws(() => ProxyConfiguration.fromJSON({}), /InvalidArgumentError/);
   Assert.throws(
-    () => Proxy.fromJSON({ proxyType: "foo" }),
+    () => ProxyConfiguration.fromJSON({ proxyType: "foo" }),
     /InvalidArgumentError/
   );
 
   // autoconfig url
   for (let url of [true, 42, [], {}]) {
     Assert.throws(
-      () => Proxy.fromJSON({ proxyType: "pac", proxyAutoconfigUrl: url }),
+      () =>
+        ProxyConfiguration.fromJSON({
+          proxyType: "pac",
+          proxyAutoconfigUrl: url,
+        }),
       /InvalidArgumentError/
     );
   }
 
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "pac";
   p.proxyAutoconfigUrl = "foo";
-  deepEqual(p, Proxy.fromJSON({ proxyType: "pac", proxyAutoconfigUrl: "foo" }));
+  deepEqual(
+    p,
+    ProxyConfiguration.fromJSON({ proxyType: "pac", proxyAutoconfigUrl: "foo" })
+  );
 
   // manual proxy
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "manual";
-  deepEqual(p, Proxy.fromJSON({ proxyType: "manual" }));
+  deepEqual(p, ProxyConfiguration.fromJSON({ proxyType: "manual" }));
 
   for (let proxy of ["httpProxy", "sslProxy", "socksProxy"]) {
     let manual = { proxyType: "manual" };
@@ -284,10 +294,13 @@ add_task(function test_Proxy_fromJSON() {
       "2001:db8::1",
     ]) {
       manual[proxy] = host;
-      Assert.throws(() => Proxy.fromJSON(manual), /InvalidArgumentError/);
+      Assert.throws(
+        () => ProxyConfiguration.fromJSON(manual),
+        /InvalidArgumentError/
+      );
     }
 
-    p = new Proxy();
+    p = new ProxyConfiguration();
     p.proxyType = "manual";
     if (proxy == "socksProxy") {
       manual.socksVersion = 5;
@@ -311,7 +324,7 @@ add_task(function test_Proxy_fromJSON() {
       p[`${proxy}`] = host_map[host].hostname;
       p[`${proxy}Port`] = host_map[host].port;
 
-      deepEqual(p, Proxy.fromJSON(manual));
+      deepEqual(p, ProxyConfiguration.fromJSON(manual));
     }
 
     // Without a port the default port of the scheme is used
@@ -328,51 +341,56 @@ add_task(function test_Proxy_fromJSON() {
         p[`${proxy}Port`] = default_ports[proxy];
       }
 
-      deepEqual(p, Proxy.fromJSON(manual));
+      deepEqual(p, ProxyConfiguration.fromJSON(manual));
     }
   }
 
   // missing required socks version
   Assert.throws(
-    () => Proxy.fromJSON({ proxyType: "manual", socksProxy: "foo:1234" }),
+    () =>
+      ProxyConfiguration.fromJSON({
+        proxyType: "manual",
+        socksProxy: "foo:1234",
+      }),
     /InvalidArgumentError/
   );
 
   // missing required socks proxy
   Assert.throws(
-    () => Proxy.fromJSON({ proxyType: "manual", socksVersion: 4 }),
+    () => ProxyConfiguration.fromJSON({ proxyType: "manual", socksVersion: 4 }),
     /InvalidArgumentError/
   );
 
   // Bug 1703805: Since Firefox 90 ftpProxy is no longer supported
   Assert.throws(
-    () => Proxy.fromJSON({ proxyType: "manual", ftpProxy: "foo:21" }),
+    () =>
+      ProxyConfiguration.fromJSON({ proxyType: "manual", ftpProxy: "foo:21" }),
     /InvalidArgumentError/
   );
 
   // noProxy: invalid settings
   for (let noProxy of [true, 42, {}, null, "foo", [true], [42], [{}], [null]]) {
     Assert.throws(
-      () => Proxy.fromJSON({ proxyType: "manual", noProxy }),
+      () => ProxyConfiguration.fromJSON({ proxyType: "manual", noProxy }),
       /InvalidArgumentError/
     );
   }
 
   // noProxy: valid settings
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "manual";
   for (let noProxy of [[], ["foo"], ["foo", "bar"], ["127.0.0.1"]]) {
     let manual = { proxyType: "manual", noProxy };
     p.noProxy = noProxy;
-    deepEqual(p, Proxy.fromJSON(manual));
+    deepEqual(p, ProxyConfiguration.fromJSON(manual));
   }
 
   // noProxy: IPv6 needs brackets removed
-  p = new Proxy();
+  p = new ProxyConfiguration();
   p.proxyType = "manual";
   p.noProxy = ["2001:db8::1"];
   let manual = { proxyType: "manual", noProxy: ["[2001:db8::1]"] };
-  deepEqual(p, Proxy.fromJSON(manual));
+  deepEqual(p, ProxyConfiguration.fromJSON(manual));
 });
 
 add_task(function test_Capabilities_ctor_http_default() {
@@ -391,7 +409,7 @@ add_task(function test_Capabilities_ctor_http() {
   equal(PageLoadStrategy.Normal, caps.get("pageLoadStrategy"));
   equal(false, caps.get("acceptInsecureCerts"));
   ok(caps.get("timeouts") instanceof Timeouts);
-  ok(caps.get("proxy") instanceof Proxy);
+  ok(caps.get("proxy") instanceof ProxyConfiguration);
   equal(caps.get("setWindowRect"), !AppInfo.isAndroid);
   equal(caps.get("strictFileInteractability"), false);
   equal(caps.get("webSocketUrl"), null);
@@ -414,7 +432,7 @@ add_task(function test_Capabilities_ctor_bidi() {
   equal(undefined, caps.get("pageLoadStrategy"));
   equal(false, caps.get("acceptInsecureCerts"));
   ok(!caps.has("timeouts"));
-  ok(caps.get("proxy") instanceof Proxy);
+  ok(caps.get("proxy") instanceof ProxyConfiguration);
   ok(!caps.has("setWindowRect"));
   ok(!caps.has("strictFileInteractability"));
   ok(!caps.has("webSocketUrl"));
@@ -715,7 +733,7 @@ add_task(function test_processCapabilities() {
 
 // use Proxy.toJSON to test marshal
 add_task(function test_marshal() {
-  let proxy = new Proxy();
+  let proxy = new ProxyConfiguration();
 
   // drop empty fields
   deepEqual({}, proxy.toJSON());
@@ -731,7 +749,7 @@ add_task(function test_marshal() {
   deepEqual({ proxyType: { foo: "bar" } }, proxy.toJSON());
 
   // iterate over complex object that implement toJSON
-  proxy.proxyType = new Proxy();
+  proxy.proxyType = new ProxyConfiguration();
   deepEqual({}, proxy.toJSON());
   proxy.proxyType.proxyType = "manual";
   deepEqual({ proxyType: { proxyType: "manual" } }, proxy.toJSON());
@@ -739,6 +757,6 @@ add_task(function test_marshal() {
   // drop objects with no entries
   proxy.proxyType = { foo: {} };
   deepEqual({}, proxy.toJSON());
-  proxy.proxyType = { foo: new Proxy() };
+  proxy.proxyType = { foo: new ProxyConfiguration() };
   deepEqual({}, proxy.toJSON());
 });

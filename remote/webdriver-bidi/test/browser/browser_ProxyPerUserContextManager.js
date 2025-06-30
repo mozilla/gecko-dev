@@ -13,7 +13,7 @@ const { HttpServer } = ChromeUtils.importESModule(
 );
 
 // eslint-disable-next-line mozilla/no-redeclare-with-import-autofix
-const { Proxy } = ChromeUtils.importESModule(
+const { ProxyConfiguration } = ChromeUtils.importESModule(
   "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs"
 );
 
@@ -41,7 +41,7 @@ add_task(async function test_manual_http_proxy_per_user_context() {
   const browserInUserContext = tabInUserContext.linkedBrowser;
 
   info("Set up a manual proxy for user context");
-  const proxyConfiguration = Proxy.fromJSON({
+  const proxyConfiguration = ProxyConfiguration.fromJSON({
     proxyType: "manual",
     httpProxy: proxyURL,
   });
@@ -81,7 +81,7 @@ add_task(async function test_manual_http_proxy_per_user_context_with_noProxy() {
   const browserInUserContext = tabInUserContext.linkedBrowser;
 
   info("Set up a manual proxy for user context with `noProxy` field");
-  const proxyConfiguration = Proxy.fromJSON({
+  const proxyConfiguration = ProxyConfiguration.fromJSON({
     proxyType: "manual",
     httpProxy: proxyURL,
     noProxy: ["localhost"],
@@ -111,7 +111,7 @@ add_task(async function test_override_manual_http_proxy_per_user_context() {
   const browserInUserContext = tabInUserContext.linkedBrowser;
 
   info("Set up a manual proxy for user context");
-  const proxyConfiguration = Proxy.fromJSON({
+  const proxyConfiguration = ProxyConfiguration.fromJSON({
     proxyType: "manual",
     httpProxy: proxyURL,
   });
@@ -121,7 +121,7 @@ add_task(async function test_override_manual_http_proxy_per_user_context() {
   await isPageProxied(browserInUserContext, serverURL);
 
   info("Set a new proxy configuration for user context with direct proxy");
-  const newProxyConfiguration = Proxy.fromJSON({
+  const newProxyConfiguration = ProxyConfiguration.fromJSON({
     proxyType: "direct",
   });
   proxyManager.addConfiguration(userContextId, newProxyConfiguration);
@@ -140,7 +140,7 @@ add_task(
     const [serverURL, proxyURL] = createHTTPProxy();
 
     info("Set up a global manual proxy");
-    const globalProxy = Proxy.fromJSON({
+    const globalProxy = ProxyConfiguration.fromJSON({
       proxyType: "manual",
       httpProxy: proxyURL,
     });
@@ -167,7 +167,7 @@ add_task(
     const browserInUserContext = tabInUserContext.linkedBrowser;
 
     info("Set up a direct proxy for user context");
-    const proxyConfiguration = Proxy.fromJSON({
+    const proxyConfiguration = ProxyConfiguration.fromJSON({
       proxyType: "direct",
     });
     proxyManager.addConfiguration(userContextId, proxyConfiguration);
@@ -190,7 +190,7 @@ add_task(
     const [serverURL] = createHTTPProxy();
 
     info("Set up a global system proxy");
-    const globalProxy = Proxy.fromJSON({
+    const globalProxy = ProxyConfiguration.fromJSON({
       proxyType: "system",
     });
 
@@ -207,7 +207,7 @@ add_task(
     const browserInUserContext = tabInUserContext.linkedBrowser;
 
     info("Set up a direct proxy for user context");
-    const proxyConfiguration = Proxy.fromJSON({
+    const proxyConfiguration = ProxyConfiguration.fromJSON({
       proxyType: "direct",
     });
 
@@ -240,7 +240,7 @@ add_task(
     const browserInUserContext = tabInUserContext.linkedBrowser;
 
     info("Set up a manual proxy for user context");
-    const proxyConfiguration = Proxy.fromJSON({
+    const proxyConfiguration = ProxyConfiguration.fromJSON({
       proxyType: "manual",
       httpProxy: proxyURL,
     });
