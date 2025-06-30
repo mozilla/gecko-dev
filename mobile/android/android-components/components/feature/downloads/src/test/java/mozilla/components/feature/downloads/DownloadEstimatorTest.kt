@@ -116,7 +116,7 @@ class DownloadEstimatorTest {
             totalBytes = 2,
             dateTimeProvider = FakeDateTimeProvider(
                 startTime = 0,
-                currentTime = Long.MAX_VALUE
+                currentTime = Long.MAX_VALUE,
             ),
         )
 
