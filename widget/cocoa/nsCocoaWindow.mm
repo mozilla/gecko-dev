@@ -6846,6 +6846,13 @@ already_AddRefed<nsIWidget> nsIWidget::CreateChildWindow() {
 + (void)paintMenubarForWindow:(NSWindow*)aWindow {
   NS_OBJC_BEGIN_TRY_IGNORE_BLOCK;
 
+  if (!NSApp.active) {
+    // Early exit if the app isn't active. This is because we can't safely
+    // set the NSApp.mainMenu property in such a case. We early exit so we
+    // also don't invoke any side effects.
+    return;
+  }
+
   // make sure we only act on windows that have this kind of
   // object as a delegate
   id windowDelegate = [aWindow delegate];

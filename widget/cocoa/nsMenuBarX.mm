@@ -463,6 +463,13 @@ static bool RemoveProblematicMenuItems(NSMenu* aMenu) {
 nsresult nsMenuBarX::Paint() {
   NS_OBJC_BEGIN_TRY_ABORT_BLOCK;
 
+  if (!NSApp.active && gSomeMenuBarPainted) {
+    // Early exit if the app isn't active, and we already have a menubar.
+    // This is because we can't safely set the NSApp.mainMenu property in
+    // such a case. We early exit so we also don't invoke any side effects.
+    return NS_OK;
+  }
+
   // Don't try to optimize anything in this painting by checking
   // sLastGeckoMenuBarPainted because the menubar can be manipulated by
   // native dialogs and sheet code and other things besides this paint method.
