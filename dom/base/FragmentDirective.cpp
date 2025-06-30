@@ -55,8 +55,8 @@ void FragmentDirective::SetTextDirectives(
     nsTArray<TextDirective>&& aTextDirectives) {
   MOZ_ASSERT(mDocument);
   if (!aTextDirectives.IsEmpty()) {
-    mFinder =
-        MakeUnique<TextDirectiveFinder>(*mDocument, std::move(aTextDirectives));
+    mFinder.reset(
+        new TextDirectiveFinder(mDocument, std::move(aTextDirectives)));
   } else {
     mFinder = nullptr;
   }
@@ -446,7 +446,7 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirective(
   const TimeStamp start = TimeStamp::Now();
 
   Result<nsCString, ErrorResult> textDirective =
-      TextDirectiveCreator::CreateTextDirectiveFromRange(*mDocument, &aRange);
+      TextDirectiveCreator::CreateTextDirectiveFromRange(mDocument, &aRange);
   if (textDirective.isOk()) {
     nsCString textDirectiveString = textDirective.unwrap();
     if (textDirectiveString.IsEmpty()) {

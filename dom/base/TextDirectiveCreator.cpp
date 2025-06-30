@@ -16,13 +16,16 @@
 
 namespace mozilla::dom {
 
-TextDirectiveCreator::TextDirectiveCreator(Document& aDocument,
+TextDirectiveCreator::TextDirectiveCreator(Document* aDocument,
                                            AbstractRange* aRange)
-    : mDocument(aDocument), mRange(aRange) {}
+    : mDocument(WrapNotNull(aDocument)), mRange(WrapNotNull(aRange)) {
+  MOZ_ASSERT(mDocument);
+  MOZ_ASSERT(mRange);
+}
 
 /* static */
 mozilla::Result<nsCString, ErrorResult>
-TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
+TextDirectiveCreator::CreateTextDirectiveFromRange(Document* aDocument,
                                                    AbstractRange* aInputRange) {
   MOZ_ASSERT(aInputRange);
   MOZ_ASSERT(!aInputRange->Collapsed());
@@ -79,7 +82,7 @@ TextDirectiveCreator::MustUseRangeBasedMatching(AbstractRange* aRange) {
 }
 
 Result<UniquePtr<TextDirectiveCreator>, ErrorResult>
-TextDirectiveCreator::CreateInstance(Document& aDocument,
+TextDirectiveCreator::CreateInstance(Document* aDocument,
                                      AbstractRange* aRange) {
   return MOZ_TRY(MustUseRangeBasedMatching(aRange))
              ? UniquePtr<TextDirectiveCreator>(
@@ -365,7 +368,7 @@ ExactMatchTextDirectiveCreator::FindAllMatchingCandidates() {
       "from document begin to begin of target range.",
       NS_ConvertUTF16toUTF8(mStartContent));
   const nsTArray<RefPtr<AbstractRange>> matchRanges =
-      MOZ_TRY(FindAllMatchingRanges(mStartContent, {&mDocument, 0u},
+      MOZ_TRY(FindAllMatchingRanges(mStartContent, {mDocument, 0u},
                                     mRange->StartRef()));
   FindCommonSubstringLengths(matchRanges);
   return Ok();
@@ -415,7 +418,7 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
       NS_ConvertUTF16toUTF8(firstWordOfStartContent));
 
   const nsTArray<RefPtr<AbstractRange>> startContentRanges =
-      MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {&mDocument, 0u},
+      MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {mDocument, 0u},
                                     mRange->StartRef()));
   FindStartMatchCommonSubstringLengths(startContentRanges);
 

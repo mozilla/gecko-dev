@@ -14,9 +14,11 @@
 namespace mozilla::dom {
 
 TextDirectiveFinder::TextDirectiveFinder(
-    Document& aDocument, nsTArray<TextDirective>&& aTextDirectives)
-    : mDocument(aDocument),
-      mUninvokedTextDirectives(std::move(aTextDirectives)) {}
+    Document* aDocument, nsTArray<TextDirective>&& aTextDirectives)
+    : mDocument(WrapNotNull(aDocument)),
+      mUninvokedTextDirectives(std::move(aTextDirectives)) {
+  MOZ_ASSERT(mDocument);
+}
 
 TextDirectiveFinder::~TextDirectiveFinder() {
   if (mFoundDirectiveCount) {
@@ -27,7 +29,7 @@ TextDirectiveFinder::~TextDirectiveFinder() {
                       mFindTextDirectivesDuration.ToMilliseconds());
   }
   if (HasUninvokedDirectives()) {
-    mDocument.SetUseCounter(eUseCounter_custom_InvalidTextDirectives);
+    mDocument->SetUseCounter(eUseCounter_custom_InvalidTextDirectives);
   }
 }
 
@@ -42,11 +44,11 @@ nsTArray<RefPtr<nsRange>> TextDirectiveFinder::FindTextDirectivesInDocument() {
 
   const TimeStamp start = TimeStamp::Now();
 
-  auto uri = TextDirectiveUtil::ShouldLog() && mDocument.GetDocumentURI()
-                 ? mDocument.GetDocumentURI()->GetSpecOrDefault()
+  auto uri = TextDirectiveUtil::ShouldLog() && mDocument->GetDocumentURI()
+                 ? mDocument->GetDocumentURI()->GetSpecOrDefault()
                  : nsCString();
   TEXT_FRAGMENT_LOG("Trying to find text directives in document '{}'.", uri);
-  mDocument.FlushPendingNotifications(FlushType::Layout);
+  mDocument->FlushPendingNotifications(FlushType::Layout);
   // https://wicg.github.io/scroll-to-text-fragment/#invoke-text-directives
   // To invoke text directives, given as input a list of text directives text
   // directives and a Document document, run these steps:
@@ -114,7 +116,7 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
   // document’s length)
   ErrorResult rv;
   RefPtr<nsRange> searchRange =
-      nsRange::Create(&mDocument, 0, &mDocument, mDocument.Length(), rv);
+      nsRange::Create(mDocument, 0, mDocument, mDocument->Length(), rv);
   if (rv.Failed()) {
     return nullptr;
   }
