@@ -1271,7 +1271,10 @@ var AddonManagerInternal = {
           install: info.install,
         },
       };
-      Services.obs.notifyObservers(subject, "webextension-update-permissions");
+      Services.obs.notifyObservers(
+        subject,
+        "webextension-update-permission-prompt"
+      );
     });
   },
 
