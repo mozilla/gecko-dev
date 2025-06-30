@@ -136,8 +136,24 @@ fn handle_callable(
         return Ok(());
     }
 
-    // Check if this callable has explicit configuration
-    match async_wrappers.get(&spec) {
+    // We insist on a configuration.
+    let config = match async_wrappers.get(&spec) {
+        Some(config) => Some(config),
+        // but allow a parent.
+        None => match &callable.kind {
+            CallableKind::Method {
+                interface_name: parent,
+                ..
+            }
+            | CallableKind::Constructor {
+                interface_name: parent,
+                ..
+            }
+            | CallableKind::VTableMethod { trait_name: parent } => async_wrappers.get(parent),
+            _ => None,
+        },
+    };
+    match config {
         Some(ConcrrencyMode::Sync) => {
             callable.is_js_async = false;
             callable.uniffi_scaffolding_method = "UniFFIScaffolding.callSync".to_string();
