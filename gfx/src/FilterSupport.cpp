@@ -56,7 +56,7 @@ static const float glinearRGBTosRGBMap[256] = {
 
 // c = n / 255
 // c <= 0.04045f ? c / 12.92f : powf((c + 0.055f) / 1.055f, 2.4f)
-extern const float gsRGBToLinearRGBMap[256] = {
+static const float gsRGBToLinearRGBMap[256] = {
     0.000f, 0.000f, 0.001f, 0.001f, 0.001f, 0.002f, 0.002f, 0.002f, 0.002f,
     0.003f, 0.003f, 0.003f, 0.004f, 0.004f, 0.004f, 0.005f, 0.005f, 0.006f,
     0.006f, 0.007f, 0.007f, 0.007f, 0.008f, 0.009f, 0.009f, 0.010f, 0.010f,
@@ -156,7 +156,7 @@ static already_AddRefed<FilterNode> SRGBToLinearRGB(DrawTarget* aDT,
   return nullptr;
 }
 
-static sRGBColor SRGBToLinearRGB(const sRGBColor& color) {
+sRGBColor SRGBToLinearRGB(const sRGBColor& color) {
   return sRGBColor(gsRGBToLinearRGBMap[uint8_t(color.r * 255)],
                    gsRGBToLinearRGBMap[uint8_t(color.g * 255)],
                    gsRGBToLinearRGBMap[uint8_t(color.b * 255)], color.a);

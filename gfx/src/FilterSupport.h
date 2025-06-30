@@ -22,11 +22,10 @@ struct FilterDescription;
 }  // namespace gfx
 }  // namespace mozilla
 
-extern const float gsRGBToLinearRGBMap[256];
-
 namespace mozilla {
 namespace gfx {
 namespace FilterWrappers {
+extern sRGBColor SRGBToLinearRGB(const sRGBColor& color);
 extern already_AddRefed<FilterNode> Clear(DrawTarget* aDT);
 extern already_AddRefed<FilterNode> ForSurface(
     DrawTarget* aDT, SourceSurface* aSurface, const IntPoint& aSurfacePosition);
