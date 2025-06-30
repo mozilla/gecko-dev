@@ -3946,7 +3946,7 @@ main section {
 .discoverystream-admin .sidebar li a {
   padding: var(--space-medium) var(--space-xxlarge);
   display: block;
-  color: var(--lwt-sidebar-text-color);
+  color: inherit;
 }
 .discoverystream-admin .sidebar li a:hover {
   background: var(--newtab-background-color-secondary);

@@ -67,7 +67,7 @@
     li a {
       padding: var(--space-medium) var(--space-xxlarge);
       display: block;
-      color: var(--lwt-sidebar-text-color);
+      color: inherit;
 
       &:hover {
         background: var(--newtab-background-color-secondary);

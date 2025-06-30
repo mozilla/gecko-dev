@@ -286,8 +286,8 @@ body {
 /* Themed sidebars */
 
 :root[lwt-sidebar] {
-  background-color: var(--lwt-sidebar-background-color);
-  color: var(--lwt-sidebar-text-color);
+  background-color: var(--sidebar-background-color);
+  color: var(--sidebar-text-color);
   scrollbar-color: light-dark(rgba(204, 204, 204, 0.5), rgba(249, 249, 250, 0.4)) light-dark(rgba(230, 230, 235, 0.5), rgba(20, 20, 25, 0.3));
   color-scheme: light;
 }

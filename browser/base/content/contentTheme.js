@@ -82,7 +82,7 @@
       },
     ],
     [
-      "--lwt-sidebar-background-color",
+      "--sidebar-background-color",
       {
         lwtProperty: "sidebar",
         processColor(rgbaChannels) {
@@ -96,7 +96,7 @@
       },
     ],
     [
-      "--lwt-sidebar-text-color",
+      "--sidebar-text-color",
       {
         lwtProperty: "sidebar_text",
         processColor(rgbaChannels, element) {
