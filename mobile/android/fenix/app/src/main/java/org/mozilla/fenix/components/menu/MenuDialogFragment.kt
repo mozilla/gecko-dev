@@ -119,6 +119,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
     private val args by navArgs<MenuDialogFragmentArgs>()
     private val webExtensionsMenuBinding = ViewBoundFeatureWrapper<WebExtensionsMenuBinding>()
     private var bottomSheetBehavior: BottomSheetBehavior<View>? = null
+    private var isPrivate: Boolean = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         Events.toolbarMenuVisible.record(NoExtras())
@@ -127,6 +128,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
             setOnShowListener {
                 val safeActivity = activity ?: return@setOnShowListener
                 val browsingModeManager = (safeActivity as HomeActivity).browsingModeManager
+
+                isPrivate = browsingModeManager.mode.isPrivate
 
                 val navigationBarColor = if (browsingModeManager.mode.isPrivate) {
                     ContextCompat.getColor(context, R.color.fx_mobile_private_layer_color_3)
@@ -508,6 +511,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isBookmarked = isBookmarked,
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
+                                    isPrivate = isPrivate,
                                     isReaderViewActive = isReaderViewActive,
                                     canGoBack = selectedTab?.content?.canGoBack ?: true,
                                     canGoForward = selectedTab?.content?.canGoForward ?: true,

@@ -299,6 +299,11 @@ enum class MenuItemState {
      * The menu item is highlighted to indicate the feature behind the menu item is destructive.
      */
     WARNING,
+
+    /**
+     * The menu item is highlighted to indicate the feature behind the menu item is critical.
+     */
+    CRITICAL,
 }
 
 @Composable
@@ -325,6 +330,7 @@ private fun getIconTint(state: MenuItemState): Color {
     return when (state) {
         MenuItemState.ACTIVE -> FirefoxTheme.colors.iconAccentViolet
         MenuItemState.WARNING -> FirefoxTheme.colors.iconCritical
+        MenuItemState.CRITICAL -> Color.Unspecified
         else -> FirefoxTheme.colors.iconPrimary
     }
 }

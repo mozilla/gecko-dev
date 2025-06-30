@@ -184,4 +184,13 @@
 
     <!-- Private Mode mask icon circle fill colors -->
     <color name="mozac_ui_private_mode_circle_fill" tools:ignore="UnusedResources">@color/photonPurple60</color>
+
+    <!-- Account Sync Avatar fill colors -->
+    <color name="mozac_ui_avatar_warning_bg_fill_critical">@color/fx_mobile_icon_color_secondary</color>
+    <color name="mozac_ui_avatar_warning_fill_critical">@color/fx_mobile_icon_color_critical</color>
+
+    <!-- Extensions disabled icon fill colors -->
+    <color name="mozac_ui_extensions_warning_bg_fill_critical">@color/fx_mobile_icon_color_secondary</color>
+    <color name="mozac_ui_extensions_warning_fill_critical">@color/fx_mobile_icon_color_critical</color>
+
 </resources>
