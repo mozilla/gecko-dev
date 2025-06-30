@@ -253,14 +253,19 @@ class SessionStoreTestCase(WindowManagerMixin, MarionetteTestCase):
 
         return opened_windows
 
-    def _close_last_tab(self):
-        # "self.marionette.close" cannot be used because it doesn't
-        # allow closing the very last tab.
+    def _close_window(self):
+        """Use as a callback to `marionette.quit` in order to close the
+        browser window.
+
+        `marionette.close`/`marionette.close_chrome_window` cannot
+        be used alone because they don't allow closing the last window.
+        """
+
         self.marionette.execute_script("window.close()")
 
     def close_all_tabs_and_restart(self):
         self.close_all_tabs()
-        self.marionette.quit(callback=self._close_last_tab)
+        self.marionette.quit(callback=self._close_window)
         self.marionette.start_session()
 
     def simulate_os_shutdown(self):

@@ -5794,6 +5794,14 @@ var SessionStoreInternal = {
       this._log.debug(
         `restoreWindow, createTabsForSessionRestore returned ${tabs.length} tabs`
       );
+      // If restoring this window resulted in reopening any saved tab groups,
+      // we no longer need to track those saved tab groups.
+      const openTabGroupIdsInWindow = new Set(
+        tabbrowser.tabGroups.map(group => group.id)
+      );
+      this._savedGroups = this._savedGroups.filter(
+        savedTabGroup => !openTabGroupIdsInWindow.has(savedTabGroup.id)
+      );
     }
 
     // Move the originally open tabs to the end.
