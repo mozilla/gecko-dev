@@ -391,6 +391,8 @@ nsLookAndFeel::nsLookAndFeel() {
                        G_CALLBACK(kde_colors_changed), NULL);
     }
   }
+
+  FcInit();
 }
 
 nsLookAndFeel::~nsLookAndFeel() {
