@@ -74,6 +74,15 @@ class ServoComputedData {
 
  private:
   mozilla::ServoComputedCustomProperties custom_properties;
+  /// The rule node representing the ordered list of rules matched for this
+  /// node.  Can be None for default values and text nodes.  This is
+  /// essentially an optimization to avoid referencing the root rule node.
+  mozilla::ServoRuleNode rules;
+  /// The element's computed values if visited, only computed if there's a
+  /// relevant link for this element. A element's "relevant link" is the
+  /// element being matched if it is a link or the nearest ancestor link.
+  const mozilla::ComputedStyle* visited_style;
+  /// The computed writing-mode of the element.
   mozilla::ServoWritingMode writing_mode;
   /// The effective zoom (as in, the CSS zoom property) of this style.
   ///
@@ -85,15 +94,8 @@ class ServoComputedData {
   ///
   /// So the style object itself is probably a reasonable place to store it.
   mozilla::StyleZoom effective_zoom;
+  /// Various flags that affect our style.
   mozilla::StyleComputedValueFlags flags;
-  /// The rule node representing the ordered list of rules matched for this
-  /// node.  Can be None for default values and text nodes.  This is
-  /// essentially an optimization to avoid referencing the root rule node.
-  mozilla::ServoRuleNode rules;
-  /// The element's computed values if visited, only computed if there's a
-  /// relevant link for this element. A element's "relevant link" is the
-  /// element being matched if it is a link or the nearest ancestor link.
-  const mozilla::ComputedStyle* visited_style;
 
   // C++ just sees this struct as a bucket of bits, and will
   // do the wrong thing if we let it use the default copy ctor/assignment

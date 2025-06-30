@@ -5,7 +5,6 @@
 //! Computed types for box properties.
 
 use crate::values::animated::{Animate, Procedure, ToAnimatedValue};
-use crate::values::computed::font::FixedPoint;
 use crate::values::computed::length::{LengthPercentage, NonNegativeLength};
 use crate::values::computed::{Context, Integer, Number, ToComputedValue};
 use crate::values::generics::box_::{
@@ -118,21 +117,12 @@ impl ToComputedValue for specified::Resize {
     }
 }
 
-/// We use an unsigned 10.6 fixed-point value (range 0.0 - 1023.984375).
-pub const ZOOM_FRACTION_BITS: u16 = 6;
-
-/// This is an alias which is useful mostly as a cbindgen / C++ inference workaround.
-pub type ZoomFixedPoint = FixedPoint<u16, ZOOM_FRACTION_BITS>;
-
-/// The computed `zoom` property value. We store it as a 16-bit fixed point because we need to
-/// store it efficiently in the ComputedStyle representation. The assumption being that zooms over
-/// 1000 aren't quite useful.
+/// The computed `zoom` property value.
 #[derive(
     Clone,
     ComputeSquaredDistance,
     Copy,
     Debug,
-    Hash,
     MallocSizeOf,
     PartialEq,
     PartialOrd,
@@ -140,7 +130,7 @@ pub type ZoomFixedPoint = FixedPoint<u16, ZOOM_FRACTION_BITS>;
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(C)]
-pub struct Zoom(ZoomFixedPoint);
+pub struct Zoom(f32);
 
 impl ToComputedValue for specified::Zoom {
     type ComputedValue = Zoom;
@@ -156,7 +146,7 @@ impl ToComputedValue for specified::Zoom {
             // For legacy reasons, zoom: 0 (and 0%) computes to 1. ¯\_(ツ)_/¯
             return Zoom::ONE;
         }
-        Zoom(ZoomFixedPoint::from_float(n))
+        Zoom(n)
     }
 
     #[inline]
@@ -188,19 +178,17 @@ impl ToAnimatedValue for Zoom {
 
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
-        Zoom(ZoomFixedPoint::from_float(animated.max(0.0)))
+        Zoom(animated.max(0.0))
     }
 }
 
 impl Zoom {
     /// The value 1. This is by far the most common value.
-    pub const ONE: Zoom = Zoom(ZoomFixedPoint {
-        value: 1 << ZOOM_FRACTION_BITS,
-    });
+    pub const ONE: Zoom = Zoom(1.0);
 
     /// The `document` value. This can appear in the computed zoom property value, but not in the
     /// `effective_zoom` field.
-    pub const DOCUMENT: Zoom = Zoom(ZoomFixedPoint { value: 0 });
+    pub const DOCUMENT: Zoom = Zoom(0.0);
 
     /// Returns whether we're the number 1.
     #[inline]
@@ -217,16 +205,16 @@ impl Zoom {
     /// Returns the inverse of our value.
     #[inline]
     pub fn inverted(&self) -> Option<Self> {
-        if self.0.value == 0 {
+        if self.0 == 0.0 {
             return None;
         }
-        Some(Self(Self::ONE.0 / self.0))
+        Some(Self(1. / self.0))
     }
 
     /// Returns the value as a float.
     #[inline]
     pub fn value(&self) -> f32 {
-        self.0.to_float()
+        self.0
     }
 
     /// Computes the effective zoom for a given new zoom value in rhs.
@@ -256,7 +244,7 @@ impl Zoom {
     #[inline]
     pub fn unzoom(self, value: f32) -> f32 {
         // Avoid division by zero if our effective zoom computation ends up being zero.
-        if self == Self::ONE || self.0.value == 0 {
+        if self == Self::ONE || self.0 == 0.0 {
             return value;
         }
         value / self.value()
