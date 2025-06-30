@@ -13,7 +13,7 @@ skip-if = ["verify"]
 
 prefs = [
   "dom.webgpu.enabled=true",
-  "dom.webgpu.workers.enabled=true",
+  "dom.webgpu.service-workers.enabled=true",
 ]
 support-files = [
   "worker_wrapper.js",

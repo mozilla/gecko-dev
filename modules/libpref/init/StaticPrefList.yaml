@@ -5509,8 +5509,8 @@
   value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
 
-# Is support for the Web GPU API enabled on DOM workers?
-- name: dom.webgpu.workers.enabled
+# Is support for the Web GPU API enabled on service workers?
+- name: dom.webgpu.service-workers.enabled
   type: RelaxedAtomicBool
   value: @IS_EARLY_BETA_OR_EARLIER@
   mirror: always
