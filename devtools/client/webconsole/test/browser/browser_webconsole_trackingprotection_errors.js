@@ -267,11 +267,6 @@ add_task(async function testCookieBlockedForUserContentResourceMessage() {
             const script = document.createElement("script");
             script.src = "https://example.com/${TEST_PATH}empty-with-cookie.js";
             document.body.appendChild(script);
-
-            // An iframe
-            const iframe = document.createElement("iframe");
-            iframe.src = "https://example.com/${TEST_PATH}test-blank-with-cookie.html";
-            document.body.appendChild(iframe);
           `,
     },
   });
@@ -295,12 +290,6 @@ add_task(async function testCookieBlockedForUserContentResourceMessage() {
         "Request to access cookie or storage on “https://example.com/" +
           `${TEST_PATH}empty-with-cookie.js” was blocked because we are ` +
           "blocking all storage access requests."
-      ) &&
-      findWarningMessage(
-        hud,
-        "Request to access cookie or storage on “https://example.com/" +
-          `${TEST_PATH}test-blank-with-cookie.html” was blocked because ` +
-          "we are blocking all storage access requests."
       )
   );
   ok(true, "Third-party storage access blocked message was displayed");

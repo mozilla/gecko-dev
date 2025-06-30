@@ -587,8 +587,9 @@ LoadInfo::LoadInfo(dom::WindowGlobalParent* aParentWGP,
 
   mBrowsingContextID = parentBC->Id();
 
-  // Special treatment for resources injected by add-ons if not document.
-  if (aContentPolicyType != nsIContentPolicy::TYPE_DOCUMENT &&
+  // Special treatment for resources injected by add-ons if not document,
+  // iframe, workers.
+  if (!nsContentUtils::IsNonSubresourceInternalPolicyType(aContentPolicyType) &&
       aTriggeringPrincipal &&
       StaticPrefs::privacy_antitracking_isolateContentScriptResources() &&
       nsContentUtils::IsExpandedPrincipal(aTriggeringPrincipal)) {
@@ -1305,8 +1306,9 @@ namespace {
 already_AddRefed<nsICookieJarSettings> CreateCookieJarSettings(
     nsIPrincipal* aTriggeringPrincipal, nsContentPolicyType aContentPolicyType,
     bool aIsPrivate, bool aShouldResistFingerprinting) {
-  // Special treatment for resources injected by add-ons.
-  if (aContentPolicyType != nsIContentPolicy::TYPE_DOCUMENT &&
+  // Special treatment for resources injected by add-ons if not document,
+  // iframe, workers.
+  if (!nsContentUtils::IsNonSubresourceInternalPolicyType(aContentPolicyType) &&
       aTriggeringPrincipal &&
       StaticPrefs::privacy_antitracking_isolateContentScriptResources() &&
       nsContentUtils::IsExpandedPrincipal(aTriggeringPrincipal)) {
