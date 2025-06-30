@@ -279,6 +279,8 @@ tab-context-move-tab-to-group =
         }
     .accesskey = G
 
+tab-context-move-tab-to-group-saved-groups =
+    .label = Closed Groups
 tab-group-editor-action-new-tab =
     .label = New tab in group
 tab-group-editor-action-new-window =

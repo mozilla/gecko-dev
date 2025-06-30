@@ -46,9 +46,12 @@ export const TabGroupTestUtils = {
       group.tabs.map(tab => TabStateFlusher.flush(tab.linkedBrowser))
     );
 
-    let savedPromise = BrowserTestUtils.waitForEvent(group, "TabGroupSaved");
+    let promises = [
+      BrowserTestUtils.waitForEvent(group, "TabGroupSaved"),
+      BrowserTestUtils.waitForEvent(group, "TabGroupRemoved"),
+    ];
     group.saveAndClose();
-    await savedPromise;
+    await Promise.allSettled(promises);
   },
 
   /**

@@ -123,10 +123,10 @@
           id="tab-group-select-checkbox"
           data-l10n-id="tab-group-editor-select-suggestions">
         </checkbox>
-      
+
         <html:div id="tab-group-suggestions"></html:div>
 
-        <html:p 
+        <html:p
           data-l10n-id="tab-group-editor-information-message">
         </html:p>
 
@@ -250,7 +250,7 @@
             id="tab-group-suggestions-message"
             data-l10n-id="tab-group-editor-no-tabs-found-title">
           </html:moz-button>
-          <html:p 
+          <html:p
             data-l10n-id="tab-group-editor-no-tabs-found-message">
           </html:p>
         </html:div>
@@ -258,7 +258,7 @@
         ${this.defaultActions}
 
       </html:div>
-      
+
       ${this.loadingSection}
       ${this.loadingActions}
       ${this.suggestionsSection}
@@ -892,8 +892,8 @@
         flushes.push(TabStateFlusher.flush(tab.linkedBrowser));
       });
       Promise.allSettled(flushes).then(() => {
-        saveAndCloseGroup.disabled = !SessionStore.shouldSaveTabGroup(
-          this.activeGroup
+        saveAndCloseGroup.disabled = !SessionStore.shouldSaveTabsToGroup(
+          this.activeGroup.tabs
         );
       });
     }

@@ -3221,6 +3221,14 @@
       });
     }
 
+    /**
+     * Get all open tab groups from all windows. Does not include saved groups.
+     *
+     * @param {object} [options]
+     * @param {boolean} [options.sortByLastSeenActive]
+     *   Sort groups so that groups that have more recently seen and active
+     *   tabs appear first. Defaults to false.
+     */
     getAllTabGroups({ sortByLastSeenActive = false } = {}) {
       let groups = BrowserWindowTracker.getOrderedWindows({
         private: PrivateBrowsingUtils.isWindowPrivate(window),
@@ -8941,6 +8949,12 @@ var TabContextMenu = {
       ? gBrowser.selectedTabs
       : [this.contextTab];
 
+    // bug1973996: This call is not guaranteed to complete
+    // before the saved groups menu is populated
+    for (let tab of this.contextTabs) {
+      gBrowser.TabStateFlusher.flush(tab.linkedBrowser);
+    }
+
     let disabled = gBrowser.tabs.length == 1;
     let tabCountInfo = JSON.stringify({
       tabCount: this.contextTabs.length,
@@ -9001,7 +9015,7 @@ var TabContextMenu = {
         this.contextTabs.map(t => t.group).filter(g => g)
       ).size;
 
-      let availableGroupsToMoveTo = gBrowser.getAllTabGroups({
+      let openGroupsToMoveTo = gBrowser.getAllTabGroups({
         sortByLastSeenActive: true,
       });
 
@@ -9010,12 +9024,24 @@ var TabContextMenu = {
       if (selectedGroupCount == 1) {
         let groupToFilter = this.contextTabs[0].group;
         if (groupToFilter && this.contextTabs.every(t => t.group)) {
-          availableGroupsToMoveTo = availableGroupsToMoveTo.filter(
+          openGroupsToMoveTo = openGroupsToMoveTo.filter(
             group => group !== groupToFilter
           );
         }
       }
-      if (!availableGroupsToMoveTo.length) {
+
+      // Populate the saved groups context menu
+      // Only enable in non-private windows, or if at least one of the tabs is
+      // considered saveable
+      let savedGroupsToMoveTo = [];
+      if (
+        !PrivateBrowsingUtils.isWindowPrivate(window) &&
+        SessionStore.shouldSaveTabsToGroup(this.contextTabs)
+      ) {
+        savedGroupsToMoveTo = SessionStore.getSavedTabGroups();
+      }
+
+      if (!openGroupsToMoveTo.length && !savedGroupsToMoveTo.length) {
         contextMoveTabToGroup.hidden = true;
         contextMoveTabToNewGroup.hidden = false;
         contextMoveTabToNewGroup.setAttribute("data-l10n-args", tabCountInfo);
@@ -9024,34 +9050,42 @@ var TabContextMenu = {
         contextMoveTabToGroup.hidden = false;
         contextMoveTabToGroup.setAttribute("data-l10n-args", tabCountInfo);
 
-        const submenu = contextMoveTabToGroup.querySelector("menupopup");
-        submenu.querySelectorAll("[tab-group-id]").forEach(el => el.remove());
+        const openGroupsMenu = contextMoveTabToGroup.querySelector("menupopup");
+        openGroupsMenu
+          .querySelectorAll("[tab-group-id]")
+          .forEach(el => el.remove());
+        const upperSeparator = openGroupsMenu.querySelector(
+          `#open-tab-groups-separator-upper`
+        );
+        const lowerSeparator = openGroupsMenu.querySelector(
+          `#open-tab-groups-separator-lower`
+        );
 
-        availableGroupsToMoveTo.forEach(group => {
-          let item = document.createXULElement("menuitem");
-          item.setAttribute("tab-group-id", group.id);
-          if (group.label) {
-            item.setAttribute("label", group.label);
-          } else {
-            document.l10n.setAttributes(item, "tab-context-unnamed-group");
-          }
+        lowerSeparator.hidden = !openGroupsToMoveTo.length;
 
-          item.classList.add("menuitem-iconic");
-          item.classList.add("tab-group-icon");
-          item.style.setProperty(
-            "--tab-group-color",
-            group.style.getPropertyValue("--tab-group-color")
-          );
-          item.style.setProperty(
-            "--tab-group-color-invert",
-            group.style.getPropertyValue("--tab-group-color-invert")
-          );
-          item.style.setProperty(
-            "--tab-group-color-pale",
-            group.style.getPropertyValue("--tab-group-color-pale")
-          );
-          submenu.appendChild(item);
+        openGroupsToMoveTo.toReversed().forEach(group => {
+          let item = this._createTabGroupMenuItem(group, false);
+          upperSeparator.after(item);
         });
+
+        const savedGroupsMenu = contextMoveTabToGroup.querySelector(
+          "#context_moveTabToSavedGroup"
+        );
+        const savedGroupsMenuPopup = savedGroupsMenu.querySelector("menupopup");
+
+        savedGroupsMenuPopup
+          .querySelectorAll("[tab-group-id]")
+          .forEach(el => el.remove());
+        if (savedGroupsToMoveTo.length) {
+          savedGroupsMenu.disabled = false;
+
+          savedGroupsToMoveTo.forEach(group => {
+            let item = this._createTabGroupMenuItem(group, true);
+            savedGroupsMenuPopup.appendChild(item);
+          });
+        } else {
+          savedGroupsMenu.disabled = true;
+        }
       }
 
       contextUngroupTab.hidden = !selectedGroupCount;
@@ -9279,6 +9313,38 @@ var TabContextMenu = {
     );
   },
 
+  _createTabGroupMenuItem(group, isSaved) {
+    let item = document.createXULElement("menuitem");
+    item.setAttribute("tab-group-id", group.id);
+
+    // Open groups have labels, and saved groups have names
+    let label = group.label ?? group.name;
+    if (label) {
+      item.setAttribute("label", label);
+    } else {
+      document.l10n.setAttributes(item, "tab-context-unnamed-group");
+    }
+
+    let iconClass = isSaved ? "tab-group-icon-closed" : "tab-group-icon";
+    item.classList.add("menuitem-iconic");
+    item.classList.add(iconClass);
+
+    item.style.setProperty(
+      "--tab-group-color",
+      `var(--tab-group-color-${group.color})`
+    );
+    item.style.setProperty(
+      "--tab-group-color-invert",
+      `var(--tab-group-color-${group.color}-invert)`
+    );
+    item.style.setProperty(
+      "--tab-group-color-pale",
+      `var(--tab-group-color-${group.color}-pale)`
+    );
+
+    return item;
+  },
+
   handleEvent(aEvent) {
     switch (aEvent.type) {
       case "popuphidden":
@@ -9426,6 +9492,11 @@ var TabContextMenu = {
       )
     );
     group.ownerGlobal.focus();
+  },
+
+  addTabsToSavedGroup(groupId) {
+    SessionStore.addTabsToSavedGroup(groupId, this.contextTabs);
+    this.closeContextTabs();
   },
 
   ungroupTabs() {

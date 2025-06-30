@@ -3,6 +3,13 @@
 
 "use strict";
 
+const lazy = {};
+
+ChromeUtils.defineESModuleGetters(lazy, {
+  TabGroupTestUtils: "resource://testing-common/TabGroupTestUtils.sys.mjs",
+  TabStateFlusher: "resource:///modules/sessionstore/TabStateFlusher.sys.mjs",
+});
+
 // Context menu tests
 // ---
 
@@ -360,6 +367,16 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
         "#context_moveTabToGroupPopupMenu"
       ).children;
 
+      Assert.equal(
+        submenu[0].label,
+        "New Group",
+        "First item in the list is the 'New Group' item"
+      );
+      Assert.equal(
+        submenu[1].tagName,
+        "menuseparator",
+        "Second item in the list is a menuseparator"
+      );
       // Items 0 and 1 are the "new group" item and a separator respectively
       // Note that groups should appear in order of most recently used to least
       const group2Item = submenu[2];
@@ -372,6 +389,10 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
         group2Item.getAttribute("label"),
         "Unnamed group",
         "group2 menu item has correct label"
+      );
+      Assert.ok(
+        Array.from(group2Item.classList).includes("tab-group-icon"),
+        "Closed group icon is presented in solid form"
       );
       Assert.ok(
         group2Item.style
@@ -408,6 +429,23 @@ add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
           .getPropertyValue("--tab-group-color-invert")
           .includes("--tab-group-color-red-invert"),
         "group1 menu item chicklet has correct inverted color"
+      );
+
+      Assert.equal(
+        submenu[4].tagName,
+        "menuseparator",
+        "The item immediately after the last open tab group is a menuseparator"
+      );
+
+      Assert.equal(
+        submenu[5].label,
+        "Closed Groups",
+        "Final item in the list is the closed groups dropdown"
+      );
+      Assert.equal(
+        submenu[5].disabled,
+        true,
+        "Closed groups dropdown is disabled when there are no saved groups"
       );
     }
   );
@@ -564,7 +602,12 @@ add_task(
       ).children;
 
       // Accounting for the existence of the "new group" and menuseparator elements
-      Assert.equal(submenu.length, 3, "only one tab group exists in the list");
+      const numberOfStaticElements = 4;
+      Assert.equal(
+        submenu.length,
+        numberOfStaticElements + 1,
+        "only one tab group exists in the list"
+      );
       Assert.equal(
         submenu[2].getAttribute("tab-group-id"),
         group1.id,
@@ -718,6 +761,434 @@ add_task(
     await removeTabGroup(selectedTabGroup);
     await removeTabGroup(otherGroup);
     BrowserTestUtils.removeTab(ungroupedTab);
+  }
+);
+
+/*
+ * Tests that if there are saved groups and no open groups, the "move tab to
+ * group" menu appears with only saved groups in it
+ */
+add_task(async function test_tabGroupContextMenuSavedGroupsAndNoOpenGroups() {
+  let tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  let group = gBrowser.addTabGroup([tab], {
+    label: "Test group",
+  });
+  let expectedGroupLabel = group.label;
+  let expectedGroupId = group.id;
+
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  await lazy.TabGroupTestUtils.saveAndCloseTabGroup(group);
+  Assert.equal(
+    SessionStore.getSavedTabGroups().length,
+    1,
+    "The group was saved"
+  );
+
+  tab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  gBrowser.selectedTab = tab;
+
+  // TODO remove once bug1973996 is resolved
+  await lazy.TabStateFlusher.flush(tab.linkedBrowser);
+
+  await withTabMenu(tab, async (_, moveTabToGroupItem) => {
+    const firstLevelMenu = moveTabToGroupItem.querySelector(
+      "#context_moveTabToGroupPopupMenu"
+    ).children;
+
+    Assert.equal(firstLevelMenu.length, 4, "Menu has four items");
+    Assert.equal(
+      firstLevelMenu[0].label,
+      "New Group",
+      "First item in the list is the 'New Group' item"
+    );
+    Assert.equal(
+      firstLevelMenu[1].tagName,
+      "menuseparator",
+      "Second item in the list is the upper menuseparator"
+    );
+    Assert.equal(
+      firstLevelMenu[2].tagName,
+      "menuseparator",
+      "Third item in the list is the lower menuseparator"
+    );
+    Assert.ok(firstLevelMenu[2].hidden, "Lower menuseparator is hidden");
+    Assert.equal(
+      firstLevelMenu[3].label,
+      "Closed Groups",
+      "Fourth item in the list is the closed groups dropdown"
+    );
+    Assert.ok(!firstLevelMenu[3].disabled, "Closed groups dropdown is enabled");
+
+    const secondLevelMenu =
+      firstLevelMenu[3].querySelector("menupopup").children;
+    Assert.equal(secondLevelMenu.length, 1, "Closed groups menu has 1 item");
+
+    const savedGroupMenuItem = secondLevelMenu[0];
+    Assert.equal(
+      savedGroupMenuItem.getAttribute("tab-group-id"),
+      expectedGroupId,
+      "Saved group item has correct id"
+    );
+    Assert.equal(
+      savedGroupMenuItem.label,
+      expectedGroupLabel,
+      "Saved group item has correct label"
+    );
+    Assert.ok(
+      Array.from(savedGroupMenuItem.classList).includes(
+        "tab-group-icon-closed"
+      ),
+      "Saved group icon is presented in outlined form"
+    );
+    Assert.ok(
+      savedGroupMenuItem.style
+        .getPropertyValue("--tab-group-color")
+        .includes("--tab-group-color-blue"),
+      "Saved group icon has correct color"
+    );
+    Assert.ok(
+      savedGroupMenuItem.style
+        .getPropertyValue("--tab-group-color-invert")
+        .includes("--tab-group-color-blue-invert"),
+      "Saved group icon has correct inverted color"
+    );
+  });
+
+  BrowserTestUtils.removeTab(tab);
+  lazy.TabGroupTestUtils.forgetSavedTabGroups();
+});
+
+/*
+ * Tests that if there are both saved groups and open groups, the "move tab to
+ * group" menu appears with both types of groups in it, and are separated correctly
+ */
+add_task(async function test_tabGroupContextMenuSavedGroupsAndOpenGroups() {
+  let openTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  let openGroup = gBrowser.addTabGroup([openTab], {
+    label: "Test group",
+  });
+
+  let savedTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  let savedGroup = gBrowser.addTabGroup([savedTab], {
+    label: "Test group",
+  });
+
+  let tabToSelect = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+
+  await Promise.allSettled([
+    BrowserTestUtils.browserLoaded(openTab.linkedBrowser),
+    BrowserTestUtils.browserLoaded(savedTab.linkedBrowser),
+    BrowserTestUtils.browserLoaded(tabToSelect.linkedBrowser),
+  ]);
+
+  await lazy.TabGroupTestUtils.saveAndCloseTabGroup(savedGroup);
+  Assert.equal(
+    SessionStore.getSavedTabGroups().length,
+    1,
+    "The group was saved"
+  );
+
+  // TODO remove once bug1973996 is resolved
+  await lazy.TabStateFlusher.flush(tabToSelect.linkedBrowser);
+
+  await withTabMenu(tabToSelect, async (_, moveTabToGroupItem) => {
+    const firstLevelMenu = moveTabToGroupItem.querySelector(
+      "#context_moveTabToGroupPopupMenu"
+    ).children;
+
+    Assert.equal(firstLevelMenu.length, 5, "Menu has five items");
+
+    Assert.equal(
+      firstLevelMenu[0].label,
+      "New Group",
+      "First item in the list is the 'New Group' item"
+    );
+    Assert.equal(
+      firstLevelMenu[1].tagName,
+      "menuseparator",
+      "Second item in the list is the upper menuseparator"
+    );
+    Assert.equal(
+      firstLevelMenu[2].getAttribute("tab-group-id"),
+      openGroup.id,
+      "Third item in the list is the open group"
+    );
+    Assert.equal(
+      firstLevelMenu[3].tagName,
+      "menuseparator",
+      "Fourth item in the list is the lower menuseparator"
+    );
+    Assert.ok(!firstLevelMenu[3].hidden, "Lower menuseparator is visible");
+    Assert.equal(
+      firstLevelMenu[4].label,
+      "Closed Groups",
+      "Fifth item in the list is the closed groups dropdown"
+    );
+    Assert.ok(!firstLevelMenu[4].disabled, "Saved groups dropdown is enabled");
+
+    const secondLevelMenu =
+      firstLevelMenu[4].querySelector("menupopup").children;
+    Assert.equal(secondLevelMenu.length, 1, "Saved groups menu has 1 item");
+  });
+
+  await lazy.TabGroupTestUtils.removeTabGroup(openGroup);
+  BrowserTestUtils.removeTab(tabToSelect);
+  lazy.TabGroupTestUtils.forgetSavedTabGroups();
+});
+
+/*
+ * Tests that if the context tab is has content that is not considered "worth
+ * saving" from the point of view of SessionStore, and no other group is open,
+ * the "add tab to group" dropdown does not appear, even when a saved group exists
+ */
+add_task(
+  async function test_tabGroupContextMenuSavedGroupsDisabledIfNotWorthSaving() {
+    let savedTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    let savedGroup = gBrowser.addTabGroup([savedTab], {
+      label: "Test group",
+    });
+
+    let contextTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+
+    await Promise.allSettled([
+      BrowserTestUtils.browserLoaded(savedTab.linkedBrowser),
+      BrowserTestUtils.browserLoaded(contextTab.linkedBrowser),
+    ]);
+
+    await lazy.TabGroupTestUtils.saveAndCloseTabGroup(savedGroup);
+    Assert.equal(
+      SessionStore.getSavedTabGroups().length,
+      1,
+      "The group was saved"
+    );
+
+    // TODO remove once bug1973996 is resolved
+    await lazy.TabStateFlusher.flush(contextTab.linkedBrowser);
+
+    await withTabMenu(
+      contextTab,
+      async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+        Assert.ok(
+          !moveTabToNewGroupItem.hidden,
+          "moveTabToNewGroupItem is visible"
+        );
+        Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
+      }
+    );
+
+    BrowserTestUtils.removeTab(contextTab);
+    lazy.TabGroupTestUtils.forgetSavedTabGroups();
+  }
+);
+
+/*
+ * Tests that if the context tab is has content that is not considered "worth
+ * saving" from the point of view of SessionStore, and another group is open,
+ * the saved group options are disabled, even when a saved group exists
+ */
+add_task(
+  async function test_tabGroupContextMenuSavedGroupsDisabledIfNotWorthSavingWithOpenGroup() {
+    let openTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    let openGroup = gBrowser.addTabGroup([openTab], {
+      label: "Test group",
+    });
+
+    let savedTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    let savedGroup = gBrowser.addTabGroup([savedTab], {
+      label: "Test group",
+    });
+
+    let contextTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+
+    await Promise.allSettled([
+      BrowserTestUtils.browserLoaded(openTab.linkedBrowser),
+      BrowserTestUtils.browserLoaded(savedTab.linkedBrowser),
+      BrowserTestUtils.browserLoaded(contextTab.linkedBrowser),
+    ]);
+
+    await lazy.TabGroupTestUtils.saveAndCloseTabGroup(savedGroup);
+    Assert.equal(
+      SessionStore.getSavedTabGroups().length,
+      1,
+      "The group was saved"
+    );
+
+    // TODO remove once bug1973996 is resolved
+    await lazy.TabStateFlusher.flush(contextTab.linkedBrowser);
+
+    await withTabMenu(contextTab, async (_, moveTabToGroupItem) => {
+      const firstLevelMenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+
+      Assert.equal(firstLevelMenu.length, 5, "Menu has five items");
+      Assert.equal(
+        firstLevelMenu[4].label,
+        "Closed Groups",
+        "Last item in the list is the saved groups dropdown"
+      );
+      Assert.ok(
+        firstLevelMenu[4].disabled,
+        "Saved groups dropdown is disabled"
+      );
+    });
+
+    await lazy.TabGroupTestUtils.removeTabGroup(openGroup);
+    BrowserTestUtils.removeTab(contextTab);
+    lazy.TabGroupTestUtils.forgetSavedTabGroups();
+  }
+);
+
+/*
+ * Tests that adding a tab to a saved group correctly adds the tab to the saved
+ * group and removes the tab from the window, and that the saved group can be
+ * correctly restored
+ */
+add_task(async function test_tabGroupContextMenuSaveGroupAndRestore() {
+  let savedTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  let savedGroup = gBrowser.addTabGroup([savedTab], {
+    label: "Test group",
+  });
+  let savedGroupId = savedGroup.id;
+
+  await BrowserTestUtils.browserLoaded(savedTab.linkedBrowser);
+  await lazy.TabGroupTestUtils.saveAndCloseTabGroup(savedGroup);
+
+  let sessionStoreGroups = SessionStore.getSavedTabGroups();
+  Assert.equal(sessionStoreGroups.length, 1, "The group was saved");
+  Assert.equal(
+    sessionStoreGroups[0].tabs.length,
+    1,
+    "There is one tab in the group"
+  );
+
+  let tabToAdd = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+  await BrowserTestUtils.browserLoaded(tabToAdd.linkedBrowser);
+  gBrowser.selectedTab = tabToAdd;
+
+  // TODO remove once bug1973996 is resolved
+  await lazy.TabStateFlusher.flush(tabToAdd.linkedBrowser);
+
+  await withTabMenu(tabToAdd, async (_, moveTabToGroupItem) => {
+    const firstLevelMenu = moveTabToGroupItem.querySelector(
+      "#context_moveTabToGroupPopupMenu"
+    ).children;
+    const secondLevelMenu =
+      firstLevelMenu[3].querySelector("menupopup").children;
+    const savedGroupMenuItem = secondLevelMenu[0];
+
+    let tabClosePromise = BrowserTestUtils.waitForEvent(tabToAdd, "TabClose");
+    savedGroupMenuItem.click();
+    await tabClosePromise;
+  });
+
+  sessionStoreGroups = SessionStore.getSavedTabGroups();
+  Assert.equal(sessionStoreGroups.length, 1, "Only one group exists");
+  Assert.equal(
+    sessionStoreGroups[0].tabs.length,
+    2,
+    "The tab was added to the group"
+  );
+
+  let restorePromise = BrowserTestUtils.waitForEvent(
+    window,
+    "SSWindowStateReady"
+  );
+  SessionStore.openSavedTabGroup(savedGroupId, window);
+  await restorePromise;
+
+  Assert.equal(
+    gBrowser.tabGroups.length,
+    1,
+    "One tab group exists on the tab strip"
+  );
+  Assert.equal(
+    gBrowser.tabGroups[0].id,
+    savedGroupId,
+    "The tab group is the restored tab group"
+  );
+  Assert.equal(
+    gBrowser.tabGroups[0].tabs.length,
+    2,
+    "Restored tab group has two tabs"
+  );
+
+  await removeTabGroup(gBrowser.tabGroups[0]);
+  lazy.TabGroupTestUtils.forgetSavedTabGroups();
+});
+
+/*
+ * Tests that if a multiselection of tabs is added to a saved group, and only
+ * some of those tabs are considered "worth saving" from the point of view of
+ * SessionStore, all tabs are removed from the window, but only the tabs that
+ * are worth saving are added to the group
+ */
+add_task(
+  async function test_tabGroupContextMenuSaveGroupMultiselectionSomeWorthSaving() {
+    let savedTab = BrowserTestUtils.addTab(gBrowser, "https://example.com");
+    let savedGroup = gBrowser.addTabGroup([savedTab], {
+      label: "Test group",
+    });
+
+    await BrowserTestUtils.browserLoaded(savedTab.linkedBrowser);
+    await lazy.TabGroupTestUtils.saveAndCloseTabGroup(savedGroup);
+
+    let sessionStoreGroups = SessionStore.getSavedTabGroups();
+    Assert.equal(sessionStoreGroups.length, 1, "The group was saved");
+    Assert.equal(
+      sessionStoreGroups[0].tabs.length,
+      1,
+      "There is one tab in the group"
+    );
+
+    let tabsToAdd = [
+      BrowserTestUtils.addTab(gBrowser, "https://example.com"),
+      BrowserTestUtils.addTab(gBrowser, "https://example.com"),
+      BrowserTestUtils.addTab(gBrowser, "about:blank"),
+      BrowserTestUtils.addTab(gBrowser, "about:blank"),
+    ];
+    await Promise.allSettled(
+      tabsToAdd.map(tab => BrowserTestUtils.browserLoaded(tab.linkedBrowser))
+    );
+
+    gBrowser.selectedTabs = tabsToAdd;
+
+    // TODO remove once bug1973996 is resolved
+    await Promise.allSettled(
+      tabsToAdd.map(tab => lazy.TabStateFlusher.flush(tab.linkedBrowser))
+    );
+
+    await withTabMenu(tabsToAdd[0], async (_, moveTabToGroupItem) => {
+      const firstLevelMenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+      const secondLevelMenu =
+        firstLevelMenu[3].querySelector("menupopup").children;
+      const savedGroupMenuItem = secondLevelMenu[0];
+
+      let tabClosePromises = tabsToAdd.map(tab =>
+        BrowserTestUtils.waitForEvent(tab, "TabClose")
+      );
+      savedGroupMenuItem.click();
+      await Promise.allSettled(tabClosePromises);
+    });
+
+    sessionStoreGroups = SessionStore.getSavedTabGroups();
+    Assert.equal(sessionStoreGroups.length, 1, "Only one group exists");
+    Assert.equal(
+      sessionStoreGroups[0].tabs.length,
+      3,
+      "Two tabs were added to the group"
+    );
+
+    // Use waitForCondition instead of assert because the TabClose event fires before the tab is fully removed from the DOM
+    await BrowserTestUtils.waitForCondition(
+      () => gBrowser.tabs.length == 1,
+      "Only one tab remains on the tab strip"
+    );
+
+    lazy.TabGroupTestUtils.forgetSavedTabGroups();
   }
 );
 

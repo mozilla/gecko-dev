@@ -438,11 +438,13 @@ document.addEventListener(
 
         const tabGroupId = event.target.getAttribute("tab-group-id");
         const group = gBrowser.getTabGroupById(tabGroupId);
-        if (!group) {
-          return;
+        if (group) {
+          TabContextMenu.moveTabsToGroup(group);
         }
 
-        TabContextMenu.moveTabsToGroup(group);
+        if (SessionStore.getSavedTabGroup(tabGroupId)) {
+          TabContextMenu.addTabsToSavedGroup(tabGroupId);
+        }
       });
 
     document

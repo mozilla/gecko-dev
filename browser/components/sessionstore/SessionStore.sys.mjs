@@ -838,6 +838,17 @@ export var SessionStore = {
   },
 
   /**
+   * Add tabs to an existing saved tab group.
+   *
+   * @param {string} tabGroupId - The ID of the group to save to
+   * @param {MozTabbrowserTab[]} tabs - The list of tabs to add to the group
+   * @returns {SavedTabGroupStateData}
+   */
+  addTabsToSavedGroup(tabGroupId, tabs) {
+    return SessionStoreInternal.addTabsToSavedGroup(tabGroupId, tabs);
+  },
+
+  /**
    * Retrieve the tab group state of a saved tab group by ID.
    *
    * @param {string} tabGroupId
@@ -924,14 +935,18 @@ export var SessionStore = {
   },
 
   /**
-   * Determine whether a group is saveable, based on whether any of its tabs
-   * are saveable per ssi_shouldSaveTabState.
-   * @param {MozTabbrowserTabGroup} group the tab group to check
-   * @returns {boolean} true if the group can be saved, false if it should
-   *  be discarded.
+   * Determine whether a list of tabs should be considered saveable.
+   * A list of tabs is considered saveable if any of the tabs in the list
+   * are worth saving.
+   *
+   * This is used to determine if a tab group should be saved, or if any active
+   * tabs in a selection are eligible to be added to an existing saved group.
+   *
+   * @param {MozTabbrowserTab[]} tabs - the list of tabs to check
+   * @returns {boolean} true if any of the tabs are saveable.
    */
-  shouldSaveTabGroup(group) {
-    return SessionStoreInternal.shouldSaveTabGroup(group);
+  shouldSaveTabsToGroup(tabs) {
+    return SessionStoreInternal.shouldSaveTabsToGroup(tabs);
   },
 
   /**
@@ -3273,12 +3288,20 @@ var SessionStoreInternal = {
    *
    * @param {MozTabbrowserTab[]} tabs
    * @param {Window} win
+   * @param {object} [options]
+   * @param {string} [options.updateTabGroupId]
+   *         Manually set a tab group id on the the tab state for each tab.
+   *         This is mainly used to add closing tabs to pre-existing
+   *         saved groups.
    * @returns {ClosedTabStateData[]}
    */
-  _collectClosedTabsForTabGroup(tabs, win) {
+  _collectClosedTabsForTabGroup(tabs, win, { updateTabGroupId } = {}) {
     let closedTabs = [];
     tabs.forEach(tab => {
       let tabState = lazy.TabState.collect(tab, TAB_CUSTOM_VALUES.get(tab));
+      if (updateTabGroupId) {
+        tabState.groupId = updateTabGroupId;
+      }
       this.maybeSaveClosedTab(win, tab, tabState, {
         closedTabsArray: closedTabs,
         closedInTabGroup: true,
@@ -3348,7 +3371,7 @@ var SessionStoreInternal = {
       pos: aTab._tPos,
       closedAt: Date.now(),
       closedInGroup: aTab._closedInMultiselection,
-      closedInTabGroupId: closedInTabGroup ? aTab.group.id : null,
+      closedInTabGroupId: closedInTabGroup ? tabState.groupId : null,
       sourceWindowId: aWindow.__SSi,
     };
 
@@ -7128,17 +7151,14 @@ var SessionStoreInternal = {
   },
 
   /**
-   * Determine if a tab group should be saved based on whether any of its tabs
-   * should be saved.
-   *
-   * @param {MozTabbrowserTabGroup} group the tab group to check
-   * @returns {boolean} true if the group is saveable.
+   * @param {MozTabbrowserTab[]} tabs
+   * @returns {boolean}
    */
-  shouldSaveTabGroup: function ssi_shouldSaveTabGroup(group) {
-    if (!group) {
+  shouldSaveTabsToGroup: function ssi_shouldSaveTabsToGroup(tabs) {
+    if (!tabs) {
       return false;
     }
-    for (let tab of group.tabs) {
+    for (let tab of tabs) {
       let tabState = lazy.TabState.collect(tab);
       if (this._shouldSaveTabState(tabState)) {
         return true;
@@ -8109,6 +8129,37 @@ var SessionStoreInternal = {
       tabGroup.ownerGlobal
     );
     this._recordSavedTabGroupState(tabGroupState);
+  },
+
+  /**
+   * @param {string} tabGroupId
+   * @param {MozTabbrowserTab[]} tabs
+   * @returns {SavedTabGroupStateData}
+   */
+  addTabsToSavedGroup(tabGroupId, tabs) {
+    let tabGroupState = this.getSavedTabGroup(tabGroupId);
+    if (!tabGroupState) {
+      throw new Error(`No tab group found with id ${tabGroupId}`);
+    }
+
+    const win = tabs[0].ownerGlobal;
+    if (!tabs.every(tab => tab.ownerGlobal === win)) {
+      throw new Error(`All tabs must be part of the same window`);
+    }
+
+    if (PrivateBrowsingUtils.isWindowPrivate(win)) {
+      throw new Error(
+        "Refusing to add tabs from private window to a saved tab group"
+      );
+    }
+
+    let newTabState = this._collectClosedTabsForTabGroup(tabs, win, {
+      updateTabGroupId: tabGroupId,
+    });
+    tabGroupState.tabs.push(...newTabState);
+
+    this._notifyOfSavedTabGroupsChange();
+    return tabGroupState;
   },
 
   /**
