@@ -4,6 +4,7 @@
 
 "use strict";
 
+const LINE_BREAK_RE = /\r\n?|\n|\u2028|\u2029/;
 const MAX_DATA_URL_LENGTH = 40;
 /**
  * Provide access to the style information in a page.
@@ -258,7 +259,7 @@ function prettifyCSS(text, ruleCount) {
   }
 
   // Stylesheets may start and end with HTML comment tags (possibly with whitespaces
-  // before and after). Remove those first. Don't do anything there aren't any.
+  // before and after). Remove those first. Don't do anything if there aren't any.
   const trimmed = text.trim();
   if (trimmed.startsWith("<!--")) {
     text = trimmed.replace(/^<!--/, "").replace(/-->$/, "").trim();
@@ -332,6 +333,8 @@ function prettifyCSS(text, ruleCount) {
   let anyNonWS;
   // True if the terminating token is "}".
   let isCloseBrace;
+  // True if the terminating token is a new line character.
+  let isNewLine;
   // True if the token just before the terminating token was
   // whitespace.
   let lastWasWS;
@@ -394,7 +397,16 @@ function prettifyCSS(text, ruleCount) {
         break;
       }
 
-      if (token.tokenType !== "WhiteSpace") {
+      if (token.tokenType === "WhiteSpace") {
+        if (LINE_BREAK_RE.test(token.text)) {
+          // If we encounter a new line after a significant token, we can
+          // move on to the next significant token.
+          // This avoids messing with declarations with no semi-colon preceding
+          // a closing brace, eg `{\n  color: red\n  }`
+          isNewLine = true;
+          break;
+        }
+      } else {
         anyNonWS = true;
       }
 
@@ -433,6 +445,7 @@ function prettifyCSS(text, ruleCount) {
     endIndex = undefined;
     anyNonWS = false;
     isCloseBrace = false;
+    isNewLine = false;
     lastWasWS = false;
 
     // Read tokens until we see a reason to insert a newline.
@@ -445,6 +458,9 @@ function prettifyCSS(text, ruleCount) {
         // need anything here.
       } else {
         result = result + indent + text.substring(startIndex, endIndex);
+        if (isNewLine) {
+          lineOffset = lineOffset - 1;
+        }
         if (isCloseBrace) {
           result += prettifyCSS.LINE_SEPARATOR;
           lineOffset = lineOffset + 1;
