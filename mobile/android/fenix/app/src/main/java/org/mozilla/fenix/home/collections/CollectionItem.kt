@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection.EndToStart
 import androidx.compose.material3.DismissDirection.StartToEnd
 import androidx.compose.material3.ExperimentalMaterialApi
@@ -96,8 +97,8 @@ fun CollectionItem(
             modifier = clippingModifier
                 .fillMaxWidth(),
             shape = if (isLastInCollection) BOTTOM_TAB_SHAPE else MIDDLE_TAB_SHAPE,
-            backgroundColor = FirefoxTheme.colors.layer2,
-            elevation = 5.dp,
+            colors = CardDefaults.cardColors(containerColor = FirefoxTheme.colors.layer2),
+            elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
         ) {
             FaviconListItem(
                 label = tab.title,

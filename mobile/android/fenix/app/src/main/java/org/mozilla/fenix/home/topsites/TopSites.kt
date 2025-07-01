@@ -25,6 +25,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -427,8 +428,8 @@ private fun TopSiteFaviconCard(
             }
             .size(TOP_SITES_FAVICON_CARD_SIZE.dp),
         shape = CircleShape,
-        backgroundColor = backgroundColor,
-        elevation = 0.dp,
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Surface(

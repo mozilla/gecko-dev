@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -90,8 +91,8 @@ fun InactiveTabsList(
 ) {
     Card(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        colors = CardDefaults.cardColors(containerColor = FirefoxTheme.colors.layer2),
         shape = ROUNDED_CORNER_SHAPE,
-        backgroundColor = FirefoxTheme.colors.layer2,
         border = BorderStroke(
             width = 1.dp,
             color = FirefoxTheme.colors.borderPrimary,
@@ -242,7 +243,7 @@ private fun InactiveTabsAutoClosePrompt(
     Card(
         modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         shape = ROUNDED_CORNER_SHAPE,
-        backgroundColor = FirefoxTheme.colors.layer2,
+        colors = CardDefaults.cardColors(containerColor = FirefoxTheme.colors.layer2),
         border = BorderStroke(
             width = 1.dp,
             color = FirefoxTheme.colors.borderPrimary,

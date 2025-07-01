@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,8 +38,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
 fun ProfilerDialogueCard(content: @Composable () -> Unit) {
     FirefoxTheme {
         Card(
-            elevation = 8.dp,
-            backgroundColor = FirefoxTheme.colors.layer2,
+            colors = CardDefaults.cardColors(containerColor = FirefoxTheme.colors.layer2),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             shape = RoundedCornerShape(12.dp),
         ) {
             content()

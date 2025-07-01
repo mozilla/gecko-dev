@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -55,8 +56,7 @@ fun PlaceholderCard(
                     dashWidth = 4.dp,
                 )
                 .then(modifier),
-            elevation = 0.dp,
-            backgroundColor = Color.Transparent,
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         ) {
             Column(
                 Modifier

@@ -43,9 +43,8 @@ fun DismissedTabBackground(
 ) {
     Card(
         modifier = Modifier.fillMaxSize(),
-        backgroundColor = FirefoxTheme.colors.layer3,
+        colors = CardDefaults.cardColors(containerColor = FirefoxTheme.colors.layer3),
         shape = shape,
-        elevation = 0.dp,
     ) {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
