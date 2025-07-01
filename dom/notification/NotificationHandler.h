@@ -31,9 +31,9 @@ class NotificationHandler final : public nsINotificationHandler {
   static already_AddRefed<NotificationHandler> GetSingleton();
 
   NS_IMETHOD RespondOnClick(nsIPrincipal* aPrincipal,
-                          const nsAString& aNotificationId,
-                          const nsAString& aActionName, bool aAutoClosed,
-                          Promise** aResult) override;
+                            const nsAString& aNotificationId,
+                            const nsAString& aActionName, bool aAutoClosed,
+                            Promise** aResult) override;
 
  private:
   ~NotificationHandler() = default;
