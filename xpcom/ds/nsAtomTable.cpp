@@ -11,12 +11,14 @@
 #include "mozilla/MruCache.h"
 #include "mozilla/RWLock.h"
 #include "mozilla/TextUtils.h"
+#include "mozilla/AppShutdown.h"
 #include "nsHashKeys.h"
 #include "nsThreadUtils.h"
 
 #include "nsAtom.h"
 #include "nsAtomTable.h"
 #include "nsGkAtoms.h"
+#include "nsIThread.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include "nsUnicharUtils.h"
@@ -457,11 +459,25 @@ void nsAtomSubTable::GCLocked(GCKind aKind) {
   nsDynamicAtom::gUnusedAtomCount -= removedCount;
 }
 
-void nsDynamicAtom::GCAtomTable() {
+void nsDynamicAtom::ScheduleAtomTableGC() {
   MOZ_ASSERT(gAtomTable);
-  if (NS_IsMainThread()) {
-    gAtomTable->GC(GCKind::RegularOperation);
+  static Atomic<bool, Relaxed> sScheduled;
+  if (sScheduled.exchange(true)) {
+    return;
   }
+  if (AppShutdown::IsInOrBeyond(ShutdownPhase::XPCOMShutdownThreads)) {
+    // If we're during shutdown, just don't do anything, NS_ShutdownAtomTable
+    // will GC if needed.
+    return;
+  }
+  DebugOnly<nsresult> rv =
+      NS_DispatchToMainThread(NS_NewRunnableFunction("nsAtomTable::GC", []() {
+        sScheduled = false;
+        if (MOZ_LIKELY(gAtomTable)) {
+          gAtomTable->GC(GCKind::RegularOperation);
+        }
+      }));
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
 //----------------------------------------------------------------------
