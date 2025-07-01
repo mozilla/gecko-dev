@@ -412,7 +412,7 @@ void NativeMenuGtk::ShowAsContextMenu(nsIFrame* aClickedFrame,
   const GdkRectangle rect = {gdkPos.x, gdkPos.y, 1, 1};
   auto openFn = GetPopupAtRectFn();
   openFn(GTK_MENU(mNativeMenu.get()), win, &rect, GDK_GRAVITY_NORTH_WEST,
-         GDK_GRAVITY_NORTH_WEST, GetLastMousePressEvent());
+         GDK_GRAVITY_NORTH_WEST, GetLastPointerDownEvent());
 
   RefPtr pin{this};
   FireEvent(eXULPopupShown);

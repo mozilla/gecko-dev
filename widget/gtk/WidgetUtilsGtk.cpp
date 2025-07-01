@@ -141,19 +141,19 @@ GdkDevice* GdkGetPointer() {
   return gdk_device_manager_get_client_pointer(deviceManager);
 }
 
-static GdkEvent* sLastMousePressEvent = nullptr;
-GdkEvent* GetLastMousePressEvent() { return sLastMousePressEvent; }
+static GdkEvent* sLastPointerDownEvent = nullptr;
+GdkEvent* GetLastPointerDownEvent() { return sLastPointerDownEvent; }
 
-void SetLastMousePressEvent(GdkEvent* aEvent) {
-  if (sLastMousePressEvent) {
-    GUniquePtr<GdkEvent> event(sLastMousePressEvent);
-    sLastMousePressEvent = nullptr;
+void SetLastPointerDownEvent(GdkEvent* aEvent) {
+  if (sLastPointerDownEvent) {
+    GUniquePtr<GdkEvent> event(sLastPointerDownEvent);
+    sLastPointerDownEvent = nullptr;
   }
   if (!aEvent) {
     return;
   }
   GUniquePtr<GdkEvent> event(gdk_event_copy(aEvent));
-  sLastMousePressEvent = event.release();
+  sLastPointerDownEvent = event.release();
 }
 
 bool IsRunningUnderSnap() { return !!GetSnapInstanceName(); }

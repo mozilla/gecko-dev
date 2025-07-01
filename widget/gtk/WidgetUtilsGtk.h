@@ -37,9 +37,9 @@ bool IsXWaylandProtocol();
 
 GdkDevice* GdkGetPointer();
 
-// Sets / returns the last mouse press event we processed.
-void SetLastMousePressEvent(GdkEvent*);
-GdkEvent* GetLastMousePressEvent();
+// Sets / returns the last mouse button press/touch begin event we processed.
+void SetLastPointerDownEvent(GdkEvent*);
+GdkEvent* GetLastPointerDownEvent();
 
 // Return the snap's instance name, or null when not running as a snap.
 const char* GetSnapInstanceName();

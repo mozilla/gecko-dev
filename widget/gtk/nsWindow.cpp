@@ -200,6 +200,7 @@ constexpr gint kEvents =
 /* utility functions */
 static bool is_mouse_in_window(GdkWindow* aWindow, gdouble aMouseX,
                                gdouble aMouseY);
+static bool is_drag_threshold_exceeded(GdkEvent* aEvent);
 static nsWindow* get_window_for_gtk_widget(GtkWidget* widget);
 static nsWindow* get_window_for_gdk_window(GdkWindow* window);
 static GtkWidget* get_gtk_widget_for_gdk_window(GdkWindow* window);
@@ -4465,8 +4466,12 @@ void nsWindow::OnMotionNotifyEvent(GdkEventMotion* aEvent) {
     return;
   }
 
-  if (mWindowShouldStartDragging) {
+  if (mWindowShouldStartDragging &&
+      is_drag_threshold_exceeded((GdkEvent*)aEvent)) {
     mWindowShouldStartDragging = false;
+    // when the drag ends, we don't get a button release event, so we clear
+    // the last mouse press event here.
+    SetLastPointerDownEvent(nullptr);
     GdkWindow* dragWindow = nullptr;
 
     // find the top-level window
@@ -4728,7 +4733,7 @@ bool nsWindow::DoTitlebarAction(LookAndFeel::TitlebarEvent aEvent,
 void nsWindow::OnButtonPressEvent(GdkEventButton* aEvent) {
   LOG("Button %u press\n", aEvent->button);
 
-  SetLastMousePressEvent((GdkEvent*)aEvent);
+  SetLastPointerDownEvent((GdkEvent*)aEvent);
   mLastMouseCoordinates.Set(aEvent);
 
   // If you double click in GDK, it will actually generate a second
@@ -4905,7 +4910,7 @@ void nsWindow::OnButtonPressEvent(GdkEventButton* aEvent) {
 void nsWindow::OnButtonReleaseEvent(GdkEventButton* aEvent) {
   LOG("Button %u release\n", aEvent->button);
 
-  SetLastMousePressEvent(nullptr);
+  SetLastPointerDownEvent(nullptr);
   mLastMouseCoordinates.Set(aEvent);
 
   if (!mGdkWindow) {
@@ -5858,6 +5863,7 @@ gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
   EventMessage msg;
   switch (aEvent->type) {
     case GDK_TOUCH_BEGIN:
+      SetLastPointerDownEvent((GdkEvent*)aEvent);
       // check to see if we should rollup
       if (CheckForRollup(aEvent->x_root, aEvent->y_root, false, false)) {
         return FALSE;
@@ -5867,7 +5873,8 @@ gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
     case GDK_TOUCH_UPDATE:
       msg = eTouchMove;
       // Start dragging when motion events happens in the dragging area
-      if (mWindowShouldStartDragging) {
+      if (mWindowShouldStartDragging &&
+          is_drag_threshold_exceeded((GdkEvent*)aEvent)) {
         mWindowShouldStartDragging = false;
         if (auto* topLevel = GetToplevelGdkWindow()) {
           LOG("  start window dragging window\n");
@@ -5892,6 +5899,7 @@ gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
       break;
     case GDK_TOUCH_END:
       msg = eTouchEnd;
+      SetLastPointerDownEvent(nullptr);
       if (mWindowShouldStartDragging) {
         LOG("  end of window dragging window\n");
         mWindowShouldStartDragging = false;
@@ -5899,6 +5907,7 @@ gboolean nsWindow::OnTouchEvent(GdkEventTouch* aEvent) {
       break;
     case GDK_TOUCH_CANCEL:
       msg = eTouchCancel;
+      SetLastPointerDownEvent(nullptr);
       break;
     default:
       return FALSE;
@@ -7601,6 +7610,26 @@ static bool is_mouse_in_window(GdkWindow* aWindow, gdouble aMouseX,
   gint h = gdk_window_get_height(aWindow) - margin;
 
   return aMouseX > x && aMouseX < x + w && aMouseY > y && aMouseY < y + h;
+}
+
+static bool is_drag_threshold_exceeded(GdkEvent* aEvent) {
+  GdkEvent* lastEvent = GetLastPointerDownEvent();
+
+  if (!lastEvent) {
+    return false;
+  }
+
+  const int32_t pixelThresholdX =
+      LookAndFeel::GetInt(LookAndFeel::IntID::DragThresholdX, 5);
+  const int32_t pixelThresholdY =
+      LookAndFeel::GetInt(LookAndFeel::IntID::DragThresholdY, 5);
+
+  gdouble lastX, lastY, currentX, currentY;
+  gdk_event_get_root_coords(lastEvent, &lastX, &lastY);
+  gdk_event_get_root_coords(aEvent, &currentX, &currentY);
+
+  return std::abs(currentX - lastX) > pixelThresholdX ||
+         std::abs(currentY - lastY) > pixelThresholdY;
 }
 
 static GtkWidget* get_gtk_widget_for_gdk_window(GdkWindow* window) {
