@@ -236,6 +236,8 @@ mod foreign {
             match self {
                 RequestDeviceError::Device(e) => e.error_type(),
 
+                RequestDeviceError::TimestampNormalizerInitFailed(..) => ErrorBufferType::Internal,
+
                 RequestDeviceError::UnsupportedFeature(_)
                 | RequestDeviceError::LimitsExceeded(_) => ErrorBufferType::Validation,
 
@@ -250,6 +252,8 @@ mod foreign {
             match self {
                 CreateBufferError::Device(e) => e.error_type(),
                 CreateBufferError::AccessError(e) => e.error_type(),
+
+                CreateBufferError::IndirectValidationBindGroup(_) => ErrorBufferType::Internal,
 
                 CreateBufferError::UnalignedSize
                 | CreateBufferError::InvalidUsage(_)
@@ -293,6 +297,7 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateTextureError::Device(e) => e.error_type(),
+                CreateTextureError::CreateTextureView(e) => e.error_type(),
 
                 CreateTextureError::InvalidUsage(_)
                 | CreateTextureError::InvalidDimension(_)
@@ -477,8 +482,25 @@ mod foreign {
         }
     }
 
+    impl HasErrorBufferType for EncoderStateError {
+        fn error_type(&self) -> ErrorBufferType {
+            match self {
+                EncoderStateError::Invalid
+                | EncoderStateError::Ended
+                | EncoderStateError::Locked
+                | EncoderStateError::Unlocked
+                | EncoderStateError::Submitted => ErrorBufferType::Validation,
+
+                // N.B: forced non-exhaustiveness
+                _ => ErrorBufferType::Validation,
+            }
+        }
+    }
+
     impl HasErrorBufferType for RenderBundleError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. May
             // need some upstream work to do this properly.
             ErrorBufferType::Validation
@@ -493,6 +515,8 @@ mod foreign {
                 | DeviceError::Lost => ErrorBufferType::DeviceLost,
                 DeviceError::OutOfMemory => ErrorBufferType::OutOfMemory,
                 DeviceError::ResourceCreationFailed => ErrorBufferType::Internal,
+
+                // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Internal,
             }
         }
@@ -501,6 +525,8 @@ mod foreign {
     impl HasErrorBufferType for CreateTextureViewError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
+                CreateTextureViewError::Device(e) => e.error_type(),
+
                 CreateTextureViewError::InvalidTextureViewDimension { .. }
                 | CreateTextureViewError::InvalidResource(_)
                 | CreateTextureViewError::InvalidMultisampledTextureViewDimension(_)
@@ -569,6 +595,8 @@ mod foreign {
 
     impl HasErrorBufferType for ComputePassError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -579,6 +607,7 @@ mod foreign {
     impl HasErrorBufferType for QueryError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
+                QueryError::Device(e) => e.error_type(),
                 QueryError::EncoderState(e) => e.error_type(),
                 QueryError::Use(e) => e.error_type(),
                 QueryError::Resolve(e) => e.error_type(),
@@ -593,6 +622,8 @@ mod foreign {
 
     impl HasErrorBufferType for QueryUseError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -602,6 +633,8 @@ mod foreign {
 
     impl HasErrorBufferType for ResolveError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -621,6 +654,8 @@ mod foreign {
 
     impl HasErrorBufferType for ClearError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -630,6 +665,8 @@ mod foreign {
 
     impl HasErrorBufferType for CommandEncoderError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -642,6 +679,7 @@ mod foreign {
             match self {
                 QueueSubmitError::Queue(e) => e.error_type(),
                 QueueSubmitError::Unmap(e) => e.error_type(),
+                QueueSubmitError::CommandEncoder(e) => e.error_type(),
 
                 QueueSubmitError::DestroyedResource(_)
                 | QueueSubmitError::BufferStillMapped(_)
@@ -668,6 +706,8 @@ mod foreign {
 
     impl HasErrorBufferType for GetBindGroupLayoutError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -677,6 +717,8 @@ mod foreign {
 
     impl HasErrorBufferType for CreateRenderBundleError {
         fn error_type(&self) -> ErrorBufferType {
+            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
+            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -691,6 +733,7 @@ mod foreign {
                 CreateQuerySetError::ZeroCount
                 | CreateQuerySetError::TooManyQueries { .. }
                 | CreateQuerySetError::MissingFeatures(..) => ErrorBufferType::Validation,
+
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
             }
