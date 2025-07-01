@@ -51,6 +51,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
+  FeatureCalloutBroker:
+    "resource:///modules/asrouter/FeatureCalloutBroker.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
@@ -912,7 +914,14 @@ const TargetingGetters = {
     }
 
     let duration = Date.now() - lazy.newTabTopicModalLastSeen;
+    let isDialogShowing =
+      window.gBrowser?.selectedBrowser.hasAttribute("tabDialogShowing") ||
+      window.gDialogBox?.isOpen;
+    let isFeatureCalloutShowing = lazy.FeatureCalloutBroker.isCalloutShowing;
+
     if (
+      isDialogShowing ||
+      isFeatureCalloutShowing ||
       window.gURLBar?.view.isOpen ||
       window.gNotificationBox?.currentNotification ||
       window.gBrowser.readNotificationBox()?.currentNotification ||
