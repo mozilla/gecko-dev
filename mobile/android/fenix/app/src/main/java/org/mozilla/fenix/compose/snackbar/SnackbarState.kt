@@ -4,7 +4,7 @@
 
 package org.mozilla.fenix.compose.snackbar
 
-import androidx.compose.material.SnackbarDuration
+import androidx.compose.material3.SnackbarDuration
 import com.google.android.material.snackbar.Snackbar.LENGTH_INDEFINITE
 import com.google.android.material.snackbar.Snackbar.LENGTH_LONG
 import com.google.android.material.snackbar.Snackbar.LENGTH_SHORT

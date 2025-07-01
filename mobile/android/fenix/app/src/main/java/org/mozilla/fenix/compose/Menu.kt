@@ -7,18 +7,15 @@ package org.mozilla.fenix.compose
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.DropdownMenu
-import androidx.compose.material.DropdownMenuItem
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -103,8 +100,31 @@ private fun Menu(
                 } else {
                     Modifier
                 }
+                val leadingIcon: @Composable (() -> Unit)? =
+                    if (item.isChecked && (hasCheckedItems || canShowCheckItems)) {
+                        selectedItemIndex = index
+                        {
+                            Icon(
+                                painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
+                                modifier = Modifier
+                                    .size(24.dp),
+                                contentDescription = null,
+                                tint = FirefoxTheme.colors.iconPrimary,
+                            )
+                        }
+                } else {
+                    null
+                }
 
                 DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = item.title,
+                            color = item.color ?: FirefoxTheme.colors.textPrimary,
+                            maxLines = 1,
+                            style = FirefoxTheme.typography.subtitle1,
+                        )
+                    },
                     modifier = Modifier
                         .testTag(item.testTag)
                         .align(alignment = Alignment.CenterHorizontally)
@@ -113,41 +133,12 @@ private fun Menu(
                             columnHeightDp = with(localDensity) { coordinates.size.height.toDp() }
                         }
                         .semantics { if (item.isChecked) traversalIndex = -1f },
+                    leadingIcon = leadingIcon,
                     onClick = {
                         onDismissRequest()
                         item.onClick()
                     },
-                ) {
-                    if (hasCheckedItems || canShowCheckItems) {
-                        if (item.isChecked) {
-                            selectedItemIndex = index
-                            Icon(
-                                painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
-                                modifier = Modifier
-                                    .size(24.dp),
-                                contentDescription = null,
-                                tint = FirefoxTheme.colors.iconPrimary,
-                            )
-                        } else {
-                            Spacer(
-                                modifier = Modifier
-                                    .size(24.dp),
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-                    }
-
-                    Text(
-                        text = item.title,
-                        color = item.color ?: FirefoxTheme.colors.textPrimary,
-                        maxLines = 1,
-                        style = FirefoxTheme.typography.subtitle1,
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .align(Alignment.CenterVertically),
-                    )
-                }
+                )
             }
         }
     }

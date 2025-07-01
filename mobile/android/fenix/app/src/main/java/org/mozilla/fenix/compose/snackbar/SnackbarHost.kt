@@ -4,13 +4,13 @@
 
 package org.mozilla.fenix.compose.snackbar
 
-import androidx.compose.material.Snackbar
-import androidx.compose.material.SnackbarData
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.SnackbarState.Type
-import androidx.compose.material.SnackbarHost as MaterialSnackbarHost
+import androidx.compose.material3.SnackbarHost as MaterialSnackbarHost
 
 /**
  * Host for [Snackbar]s to properly show, hide, and dismiss items via [snackbarHostState] in Compose.
@@ -32,7 +32,7 @@ fun SnackbarHost(
     ) { snackbarData ->
         Snackbar(
             snackbarState = SnackbarState(
-                message = snackbarData.message,
+                message = snackbarData.visuals.message,
                 type = Type.Default,
                 action = snackbarData.action,
             ),
@@ -45,7 +45,7 @@ fun SnackbarHost(
     ) { snackbarData ->
         Snackbar(
             snackbarState = SnackbarState(
-                message = snackbarData.message,
+                message = snackbarData.visuals.message,
                 type = Type.Warning,
                 action = snackbarData.action,
             ),
@@ -54,7 +54,7 @@ fun SnackbarHost(
 }
 
 private val SnackbarData.action: Action?
-    get() = actionLabel?.let {
+    get() = visuals.actionLabel?.let {
         Action(
             label = it,
             onClick = this::performAction,

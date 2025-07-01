@@ -11,11 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.FloatingActionButtonDefaults
-import androidx.compose.material.FloatingActionButtonElevation
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
+import androidx.compose.material3.FloatingActionButtonElevation
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +56,7 @@ fun FloatingActionButton(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier,
-        backgroundColor = FirefoxTheme.colors.actionPrimary,
+        containerColor = FirefoxTheme.colors.actionPrimary,
         contentColor = FirefoxTheme.colors.textActionPrimary,
         elevation = elevation,
     ) {
@@ -70,7 +70,6 @@ fun FloatingActionButton(
             Icon(
                 painter = icon,
                 contentDescription = contentDescription,
-                tint = FirefoxTheme.colors.iconOnColor,
             )
 
             if (!label.isNullOrBlank()) {

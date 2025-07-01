@@ -5,40 +5,42 @@
 package org.mozilla.fenix.debugsettings.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.draggable2D
 import androidx.compose.foundation.gestures.rememberDraggable2DState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.DrawerValue
-import androidx.compose.material.ModalDrawer
-import androidx.compose.material.Text
-import androidx.compose.material.rememberDrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.launch
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.debugsettings.navigation.DebugDrawerDestination
@@ -79,29 +81,12 @@ fun DebugOverlay(
     onDrawerBackButtonClick: () -> Unit,
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    var debugDrawerFabOffsetX by remember { mutableStateOf(INITIAL_FAB_OFFSET_X) }
-    var debugDrawerFabOffsetY by remember { mutableStateOf(INITIAL_FAB_OFFSET_Y) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(drawerStatus) {
-        if (drawerStatus == DrawerStatus.Open) {
-            drawerState.open()
-        }
-    }
-
-    LaunchedEffect(drawerState) {
-        snapshotFlow { drawerState.currentValue }
-            .distinctUntilChanged()
-            .filter { it == DrawerValue.Closed }
-            .collect {
-                onDrawerClose()
-            }
-    }
+    var debugDrawerFabOffsetX by remember { mutableFloatStateOf(INITIAL_FAB_OFFSET_X) }
+    var debugDrawerFabOffsetY by remember { mutableFloatStateOf(INITIAL_FAB_OFFSET_Y) }
+    val density = LocalDensity.current
 
     BackHandler(enabled = drawerStatus == DrawerStatus.Open) {
-        scope.launch {
-            drawerState.close()
-        }
+        onDrawerClose()
     }
 
     Box(
@@ -125,34 +110,28 @@ fun DebugOverlay(
             contentDescription = stringResource(R.string.debug_drawer_fab_content_description),
         )
 
-        // ModalDrawer utilizes a Surface, which blocks ALL clicks behind it, preventing the app
-        // from being interactable. This cannot be overridden in the Surface API, so we must hide
-        // the entire drawer when it is closed.
-        if (drawerStatus == DrawerStatus.Open) {
-            val currentLayoutDirection = LocalLayoutDirection.current
-            val sheetLayoutDirection = when (currentLayoutDirection) {
-                LayoutDirection.Rtl -> LayoutDirection.Ltr
-                LayoutDirection.Ltr -> LayoutDirection.Rtl
-            }
-
-            // Force the drawer to always open from the opposite side of the screen. We need to reset
-            // this below with `drawerContent` to ensure the content follows the correct direction.
-            CompositionLocalProvider(LocalLayoutDirection provides sheetLayoutDirection) {
-                ModalDrawer(
-                    drawerContent = {
-                        CompositionLocalProvider(LocalLayoutDirection provides currentLayoutDirection) {
-                            DebugDrawer(
-                                navController = navController,
-                                destinations = debugDrawerDestinations,
-                                onBackButtonClick = onDrawerBackButtonClick,
-                            )
-                        }
-                    },
-                    drawerBackgroundColor = FirefoxTheme.colors.layer1,
-                    scrimColor = FirefoxTheme.colors.layerScrim,
+        AnimatedVisibility(
+            visible = drawerStatus == DrawerStatus.Open,
+            enter = slideInHorizontally {
+                with(density) { -40.dp.roundToPx() }
+            } + expandHorizontally(
+                expandFrom = Alignment.Start,
+            ),
+            exit = slideOutHorizontally() + shrinkHorizontally() + fadeOut(),
+        ) {
+            Row {
+                ModalDrawerSheet(
+                    drawerContainerColor = FirefoxTheme.colors.layer1,
                     drawerState = drawerState,
-                    content = {},
-                )
+                ) {
+                    DebugDrawer(
+                        navController = navController,
+                        destinations = debugDrawerDestinations,
+                        onBackButtonClick = onDrawerBackButtonClick,
+                    )
+                }
+
+                Box(modifier = Modifier.weight(1f).fillMaxHeight().clickable(onClick = onDrawerClose))
             }
         }
     }

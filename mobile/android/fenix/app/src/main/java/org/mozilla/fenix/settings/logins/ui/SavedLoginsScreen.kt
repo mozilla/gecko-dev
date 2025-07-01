@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.Icon
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -119,7 +121,7 @@ private fun LoginsList(store: LoginsStore) {
                 text = state.searchText ?: "",
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
 
         if (state.searchText.isNullOrEmpty() && state.loginItems.isEmpty()) {
@@ -219,6 +221,7 @@ private fun EmptyList(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Suppress("LongMethod")
 private fun LoginsListTopBar(
@@ -232,7 +235,7 @@ private fun LoginsListTopBar(
 
     Box {
         TopAppBar(
-            backgroundColor = FirefoxTheme.colors.layer1,
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = FirefoxTheme.colors.layer1),
             title = {
                 if (!searchActive) {
                     Text(

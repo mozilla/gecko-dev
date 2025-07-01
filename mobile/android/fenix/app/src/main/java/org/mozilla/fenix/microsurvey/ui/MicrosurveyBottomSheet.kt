@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Surface
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,7 +62,7 @@ fun MicrosurveyBottomSheet(
     var isSubmitted by remember { mutableStateOf(false) }
 
     Scaffold(
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
         topBar = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

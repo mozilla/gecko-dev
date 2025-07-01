@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.webcompat.ui
 
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,11 +18,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -69,7 +70,6 @@ private const val PROBLEM_DESCRIPTION_MAX_LINES = 5
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("LongMethod")
-@SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun WebCompatReporter(
     store: WebCompatReporterStore,
@@ -88,10 +88,11 @@ fun WebCompatReporter(
                 },
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer2,
-    ) {
+        containerColor = FirefoxTheme.colors.layer2,
+    ) { paddingValues ->
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())
+                .padding(paddingValues)
                 .imePadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
@@ -241,12 +242,13 @@ private fun WebCompatReporterState.toDropdownItems(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TempAppBar(
     onBackClick: () -> Unit,
 ) {
     TopAppBar(
-        backgroundColor = FirefoxTheme.colors.layer1,
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = FirefoxTheme.colors.layer1),
         title = {
             Text(
                 text = stringResource(id = R.string.webcompat_reporter_screen_title),

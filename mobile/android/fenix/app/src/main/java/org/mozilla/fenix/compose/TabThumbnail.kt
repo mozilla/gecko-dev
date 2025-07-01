@@ -8,7 +8,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,7 +51,7 @@ fun TabThumbnail(
 ) {
     Card(
         modifier = modifier,
-        backgroundColor = backgroundColor,
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
     ) {
         ThumbnailImage(
             request = ImageLoadRequest(
@@ -60,9 +61,10 @@ fun TabThumbnail(
             ),
             contentScale = contentScale,
             alignment = alignment,
+            modifier = modifier,
         ) {
             Box(
-                modifier = Modifier.size(FALLBACK_ICON_SIZE.dp),
+                modifier = modifier,
                 contentAlignment = Alignment.Center,
             ) {
                 val icon = tab.content.icon

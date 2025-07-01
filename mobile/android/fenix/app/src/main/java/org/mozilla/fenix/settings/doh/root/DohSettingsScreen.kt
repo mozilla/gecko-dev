@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -456,7 +456,6 @@ private fun AlertDialogAddCustomProvider(
             Text(
                 text = stringResource(R.string.preference_doh_provider_custom_dialog_title),
                 style = FirefoxTheme.typography.headline7,
-                color = FirefoxTheme.colors.textPrimary,
             )
         },
         text = {
@@ -492,7 +491,6 @@ private fun AlertDialogAddCustomProvider(
                 upperCaseText = false,
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer2,
     )
 }
 

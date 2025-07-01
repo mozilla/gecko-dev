@@ -22,9 +22,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Card
-import androidx.compose.material.Snackbar
-import androidx.compose.material.Text
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -285,8 +286,8 @@ internal fun Snackbar(
                 }
                 .testTag(SNACKBAR_TEST_TAG),
             shape = RoundedCornerShape(size = 8.dp),
-            backgroundColor = colors.backgroundColor,
-            elevation = 4.dp,
+            colors = CardDefaults.cardColors(containerColor = colors.backgroundColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
