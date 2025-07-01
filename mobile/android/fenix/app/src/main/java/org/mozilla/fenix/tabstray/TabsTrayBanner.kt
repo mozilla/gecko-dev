@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LocalContentAlpha
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -256,8 +255,10 @@ private fun TabPageBanner(
         ) {
             TabRow(
                 selectedTabIndex = selectedPage.ordinal,
-                modifier = Modifier.fillMaxWidth(MAX_WIDTH_TAB_ROW_PERCENT),
-                backgroundColor = Color.Transparent,
+                modifier = Modifier
+                    .fillMaxWidth(MAX_WIDTH_TAB_ROW_PERCENT)
+                    .fillMaxHeight(),
+                containerColor = Color.Transparent,
                 contentColor = selectedColor,
                 divider = {},
             ) {
@@ -270,12 +271,10 @@ private fun TabPageBanner(
                     selectedContentColor = selectedColor,
                     unselectedContentColor = inactiveColor,
                 ) {
-                    val tabCounterAlpha =
-                        LocalContentColor.current.copy(alpha = LocalContentAlpha.current)
                     TabCounter(
                         tabCount = normalTabCount,
-                        textColor = tabCounterAlpha,
-                        iconColor = tabCounterAlpha,
+                        textColor = LocalContentColor.current,
+                        iconColor = LocalContentColor.current,
                     )
                 }
 
