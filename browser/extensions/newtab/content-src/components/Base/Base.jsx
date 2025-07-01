@@ -392,6 +392,13 @@ export class BaseContent extends React.PureComponent {
           "--newtab-wallpaper-color",
           "transparent"
         );
+
+        // Based on the current colorMode, add the corresponding dark/light CSS classes
+        if (this.state.colorMode) {
+          this.setState(prevState => ({
+            wallpaperTheme: prevState.colorMode,
+          }));
+        }
       } catch (e) {}
 
       return;
