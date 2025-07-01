@@ -25,6 +25,7 @@ const IGNORE = [
   "removeUpgradeListener",
   "getInstallSourceFromHost",
   "stageLangpacksForAppUpdate",
+  "updatePromptHandler",
 ];
 
 const IGNORE_PRIVATE = [
