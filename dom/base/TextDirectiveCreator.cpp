@@ -16,13 +16,13 @@
 
 namespace mozilla::dom {
 
-TextDirectiveCreator::TextDirectiveCreator(Document& aDocument,
+TextDirectiveCreator::TextDirectiveCreator(Document* aDocument,
                                            AbstractRange* aRange)
-    : mDocument(aDocument), mRange(aRange) {}
+    : mDocument(WrapNotNull(aDocument)), mRange(WrapNotNull(aRange)) {}
 
 /* static */
 mozilla::Result<nsCString, ErrorResult>
-TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
+TextDirectiveCreator::CreateTextDirectiveFromRange(Document* aDocument,
                                                    AbstractRange* aInputRange) {
   MOZ_ASSERT(aInputRange);
   MOZ_ASSERT(!aInputRange->Collapsed());
@@ -79,7 +79,7 @@ TextDirectiveCreator::MustUseRangeBasedMatching(AbstractRange* aRange) {
 }
 
 Result<UniquePtr<TextDirectiveCreator>, ErrorResult>
-TextDirectiveCreator::CreateInstance(Document& aDocument,
+TextDirectiveCreator::CreateInstance(Document* aDocument,
                                      AbstractRange* aRange) {
   return MOZ_TRY(MustUseRangeBasedMatching(aRange))
              ? UniquePtr<TextDirectiveCreator>(
@@ -121,7 +121,6 @@ TextDirectiveCreator::ExtendRangeToWordBoundaries(AbstractRange* aRange) {
     if (MOZ_UNLIKELY(rv.Failed())) {
       return Err(std::move(rv));
     }
-    MOZ_ASSERT(range);
     if (!range->Collapsed()) {
       TEXT_FRAGMENT_LOG(
           "Expanded target range to word boundaries:\n{}",
@@ -137,7 +136,6 @@ TextDirectiveCreator::ExtendRangeToWordBoundaries(AbstractRange* aRange) {
 }
 
 Result<Ok, ErrorResult> ExactMatchTextDirectiveCreator::CollectContextTerms() {
-  MOZ_ASSERT(mRange);
   if (MOZ_UNLIKELY(mRange->Collapsed())) {
     return Ok();
   }
@@ -153,7 +151,6 @@ Result<Ok, ErrorResult> ExactMatchTextDirectiveCreator::CollectContextTerms() {
 }
 
 Result<Ok, ErrorResult> RangeBasedTextDirectiveCreator::CollectContextTerms() {
-  MOZ_ASSERT(mRange);
   if (MOZ_UNLIKELY(mRange->Collapsed())) {
     return Ok();
   }
@@ -365,7 +362,7 @@ ExactMatchTextDirectiveCreator::FindAllMatchingCandidates() {
       "from document begin to begin of target range.",
       NS_ConvertUTF16toUTF8(mStartContent));
   const nsTArray<RefPtr<AbstractRange>> matchRanges =
-      MOZ_TRY(FindAllMatchingRanges(mStartContent, {&mDocument, 0u},
+      MOZ_TRY(FindAllMatchingRanges(mStartContent, {mDocument, 0u},
                                     mRange->StartRef()));
   FindCommonSubstringLengths(matchRanges);
   return Ok();
@@ -415,7 +412,7 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
       NS_ConvertUTF16toUTF8(firstWordOfStartContent));
 
   const nsTArray<RefPtr<AbstractRange>> startContentRanges =
-      MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {&mDocument, 0u},
+      MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {mDocument, 0u},
                                     mRange->StartRef()));
   FindStartMatchCommonSubstringLengths(startContentRanges);
 
