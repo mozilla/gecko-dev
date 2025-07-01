@@ -15,6 +15,12 @@ XPCOM_MANIFESTS += [
     "components.conf",
 ]
 
+XPIDL_MODULE = "dom_notification"
+
+XPIDL_SOURCES += [
+    "nsINotificationHandler.idl",
+]
+
 EXPORTS.mozilla.dom += [
     "Notification.h",
 ]
@@ -45,6 +51,8 @@ FINAL_LIBRARY = "xul"
 LOCAL_INCLUDES += [
     "/dom/base",
     "/dom/ipc",
+    # NotificationHandler::RespondOnClick, but see bug 1966910.
+    "/js/xpconnect/src",
 ]
 
 BROWSER_CHROME_MANIFESTS += ["test/browser/browser.toml"]
