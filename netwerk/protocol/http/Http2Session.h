@@ -452,7 +452,7 @@ class Http2Session final : public ASpdySession,
   // There are also several lists of streams: ready to write, queued due to
   // max parallelism, streams that need to force a read for push, and the full
   // set of pushed streams.
-  nsTHashMap<nsUint32HashKey, Http2StreamBase*> mStreamIDHash;
+  nsTHashMap<nsUint32HashKey, WeakPtr<Http2StreamBase>> mStreamIDHash;
   nsRefPtrHashtable<nsPtrHashKey<nsAHttpTransaction>, Http2StreamBase>
       mStreamTransactionHash;
   nsTArray<RefPtr<Http2StreamTunnel>> mTunnelStreams;
@@ -491,14 +491,14 @@ class Http2Session final : public ASpdySession,
   // When a frame has been received that is addressed to a particular stream
   // (e.g. a data frame after the stream-id has been decoded), this points
   // to the stream.
-  Http2StreamBase* mInputFrameDataStream;
+  WeakPtr<Http2StreamBase> mInputFrameDataStream;
 
   // mNeedsCleanup is a state variable to defer cleanup of a closed stream
   // If needed, It is set in session::OnWriteSegments() and acted on and
   // cleared when the stack returns to session::WriteSegments(). The stream
   // cannot be destroyed directly out of OnWriteSegments because
   // stream::writeSegments() is on the stack at that time.
-  Http2StreamBase* mNeedsCleanup;
+  WeakPtr<Http2StreamBase> mNeedsCleanup;
 
   // This reason code in the last processed RESET frame
   uint32_t mDownstreamRstReason;

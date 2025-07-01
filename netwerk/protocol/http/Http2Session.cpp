@@ -1510,15 +1510,15 @@ nsresult Http2Session::RecvHeaders(Http2Session* self) {
     }
   }
 
-  LOG3(
-      ("Http2Session::RecvHeaders %p stream 0x%X priorityLen=%d stream=%p "
-       "end_stream=%d end_headers=%d priority_group=%d "
-       "paddingLength=%d padded=%d\n",
-       self, self->mInputFrameID, priorityLen, self->mInputFrameDataStream,
-       self->mInputFrameFlags & kFlag_END_STREAM,
-       self->mInputFrameFlags & kFlag_END_HEADERS,
-       self->mInputFrameFlags & kFlag_PRIORITY, paddingLength,
-       self->mInputFrameFlags & kFlag_PADDED));
+  LOG3((
+      "Http2Session::RecvHeaders %p stream 0x%X priorityLen=%d stream=%p "
+      "end_stream=%d end_headers=%d priority_group=%d "
+      "paddingLength=%d padded=%d\n",
+      self, self->mInputFrameID, priorityLen, self->mInputFrameDataStream.get(),
+      self->mInputFrameFlags & kFlag_END_STREAM,
+      self->mInputFrameFlags & kFlag_END_HEADERS,
+      self->mInputFrameFlags & kFlag_PRIORITY, paddingLength,
+      self->mInputFrameFlags & kFlag_PADDED));
 
   if ((paddingControlBytes + priorityLen + paddingLength) >
       self->mInputFrameDataSize) {
@@ -1618,6 +1618,10 @@ nsresult Http2Session::RecvHeaders(Http2Session* self) {
 // should be reset with a PROTOCOL_ERROR, NS_OK when the response headers were
 // fine, and any other error is fatal to the session.
 nsresult Http2Session::ResponseHeadersComplete() {
+  if (!mInputFrameDataStream) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   LOG3(("Http2Session::ResponseHeadersComplete %p for 0x%X fin=%d", this,
         mInputFrameDataStream->StreamID(), mInputFrameFinal));
 
@@ -1715,8 +1719,8 @@ nsresult Http2Session::RecvPriority(Http2Session* self) {
   LOG3(
       ("Http2Session::RecvPriority %p 0x%X received dependency=0x%X "
        "weight=%u exclusive=%d",
-       self->mInputFrameDataStream, self->mInputFrameID, newPriorityDependency,
-       newPriorityWeight, exclusive));
+       self->mInputFrameDataStream.get(), self->mInputFrameID,
+       newPriorityDependency, newPriorityWeight, exclusive));
 
   self->ResetDownstreamState();
   return NS_OK;
@@ -2809,7 +2813,7 @@ nsresult Http2Session::ReadyToProcessDataFrame(
   LOG3(
       ("Start Processing Data Frame. "
        "Session=%p Stream ID 0x%X Stream Ptr %p Fin=%d Len=%d",
-       this, mInputFrameID, mInputFrameDataStream, mInputFrameFinal,
+       this, mInputFrameID, mInputFrameDataStream.get(), mInputFrameFinal,
        mInputFrameDataSize));
   UpdateLocalRwin(mInputFrameDataStream, mInputFrameDataSize);
 
@@ -3066,6 +3070,10 @@ nsresult Http2Session::WriteSegmentsAgain(nsAHttpSegmentWriter* writer,
   if (mDownstreamState == PROCESSING_CONTROL_RST_STREAM) {
     nsresult streamCleanupCode;
 
+    if (!mInputFrameDataStream) {
+      return NS_ERROR_UNEXPECTED;
+    }
+
     // There is no bounds checking on the error code.. we provide special
     // handling for a couple of cases and all others (including unknown) are
     // equivalent to cancel.
@@ -3130,7 +3138,7 @@ nsresult Http2Session::WriteSegmentsAgain(nsAHttpSegmentWriter* writer,
           ("Http2Session::WriteSegments session=%p id 0x%X "
            "needscleanup=%p. cleanup stream based on "
            "stream->writeSegments returning code %" PRIx32 "\n",
-           this, streamID, mNeedsCleanup, static_cast<uint32_t>(rv)));
+           this, streamID, mNeedsCleanup.get(), static_cast<uint32_t>(rv)));
       MOZ_ASSERT(!mNeedsCleanup || mNeedsCleanup->StreamID() == streamID);
       CleanupStream(
           streamID,
@@ -3149,7 +3157,8 @@ nsresult Http2Session::WriteSegmentsAgain(nsAHttpSegmentWriter* writer,
       LOG3(
           ("Http2Session::WriteSegments session=%p stream=%p 0x%X "
            "cleanup stream based on mNeedsCleanup.\n",
-           this, mNeedsCleanup, mNeedsCleanup ? mNeedsCleanup->StreamID() : 0));
+           this, mNeedsCleanup.get(),
+           mNeedsCleanup ? mNeedsCleanup->StreamID() : 0));
       CleanupStream(mNeedsCleanup, NS_OK, CANCEL_ERROR);
       mNeedsCleanup = nullptr;
     }
@@ -3759,7 +3768,7 @@ void Http2Session::SetNeedsCleanup() {
   LOG3(
       ("Http2Session::SetNeedsCleanup %p - recorded downstream fin of "
        "stream %p 0x%X",
-       this, mInputFrameDataStream, mInputFrameDataStream->StreamID()));
+       this, mInputFrameDataStream.get(), mInputFrameDataStream->StreamID()));
 
   // This will result in Close() being called
   MOZ_ASSERT(!mNeedsCleanup, "mNeedsCleanup unexpectedly set");
