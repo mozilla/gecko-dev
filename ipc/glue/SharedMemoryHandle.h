@@ -34,12 +34,7 @@ enum class Type {
   Freezable,
 };
 
-// Rust Bindgen code doesn't actually use these types, but `UniqueFileHandle`
-// and `UniqueMachSendRight` aren't defined and some headers need to type check,
-// so we define a dummy pointer type.
-#if defined(RUST_BINDGEN)
-using PlatformHandle = void*;
-#elif defined(XP_DARWIN)
+#if defined(XP_DARWIN)
 using PlatformHandle = mozilla::UniqueMachSendRight;
 #else
 using PlatformHandle = mozilla::UniqueFileHandle;
