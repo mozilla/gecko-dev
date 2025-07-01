@@ -61,9 +61,10 @@ fun TabThumbnail(
             ),
             contentScale = contentScale,
             alignment = alignment,
+            modifier = modifier,
         ) {
             Box(
-                modifier = Modifier.size(FALLBACK_ICON_SIZE.dp),
+                modifier = modifier,
                 contentAlignment = Alignment.Center,
             ) {
                 val icon = tab.content.icon
