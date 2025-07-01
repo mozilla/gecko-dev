@@ -681,8 +681,25 @@ class nsDocShell final : public nsDocLoader,
   // will be set as the originalURI. If LoadReplace is true, LOAD_REPLACE flag
   // will be set on the nsIChannel.
   // If `aCacheKey` is supplied, use it for the session history entry.
-  nsresult DoURILoad(nsDocShellLoadState* aLoadState,
-                     mozilla::Maybe<uint32_t> aCacheKey, nsIRequest** aRequest);
+  MOZ_CAN_RUN_SCRIPT nsresult DoURILoad(nsDocShellLoadState* aLoadState,
+                                        mozilla::Maybe<uint32_t> aCacheKey,
+                                        nsIRequest** aRequest);
+
+  // Implement require-trusted-types-for Pre-Navigation check on a javascript:
+  // URL. There is some disconnect between Trusted Types spec, CSP spec and
+  // implementations. We try to have something consistent with other browsers,
+  // following the intended goal of the Pre-Navigation check.
+  // https://w3c.github.io/webappsec-csp/#should-block-navigation-request
+  // https://w3c.github.io/trusted-types/dist/spec/#require-trusted-types-for-pre-navigation-check
+  // https://github.com/w3c/trusted-types/issues/548
+  //
+  // If trusted types are not required by a CSP policy, this returns immediately
+  // without side effect. Otherwise the method tries to modify aLoadState's URI
+  // to ensure its JavaScript code is a trusted script.
+  // @return An error if trusted types are required by an enforced CSP policy
+  //         but the operation fails. NS_OK otherwise.
+  MOZ_CAN_RUN_SCRIPT nsresult PerformTrustedTypesPreNavigationCheck(
+      nsDocShellLoadState* aLoadState, nsGlobalWindowInner* aWindow) const;
 
   static nsresult AddHeadersToChannel(nsIInputStream* aHeadersData,
                                       nsIChannel* aChannel);
