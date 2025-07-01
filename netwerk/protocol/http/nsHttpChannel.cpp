@@ -10286,7 +10286,7 @@ void nsHttpChannel::DoInvalidateCacheEntry(nsIURI* aURI) {
   }
 
   if (NS_SUCCEEDED(rv)) {
-    rv = cacheStorage->AsyncDoomURI(aURI, ""_ns, nullptr);
+    rv = cacheStorage->AsyncDoomURI(aURI, mCacheIdExtension, nullptr);
   }
 
   LOG(("DoInvalidateCacheEntry [channel=%p key=%s rv=%d]", this, key.get(),
