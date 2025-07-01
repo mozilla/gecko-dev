@@ -9,14 +9,28 @@ use heck::{ToSnakeCase, ToUpperCamelCase};
 
 pub fn pass(root: &mut Root) -> Result<()> {
     root.visit_mut(|int: &mut Interface| {
+        // Create InterfaceBaseClass instances and determine class names
         match &int.imp {
             ObjectImpl::Struct | ObjectImpl::Trait => {
-                // Interface that's only implemented in Rust. Give the interface the main name
+                // Interface that's only implemented in Rust. Give the interface the main name and
+                // append the `Protocol` suffix to the protocol.
+                int.interface_base_class = InterfaceBaseClass {
+                    name: format!("{}Interface", int.name),
+                    methods: int.methods.clone(),
+                    docstring: int.docstring.clone(),
+                    ..InterfaceBaseClass::default()
+                };
                 int.js_class_name = int.name.clone();
             }
             ObjectImpl::CallbackTrait => {
-                // Trait interface that can be implemented in Rust or Python. Append the `Impl`
-                // suffix to the interface.
+                // Trait interface that can be implemented in Rust or Python. Give the protocol the
+                // main name and append the `Impl` suffix to the interface.
+                int.interface_base_class = InterfaceBaseClass {
+                    name: int.name.clone(),
+                    methods: int.methods.clone(),
+                    docstring: int.docstring.clone(),
+                    ..InterfaceBaseClass::default()
+                };
                 int.js_class_name = format!("{}Impl", int.name);
             }
         };

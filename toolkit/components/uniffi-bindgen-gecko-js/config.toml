@@ -26,6 +26,7 @@ SuggestStore = "AsyncWrapped"
 "SuggestStore.interrupt" = "Sync"
 "SuggestStore.new" = "Sync"
 "SuggestStoreBuilder.build" = "Sync"
+"SuggestStoreBuilder.cache_path" = "AsyncWrapped"
 "SuggestStoreBuilder.data_path" = "Sync"
 "SuggestStoreBuilder.load_extension" = "Sync"
 "SuggestStoreBuilder.new" = "Sync"
@@ -50,6 +51,9 @@ RemoteSettings = "AsyncWrapped"
 "RemoteSettings.new" = "Sync"
 "RemoteSettingsService.new" = "Sync"
 "RemoteSettingsService.update_config" = "Sync"
+"RemoteSettingsService.make_client" = "AsyncWrapped"
+"RemoteSettingsService.sync" = "AsyncWrapped"
+RemoteSettingsClient = "AsyncWrapped"
 
 [error_support.async_wrappers]
 "set_application_error_reporter" = "AsyncWrapped"
@@ -64,6 +68,7 @@ TabsStore = "AsyncWrapped"
 
 [webext_storage.async_wrappers]
 WebExtStorageBridgedEngine = "AsyncWrapped"
+WebExtStorageStore = "AsyncWrapped"
 
 [uniffi_bindings_tests.async_wrappers]
 "clone_interface" = "Sync"

@@ -3944,6 +3944,7 @@ export class FfiConverterOptionalTypeInterruptKind extends FfiConverterArrayBuff
         return 1 + FfiConverterTypeInterruptKind.computeSize(value)
     }
 }
+
 /**
  * The store is the entry point to the Suggest component. It incrementally
  * downloads suggestions from the Remote Settings service, stores them in a
@@ -3974,10 +3975,210 @@ export class FfiConverterOptionalTypeInterruptKind extends FfiConverterArrayBuff
  * later, while a desktop on a fast link might download the entire dataset
  * on the first launch.
  */
-export class SuggestStore {
+export class SuggestStoreInterface {
+    /**
+     * Return whether any suggestions have been dismissed.
+     * @returns {Promise<boolean>}}
+     */
+    async anyDismissedSuggestions() {
+      throw Error("anyDismissedSuggestions not implemented");
+    }
+    /**
+     * Removes all content from the database.
+     */
+    async clear() {
+      throw Error("clear not implemented");
+    }
+    /**
+     * Clear dismissed suggestions
+     */
+    async clearDismissedSuggestions() {
+      throw Error("clearDismissedSuggestions not implemented");
+    }
+    /**
+     * Dismiss a suggestion by its dismissal key.
+     * 
+     * Dismissed suggestions cannot be fetched again.
+     * 
+     * Prefer [SuggestStore::dismiss_by_suggestion] if you have a
+     * `crate::Suggestion`. This method is intended for cases where a
+     * suggestion originates outside this component.
+     * @param {string} key
+     */
+    async dismissByKey(
+        key) {
+      throw Error("dismissByKey not implemented");
+    }
+    /**
+     * Dismiss a suggestion.
+     * 
+     * Dismissed suggestions cannot be fetched again.
+     * @param {Suggestion} suggestion
+     */
+    async dismissBySuggestion(
+        suggestion) {
+      throw Error("dismissBySuggestion not implemented");
+    }
+    /**
+     * Deprecated, use [SuggestStore::dismiss_by_suggestion] or
+     * [SuggestStore::dismiss_by_key] instead.
+     * 
+     * Dismiss a suggestion
+     * 
+     * Dismissed suggestions will not be returned again
+     * @param {string} suggestionUrl
+     */
+    async dismissSuggestion(
+        suggestionUrl) {
+      throw Error("dismissSuggestion not implemented");
+    }
+    /**
+     * Fetches a geoname's names stored in the database.
+     * 
+     * See `fetch_geoname_alternates` in `geoname.rs` for documentation.
+     * @param {Geoname} geoname
+     * @returns {Promise<GeonameAlternates>}}
+     */
+    async fetchGeonameAlternates(
+        geoname) {
+      throw Error("fetchGeonameAlternates not implemented");
+    }
+    /**
+     * Fetches geonames stored in the database. A geoname represents a
+     * geographic place.
+     * 
+     * See `fetch_geonames` in `geoname.rs` for documentation.
+     * @param {string} query
+     * @param {boolean} matchNamePrefix
+     * @param {?Array.<Geoname>} filter
+     * @returns {Promise<Array.<GeonameMatch>>}}
+     */
+    async fetchGeonames(
+        query, 
+        matchNamePrefix, 
+        filter) {
+      throw Error("fetchGeonames not implemented");
+    }
+    /**
+     * Returns global Suggest configuration data.
+     * @returns {Promise<SuggestGlobalConfig>}}
+     */
+    async fetchGlobalConfig() {
+      throw Error("fetchGlobalConfig not implemented");
+    }
+    /**
+     * Returns per-provider Suggest configuration data.
+     * @param {SuggestionProvider} provider
+     * @returns {Promise<?SuggestProviderConfig>}}
+     */
+    async fetchProviderConfig(
+        provider) {
+      throw Error("fetchProviderConfig not implemented");
+    }
+    /**
+     * Ingests new suggestions from Remote Settings.
+     * @param {SuggestIngestionConstraints} constraints
+     * @returns {Promise<SuggestIngestionMetrics>}}
+     */
+    async ingest(
+        constraints) {
+      throw Error("ingest not implemented");
+    }
+    /**
+     * Interrupts any ongoing queries.
+     * 
+     * This should be called when the user types new input into the address
+     * bar, to ensure that they see fresh suggestions as they type. This
+     * method does not interrupt any ongoing ingests.
+     * @param {?InterruptKind} kind
+     */
+    interrupt(
+        kind = null) {
+      throw Error("interrupt not implemented");
+    }
+    /**
+     * Return whether a suggestion has been dismissed given its dismissal key.
+     * 
+     * [SuggestStore::query] will never return dismissed suggestions, so
+     * normally you never need to know whether a suggestion has been dismissed.
+     * This method is intended for cases where a dismissal key originates
+     * outside this component.
+     * @param {string} key
+     * @returns {Promise<boolean>}}
+     */
+    async isDismissedByKey(
+        key) {
+      throw Error("isDismissedByKey not implemented");
+    }
+    /**
+     * Return whether a suggestion has been dismissed.
+     * 
+     * [SuggestStore::query] will never return dismissed suggestions, so
+     * normally you never need to know whether a `Suggestion` has been
+     * dismissed, but this method can be used to do so.
+     * @param {Suggestion} suggestion
+     * @returns {Promise<boolean>}}
+     */
+    async isDismissedBySuggestion(
+        suggestion) {
+      throw Error("isDismissedBySuggestion not implemented");
+    }
+    /**
+     * Queries the database for suggestions.
+     * @param {SuggestionQuery} query
+     * @returns {Promise<Array.<Suggestion>>}}
+     */
+    async query(
+        query) {
+      throw Error("query not implemented");
+    }
+    /**
+     * Queries the database for suggestions.
+     * @param {SuggestionQuery} query
+     * @returns {Promise<QueryWithMetricsResult>}}
+     */
+    async queryWithMetrics(
+        query) {
+      throw Error("queryWithMetrics not implemented");
+    }
+
+}
+
+/**
+ * The store is the entry point to the Suggest component. It incrementally
+ * downloads suggestions from the Remote Settings service, stores them in a
+ * local database, and returns them in response to user queries.
+ * 
+ * Your application should create a single store, and manage it as a singleton.
+ * The store is thread-safe, and supports concurrent queries and ingests. We
+ * expect that your application will call [`SuggestStore::query()`] to show
+ * suggestions as the user types into the address bar, and periodically call
+ * [`SuggestStore::ingest()`] in the background to update the database with
+ * new suggestions from Remote Settings.
+ * 
+ * For responsiveness, we recommend always calling `query()` on a worker
+ * thread. When the user types new input into the address bar, call
+ * [`SuggestStore::interrupt()`] on the main thread to cancel the query
+ * for the old input, and unblock the worker thread for the new query.
+ * 
+ * The store keeps track of the state needed to support incremental ingestion,
+ * but doesn't schedule the ingestion work itself, or decide how many
+ * suggestions to ingest at once. This is for two reasons:
+ * 
+ * 1. The primitives for scheduling background work vary between platforms, and
+ * aren't available to the lower-level Rust layer. You might use an idle
+ * timer on Desktop, `WorkManager` on Android, or `BGTaskScheduler` on iOS.
+ * 2. Ingestion constraints can change, depending on the platform and the needs
+ * of your application. A mobile device on a metered connection might want
+ * to request a small subset of the Suggest data and download the rest
+ * later, while a desktop on a fast link might download the entire dataset
+ * on the first launch.
+ */
+export class SuggestStore extends SuggestStoreInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -4412,16 +4613,95 @@ import {
 
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypeRemoteSettingsService };
+
 /**
  * Builder for [SuggestStore]
  * 
  * Using a builder is preferred to calling the constructor directly since it's harder to confuse
  * the data_path and cache_path strings.
  */
-export class SuggestStoreBuilder {
+export class SuggestStoreBuilderInterface {
+    /**
+     * build
+     * @returns {SuggestStore}
+     */
+    build() {
+      throw Error("build not implemented");
+    }
+    /**
+     * Deprecated: this is no longer used by the suggest component.
+     * @param {string} path
+     * @returns {Promise<SuggestStoreBuilder>}}
+     */
+    async cachePath(
+        path) {
+      throw Error("cachePath not implemented");
+    }
+    /**
+     * dataPath
+     * @param {string} path
+     * @returns {SuggestStoreBuilder}
+     */
+    dataPath(
+        path) {
+      throw Error("dataPath not implemented");
+    }
+    /**
+     * Add an sqlite3 extension to load
+     * 
+     * library_name should be the name of the library without any extension, for example `libmozsqlite3`.
+     * entrypoint should be the entry point, for example `sqlite3_fts5_init`.  If `null` (the default)
+     * entry point will be used (see https://sqlite.org/loadext.html for details).
+     * @param {string} library
+     * @param {?string} entryPoint
+     * @returns {SuggestStoreBuilder}
+     */
+    loadExtension(
+        library, 
+        entryPoint) {
+      throw Error("loadExtension not implemented");
+    }
+    /**
+     * remoteSettingsBucketName
+     * @param {string} bucketName
+     * @returns {SuggestStoreBuilder}
+     */
+    remoteSettingsBucketName(
+        bucketName) {
+      throw Error("remoteSettingsBucketName not implemented");
+    }
+    /**
+     * remoteSettingsServer
+     * @param {RemoteSettingsServer} server
+     * @returns {SuggestStoreBuilder}
+     */
+    remoteSettingsServer(
+        server) {
+      throw Error("remoteSettingsServer not implemented");
+    }
+    /**
+     * remoteSettingsService
+     * @param {RemoteSettingsService} rsService
+     * @returns {SuggestStoreBuilder}
+     */
+    remoteSettingsService(
+        rsService) {
+      throw Error("remoteSettingsService not implemented");
+    }
+
+}
+
+/**
+ * Builder for [SuggestStore]
+ * 
+ * Using a builder is preferred to calling the constructor directly since it's harder to confuse
+ * the data_path and cache_path strings.
+ */
+export class SuggestStoreBuilder extends SuggestStoreBuilderInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")

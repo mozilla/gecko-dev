@@ -3,7 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
-import { ContextIdComponent } from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustContextId.sys.mjs";
+import {
+  ContextIdCallback,
+  ContextIdComponent,
+} from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustContextId.sys.mjs";
 
 const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
 const CONTEXT_ID_TIMESTAMP_PREF =
@@ -22,6 +25,26 @@ XPCOMUtils.defineLazyPreferenceGetter(
   CONTEXT_ID_PREF,
   ""
 );
+
+class JsContextIdCallback extends ContextIdCallback {
+  constructor(dispatchEvent) {
+    super();
+    this.dispatchEvent = dispatchEvent;
+  }
+
+  persist(newContextId, creationTimestamp) {
+    Services.prefs.setCharPref(CONTEXT_ID_PREF, newContextId);
+    Services.prefs.setIntPref(CONTEXT_ID_TIMESTAMP_PREF, creationTimestamp);
+    this.dispatchEvent(new CustomEvent("ContextId:Persisted"));
+  }
+
+  rotated(oldContextId) {
+    GleanPings.contextIdDeletionRequest.setEnabled(true);
+
+    Glean.contextualServices.contextId.set(oldContextId);
+    GleanPings.contextIdDeletionRequest.submit();
+  }
+}
 
 /**
  * A class that manages and (optionally) rotates the context ID, which is a
@@ -56,23 +79,7 @@ export class _ContextId extends EventTarget {
         lazy.CURRENT_CONTEXT_ID,
         Services.prefs.getIntPref(CONTEXT_ID_TIMESTAMP_PREF, 0),
         Cu.isInAutomation,
-        {
-          persist: (newContextId, creationTimestamp) => {
-            Services.prefs.setCharPref(CONTEXT_ID_PREF, newContextId);
-            Services.prefs.setIntPref(
-              CONTEXT_ID_TIMESTAMP_PREF,
-              creationTimestamp
-            );
-            this.dispatchEvent(new CustomEvent("ContextId:Persisted"));
-          },
-
-          rotated: oldContextId => {
-            GleanPings.contextIdDeletionRequest.setEnabled(true);
-
-            Glean.contextualServices.contextId.set(oldContextId);
-            GleanPings.contextIdDeletionRequest.submit();
-          },
-        }
+        new JsContextIdCallback(this.dispatchEvent.bind(this))
       );
       this.#observer = (subject, topic, data) => {
         this.observe(subject, topic, data);

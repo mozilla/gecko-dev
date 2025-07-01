@@ -1264,13 +1264,132 @@ export class FfiConverterSequenceString extends FfiConverterArrayBuffer {
 }
 
 
+
+/**
+ * RelevancyStoreInterface
+ */
+export class RelevancyStoreInterface {
+    /**
+     * Initializes probability distributions for any uninitialized items (arms) within a bandit model.
+     * 
+     * This method takes a `bandit` identifier and a list of `arms` (items) and ensures that each arm
+     * in the list has an initialized probability distribution in the database. For each arm, if the
+     * probability distribution does not already exist, it will be created, using Beta(1,1) as default,
+     * which represents uniform distribution.
+     * @param {string} bandit
+     * @param {Array.<string>} arms
+     */
+    async banditInit(
+        bandit, 
+        arms) {
+      throw Error("banditInit not implemented");
+    }
+    /**
+     * Selects the optimal item (arm) to display to the user based on a multi-armed bandit model.
+     * 
+     * This method takes in a `bandit` identifier and a list of possible `arms` (items) and uses a
+     * Thompson sampling approach to select the arm with the highest probability of success.
+     * For each arm, it retrieves the Beta distribution parameters (alpha and beta) from the
+     * database, creates a Beta distribution, and samples from it to estimate the arm's probability
+     * of success. The arm with the highest sampled probability is selected and returned.
+     * @param {string} bandit
+     * @param {Array.<string>} arms
+     * @returns {Promise<string>}}
+     */
+    async banditSelect(
+        bandit, 
+        arms) {
+      throw Error("banditSelect not implemented");
+    }
+    /**
+     * Updates the bandit model's arm data based on user interaction (selection or non-selection).
+     * 
+     * This method takes in a `bandit` identifier, an `arm` identifier, and a `selected` flag.
+     * If `selected` is true, it updates the model to reflect a successful selection of the arm,
+     * reinforcing its positive reward probability. If `selected` is false, it updates the
+     * beta (failure) distribution of the arm, reflecting a lack of selection and reinforcing
+     * its likelihood of a negative outcome.
+     * @param {string} bandit
+     * @param {string} arm
+     * @param {boolean} selected
+     */
+    async banditUpdate(
+        bandit, 
+        arm, 
+        selected) {
+      throw Error("banditUpdate not implemented");
+    }
+    /**
+     * Close any open resources (for example databases)
+     * 
+     * Calling `close` will interrupt any in-progress queries on other threads.
+     */
+    close() {
+      throw Error("close not implemented");
+    }
+    /**
+     * Download the interest data from remote settings if needed
+     */
+    async ensureInterestDataPopulated() {
+      throw Error("ensureInterestDataPopulated not implemented");
+    }
+    /**
+     * Retrieves the data for a specific bandit and arm.
+     * @param {string} bandit
+     * @param {string} arm
+     * @returns {Promise<BanditData>}}
+     */
+    async getBanditData(
+        bandit, 
+        arm) {
+      throw Error("getBanditData not implemented");
+    }
+    /**
+     * Ingest top URLs to build the user's interest vector.
+     * 
+     * Consumer should pass a list of the user's top URLs by frecency to this method.  It will
+     * then:
+     * 
+     * - Download the URL interest data from remote settings.  Eventually this should be cached /
+     * stored in the database, but for now it would be fine to download fresh data each time.
+     * - Match the user's top URls against the interest data to build up their interest vector.
+     * - Store the user's interest vector in the database.
+     * 
+     * This method may execute for a long time and should only be called from a worker thread.
+     * @param {Array.<string>} topUrlsByFrecency
+     * @returns {Promise<InterestVector>}}
+     */
+    async ingest(
+        topUrlsByFrecency) {
+      throw Error("ingest not implemented");
+    }
+    /**
+     * Interrupt any current database queries
+     */
+    interrupt() {
+      throw Error("interrupt not implemented");
+    }
+    /**
+     * Get the user's interest vector directly.
+     * 
+     * This runs after [Self::ingest].  It returns the interest vector directly so that the
+     * consumer can show it in an `about:` page.
+     * @returns {Promise<InterestVector>}}
+     */
+    async userInterestVector() {
+      throw Error("userInterestVector not implemented");
+    }
+
+}
+
 /**
  * RelevancyStore
  */
-export class RelevancyStore {
+export class RelevancyStore extends RelevancyStoreInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")

@@ -4,6 +4,7 @@
 const {
   invokeTestCallbackInterfaceNoop,
   invokeTestCallbackInterfaceSetValue,
+  TestCallbackInterface,
   UniffiSkipJsTypeCheck,
   UnitTestObjs,
 } = ChromeUtils.importESModule(
@@ -13,8 +14,9 @@ const {
 /**
  *
  */
-class Callback {
+class Callback extends TestCallbackInterface {
   constructor(value) {
+    super();
     this.value = value;
   }
 

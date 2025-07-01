@@ -2693,13 +2693,38 @@ export class FfiConverterTypeRecWithDefault extends FfiConverterArrayBuffer {
         }
     }
 }
+
+/**
+ * TestInterfaceInterface
+ */
+export class TestInterfaceInterface {
+    /**
+     * getValue
+     * @returns {number}
+     */
+    getValue() {
+      throw Error("getValue not implemented");
+    }
+    /**
+     * Get the current reference count for this object
+     * 
+     * The count does not include the extra reference needed to call this method.
+     * @returns {number}
+     */
+    refCount() {
+      throw Error("refCount not implemented");
+    }
+
+}
+
 /**
  * TestInterface
  */
-export class TestInterface {
+export class TestInterface extends TestInterfaceInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -3492,13 +3517,29 @@ export class FfiConverterTypeTestFlatError extends FfiConverterArrayBuffer {
 
     static errorClass = TestFlatError;
 }
+
+/**
+ * AsyncInterfaceInterface
+ */
+export class AsyncInterfaceInterface {
+    /**
+     * name
+     * @returns {Promise<string>}}
+     */
+    async name() {
+      throw Error("name not implemented");
+    }
+
+}
+
 /**
  * AsyncInterface
  */
-export class AsyncInterface {
+export class AsyncInterface extends AsyncInterfaceInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -3585,13 +3626,55 @@ export class FfiConverterTypeAsyncInterface extends FfiConverter {
     }
 }
 
+
 /**
  * Async version of `TestTraitInterface`
  */
-export class AsyncTestTraitInterfaceImpl {
+export class AsyncTestTraitInterface {
+    /**
+     * No-op function, this tests if that we can make calls at all
+     */
+    async noop() {
+      throw Error("noop not implemented");
+    }
+    /**
+     * Get the internal value
+     * @returns {Promise<number>}}
+     */
+    async getValue() {
+      throw Error("getValue not implemented");
+    }
+    /**
+     * Set the internal value
+     * @param {number} value
+     */
+    async setValue(
+        value) {
+      throw Error("setValue not implemented");
+    }
+    /**
+     * Method aimed at maximizing the complexity
+     * 
+     * This should return an error if `numbers.a == numbers.b` otherwise it should return numbers back
+     * unchanged.
+     * @param {CallbackInterfaceNumbers} numbers
+     * @returns {Promise<CallbackInterfaceNumbers>}}
+     */
+    async throwIfEqual(
+        numbers) {
+      throw Error("throwIfEqual not implemented");
+    }
+
+}
+
+/**
+ * Async version of `TestTraitInterface`
+ */
+export class AsyncTestTraitInterfaceImpl extends AsyncTestTraitInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -3703,6 +3786,9 @@ export class FfiConverterTypeAsyncTestTraitInterface extends FfiConverter {
 
     // lower treats value like a callback interface
     static lower(value) {
+        if (!(value instanceof AsyncTestTraitInterface)) {
+            throw new UniFFITypeError("expected 'AsyncTestTraitInterface' subclass");
+        }
         return uniffiCallbackHandlerUniffiBindingsTestsAsyncTestTraitInterface.storeCallbackObj(value)
     }
 
@@ -3779,13 +3865,40 @@ const uniffiCallbackHandlerUniffiBindingsTestsAsyncTestTraitInterface = new UniF
 
 // Allow the shutdown-related functionality to be tested in the unit tests
 UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsAsyncTestTraitInterface = uniffiCallbackHandlerUniffiBindingsTestsAsyncTestTraitInterface;
+
+/**
+ * ComplexMethodsInterface
+ */
+export class ComplexMethodsInterface {
+    /**
+     * methodWithDefault
+     * @param {string} arg
+     * @returns {string}
+     */
+    methodWithDefault(
+        arg = "DEFAULT") {
+      throw Error("methodWithDefault not implemented");
+    }
+    /**
+     * methodWithMultiWordArg
+     * @param {string} theArgument
+     * @returns {string}
+     */
+    methodWithMultiWordArg(
+        theArgument) {
+      throw Error("methodWithMultiWordArg not implemented");
+    }
+
+}
+
 /**
  * ComplexMethods
  */
-export class ComplexMethods {
+export class ComplexMethods extends ComplexMethodsInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -3897,13 +4010,55 @@ export class FfiConverterTypeComplexMethods extends FfiConverter {
     }
 }
 
+
 /**
  * TestTraitInterface
  */
-export class TestTraitInterfaceImpl {
+export class TestTraitInterface {
+    /**
+     * No-op function, this tests if that we can make calls at all
+     */
+    noop() {
+      throw Error("noop not implemented");
+    }
+    /**
+     * Get the internal value
+     * @returns {number}
+     */
+    getValue() {
+      throw Error("getValue not implemented");
+    }
+    /**
+     * Set the internal value
+     * @param {number} value
+     */
+    setValue(
+        value) {
+      throw Error("setValue not implemented");
+    }
+    /**
+     * Method aimed at maximizing the complexity
+     * 
+     * This should return an error if `numbers.a == numbers.b` otherwise it should return numbers back
+     * unchanged.
+     * @param {CallbackInterfaceNumbers} numbers
+     * @returns {CallbackInterfaceNumbers}
+     */
+    throwIfEqual(
+        numbers) {
+      throw Error("throwIfEqual not implemented");
+    }
+
+}
+
+/**
+ * TestTraitInterface
+ */
+export class TestTraitInterfaceImpl extends TestTraitInterface {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
+        super();
         if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
             throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
             "Please use a UDL defined constructor, or the init function for the primary constructor")
@@ -4015,6 +4170,9 @@ export class FfiConverterTypeTestTraitInterface extends FfiConverter {
 
     // lower treats value like a callback interface
     static lower(value) {
+        if (!(value instanceof TestTraitInterface)) {
+            throw new UniFFITypeError("expected 'TestTraitInterface' subclass");
+        }
         return uniffiCallbackHandlerUniffiBindingsTestsTestTraitInterface.storeCallbackObj(value)
     }
 
@@ -4091,9 +4249,50 @@ const uniffiCallbackHandlerUniffiBindingsTestsTestTraitInterface = new UniFFICal
 
 // Allow the shutdown-related functionality to be tested in the unit tests
 UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsTestTraitInterface = uniffiCallbackHandlerUniffiBindingsTestsTestTraitInterface;
+
+/**
+ * Async version of `TestCallbackInterface`
+ */
+export class TestAsyncCallbackInterface {
+    /**
+     * noop
+     */
+    noop() {
+      throw Error("noop not implemented");
+    }
+    /**
+     * getValue
+     * @returns {number}
+     */
+    getValue() {
+      throw Error("getValue not implemented");
+    }
+    /**
+     * setValue
+     * @param {number} value
+     */
+    setValue(
+        value) {
+      throw Error("setValue not implemented");
+    }
+    /**
+     * throwIfEqual
+     * @param {CallbackInterfaceNumbers} numbers
+     * @returns {CallbackInterfaceNumbers}
+     */
+    throwIfEqual(
+        numbers) {
+      throw Error("throwIfEqual not implemented");
+    }
+
+}
+
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeTestAsyncCallbackInterface extends FfiConverter {
     static lower(callbackObj) {
+        if (!(callbackObj instanceof TestAsyncCallbackInterface)) {
+            throw new UniFFITypeError("expected 'TestAsyncCallbackInterface' subclass");
+        }
         return uniffiCallbackHandlerUniffiBindingsTestsTestAsyncCallbackInterface.storeCallbackObj(callbackObj)
     }
 
@@ -4112,7 +4311,8 @@ export class FfiConverterTypeTestAsyncCallbackInterface extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}const uniffiCallbackHandlerUniffiBindingsTestsTestAsyncCallbackInterface = new UniFFICallbackHandler(
+}
+const uniffiCallbackHandlerUniffiBindingsTestsTestAsyncCallbackInterface = new UniFFICallbackHandler(
     "TestAsyncCallbackInterface",
     3,
     [
@@ -4162,9 +4362,50 @@ export class FfiConverterTypeTestAsyncCallbackInterface extends FfiConverter {
 
 // Allow the shutdown-related functionality to be tested in the unit tests
 UnitTestObjs.uniffiCallbackHandlerUniffiBindingsTestsTestAsyncCallbackInterface = uniffiCallbackHandlerUniffiBindingsTestsTestAsyncCallbackInterface;
+
+/**
+ * TestCallbackInterface
+ */
+export class TestCallbackInterface {
+    /**
+     * noop
+     */
+    noop() {
+      throw Error("noop not implemented");
+    }
+    /**
+     * getValue
+     * @returns {number}
+     */
+    getValue() {
+      throw Error("getValue not implemented");
+    }
+    /**
+     * setValue
+     * @param {number} value
+     */
+    setValue(
+        value) {
+      throw Error("setValue not implemented");
+    }
+    /**
+     * throwIfEqual
+     * @param {CallbackInterfaceNumbers} numbers
+     * @returns {CallbackInterfaceNumbers}
+     */
+    throwIfEqual(
+        numbers) {
+      throw Error("throwIfEqual not implemented");
+    }
+
+}
+
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeTestCallbackInterface extends FfiConverter {
     static lower(callbackObj) {
+        if (!(callbackObj instanceof TestCallbackInterface)) {
+            throw new UniFFITypeError("expected 'TestCallbackInterface' subclass");
+        }
         return uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface.storeCallbackObj(callbackObj)
     }
 
@@ -4183,7 +4424,8 @@ export class FfiConverterTypeTestCallbackInterface extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}const uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface = new UniFFICallbackHandler(
+}
+const uniffiCallbackHandlerUniffiBindingsTestsTestCallbackInterface = new UniFFICallbackHandler(
     "TestCallbackInterface",
     4,
     [

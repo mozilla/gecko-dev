@@ -1,6 +1,12 @@
+{%- let interface_base_class = cbi.interface_base_class %}
+{% include "InterfaceBaseClass.sys.mjs" %}
+
 // Export the FFIConverter object to make external types work.
 export class {{ cbi.self_type.ffi_converter }} extends FfiConverter {
     static lower(callbackObj) {
+        if (!(callbackObj instanceof {{ cbi.interface_base_class.name }})) {
+            throw new UniFFITypeError("expected '{{ cbi.interface_base_class.name }}' subclass");
+        }
         return {{ cbi.vtable.js_handler_var }}.storeCallbackObj(callbackObj)
     }
 
@@ -22,4 +28,4 @@ export class {{ cbi.self_type.ffi_converter }} extends FfiConverter {
 }
 
 {%- let vtable = cbi.vtable %}
-{%- include "CallbackInterfaceHandler.sys.mjs" %}
+{% include "CallbackInterfaceHandler.sys.mjs" %}

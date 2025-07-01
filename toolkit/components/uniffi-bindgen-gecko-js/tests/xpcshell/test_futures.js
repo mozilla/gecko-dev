@@ -22,6 +22,7 @@ const {
   asyncRoundtripObj,
   asyncThrowError,
   AsyncInterface,
+  TestAsyncCallbackInterface,
   CallbackInterfaceNumbers,
   Failure1,
 } = ChromeUtils.importESModule(
@@ -66,8 +67,9 @@ add_task(async function asyncCallbackInterfaces() {
   /**
    *
    */
-  class AsyncCallbackInterface {
+  class AsyncCallbackInterface extends TestAsyncCallbackInterface {
     constructor(value) {
+      super();
       this.value = value;
     }
 
