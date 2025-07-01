@@ -182,6 +182,10 @@ class CookieCommons final {
   // returns true if 'a' is equal to or a subdomain of 'b',
   // assuming no leading dots are present.
   static bool IsSubdomainOf(const nsACString& a, const nsACString& b);
+
+  // Returns the current time in msecs using a nsIChannel, which corresponds to
+  // the response start time.
+  static int64_t GetCurrentTimeFromChannel(nsIChannel* aChannel);
 };
 
 }  // namespace net

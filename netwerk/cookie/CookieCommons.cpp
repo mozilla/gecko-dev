@@ -377,7 +377,7 @@ already_AddRefed<Cookie> CookieCommons::CreateCookieFromDocument(
   aCookieParser.Parse(baseDomain, requireHostMatch, cookieStatus, cookieString,
                       EmptyCString(), false, isForeignAndNotAddon,
                       mustBePartitioned, aDocument->IsInPrivateBrowsing(),
-                      on3pcbException);
+                      on3pcbException, PR_Now() / PR_USEC_PER_MSEC);
 
   if (!aCookieParser.ContainsCookie()) {
     return nullptr;
@@ -1020,6 +1020,20 @@ bool CookieCommons::IsSubdomainOf(const nsACString& a, const nsACString& b) {
     return a[a.Length() - b.Length() - 1] == '.' && StringEndsWith(a, b);
   }
   return false;
+}
+
+// static
+int64_t CookieCommons::GetCurrentTimeFromChannel(nsIChannel* aChannel) {
+  nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(aChannel);
+  if (timedChannel) {
+    PRTime currentTimeInUSec = 0;
+    nsresult rv = timedChannel->GetResponseStartTime(&currentTimeInUSec);
+    if (NS_SUCCEEDED(rv) && currentTimeInUSec) {
+      return currentTimeInUSec / PR_USEC_PER_MSEC;
+    }
+  }
+
+  return PR_Now() / PR_USEC_PER_MSEC;
 }
 
 }  // namespace net

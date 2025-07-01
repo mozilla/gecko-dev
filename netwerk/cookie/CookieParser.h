@@ -41,7 +41,8 @@ class CookieParser final {
              CookieStatus aStatus, nsCString& aCookieHeader,
              const nsACString& aDateHeader, bool aFromHttp,
              bool aIsForeignAndNotAddon, bool aPartitionedOnly,
-             bool aIsInPrivateBrowsing, bool aOn3pcbException);
+             bool aIsInPrivateBrowsing, bool aOn3pcbException,
+             int64_t aCurrentTimeInMSec);
 
   bool ContainsCookie() const {
     return mValidation && mValidation->Result() == nsICookieValidation::eOK;

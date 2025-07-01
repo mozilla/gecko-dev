@@ -497,7 +497,8 @@ bool CookieParser::ParseMaxAgeAttribute(const nsACString& aMaxage,
 
 bool CookieParser::GetExpiry(CookieStruct& aCookieData,
                              const nsACString& aExpires,
-                             const nsACString& aMaxage, int64_t aCurrentTime,
+                             const nsACString& aMaxage,
+                             int64_t aCurrentTimeInMSec,
                              const nsACString& aDateHeader, bool aFromHttp) {
   int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
 
@@ -515,7 +516,7 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     if (maxage == INT64_MIN) {
       aCookieData.expiry() = maxage;
     } else {
-      CheckedInt<int64_t> value(aCurrentTime);
+      CheckedInt<int64_t> value(aCurrentTimeInMSec);
       value += (maxageCap ? std::min(maxage, maxageCap) : maxage) * 1000;
 
       aCookieData.expiry() = value.isValid() ? value.value() : INT64_MAX;
@@ -527,13 +528,13 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
   // check for expires attribute
   if (!aExpires.IsEmpty()) {
     // parse expiry time
-    PRTime expiresTime;
-    if (PR_ParseTimeString(aExpires.BeginReading(), true, &expiresTime) !=
+    PRTime expiresTimeInUSec;
+    if (PR_ParseTimeString(aExpires.BeginReading(), true, &expiresTimeInUSec) !=
         PR_SUCCESS) {
       return true;
     }
 
-    int64_t expires = expiresTime / int64_t(PR_USEC_PER_MSEC);
+    int64_t expiresInMSec = expiresTimeInUSec / int64_t(PR_USEC_PER_MSEC);
 
     // If we have the server time, we can adjust the "expire" attribute value
     // by adding the delta between the server and the local times.  If the
@@ -542,13 +543,14 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     if (!aDateHeader.IsEmpty()) {
       MOZ_ASSERT(aFromHttp);
 
-      PRTime dateHeaderTime;
+      PRTime dateHeaderTimeInUSec;
       if (PR_ParseTimeString(aDateHeader.BeginReading(), true,
-                             &dateHeaderTime) == PR_SUCCESS &&
+                             &dateHeaderTimeInUSec) == PR_SUCCESS &&
           StaticPrefs::network_cookie_useServerTime()) {
-        int64_t serverTime = dateHeaderTime / int64_t(PR_USEC_PER_MSEC);
-        int64_t delta = aCurrentTime - serverTime;
-        expires += delta;
+        int64_t serverTimeInMSec =
+            dateHeaderTimeInUSec / int64_t(PR_USEC_PER_MSEC);
+        int64_t delta = aCurrentTimeInMSec - serverTimeInMSec;
+        expiresInMSec += delta;
       }
     }
 
@@ -558,7 +560,8 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
     // time be set less than current time and more than server time.
     // The cookie item have to be used to the expired cookie.
 
-    aCookieData.expiry() = CookieCommons::MaybeCapExpiry(aCurrentTime, expires);
+    aCookieData.expiry() =
+        CookieCommons::MaybeCapExpiry(aCurrentTimeInMSec, expiresInMSec);
     return false;
   }
 
@@ -651,7 +654,8 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
                          CookieStatus aStatus, nsCString& aCookieHeader,
                          const nsACString& aDateHeader, bool aFromHttp,
                          bool aIsForeignAndNotAddon, bool aPartitionedOnly,
-                         bool aIsInPrivateBrowsing, bool aOn3pcbException) {
+                         bool aIsInPrivateBrowsing, bool aOn3pcbException,
+                         int64_t aCurrentTimeInMSec) {
   MOZ_ASSERT(!mValidation);
 
   // init expiryTime such that session cookies won't prematurely expire
@@ -673,12 +677,9 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
     return;
   }
 
-  int64_t currentTimeInUsec = PR_Now();
-
   // calculate expiry time of cookie.
-  mCookieData.isSession() =
-      GetExpiry(mCookieData, expires, maxage,
-                currentTimeInUsec / PR_USEC_PER_MSEC, aDateHeader, aFromHttp);
+  mCookieData.isSession() = GetExpiry(
+      mCookieData, expires, maxage, aCurrentTimeInMSec, aDateHeader, aFromHttp);
   if (aStatus == STATUS_ACCEPT_SESSION) {
     // force lifetime to session. note that the expiration time, if set above,
     // will still apply.
