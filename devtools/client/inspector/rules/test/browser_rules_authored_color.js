@@ -25,23 +25,26 @@ const colors = [
 ];
 
 add_task(async function () {
-  Services.prefs.setCharPref("devtools.defaultColorUnit", "authored");
+  await pushPref("devtools.defaultColorUnit", "authored");
 
   let html = "";
   for (const { color, id } of colors) {
     html += `<div id="${id}" style="color: ${color}">Styled Node</div>`;
   }
 
-  const tab = await addTab(
-    "data:text/html;charset=utf-8," + encodeURIComponent(html)
-  );
-
-  const { inspector, view } = await openRuleView();
-
   for (const color of colors) {
+    // Note: create a new tab/toolbox for each test to avoid race conditions
+    // potentially due to inconsistent ruleview-changed events.
+    const tab = await addTab(
+      "data:text/html;charset=utf-8," + encodeURIComponent(html)
+    );
+
+    const { inspector, view } = await openRuleView();
+
     const selector = "#" + color.id;
     await selectNode(selector, inspector);
 
+    info("Open the colorpicker");
     const swatch = getRuleViewProperty(
       view,
       "element",
@@ -58,12 +61,17 @@ add_task(async function () {
       value: "rgb(0, 255, 0)",
     });
 
+    info("Hide the colorpicker");
     const spectrum = cPicker.spectrum;
     const onHidden = cPicker.tooltip.once("hidden");
     // Validating the color change ends up updating the rule view twice
     const onRuleViewChanged = waitForNEvents(view, "ruleview-changed", 2);
     focusAndSendKey(spectrum.element.ownerDocument.defaultView, "RETURN");
+
+    info("Wait for the colorpicker hidden event");
     await onHidden;
+
+    info("Wait for the 2 ruleview-changed events");
     await onRuleViewChanged;
 
     is(
@@ -71,8 +79,8 @@ add_task(async function () {
       color.result,
       "changing the color preserved the unit for " + color.name
     );
-  }
 
-  await gDevTools.closeToolboxForTab(tab);
-  gBrowser.removeCurrentTab();
+    await gDevTools.closeToolboxForTab(tab);
+    gBrowser.removeCurrentTab();
+  }
 });
