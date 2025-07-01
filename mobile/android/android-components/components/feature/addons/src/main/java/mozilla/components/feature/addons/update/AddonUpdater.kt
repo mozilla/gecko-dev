@@ -241,7 +241,7 @@ class DefaultAddonUpdater(
     @VisibleForTesting
     internal fun createImmediateWorkerRequest(addonId: String): OneTimeWorkRequest {
         val data = AddonUpdaterWorker.createWorkerData(addonId)
-        val constraints = getWorkerConstrains()
+        val constraints = getWorkerConstraints()
 
         return OneTimeWorkRequestBuilder<AddonUpdaterWorker>()
             .setConstraints(constraints)
@@ -254,7 +254,7 @@ class DefaultAddonUpdater(
     @VisibleForTesting
     internal fun createPeriodicWorkerRequest(addonId: String): PeriodicWorkRequest {
         val data = AddonUpdaterWorker.createWorkerData(addonId)
-        val constraints = getWorkerConstrains()
+        val constraints = getWorkerConstraints()
 
         return PeriodicWorkRequestBuilder<AddonUpdaterWorker>(
             frequency.repeatInterval,
@@ -268,7 +268,7 @@ class DefaultAddonUpdater(
     }
 
     @VisibleForTesting
-    internal fun getWorkerConstrains() = Constraints.Builder()
+    internal fun getWorkerConstraints() = Constraints.Builder()
         .setRequiresStorageNotLow(true)
         .setRequiredNetworkType(NetworkType.CONNECTED)
         .build()

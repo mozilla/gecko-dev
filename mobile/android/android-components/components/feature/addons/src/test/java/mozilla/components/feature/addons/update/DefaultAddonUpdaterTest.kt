@@ -344,7 +344,7 @@ class DefaultAddonUpdaterTest {
         assertTrue(workRequest.tags.contains(workId))
         assertTrue(workRequest.tags.contains(WORK_TAG_PERIODIC))
 
-        assertEquals(updater.getWorkerConstrains(), workRequest.workSpec.constraints)
+        assertEquals(updater.getWorkerConstraints(), workRequest.workSpec.constraints)
 
         assertEquals(addonId, workRequest.workSpec.input.getString(KEY_DATA_EXTENSIONS_ID))
     }
