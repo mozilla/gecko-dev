@@ -20,6 +20,7 @@
 #  include <shlobj.h>
 #  include <knownfolders.h>
 #  include <guiddef.h>
+#  include "mozilla/WinHeaderOnlyUtils.h"
 
 #elif defined(XP_UNIX)
 
@@ -59,39 +60,14 @@
 #if defined(XP_WIN)
 
 static nsresult GetKnownFolder(REFKNOWNFOLDERID aFolderId, nsIFile** aFile) {
-  PWSTR path = nullptr;
-  SHGetKnownFolderPath(aFolderId, 0, nullptr, &path);
+  mozilla::UniquePtr<WCHAR, mozilla::CoTaskMemFreeDeleter> path;
+  SHGetKnownFolderPath(aFolderId, 0, nullptr, getter_Transfers(path));
 
   if (!path) {
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = NS_NewLocalFile(nsDependentString(path), aFile);
-
-  CoTaskMemFree(path);
-  return rv;
-}
-
-static nsresult GetWindowsFolder(int aFolder, nsIFile** aFile) {
-  WCHAR path_orig[MAX_PATH + 3];
-  WCHAR* path = path_orig + 1;
-  BOOL result = SHGetSpecialFolderPathW(nullptr, path, aFolder, true);
-
-  if (!result) {
-    return NS_ERROR_FAILURE;
-  }
-
-  // Append the trailing slash
-  int len = wcslen(path);
-  if (len == 0) {
-    return NS_ERROR_FILE_UNRECOGNIZED_PATH;
-  }
-  if (len > 1 && path[len - 1] != L'\\') {
-    path[len] = L'\\';
-    path[++len] = L'\0';
-  }
-
-  return NS_NewLocalFile(nsDependentString(path, len), aFile);
+  return NS_NewLocalFile(nsDependentString(path.get()), aFile);
 }
 
 /**
@@ -530,82 +506,22 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
     }
 #elif defined(XP_WIN)
     case Win_SystemDirectory: {
-      int32_t len = ::GetSystemDirectoryW(path, MAX_PATH);
-
-      // Need enough space to add the trailing backslash
-      if (!len || len > MAX_PATH - 2) {
-        break;
-      }
-      path[len] = L'\\';
-      path[++len] = L'\0';
-
-      return NS_NewLocalFile(nsDependentString(path, len), aFile);
+      return GetKnownFolder(FOLDERID_System, aFile);
     }
 
     case Win_WindowsDirectory: {
-      int32_t len = ::GetWindowsDirectoryW(path, MAX_PATH);
-
-      // Need enough space to add the trailing backslash
-      if (!len || len > MAX_PATH - 2) {
-        break;
-      }
-
-      path[len] = L'\\';
-      path[++len] = L'\0';
-
-      return NS_NewLocalFile(nsDependentString(path, len), aFile);
+      return GetKnownFolder(FOLDERID_Windows, aFile);
     }
 
     case Win_ProgramFiles: {
-      return GetWindowsFolder(CSIDL_PROGRAM_FILES, aFile);
+      return GetKnownFolder(FOLDERID_ProgramFiles, aFile);
     }
 
     case Win_HomeDirectory: {
-      nsresult rv = GetWindowsFolder(CSIDL_PROFILE, aFile);
-      if (NS_SUCCEEDED(rv)) {
-        return rv;
-      }
-
-      int32_t len;
-      if ((len = ::GetEnvironmentVariableW(L"HOME", path, MAX_PATH)) > 0) {
-        // Need enough space to add the trailing backslash
-        if (len > MAX_PATH - 2) {
-          break;
-        }
-
-        path[len] = L'\\';
-        path[++len] = L'\0';
-
-        rv = NS_NewLocalFile(nsDependentString(path, len), aFile);
-        if (NS_SUCCEEDED(rv)) {
-          return rv;
-        }
-      }
-
-      len = ::GetEnvironmentVariableW(L"HOMEDRIVE", path, MAX_PATH);
-      if (0 < len && len < MAX_PATH) {
-        WCHAR temp[MAX_PATH];
-        DWORD len2 = ::GetEnvironmentVariableW(L"HOMEPATH", temp, MAX_PATH);
-        if (0 < len2 && len + len2 < MAX_PATH) {
-          wcsncat(path, temp, len2);
-        }
-
-        len = wcslen(path);
-
-        // Need enough space to add the trailing backslash
-        if (len > MAX_PATH - 2) {
-          break;
-        }
-
-        path[len] = L'\\';
-        path[++len] = L'\0';
-
-        return NS_NewLocalFile(nsDependentString(path, len), aFile);
-      }
-      break;
+      return GetKnownFolder(FOLDERID_Profile, aFile);
     }
     case Win_Programs: {
-      return GetWindowsFolder(CSIDL_PROGRAMS, aFile);
+      return GetKnownFolder(FOLDERID_Programs, aFile);
     }
 
     case Win_Downloads: {
@@ -613,23 +529,23 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
     }
 
     case Win_Favorites: {
-      return GetWindowsFolder(CSIDL_FAVORITES, aFile);
+      return GetKnownFolder(FOLDERID_Favorites, aFile);
     }
     case Win_Desktopdirectory: {
-      return GetWindowsFolder(CSIDL_DESKTOPDIRECTORY, aFile);
+      return GetKnownFolder(FOLDERID_Desktop, aFile);
     }
     case Win_Cookies: {
-      return GetWindowsFolder(CSIDL_COOKIES, aFile);
+      return GetKnownFolder(FOLDERID_Cookies, aFile);
     }
     case Win_Appdata: {
-      nsresult rv = GetWindowsFolder(CSIDL_APPDATA, aFile);
+      nsresult rv = GetKnownFolder(FOLDERID_RoamingAppData, aFile);
       if (NS_FAILED(rv)) {
         rv = GetRegWindowsAppDataFolder(false, aFile);
       }
       return rv;
     }
     case Win_LocalAppdata: {
-      nsresult rv = GetWindowsFolder(CSIDL_LOCAL_APPDATA, aFile);
+      nsresult rv = GetKnownFolder(FOLDERID_LocalAppData, aFile);
       if (NS_FAILED(rv)) {
         rv = GetRegWindowsAppDataFolder(true, aFile);
       }
