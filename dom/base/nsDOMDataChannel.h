@@ -9,6 +9,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
+#include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/RTCDataChannelBinding.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/net/DataChannelListener.h"
@@ -24,7 +25,11 @@ class DataChannel;
 class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
                                public mozilla::DataChannelListener {
  public:
-  nsDOMDataChannel(already_AddRefed<mozilla::DataChannel>& aDataChannel,
+  nsDOMDataChannel(const nsAString& aLabel, bool aOrdered,
+                   mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
+                   mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
+                   const nsAString& aProtocol, bool aNegotiated,
+                   already_AddRefed<mozilla::DataChannel>& aDataChannel,
                    nsPIDOMWindowInner* aWindow);
 
   nsresult Init(nsPIDOMWindowInner* aDOMWindow);
@@ -45,9 +50,8 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
   nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
   // WebIDL
-  void GetLabel(nsAString& aLabel);
-  void GetProtocol(nsAString& aProtocol);
-  bool Reliable() const;
+  void GetLabel(nsAString& aLabel) const;
+  void GetProtocol(nsAString& aProtocol) const;
   mozilla::dom::Nullable<uint16_t> GetMaxPacketLifeTime() const;
   mozilla::dom::Nullable<uint16_t> GetMaxRetransmits() const;
   mozilla::dom::RTCDataChannelState ReadyState() const;
@@ -123,6 +127,13 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
   DataChannelBinaryType mBinaryType;
   bool mCheckMustKeepAlive;
   bool mSentClose;
+
+  const nsString mLabel;
+  const bool mOrdered;
+  const mozilla::dom::Nullable<uint16_t> mMaxPacketLifeTime;
+  const mozilla::dom::Nullable<uint16_t> mMaxRetransmits;
+  const nsString mProtocol;
+  const bool mNegotiated;
 };
 
 #endif  // nsDOMDataChannel_h

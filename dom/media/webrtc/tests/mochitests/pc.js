@@ -765,15 +765,6 @@ DataChannelWrapper.prototype = {
   },
 
   /**
-   * Returns the reliable state of the underlying data channel
-   *
-   * @returns {bool} The stream's reliable state
-   */
-  get reliable() {
-    return this._channel.reliable;
-  },
-
-  /**
    * Returns the ordered attribute of the data channel
    *
    * @returns {bool} The ordered attribute

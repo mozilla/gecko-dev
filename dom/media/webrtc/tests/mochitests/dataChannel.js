@@ -163,11 +163,6 @@ var commandsCheckDataChannel = [
         result.local + " protocol is:" + result.local.protocol
       );
       is(
-        result.local.reliable,
-        false,
-        result.local + " reliable is:" + result.local.reliable
-      );
-      is(
         result.local.ordered,
         options.ordered,
         result.local + " ordered is:" + result.local.ordered
@@ -197,11 +192,6 @@ var commandsCheckDataChannel = [
         result.remote.protocol,
         options.protocol,
         result.remote + " protocol is:" + result.remote.protocol
-      );
-      is(
-        result.remote.reliable,
-        false,
-        result.remote + " reliable is:" + result.remote.reliable
       );
       is(
         result.remote.ordered,
@@ -255,11 +245,6 @@ var commandsCheckDataChannel = [
         result.local + " protocol is:" + result.local.protocol
       );
       is(
-        result.local.reliable,
-        false,
-        result.local + " reliable is:" + result.local.reliable
-      );
-      is(
         result.local.ordered,
         options.ordered,
         result.local + " ordered is:" + result.local.ordered
@@ -284,11 +269,6 @@ var commandsCheckDataChannel = [
         result.remote.protocol,
         "",
         result.remote + " protocol is:" + result.remote.protocol
-      );
-      is(
-        result.remote.reliable,
-        false,
-        result.remote + " reliable is:" + result.remote.reliable
       );
       is(
         result.remote.ordered,

@@ -202,7 +202,11 @@ class PeerConnectionImpl final
     return DefaultCodecPreferences(aOverrideRtxPreference);
   }
   // DataConnection observers
-  void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel)
+  void NotifyDataChannel(already_AddRefed<DataChannel> aChannel,
+                         const nsAString& aLabel, bool aOrdered,
+                         mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
+                         mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
+                         const nsAString& aProtocol, bool aNegotiated)
       // PeerConnectionImpl only inherits from mozilla::DataChannelConnection
       // inside libxul.
       override;

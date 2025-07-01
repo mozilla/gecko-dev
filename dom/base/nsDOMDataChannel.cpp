@@ -71,13 +71,23 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMDataChannel)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
 nsDOMDataChannel::nsDOMDataChannel(
+    const nsAString& aLabel, bool aOrdered,
+    mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
+    mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
+    const nsAString& aProtocol, bool aNegotiated,
     already_AddRefed<mozilla::DataChannel>& aDataChannel,
     nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow),
       mDataChannel(aDataChannel),
       mBinaryType(DC_BINARY_TYPE_BLOB),
       mCheckMustKeepAlive(true),
-      mSentClose(false) {}
+      mSentClose(false),
+      mLabel(aLabel),
+      mOrdered(aOrdered),
+      mMaxPacketLifeTime(aMaxLifeTime),
+      mMaxRetransmits(aMaxRetransmits),
+      mProtocol(aProtocol),
+      mNegotiated(aNegotiated) {}
 
 nsresult nsDOMDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
   nsresult rv;
@@ -111,12 +121,10 @@ nsresult nsDOMDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
 
 // Most of the GetFoo()/SetFoo()s don't need to touch shared resources and
 // are safe after Close()
-void nsDOMDataChannel::GetLabel(nsAString& aLabel) {
-  mDataChannel->GetLabel(aLabel);
-}
+void nsDOMDataChannel::GetLabel(nsAString& aLabel) const { aLabel = mLabel; }
 
-void nsDOMDataChannel::GetProtocol(nsAString& aProtocol) {
-  mDataChannel->GetProtocol(aProtocol);
+void nsDOMDataChannel::GetProtocol(nsAString& aProtocol) const {
+  aProtocol = mProtocol;
 }
 
 mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetId() const {
@@ -127,26 +135,18 @@ mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetId() const {
   return result;
 }
 
-// XXX should be GetType()?  Open question for the spec
-bool nsDOMDataChannel::Reliable() const {
-  return mDataChannel->GetType() ==
-         mozilla::DataChannelReliabilityPolicy::Reliable;
-}
-
 mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetMaxPacketLifeTime()
     const {
-  return mDataChannel->GetMaxPacketLifeTime();
+  return mMaxPacketLifeTime;
 }
 
 mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetMaxRetransmits() const {
-  return mDataChannel->GetMaxRetransmits();
+  return mMaxRetransmits;
 }
 
-bool nsDOMDataChannel::Negotiated() const {
-  return mDataChannel->GetNegotiated();
-}
+bool nsDOMDataChannel::Negotiated() const { return mNegotiated; }
 
-bool nsDOMDataChannel::Ordered() const { return mDataChannel->GetOrdered(); }
+bool nsDOMDataChannel::Ordered() const { return mOrdered; }
 
 RTCDataChannelState nsDOMDataChannel::ReadyState() const {
   return static_cast<RTCDataChannelState>(mDataChannel->GetReadyState());
@@ -493,8 +493,14 @@ void nsDOMDataChannel::EventListenerRemoved(nsAtom* aType) {
 /* static */
 nsresult NS_NewDOMDataChannel(
     already_AddRefed<mozilla::DataChannel>&& aDataChannel,
-    nsPIDOMWindowInner* aWindow, nsDOMDataChannel** aDomDataChannel) {
-  RefPtr<nsDOMDataChannel> domdc = new nsDOMDataChannel(aDataChannel, aWindow);
+    const nsAString& aLabel, bool aOrdered,
+    mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
+    mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
+    const nsAString& aProtocol, bool aNegotiated, nsPIDOMWindowInner* aWindow,
+    nsDOMDataChannel** aDomDataChannel) {
+  RefPtr<nsDOMDataChannel> domdc =
+      new nsDOMDataChannel(aLabel, aOrdered, aMaxLifeTime, aMaxRetransmits,
+                           aProtocol, aNegotiated, aDataChannel, aWindow);
 
   nsresult rv = domdc->Init(aWindow);
   NS_ENSURE_SUCCESS(rv, rv);

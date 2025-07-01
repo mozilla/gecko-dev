@@ -1012,15 +1012,19 @@ PeerConnectionImpl::CreateDataChannel(
 
   RefPtr<DataChannel> dataChannel;
   DataChannelReliabilityPolicy prPolicy;
+  Nullable<uint16_t> maxLifeTime;
+  Nullable<uint16_t> maxRetransmits;
   switch (aType) {
     case IPeerConnection::kDataChannelReliable:
       prPolicy = DataChannelReliabilityPolicy::Reliable;
       break;
     case IPeerConnection::kDataChannelPartialReliableRexmit:
       prPolicy = DataChannelReliabilityPolicy::LimitedRetransmissions;
+      maxRetransmits.SetValue(aMaxNum);
       break;
     case IPeerConnection::kDataChannelPartialReliableTimed:
       prPolicy = DataChannelReliabilityPolicy::LimitedLifetime;
+      maxLifeTime.SetValue(aMaxTime);
       break;
     default:
       MOZ_ASSERT(false);
@@ -1065,8 +1069,9 @@ PeerConnectionImpl::CreateDataChannel(
   }
 
   RefPtr<nsDOMDataChannel> retval;
-  rv = NS_NewDOMDataChannel(dataChannel.forget(), mWindow,
-                            getter_AddRefs(retval));
+  rv = NS_NewDOMDataChannel(dataChannel.forget(), aLabel, ordered, maxLifeTime,
+                            maxRetransmits, aProtocol, aExternalNegotiated,
+                            mWindow, getter_AddRefs(retval));
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1350,7 +1355,10 @@ RefPtr<dom::RTCRtpTransceiver> PeerConnectionImpl::GetTransceiver(
 }
 
 void PeerConnectionImpl::NotifyDataChannel(
-    already_AddRefed<DataChannel> aChannel) {
+    already_AddRefed<DataChannel> aChannel, const nsAString& aLabel,
+    bool aOrdered, mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
+    mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
+    const nsAString& aProtocol, bool aNegotiated) {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
   RefPtr<DataChannel> channel(aChannel);
@@ -1358,8 +1366,9 @@ void PeerConnectionImpl::NotifyDataChannel(
   CSFLogDebug(LOGTAG, "%s: channel: %p", __FUNCTION__, channel.get());
 
   RefPtr<nsDOMDataChannel> domchannel;
-  nsresult rv = NS_NewDOMDataChannel(channel.forget(), mWindow,
-                                     getter_AddRefs(domchannel));
+  nsresult rv = NS_NewDOMDataChannel(
+      channel.forget(), aLabel, aOrdered, aMaxLifeTime, aMaxRetransmits,
+      aProtocol, aNegotiated, mWindow, getter_AddRefs(domchannel));
   NS_ENSURE_SUCCESS_VOID(rv);
 
   JSErrorResult jrv;

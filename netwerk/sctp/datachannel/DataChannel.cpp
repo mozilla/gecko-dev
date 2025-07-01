@@ -537,7 +537,6 @@ void DataChannelConnection::HandleOpenRequestMessage(
     const struct rtcweb_datachannel_open_request* req, uint32_t length,
     uint16_t stream) {
   MOZ_ASSERT(mSTS->IsOnCurrentThread());
-  uint32_t prValue;
   DataChannelReliabilityPolicy prPolicy;
 
   const size_t requiredLength = (sizeof(*req) - 1) + ntohs(req->label_length) +
@@ -581,7 +580,7 @@ void DataChannelConnection::HandleOpenRequestMessage(
     return;
   }
 
-  prValue = ntohl(req->reliability_param);
+  const uint32_t prValue = ntohl(req->reliability_param);
   const bool ordered = !(req->channel_type & 0x80);
   const nsCString label(&req->label[0], ntohs(req->label_length));
   const nsCString protocol(&req->label[ntohs(req->label_length)],
@@ -622,9 +621,30 @@ void DataChannelConnection::HandleOpenRequestMessage(
 
         DC_DEBUG(("%s: sending ON_CHANNEL_CREATED for %s/%s: %u", __FUNCTION__,
                   channel->mLabel.get(), channel->mProtocol.get(), stream));
+
+        // Awkward. If we convert over to using Maybe for this in DataChannel,
+        // we won't need to have this extra conversion, since Nullable converts
+        // easily to Maybe.
+        dom::Nullable<uint16_t> maxLifeTime;
+        dom::Nullable<uint16_t> maxRetransmits;
+        if (prPolicy == DataChannelReliabilityPolicy::LimitedLifetime) {
+          maxLifeTime.SetValue(std::min(std::numeric_limits<uint16_t>::max(),
+                                        (uint16_t)prValue));
+        } else if (prPolicy ==
+                   DataChannelReliabilityPolicy::LimitedRetransmissions) {
+          maxRetransmits.SetValue(std::min(std::numeric_limits<uint16_t>::max(),
+                                           (uint16_t)prValue));
+        }
+
         if (mListener) {
           // important to give it an already_AddRefed pointer!
-          mListener->NotifyDataChannel(do_AddRef(channel));
+          // TODO(bug 1974443): Have nsDOMDataChannel create the DataChannel
+          // object, or have DataChannel take an nsDOMDataChannel, to avoid
+          // passing this param list more than once?
+          mListener->NotifyDataChannel(do_AddRef(channel),
+                                       NS_ConvertUTF8toUTF16(label), ordered,
+                                       maxLifeTime, maxRetransmits,
+                                       NS_ConvertUTF8toUTF16(protocol), false);
           // Spec says to queue this in the queued task for ondatachannel
           channel->AnnounceOpen();
         }
@@ -1688,20 +1708,6 @@ void DataChannel::SendBinaryBlob(dom::Blob& aBlob, ErrorResult& aRv) {
   if (!aRv.Failed()) {
     IncrementBufferedAmount(msgLength, aRv);
   }
-}
-
-dom::Nullable<uint16_t> DataChannel::GetMaxPacketLifeTime() const {
-  if (mPrPolicy == DataChannelReliabilityPolicy::LimitedLifetime) {
-    return dom::Nullable<uint16_t>(mPrValue);
-  }
-  return dom::Nullable<uint16_t>();
-}
-
-dom::Nullable<uint16_t> DataChannel::GetMaxRetransmits() const {
-  if (mPrPolicy == DataChannelReliabilityPolicy::LimitedRetransmissions) {
-    return dom::Nullable<uint16_t>(mPrValue);
-  }
-  return dom::Nullable<uint16_t>();
 }
 
 uint32_t DataChannel::GetBufferedAmountLowThreshold() const {
