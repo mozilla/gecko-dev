@@ -241,7 +241,7 @@ void SMILAnimationFunction::ComposeResult(const SMILAttr& aSMILAttr,
   }
 }
 
-int8_t SMILAnimationFunction::CompareTo(
+int32_t SMILAnimationFunction::CompareTo(
     const SMILAnimationFunction* aOther,
     nsContentUtils::NodeIndexCache& aCache) const {
   NS_ENSURE_TRUE(aOther, 0);

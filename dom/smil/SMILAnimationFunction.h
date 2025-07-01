@@ -137,11 +137,12 @@ class SMILAnimationFunction {
    * sandwich -- higher priority animations are applied on top of lower
    * priority animations.
    *
-   * @return  -1 if this animation has lower priority or 1 if this animation has
-   *          higher priority. Returns 0 if the elements are the same.
+   * @return a value < 0 if this animation has lower priority or > 0 if this
+   *         animation has higher priority. Returns 0 if the elements are the
+   *         same.
    */
-  int8_t CompareTo(const SMILAnimationFunction* aOther,
-                   nsContentUtils::NodeIndexCache& aCache) const;
+  int32_t CompareTo(const SMILAnimationFunction* aOther,
+                    nsContentUtils::NodeIndexCache& aCache) const;
 
   /*
    * The following methods are provided so that the compositor can optimize its
