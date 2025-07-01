@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -323,7 +324,7 @@ private fun Thumbnail(
                 Icon(
                     painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
                     modifier = Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .padding(all = 8.dp),
                     contentDescription = null,
                     tint = FirefoxTheme.colors.iconActionPrimary,

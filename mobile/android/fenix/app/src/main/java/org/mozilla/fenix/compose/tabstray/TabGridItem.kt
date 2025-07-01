@@ -366,7 +366,7 @@ private fun Thumbnail(
                 Icon(
                     painter = painterResource(id = R.drawable.mozac_ic_checkmark_24),
                     modifier = Modifier
-                        .matchParentSize()
+                        .fillMaxSize()
                         .padding(all = 8.dp),
                     contentDescription = null,
                     tint = FirefoxTheme.colors.iconActionPrimary,
