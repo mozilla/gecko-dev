@@ -271,7 +271,7 @@ private fun WallpaperThumbnailItem(
                 .then(contentDescriptionModifier),
             shape = RoundedCornerShape(size = FirefoxTheme.layout.corner.large),
             border = border,
-            elevation = FirefoxTheme.layout.elevation.medium,
+            shadowElevation = FirefoxTheme.layout.elevation.medium,
         ) {
             if (bitmap == null) {
                 Spacer(
