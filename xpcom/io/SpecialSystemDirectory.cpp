@@ -58,13 +58,9 @@
 
 #if defined(XP_WIN)
 
-static nsresult GetKnownFolder(GUID* aGuid, nsIFile** aFile) {
-  if (!aGuid) {
-    return NS_ERROR_FAILURE;
-  }
-
+static nsresult GetKnownFolder(REFKNOWNFOLDERID aFolderId, nsIFile** aFile) {
   PWSTR path = nullptr;
-  SHGetKnownFolderPath(*aGuid, 0, nullptr, &path);
+  SHGetKnownFolderPath(aFolderId, 0, nullptr, &path);
 
   if (!path) {
     return NS_ERROR_FAILURE;
@@ -613,19 +609,7 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
     }
 
     case Win_Downloads: {
-      // Defined in KnownFolders.h.
-      GUID folderid_downloads = {
-          0x374de290,
-          0x123f,
-          0x4565,
-          {0x91, 0x64, 0x39, 0xc4, 0x92, 0x5e, 0x46, 0x7b}};
-      nsresult rv = GetKnownFolder(&folderid_downloads, aFile);
-      // On WinXP, there is no downloads folder, default
-      // to 'Desktop'.
-      if (NS_ERROR_FAILURE == rv) {
-        rv = GetWindowsFolder(CSIDL_DESKTOP, aFile);
-      }
-      return rv;
+      return GetKnownFolder(FOLDERID_Downloads, aFile);
     }
 
     case Win_Favorites: {
