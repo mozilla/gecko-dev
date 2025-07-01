@@ -8,6 +8,10 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("sidebar.new-sidebar.has-used");
+});
+
 // Bug 1895789 to standarize contextmenu helpers in BrowserTestUtils
 async function openContextMenu() {
   const contextMenu = document.getElementById("contentAreaContextMenu");
@@ -71,6 +75,77 @@ add_task(async function test_page_menu_prompt() {
 
   sandbox.restore();
   SidebarController.hide();
+});
+
+/**
+ * Check situations page menu should not be shown
+ */
+add_task(async function test_page_menu_no_chatbot() {
+  await SpecialPowers.pushPrefEnv({
+    clear: [["browser.ml.chat.provider"]],
+    set: [["browser.ml.chat.page", true]],
+  });
+  await BrowserTestUtils.withNewTab("about:blank", async () => {
+    await openContextMenu();
+
+    Assert.equal(
+      document.getElementById("context-ask-chat").hidden,
+      false,
+      "chatbot menu shown"
+    );
+
+    await hideContextMenu();
+    await SpecialPowers.pushPrefEnv({
+      set: [["browser.ml.chat.menu", false]],
+    });
+    await openContextMenu();
+
+    Assert.ok(
+      document.getElementById("context-ask-chat").hidden,
+      "hidden for no menu pref"
+    );
+
+    await hideContextMenu();
+    await SpecialPowers.popPrefEnv();
+    await SpecialPowers.pushPrefEnv({
+      set: [["sidebar.revamp", false]],
+    });
+    await openContextMenu();
+
+    Assert.equal(
+      document.getElementById("context-ask-chat").hidden,
+      false,
+      "old sidebar shows menu"
+    );
+
+    await hideContextMenu();
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        ["sidebar.revamp", true],
+        ["sidebar.main.tools", "history"],
+      ],
+    });
+    await openContextMenu();
+
+    Assert.ok(
+      document.getElementById("context-ask-chat").hidden,
+      "hidden for no chatbot tool"
+    );
+
+    await hideContextMenu();
+    await SpecialPowers.pushPrefEnv({
+      set: [["sidebar.main.tools", "aichat,history"]],
+    });
+    await openContextMenu();
+
+    Assert.equal(
+      document.getElementById("context-ask-chat").hidden,
+      false,
+      "new sidebar with tool shows menu"
+    );
+
+    await hideContextMenu();
+  });
 });
 
 /**

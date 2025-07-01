@@ -663,9 +663,15 @@ export const GenAI = {
    */
   async buildAskChatMenu(menu, nsContextMenu) {
     nsContextMenu.showItem(menu, false);
-    // Show menu if we have a provider or we support provider-less page entry
-    // except if user removed the menu
-    if (!(this.canShowChatEntrypoint || (lazy.chatPage && lazy.chatMenu))) {
+    // Page feature can be shown without provider unless disabled via menu
+    // or revamp sidebar excludes chatbot
+    const isPageFeatureAllowed =
+      lazy.chatPage &&
+      lazy.chatMenu &&
+      (!lazy.sidebarRevamp || lazy.sidebarTools.includes("aichat"));
+    // Return early to prevent showing menu if neither original chatbot feature
+    // requiring provider nor new page feature
+    if (!this.canShowChatEntrypoint && !isPageFeatureAllowed) {
       return;
     }
     const provider = this.chatProviders.get(lazy.chatProvider)?.name;
