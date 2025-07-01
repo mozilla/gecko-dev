@@ -166,7 +166,7 @@ add_task(async function test_getting_file() {
     String.fromCharCode.apply(null, new Uint8Array(array))
   );
 
-  Assert.equal(jsonData.hidden_size, 768);
+  Assert.equal(jsonData.hidden_size, 32);
 });
 
 /**
@@ -200,7 +200,7 @@ add_task(async function test_getting_file_no_headers() {
     String.fromCharCode.apply(null, new Uint8Array(array))
   );
 
-  Assert.equal(jsonData.hidden_size, 768);
+  Assert.equal(jsonData.hidden_size, 32);
 
   hub.extractHeaders.restore();
   await deleteCache(hub.cache);
@@ -294,7 +294,7 @@ add_task(async function test_getting_file_as_response() {
 
   // check the content of the file.
   let jsonData = await response.json();
-  Assert.equal(jsonData.hidden_size, 768);
+  Assert.equal(jsonData.hidden_size, 32);
 });
 
 /**
@@ -1514,13 +1514,13 @@ add_task(async function test_getting_file_custom_hub() {
     String.fromCharCode.apply(null, new Uint8Array(array))
   );
 
-  Assert.equal(jsonData.hidden_size, 768);
+  Assert.equal(jsonData.hidden_size, 32);
 
   let res = await hub.getModelFileAsBlob(args);
-  Assert.equal(res[0].size, 562);
+  Assert.equal(res[0].size, 548);
 
   let response = await hub.getModelFileAsResponse(args);
-  Assert.equal((await response.blob()).size, 562);
+  Assert.equal((await response.blob()).size, 548);
 });
 
 /**

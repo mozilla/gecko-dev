@@ -44,6 +44,7 @@ const HF_HUB_HOSTNAME = "huggingface.co";
 const MOCHITESTS_HOSTNAME = "mochitests";
 const DEFAULT_CONTENT_TYPE = "application/octet-stream";
 const DEFAULT_DELETE_TIMEOUT_MS = 5000;
+const LOCAL_CHROME_PREFIX = "chrome://";
 
 // Default indexedDB revision.
 const DEFAULT_MODEL_REVISION = 6;
@@ -1503,13 +1504,14 @@ export class ModelHub {
    * @returns {string} The full URL
    */
   #fileUrl({ model, revision, file, modelHubRootUrl, modelHubUrlTemplate }) {
+    const rootUrl = modelHubRootUrl || this.rootUrl;
     return lazy.createFileUrl({
       model,
       revision,
       file,
-      rootUrl: modelHubRootUrl || this.rootUrl,
+      rootUrl,
       urlTemplate: modelHubUrlTemplate || this.urlTemplate,
-      addDownloadParams: true,
+      addDownloadParams: !rootUrl.startsWith(LOCAL_CHROME_PREFIX),
     });
   }
 
