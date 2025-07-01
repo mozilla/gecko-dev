@@ -49,6 +49,7 @@ add_setup(async function () {
       ["permissions.manager.defaultsUrl", ""],
       ["network.websocket.delay-failed-reconnects", false],
       ["network.websocket.max-connections", 1000],
+      ["network.lna.block_trackers", true],
     ],
   });
 
