@@ -681,7 +681,6 @@ class QuotaManager final : public BackgroundThreadObject {
   void SetThumbnailPrivateIdentityId(uint32_t aThumbnailPrivateIdentityId);
 
   uint64_t GetGroupLimit() const;
-  static uint64_t GetGroupLimitForLimit(uint64_t aLimit);
 
   Maybe<OriginStateMetadata> GetOriginStateMetadata(
       const OriginMetadata& aOriginMetadata);

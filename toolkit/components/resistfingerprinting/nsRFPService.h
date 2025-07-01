@@ -414,8 +414,6 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   static CSSIntRect GetSpoofedScreenAvailSize(const nsRect& aRect, float aScale,
                                               bool aIsFullscreen);
 
-  static uint64_t GetSpoofedStorageLimit();
-
  private:
   nsresult Init();
 

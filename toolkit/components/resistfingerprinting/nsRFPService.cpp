@@ -53,7 +53,6 @@
 #include "mozilla/dom/KeyboardEventBinding.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/MediaDeviceInfoBinding.h"
-#include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/fallible.h"
 #include "mozilla/XorShift128PlusRNG.h"
 #include "mozilla/dom/CanvasUtils.h"
@@ -2687,18 +2686,4 @@ CSSIntRect nsRFPService::GetSpoofedScreenAvailSize(const nsRect& aRect,
 
   return CSSIntRect::FromAppUnitsRounded(
       nsRect{0, 0, aRect.width, aRect.height - spoofedHeightOffset});
-}
-
-/* static */
-uint64_t nsRFPService::GetSpoofedStorageLimit() {
-  uint64_t gib = 1024ULL * 1024ULL * 1024ULL;  // 1 GiB
-#ifdef ANDROID
-  uint64_t limit = 32ULL * gib;  // 32 GiB
-#else
-  uint64_t limit = 50ULL * gib;  // 50 GiB
-#endif
-  MOZ_ASSERT(limit / 5 ==
-             dom::quota::QuotaManager::GetGroupLimitForLimit(limit));
-
-  return limit;
 }
