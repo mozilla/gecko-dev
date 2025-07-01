@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include "WebrtcTaskQueueWrapper.h"
 #include "common/browser_logging/CSFLog.h"
 #include "common/YuvStamper.h"
 #include "MediaConduitControl.h"
@@ -66,6 +67,7 @@
 #include "MediaConduitErrors.h"
 #include "MediaConduitInterface.h"
 #include "MediaEventSource.h"
+#include "VideoUtils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
@@ -331,7 +333,9 @@ bool operator==(const webrtc::RtpConfig& aThis,
 }  // namespace
 
 void RecvSinkProxy::OnFrame(const webrtc::VideoFrame& aFrame) {
-  mOwner->OnRecvFrame(aFrame);
+  MOZ_ALWAYS_SUCCEEDS(mOwner->mFrameRecvThread->Dispatch(NS_NewRunnableFunction(
+      __FUNCTION__,
+      [owner = RefPtr(mOwner), aFrame] { owner->OnRecvFrame(aFrame); })));
 }
 
 void SendSinkProxy::OnFrame(const webrtc::VideoFrame& aFrame) {
@@ -392,8 +396,8 @@ WebrtcVideoConduit::Control::Control(const RefPtr<AbstractThread>& aCallThread)
                   webrtc::DegradationPreference::DISABLED) {}
 #undef INIT_MIRROR
 
-#define INIT_CANONICAL(name, val) \
-  name(mCall->mCallThread, val, "WebrtcVideoConduit::" #name " (Canonical)")
+#define INIT_CANONICAL(name, thread, val) \
+  name(thread, val, "WebrtcVideoConduit::" #name " (Canonical)")
 #define INIT_MIRROR(name, val)            \
   name(AbstractThread::MainThread(), val, \
        "WebrtcVideoConduit::" #name " (Mirror)")
@@ -404,8 +408,12 @@ WebrtcVideoConduit::WebrtcVideoConduit(
       mCall(std::move(aCall)),
       mCallThread(mCall->mCallThread),
       mStsThread(std::move(aStsThread)),
+      mFrameRecvThread(CreateWebrtcTaskQueueWrapper(
+          GetMediaThreadPool(MediaThreadType::WEBRTC_WORKER),
+          "WebrtcVideoConduit::mFrameRecvThread"_ns,
+          /* aSupportsTailDispatch= */ true)),
       mControl(mCall->mCallThread),
-      INIT_CANONICAL(mCanonicalReceivingSize, {}),
+      INIT_CANONICAL(mReceivingSize, mFrameRecvThread, {}),
       mWatchManager(this, mCall->mCallThread),
       mMutex("WebrtcVideoConduit::mMutex"),
       mDecoderFactory(MakeUnique<WebrtcVideoDecoderFactory>(
@@ -430,7 +438,7 @@ WebrtcVideoConduit::WebrtcVideoConduit(
       mSendStreamConfig(&mSendTransport),
       mVideoStreamFactory("WebrtcVideoConduit::mVideoStreamFactory"),
       mRecvStreamConfig(&mRecvTransport),
-      INIT_CANONICAL(mCanonicalRtpSources, {}),
+      INIT_CANONICAL(mCanonicalRtpSources, mCall->mCallThread, {}),
       INIT_MIRROR(mRtpSources, {}) {
   mRecvStreamConfig.rtp.rtcp_event_observer = this;
 }
@@ -1330,7 +1338,7 @@ MediaConduitErrorCode WebrtcVideoConduit::Init() {
 RefPtr<GenericPromise> WebrtcVideoConduit::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
 
-  mCanonicalReceivingSize.DisconnectAll();
+  mReceivingSize.DisconnectAll();
   mSendPluginCreated.DisconnectIfExists();
   mSendPluginReleased.DisconnectIfExists();
   mRecvPluginCreated.DisconnectIfExists();
@@ -1818,6 +1826,7 @@ bool WebrtcVideoConduit::SendReceiverRtcp(const uint8_t* aData,
 }
 
 void WebrtcVideoConduit::OnRecvFrame(const webrtc::VideoFrame& aFrame) {
+  MOZ_ASSERT(mFrameRecvThread->IsOnCurrentThread());
   const uint32_t localRecvSsrc = mRecvSSRC;
   const uint32_t remoteSendSsrc = mRemoteSendSSRC;
 
@@ -1837,13 +1846,9 @@ void WebrtcVideoConduit::OnRecvFrame(const webrtc::VideoFrame& aFrame) {
   bool needsNewHistoryElement = mReceivedFrameHistory.mEntries.IsEmpty();
   {
     const Maybe frameSize = Some(gfx::IntSize{aFrame.width(), aFrame.height()});
-    if (frameSize != mReceivingSize) {
+    if (frameSize != mReceivingSize.Ref()) {
       mReceivingSize = frameSize;
       needsNewHistoryElement = true;
-      MOZ_ALWAYS_SUCCEEDS(mCallThread->Dispatch(NS_NewRunnableFunction(
-          __func__, [this, self = RefPtr(this), frameSize] {
-            mCanonicalReceivingSize = frameSize;
-          })));
     }
   }
 
@@ -1878,15 +1883,15 @@ void WebrtcVideoConduit::OnRecvFrame(const webrtc::VideoFrame& aFrame) {
   currentEntry.mConsecutiveFrames++;
   currentEntry.mLastFrameTimestamp = historyNow;
   // Attempt to retrieve an timestamp encoded in the image pixels if enabled.
-  if (mVideoLatencyTestEnable && mReceivingSize) {
+  if (mVideoLatencyTestEnable && mReceivingSize.Ref()) {
     uint64_t now = PR_Now();
     uint64_t timestamp = 0;
     uint8_t* data =
         const_cast<uint8_t*>(aFrame.video_frame_buffer()->GetI420()->DataY());
-    bool ok = YuvStamper::Decode(mReceivingSize->width, mReceivingSize->height,
-                                 mReceivingSize->width, data,
-                                 reinterpret_cast<unsigned char*>(&timestamp),
-                                 sizeof(timestamp), 0, 0);
+    bool ok = YuvStamper::Decode(
+        mReceivingSize.Ref()->width, mReceivingSize.Ref()->height,
+        mReceivingSize.Ref()->width, data,
+        reinterpret_cast<unsigned char*>(&timestamp), sizeof(timestamp), 0, 0);
     if (ok) {
       VideoLatencyUpdate(now - timestamp);
     }
@@ -1901,7 +1906,7 @@ void WebrtcVideoConduit::OnRecvFrame(const webrtc::VideoFrame& aFrame) {
             ? rtpTimestamp - mLastRTPTimestampReceive.value()
             : 0;
     mLastRTPTimestampReceive = Some(rtpTimestamp);
-    TRACE_COMMENT("VideoConduit::OnFrame", "t-delta=%.1fms, ssrc=%u",
+    TRACE_COMMENT("VideoConduit::OnRecvFrame", "t-delta=%.1fms, ssrc=%u",
                   timestampDelta * 1000.f / webrtc::kVideoPayloadTypeFrequency,
                   localRecvSsrc);
   }

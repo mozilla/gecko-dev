@@ -77,6 +77,7 @@ class SendSinkProxy : public rtc::VideoSinkInterface<webrtc::VideoFrame> {
  */
 class WebrtcVideoConduit : public VideoSessionConduit,
                            public webrtc::RtcpEventObserver {
+  friend class RecvSinkProxy;
   friend class SendSinkProxy;
 
  public:
@@ -242,7 +243,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   }
 
   AbstractCanonical<Maybe<gfx::IntSize>>* CanonicalReceivingSize() override {
-    return &mCanonicalReceivingSize;
+    return &mReceivingSize;
   }
 
   const std::vector<webrtc::RtpSource>& GetUpstreamRtpSources() const override;
@@ -301,6 +302,9 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // thread.
   const nsCOMPtr<nsISerialEventTarget> mStsThread;
 
+  // XXX
+  const RefPtr<AbstractThread> mFrameRecvThread;
+
   // Thread on which we are fed video frames. Set lazily on first call to
   // SendVideoFrame().
   nsCOMPtr<nsISerialEventTarget> mFrameSendingThread;
@@ -350,12 +354,9 @@ class WebrtcVideoConduit : public VideoSessionConduit,
     explicit Control(const RefPtr<AbstractThread>& aCallThread);
   } mControl;
 
-  // Accessed only on the frame receiving thread, under mRendererMonitor.
-  Maybe<gfx::IntSize> mReceivingSize;
-
   // Canonical for mirroring mReceivingWidth and mReceivingHeight. Call thread
   // only.
-  Canonical<Maybe<gfx::IntSize>> mCanonicalReceivingSize;
+  Canonical<Maybe<gfx::IntSize>> mReceivingSize;
 
   // WatchManager allowing Mirrors and other watch targets to trigger functions
   // that will update the webrtc.org configuration.
