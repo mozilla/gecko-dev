@@ -951,6 +951,8 @@ class gfxPlatform : public mozilla::layers::MemoryPressureListener {
 
   static void InitOpenGLConfig();
 
+  static void VideoDecodingFailedChangedCallback(const char* aPref, void*);
+
   static gfxPlatform* gPlatform;
 
   void InitializeCMS();

@@ -1954,11 +1954,7 @@ void gfxWindowsPlatform::ImportGPUDeviceData(
   }
 
   // Hardware video decoding depends on d3d11 state, so update the cache.
-  InitPlatformHardwareVideoConfig();
-  gfxVars::SetCanUseHardwareVideoDecoding(
-      gfxConfig::IsEnabled(Feature::HARDWARE_VIDEO_DECODING));
-  gfxVars::SetCanUseHardwareVideoEncoding(
-      gfxConfig::IsEnabled(Feature::HARDWARE_VIDEO_ENCODING));
+  InitHardwareVideoConfig();
 
   // For completeness (and messaging in about:support). Content recomputes this
   // on its own, and we won't use ANGLE in the UI process if we're using a GPU
