@@ -12,10 +12,6 @@ const TEST_ORG_URI = URL_ROOT_ORG_SSL + TEST_FILE;
 // is not subject to https-first mode
 const TEST_MOCHI_URI = URL_ROOT_MOCHI_8888 + TEST_FILE;
 
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.webconsole.persistlog");
-});
-
 const INITIAL_LOGS_NUMBER = 5;
 
 const {

@@ -22,6 +22,7 @@ async function testForGivenDir(dir) {
   // Reset visibleColumns so we only get the default ones
   // and not all that are set in head.js
   Services.prefs.clearUserPref("devtools.netmonitor.visibleColumns");
+
   const initialColumnData = Services.prefs.getCharPref(
     "devtools.netmonitor.columnsData"
   );

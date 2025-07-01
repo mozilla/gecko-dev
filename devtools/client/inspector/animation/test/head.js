@@ -16,13 +16,6 @@ const ANIMATION_L10N = new LocalizationHelper(
   "devtools/client/locales/animationinspector.properties"
 );
 
-// Auto clean-up when a test ends.
-// Clean-up all prefs that might have been changed during a test run
-// (safer here because if the test fails, then the pref is never reverted)
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.toolsidebar-width.inspector");
-});
-
 /**
  * Open the toolbox, with the inspector tool visible and the animationinspector
  * sidebar selected.

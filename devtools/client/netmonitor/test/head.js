@@ -217,17 +217,6 @@ Services.prefs.setCharPref(
 
 registerCleanupFunction(() => {
   info("finish() was called, cleaning up...");
-
-  Services.prefs.setBoolPref("devtools.debugger.log", gEnableLogging);
-  Services.prefs.setCharPref("devtools.netmonitor.filters", gDefaultFilters);
-  Services.prefs.setCharPref(
-    "devtools.netmonitor.requestfilter",
-    gDefaultRequestFilter
-  );
-  Services.prefs.clearUserPref("devtools.cache.disabled");
-  Services.prefs.clearUserPref("devtools.netmonitor.columnsData");
-  Services.prefs.clearUserPref("devtools.netmonitor.visibleColumns");
-  Services.prefs.clearUserPref("devtools.netmonitor.ui.default-raw-response");
   Services.cookies.removeAll();
 });
 

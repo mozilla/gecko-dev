@@ -14,11 +14,6 @@ const {
 const TEST_URI = URL_ROOT + "doc_browser_fontinspector.html";
 const originalTheme = getTheme();
 
-registerCleanupFunction(() => {
-  info(`Restoring theme to '${originalTheme}.`);
-  setTheme(originalTheme);
-});
-
 add_task(async function () {
   const { inspector, view } = await openFontInspectorForURL(TEST_URI);
   const viewDoc = view.document;

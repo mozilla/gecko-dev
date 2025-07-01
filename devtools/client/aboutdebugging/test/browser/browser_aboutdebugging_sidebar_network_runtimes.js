@@ -10,10 +10,6 @@ const networkLocationsModule = require("resource://devtools/client/aboutdebuggin
  */
 
 add_task(async function () {
-  registerCleanupFunction(() => {
-    Services.prefs.clearUserPref("devtools.aboutdebugging.network-locations");
-  });
-
   const { document, tab } = await openAboutDebugging();
 
   const noDevicesElement = document.querySelector(".qa-sidebar-no-devices");

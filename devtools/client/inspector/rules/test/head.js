@@ -10,10 +10,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.defaultColorUnit");
-});
-
 var {
   getInplaceEditorForSpan: inplaceEditor,
 } = require("resource://devtools/client/shared/inplace-editor.js");
@@ -27,10 +23,6 @@ const ROOT_TEST_DIR = getRootDirectory(gTestPath);
 const STYLE_INSPECTOR_L10N = new LocalizationHelper(
   "devtools/shared/locales/styleinspector.properties"
 );
-
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.defaultColorUnit");
-});
 
 /**
  * When a tooltip is closed, this ends up "commiting" the value changed within

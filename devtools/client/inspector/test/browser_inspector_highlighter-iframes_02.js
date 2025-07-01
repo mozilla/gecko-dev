@@ -48,9 +48,6 @@ add_task(async function () {
   const isHighlightCorrect =
     await iframeHighlighterTestFront.assertHighlightedNode("#inner");
   ok(isHighlightCorrect, "The selected node is properly highlighted.");
-
-  info("Cleanup command-button-frames preferences.");
-  Services.prefs.clearUserPref("devtools.command-button-frames.enabled");
 });
 
 /**

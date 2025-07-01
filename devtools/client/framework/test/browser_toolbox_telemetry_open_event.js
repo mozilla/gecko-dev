@@ -8,7 +8,6 @@
 const ALL_CHANNELS = Ci.nsITelemetry.DATASET_ALL_CHANNELS;
 
 add_task(async function () {
-  Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
   const tab = await addTab("data:text/html;charset=utf-8,Test open event");
 
   info("Open the toolbox with a shortcut to trigger the open event");

@@ -24,15 +24,6 @@ SimpleTest.requestCompleteLog();
 // useful for fixing race conditions.
 // Services.prefs.setBoolPref("devtools.dump.emit", true);
 
-// Clear preferences that may be set during the course of tests.
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.dump.emit");
-  Services.prefs.clearUserPref("devtools.inspector.htmlPanelOpen");
-  Services.prefs.clearUserPref("devtools.inspector.sidebarOpen");
-  Services.prefs.clearUserPref("devtools.markup.pagesize");
-  Services.prefs.clearUserPref("devtools.inspector.showAllAnonymousContent");
-});
-
 /**
  * Some tests may need to import one or more of the test helper scripts.
  * A test helper script is simply a js file that contains common test code that

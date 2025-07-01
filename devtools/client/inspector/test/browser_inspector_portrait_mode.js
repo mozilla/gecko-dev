@@ -75,8 +75,3 @@ function waitForClassMutation(target) {
     observer.observe(target, { attributes: true });
   });
 }
-
-registerCleanupFunction(function () {
-  // Restore the host type for other tests.
-  Services.prefs.clearUserPref("devtools.toolbox.host");
-});

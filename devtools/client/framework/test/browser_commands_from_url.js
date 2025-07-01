@@ -14,11 +14,6 @@ const {
 Services.prefs.setBoolPref("devtools.debugger.remote-enabled", true);
 Services.prefs.setBoolPref("devtools.debugger.prompt-connection", false);
 
-SimpleTest.registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.debugger.remote-enabled");
-  Services.prefs.clearUserPref("devtools.debugger.prompt-connection");
-});
-
 function assertTarget(target, url) {
   is(target.url, url);
   is(target.isBrowsingContext, true);

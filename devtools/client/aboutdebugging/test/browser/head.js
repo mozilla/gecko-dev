@@ -19,10 +19,6 @@ Services.scriptloader.loadSubScript(
 
 // Make sure the ADB addon is removed and ADB is stopped when the test ends.
 registerCleanupFunction(async function () {
-  // Reset the selected tool in case we opened about:devtools-toolbox to
-  // avoid side effects between tests.
-  Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
-
   try {
     const {
       adbAddon,

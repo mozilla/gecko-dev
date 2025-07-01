@@ -1,6 +1,7 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
+prefs = ["devtools.toolbox.footer.height=350"]
 support-files = [
   "doc_boxmodel_iframe1.html",
   "doc_boxmodel_iframe2.html",

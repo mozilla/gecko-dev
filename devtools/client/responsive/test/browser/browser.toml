@@ -1,6 +1,14 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
+prefs = [
+  # The appearance of this notification causes intermittent behavior in some
+  # tests that send mouse events, since it causes the content to shift when it
+  # appears.
+  "devtools.responsive.reloadNotification.enabled=false",
+  # Don't show the setting onboarding tooltip in the test suites.
+  "devtools.responsive.show-setting-tooltip=false",
+]
 support-files = [
   "contextual_identity.html",
   "doc_contextmenu_inspect.html",

@@ -31,8 +31,6 @@ add_task(async function () {
     await checkKeyBindings(toolbox);
   }
 
-  Services.prefs.clearUserPref("devtools.toolbox.zoomValue");
-  Services.prefs.setCharPref("devtools.toolbox.host", BOTTOM);
   await toolbox.destroy();
   gBrowser.removeCurrentTab();
 });

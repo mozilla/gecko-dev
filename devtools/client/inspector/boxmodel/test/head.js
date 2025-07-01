@@ -10,11 +10,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-Services.prefs.setIntPref("devtools.toolbox.footer.height", 350);
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.toolbox.footer.height");
-});
-
 /**
  * Is the given node visible in the page (rendered in the frame tree).
  * @param {DOMNode}

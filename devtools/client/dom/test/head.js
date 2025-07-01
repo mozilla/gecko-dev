@@ -14,16 +14,7 @@ Services.scriptloader.loadSubScript(
 const constants = require("resource://devtools/client/dom/content/constants.js");
 
 // Uncomment this pref to dump all devtools emitted events to the console.
-// Services.prefs.setBoolPref("devtools.dom.enabled", true);
-
-// Enable the DOM panel
-Services.prefs.setBoolPref("devtools.dom.enabled", true);
-
-registerCleanupFunction(() => {
-  info("finish() was called, cleaning up...");
-  Services.prefs.clearUserPref("devtools.dump.emit");
-  Services.prefs.clearUserPref("devtools.dom.enabled");
-});
+// Services.prefs.setBoolPref("devtools.dump.emit", true);
 
 /**
  * Add a new test tab in the browser and load the given url.

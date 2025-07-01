@@ -46,8 +46,3 @@ add_task(async function () {
   info("Restoring window to original size.");
   hostWindow.resizeTo(originalWidth, originalHeight);
 });
-
-registerCleanupFunction(() => {
-  // Restore the host type for other tests.
-  Services.prefs.clearUserPref("devtools.toolbox.host");
-});

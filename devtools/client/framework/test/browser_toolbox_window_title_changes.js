@@ -82,8 +82,6 @@ add_task(async function test() {
   info("clean up");
   await toolbox.destroy();
   gBrowser.removeCurrentTab();
-  Services.prefs.clearUserPref("devtools.toolbox.host");
-  Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
 });
 
 function getExpectedTitle(name, url) {

@@ -1,6 +1,7 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
+prefs = ["devtools.inspector.three-pane-enabled=true"]
 support-files = [
   "head.js",
   "!/devtools/client/inspector/test/head.js",

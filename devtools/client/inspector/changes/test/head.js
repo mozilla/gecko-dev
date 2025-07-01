@@ -12,13 +12,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-// Ensure the three-pane mode is enabled before running the tests.
-Services.prefs.setBoolPref("devtools.inspector.three-pane-enabled", true);
-
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.inspector.three-pane-enabled");
-});
-
 /**
  * Get an array of objects with property/value pairs of the CSS declarations rendered
  * in the Changes panel.

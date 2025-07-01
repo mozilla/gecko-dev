@@ -8,7 +8,11 @@
 const CARET_BLINK_TIME = "ui.caretBlinkTime";
 
 add_task(async function () {
+  const originalBlinkTime = Services.prefs.getIntPref(CARET_BLINK_TIME, 0);
   Services.prefs.clearUserPref(CARET_BLINK_TIME);
+  registerCleanupFunction(() => {
+    Services.prefs.setIntPref(CARET_BLINK_TIME, originalBlinkTime);
+  });
 
   info(`Test when "${CARET_BLINK_TIME}" isn't set`);
   let { ed, win } = await setup();

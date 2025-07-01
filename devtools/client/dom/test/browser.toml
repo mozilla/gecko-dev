@@ -1,6 +1,7 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
+prefs = ["devtools.dom.enabled=true"]
 support-files = [
   "head.js",
   "page_array.html",

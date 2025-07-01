@@ -1,6 +1,7 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
+prefs = ["devtools.accessibility.enabled=true"]
 support-files = [
   "head.js",
   "test_audit_all.css",

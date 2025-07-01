@@ -29,12 +29,6 @@ const STYLE_INSPECTOR_L10N = new LocalizationHelper(
   "devtools/shared/locales/styleinspector.properties"
 );
 
-// Clean-up all prefs that might have been changed during a test run
-// (safer here because if the test fails, then the pref is never reverted)
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.defaultColorUnit");
-});
-
 /**
  * The functions found below are here to ease test development and maintenance.
  * Most of these functions are stateless and will require some form of context

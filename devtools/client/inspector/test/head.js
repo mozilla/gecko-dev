@@ -12,9 +12,6 @@ Services.scriptloader.loadSubScript(
 );
 
 // Services.prefs.setBoolPref("devtools.debugger.log", true);
-// SimpleTest.registerCleanupFunction(() => {
-//   Services.prefs.clearUserPref("devtools.debugger.log");
-// });
 
 // Import helpers for the inspector that are also shared with others
 Services.scriptloader.loadSubScript(
@@ -25,11 +22,6 @@ Services.scriptloader.loadSubScript(
 const INSPECTOR_L10N = new LocalizationHelper(
   "devtools/client/locales/inspector.properties"
 );
-
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
-  Services.prefs.clearUserPref("devtools.inspector.selectedSidebar");
-});
 
 registerCleanupFunction(function () {
   // Move the mouse outside inspector. If the test happened fake a mouse event

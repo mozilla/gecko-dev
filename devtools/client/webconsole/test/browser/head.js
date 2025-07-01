@@ -45,15 +45,6 @@ registerCleanupFunction(async function () {
   // Reset all cookies, tests loading sjs_slow-response-test-server.sjs will
   // set a foo cookie which might have side effects on other tests.
   Services.cookies.removeAll();
-
-  Services.prefs.clearUserPref("devtools.webconsole.ui.filterbar");
-
-  // Reset all filter prefs between tests. First flushPrefEnv in case one of the
-  // filter prefs has been pushed for the test
-  await SpecialPowers.flushPrefEnv();
-  Services.prefs.getChildList("devtools.webconsole.filter").forEach(pref => {
-    Services.prefs.clearUserPref(pref);
-  });
 });
 
 /**

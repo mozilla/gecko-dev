@@ -131,9 +131,6 @@ add_task(async function () {
   await toolbox.destroy();
   toolbox = null;
   gBrowser.removeCurrentTab();
-  Services.prefs.clearUserPref("devtools.toolbox.host");
-  Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
-  Services.prefs.clearUserPref("devtools.command-button-frames.enabled");
   finish();
 });
 

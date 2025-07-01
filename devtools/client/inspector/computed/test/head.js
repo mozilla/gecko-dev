@@ -9,10 +9,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.defaultColorUnit");
-});
-
 /**
  * Dispatch the copy event on the given element
  */

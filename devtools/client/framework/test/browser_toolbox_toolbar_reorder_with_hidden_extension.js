@@ -142,10 +142,6 @@ add_task(async function () {
   // Enable the Application panel (atm it's only available on Nightly)
   await pushPref("devtools.application.enabled", true);
 
-  registerCleanupFunction(() => {
-    Services.prefs.clearUserPref("devtools.toolbox.tabsOrder");
-  });
-
   const extension = ExtensionTestUtils.loadExtension({
     useAddonManager: "temporary",
     manifest: {

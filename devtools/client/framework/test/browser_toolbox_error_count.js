@@ -26,10 +26,6 @@ add_task(async function () {
   await pushPref("devtools.toolbox.splitconsole.open", false);
   await pushPref("devtools.toolbox.splitconsole.enabled", true);
 
-  registerCleanupFunction(() => {
-    Services.prefs.clearUserPref("devtools.toolbox.splitconsole.enabled");
-  });
-
   const tab = await addTab(TEST_URI);
 
   const toolbox = await openToolboxForTab(

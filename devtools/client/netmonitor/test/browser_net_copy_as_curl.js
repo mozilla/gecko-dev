@@ -14,7 +14,7 @@ add_task(async function () {
     requestCount: 1,
   });
   // disable sending idempotency header for POST request
-  Services.prefs.setBoolPref("network.http.idempotencyKey.enabled", false);
+  await pushPref("network.http.idempotencyKey.enabled", false);
   info("Starting test... ");
 
   // Different quote chars are used for Windows and POSIX

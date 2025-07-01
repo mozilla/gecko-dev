@@ -136,9 +136,6 @@ add_task(async function () {
     "[]",
     "Clearing history carries over to a new tab"
   );
-
-  info("Clearing custom input history pref");
-  Services.prefs.clearUserPref("devtools.webconsole.inputHistoryCount");
 });
 
 /**

@@ -11,10 +11,6 @@ const URL = "data:text/html;charset=utf-8,Toggling devtools using shortcuts";
 var { Toolbox } = require("resource://devtools/client/framework/toolbox.js");
 
 add_task(async function () {
-  // Make sure this test starts with the selectedTool pref cleared. Previous
-  // tests select various tools, and that sets this pref.
-  Services.prefs.clearUserPref("devtools.toolbox.selectedTool");
-
   // Test with ACCEL+SHIFT+I / ACCEL+ALT+I (MacOSX) ; modifiers should match :
   // - toolbox-key-toggle in devtools/client/framework/toolbox-window.xhtml
   // - key_devToolboxMenuItem in browser/base/content/browser.xhtml

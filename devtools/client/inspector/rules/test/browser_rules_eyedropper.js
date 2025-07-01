@@ -33,11 +33,6 @@ const ORIGINAL_COLOR = "rgb(255, 0, 153)";
 // #ff5
 const EXPECTED_COLOR = "rgb(255, 255, 85)";
 
-registerCleanupFunction(() => {
-  // Restore the default Toolbox host position after the test.
-  Services.prefs.clearUserPref("devtools.toolbox.host");
-});
-
 add_task(async function () {
   info("Add the test tab, open the rule-view and select the test node");
 

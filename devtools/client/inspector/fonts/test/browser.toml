@@ -1,6 +1,7 @@
 [DEFAULT]
 tags = "devtools"
 subsuite = "devtools"
+prefs = ["devtools.inspector.activeSidebar=fontinspector"]
 support-files = [
   "devtools-mono.otf",
   "doc_browser_fontinspector.html",

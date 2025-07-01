@@ -11,12 +11,6 @@ Services.scriptloader.loadSubScript(
   this
 );
 
-Services.prefs.setCharPref("devtools.inspector.activeSidebar", "fontinspector");
-registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
-  Services.prefs.clearUserPref("devtools.inspector.selectedSidebar");
-});
-
 var nodeConstants = require("resource://devtools/shared/dom-node-constants.js");
 
 /**

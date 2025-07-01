@@ -34,6 +34,4 @@ add_task(async function () {
     1000
   );
   ok(true, "There are as many results as commands");
-
-  Services.prefs.clearUserPref("devtools.webconsole.input.editor");
 });

@@ -21,7 +21,6 @@ requestLongerTimeout(2);
 Services.prefs.clearUserPref("devtools.responsive.html.displayedDeviceList");
 
 registerCleanupFunction(() => {
-  Services.prefs.clearUserPref("devtools.responsive.html.displayedDeviceList");
   asyncStorage.removeItem("devtools.devices.local");
 });
 

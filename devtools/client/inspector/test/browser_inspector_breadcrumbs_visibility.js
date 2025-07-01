@@ -107,8 +107,3 @@ function isElementInViewport(window, el) {
     rect.right <= window.innerWidth
   );
 }
-
-registerCleanupFunction(function () {
-  // Restore the host type for other tests.
-  Services.prefs.clearUserPref("devtools.toolbox.host");
-});

@@ -26,9 +26,6 @@ const {
   PREF_KEYS,
 } = require("resource://devtools/client/accessibility/constants.js");
 
-// Enable the Accessibility panel
-Services.prefs.setBoolPref("devtools.accessibility.enabled", true);
-
 const SIMULATION_MENU_BUTTON_ID = "#simulation-menu-button";
 const TREE_FILTERS_MENU_ID = "accessibility-tree-filters-menu";
 const PREFS_MENU_ID = "accessibility-tree-filters-prefs-menu";
@@ -80,11 +77,6 @@ async function shutdownAccessibility(browser) {
   await waitForAccessibilityShutdown();
   await SpecialPowers.spawn(browser, [], waitForAccessibilityShutdown);
 }
-
-registerCleanupFunction(async () => {
-  info("Cleaning up...");
-  Services.prefs.clearUserPref("devtools.accessibility.enabled");
-});
 
 const EXPANDABLE_PROPS = ["actions", "states", "attributes"];
 

@@ -14,9 +14,6 @@ const TEST_URI =
   "https://example.com/browser/devtools/client/webconsole/test/browser/test-autocomplete-mapped.html";
 
 add_task(async function () {
-  registerCleanupFunction(() => {
-    Services.prefs.clearUserPref("devtools.debugger.map-scopes-enabled");
-  });
   const hud = await openNewTabAndConsole(TEST_URI);
   const toolbox = gDevTools.getToolboxForTab(gBrowser.selectedTab);
 

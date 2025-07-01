@@ -11,6 +11,30 @@ const PrefsPresets = ChromeUtils.importESModule(
   "resource://devtools/shared/performance-new/prefs-presets.sys.mjs"
 );
 
+// Recording already set preferences.
+const devtoolsPreferences = Services.prefs.getBranch("devtools");
+const alreadySetPreferences = new Set();
+for (const pref of devtoolsPreferences.getChildList("")) {
+  if (devtoolsPreferences.prefHasUserValue(pref)) {
+    alreadySetPreferences.add(pref);
+  }
+}
+
+// Reset all devtools preferences on test end.
+registerCleanupFunction(async () => {
+  await SpecialPowers.flushPrefEnv();
+
+  // Reset devtools preferences modified by the test.
+  for (const pref of devtoolsPreferences.getChildList("")) {
+    if (
+      devtoolsPreferences.prefHasUserValue(pref) &&
+      !alreadySetPreferences.has(pref)
+    ) {
+      devtoolsPreferences.clearUserPref(pref);
+    }
+  }
+});
+
 registerCleanupFunction(() => {
   PrefsPresets.revertRecordingSettings();
 });
