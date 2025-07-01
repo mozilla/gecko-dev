@@ -1,0 +1,14 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_11642_10088)">
+<path d="M20 10C20 15.5228 15.5228 20 10 20C4.47715 20 0 15.5228 0 10C0 4.47715 4.47715 0 10 0C15.5228 0 20 4.47715 20 10Z" fill="context-fill"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M5.3042 7.00579C5.57154 6.53824 6.0683 6.25 6.60626 6.25H13.393C13.931 6.25 14.4282 6.53762 14.6952 7.00599L14.6956 7.00673L15.9258 9.15829C16.0518 9.37855 16.0147 9.65584 15.8353 9.83525L10.3978 15.2727C10.1781 15.4924 9.82194 15.4924 9.60227 15.2727L4.16477 9.83525C3.9854 9.65588 3.94828 9.37866 4.07413 9.15842L5.3042 7.00579ZM6.28082 7.56421L5.5318 8.875H7.0486L7.90574 7.375H6.60626C6.47227 7.375 6.348 7.44683 6.28082 7.56421ZM11.6558 8.875H8.34432L9.20146 7.375H10.7986L11.6558 8.875ZM12.9515 8.875H14.4679L13.7185 7.56421L13.7179 7.56327C13.6518 7.44707 13.5283 7.375 13.393 7.375H12.0943L12.9515 8.875ZM14.0795 10H10.5625V13.517L14.0795 10ZM9.4375 10H5.92051L9.4375 13.517V10Z" fill="context-stroke"/>
+</g>
+<defs>
+<clipPath id="clip0_11642_10088">
+<rect width="20" height="20"/>
+</clipPath>
+</defs>
+</svg> 

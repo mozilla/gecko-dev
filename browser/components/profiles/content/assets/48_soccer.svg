@@ -1,0 +1,15 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_11642_10089)">
+<path d="M48 24C48 37.2548 37.2548 48 24 48C10.7452 48 0 37.2548 0 24C0 10.7452 10.7452 0 24 0C37.2548 0 48 10.7452 48 24Z" fill="context-fill"/>
+<path d="M23.9999 20L19.7939 23.056L21.3999 28H26.5999L28.2059 23.056L23.9999 20Z" fill="context-stroke"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M24 8C15.1634 8 8 15.1634 8 24C8 32.8366 15.1634 40 24 40C32.8366 40 40 32.8366 40 24C40 15.1634 32.8366 8 24 8ZM18.8521 12.0591C17.2183 12.7644 15.758 13.7952 14.5527 15.0697L16.9001 21.186L11.1317 25.8578C11.3543 27.4134 11.8523 28.8801 12.5747 30.207L18.3062 29.906L20.8847 36.6243C21.8827 36.8698 22.9262 37 24 37C25.1169 37 26.201 36.8591 27.2353 36.5942L28.9179 30.314L35.553 29.9664C36.2606 28.5991 36.7325 27.0902 36.9152 25.4934L31.2998 21.846L33.1874 14.8026C32.0343 13.6508 30.6659 12.7144 29.1478 12.059L23.9999 15.8L18.8521 12.0591Z" fill="context-stroke"/>
+</g>
+<defs>
+<clipPath id="clip0_11642_10089">
+<rect width="48" height="48"/>
+</clipPath>
+</defs>
+</svg> 

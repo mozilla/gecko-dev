@@ -1,0 +1,15 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_11642_10090)">
+<path d="M0 40C-7.1008e-08 62.0914 17.9086 80 40 80C62.0914 80 80 62.0914 80 40C80 17.9086 62.0914 -6.71431e-08 40 0C17.9086 6.7142e-08 7.1008e-08 17.9086 0 40Z" fill="context-fill"/>
+<path d="M42.8014 33.4421C42.4423 32.8159 41.7555 32.4516 41.0357 32.5052C40.3158 32.5588 39.6907 33.0209 39.4283 33.6934L36.4577 41.306L35.524 39.6879C35.1892 39.1076 34.57 38.75 33.9 38.75H27.5V42.5H32.8171L35.161 46.5621C35.5213 47.1866 36.2078 47.5491 36.9267 47.4947C37.6456 47.4402 38.2696 46.9783 38.5317 46.3066L41.4977 38.706L43.1336 41.5579C43.4678 42.1406 44.0882 42.5 44.76 42.5H52.5V38.75H45.8461L42.8014 33.4421Z" fill="context-stroke"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M25 25C22.2395 25 20 27.2395 20 30V50C20 52.7605 22.2395 55 25 55H55C57.7605 55 60 52.7605 60 50V30C60 27.2395 57.7605 25 55 25H25ZM23.75 30C23.75 29.3105 24.3105 28.75 25 28.75H55C55.6895 28.75 56.25 29.3105 56.25 30V50C56.25 50.6895 55.6895 51.25 55 51.25H25C24.3105 51.25 23.75 50.6895 23.75 50V30Z" fill="context-stroke"/>
+</g>
+<defs>
+<clipPath id="clip0_11642_10090">
+<rect width="80" height="80"/>
+</clipPath>
+</defs>
+</svg> 

@@ -49,7 +49,19 @@
 .avatar-button::part(button) {
   --button-icon-fill: transparent;
   --button-icon-stroke: currentColor;
+
+  /* Scale up 16x16 icon (12x12 + 4x4 padding) to 20px for normal display size */
   --icon-size-default: 20px;
+}
+
+.custom-avatar-area {
+  width: 230px;
+  height: 194px;
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 #upload-text {

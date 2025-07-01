@@ -128,26 +128,103 @@ profiles-system-theme = System
 
 ## Alternative text for default profile icons
 
+barbell-avatar-alt =
+    .alt = Barbell
+bike-avatar-alt =
+    .alt = Bike
 book-avatar-alt =
     .alt = Book
 briefcase-avatar-alt =
     .alt = Briefcase
+# Canvas refers to an artist's painting canvas, not the general material
+canvas-avatar-alt =
+    .alt = Canvas
+# Craft refers to hobby arts and crafts, represented by a button/fastener commonly found on clothing like shirts
+craft-avatar-alt =
+    .alt = Craft
+# Default favicon refers to the generic globe/world icon that appears in browser tabs when a website doesn't have its own favicon.
+default-favicon-avatar-alt =
+    .alt = Default favicon
+# Diamond refers to the precious stone, not the geometric shape
+diamond-avatar-alt =
+    .alt = Diamond
 flower-avatar-alt =
     .alt = Flower
+folder-avatar-alt =
+    .alt = Folder
+hammer-avatar-alt =
+    .alt = Hammer
 heart-avatar-alt =
     .alt = Heart
+heart-rate-avatar-alt =
+    .alt = Heart rate
+history-avatar-alt =
+    .alt = History
+leaf-avatar-alt =
+    .alt = Leaf
+lightbulb-avatar-alt =
+    .alt = Lightbulb
+makeup-avatar-alt =
+    .alt = Makeup
+# Message refers to a text message, not a traditional letter/envelope message
+message-avatar-alt =
+    .alt = Message
+musical-note-avatar-alt =
+    .alt = Musical note
+palette-avatar-alt =
+    .alt = Palette
+paw-print-avatar-alt =
+    .alt = Paw print
+plane-avatar-alt =
+    .alt = Plane
+# Present refers to a gift box, not the current time period
+present-avatar-alt =
+    .alt = Present
 shopping-avatar-alt =
     .alt = Shopping cart
+soccer-avatar-alt =
+    .alt = Soccer
+sparkle-single-avatar-alt =
+    .alt = Sparkle
 star-avatar-alt =
     .alt = Star
-custom-avatar-alt =
-    .alt = Custom avatar
+video-game-controller-avatar-alt =
+    .alt = Video game controller
 
 ## Labels for default avatar icons
 
+barbell-avatar = Barbell
+bike-avatar = Bike
 book-avatar = Book
 briefcase-avatar = Briefcase
+# Canvas refers to an artist's painting canvas, not the general material
+canvas-avatar = Canvas
+# Craft refers to hobby arts and crafts, represented by a button/fastener commonly found on clothing like shirts
+craft-avatar = Craft
+custom-avatar = Custom avatar
+# Default favicon refers to the generic globe/world icon that appears in browser tabs when a website doesn't have its own favicon.
+default-favicon-avatar = Default favicon
+# Diamond refers to the precious stone, not the geometric shape
+diamond-avatar = Diamond
 flower-avatar = Flower
+folder-avatar = Folder
+hammer-avatar = Hammer
 heart-avatar = Heart
+heart-rate-avatar = Heart rate
+history-avatar = History
+leaf-avatar = Leaf
+lightbulb-avatar = Lightbulb
+makeup-avatar = Makeup
+# Message refers to a text message, not a traditional letter/envelope message
+message-avatar = Message
+musical-note-avatar = Musical note
+palette-avatar = Palette
+paw-print-avatar = Paw print
+plane-avatar = Plane
+# Present refers to a gift box, not the current time period
+present-avatar = Present
 shopping-avatar = Shopping cart
+soccer-avatar = Soccer
+sparkle-single-avatar = Sparkle
 star-avatar = Star
+video-game-controller-avatar = Video game controller
