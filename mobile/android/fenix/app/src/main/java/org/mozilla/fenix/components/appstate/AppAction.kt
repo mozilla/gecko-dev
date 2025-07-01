@@ -678,4 +678,34 @@ sealed class AppAction : Action {
          */
         data class CannotOpenFile(val downloadState: DownloadState) : DownloadAction()
     }
+
+    /**
+     * [AppAction]s related to prompting the user for a store review/rating.
+     */
+    sealed class ReviewPromptAction : AppAction() {
+        /**
+         * Dispatched to trigger review prompt eligibility checks.
+         */
+        data object CheckIfEligibleForReviewPrompt : ReviewPromptAction()
+
+        /**
+         * Dispatched when no triggers for showing the prompt are satisfied.
+         */
+        data object DoNotShowReviewPrompt : ReviewPromptAction()
+
+        /**
+         * Dispatched when a trigger to show the Play Store prompt is satisfied.
+         */
+        data object ShowPlayStorePrompt : ReviewPromptAction()
+
+        /**
+         * Dispatched when a trigger to show our custom review prompt is satisfied.
+         */
+        data object ShowCustomReviewPrompt : ReviewPromptAction()
+
+        /**
+         * Dispatched after a review prompt was shown.
+         */
+        data object ReviewPromptShown : ReviewPromptAction()
+    }
 }

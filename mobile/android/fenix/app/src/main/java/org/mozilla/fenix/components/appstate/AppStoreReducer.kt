@@ -20,6 +20,7 @@ import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
 import org.mozilla.fenix.messaging.state.MessagingReducer
+import org.mozilla.fenix.reviewprompt.ReviewPromptReducer
 import org.mozilla.fenix.share.ShareActionReducer
 
 /**
@@ -252,6 +253,8 @@ internal object AppStoreReducer {
         )
 
         is AppAction.PrivateBrowsingLockAction -> PrivateBrowsingLockReducer.reduce(state, action)
+
+        is AppAction.ReviewPromptAction -> ReviewPromptReducer.reduce(state, action)
     }
 }
 

@@ -25,6 +25,8 @@ import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.library.history.PendingDeletionHistory
 import org.mozilla.fenix.messaging.MessagingState
+import org.mozilla.fenix.reviewprompt.ReviewPromptState
+import org.mozilla.fenix.reviewprompt.ReviewPromptState.Unknown
 import org.mozilla.fenix.wallpapers.WallpaperState
 
 /**
@@ -67,6 +69,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property setupChecklistState Optional [SetupChecklistState] for the Setup Checklist feature.
  * @property isPrivateScreenLocked Whether the private browsing mode is currently locked behind
  * authentication.
+ * @property reviewPrompt Whether we should show a review prompt and whether we ran the eligibility check at all
  */
 data class AppState(
     val isForeground: Boolean = true,
@@ -100,4 +103,5 @@ data class AppState(
     val webCompatState: WebCompatState? = null,
     val setupChecklistState: SetupChecklistState? = null,
     val isPrivateScreenLocked: Boolean = false,
+    val reviewPrompt: ReviewPromptState = Unknown,
 ) : State
