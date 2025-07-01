@@ -46,8 +46,6 @@ skip-if = ["socketprocess_networking"] # Bug 1759035
 ["test_tracking_db_service.js"]
 skip-if = ["os == 'android'"] # Bug 1697936
 
-["test_url_classifier_allow_list_category_pref_migration.js"]
-
 ["test_validate_strip_on_share_list.js"]
 
 ["test_view_source.js"]
