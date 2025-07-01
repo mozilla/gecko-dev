@@ -456,7 +456,6 @@ private fun AlertDialogAddCustomProvider(
             Text(
                 text = stringResource(R.string.preference_doh_provider_custom_dialog_title),
                 style = FirefoxTheme.typography.headline7,
-                color = FirefoxTheme.colors.textPrimary,
             )
         },
         text = {
@@ -492,7 +491,6 @@ private fun AlertDialogAddCustomProvider(
                 upperCaseText = false,
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer2,
     )
 }
 

@@ -592,13 +592,11 @@ private fun WarnDialog(
             title = {
                 Text(
                     text = stringResource(R.string.open_all_warning_title, dialog.numberOfTabs),
-                    color = FirefoxTheme.colors.textPrimary,
                 )
             },
             text = {
                 Text(
                     text = stringResource(R.string.open_all_warning_message, dialog.numberOfTabs),
-                    color = FirefoxTheme.colors.textPrimary,
                 )
             },
             onDismissRequest = { store.dispatch(OpenTabsConfirmationDialogAction.CancelTapped) },
@@ -608,7 +606,6 @@ private fun WarnDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.open_all_warning_confirm),
-                        color = FirefoxTheme.colors.actionPrimary,
                     )
                 }
             },
@@ -618,11 +615,9 @@ private fun WarnDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.open_all_warning_cancel),
-                        color = FirefoxTheme.colors.actionPrimary,
                     )
                 }
             },
-            backgroundColor = FirefoxTheme.colors.layer2,
         )
     }
 }
@@ -636,7 +631,6 @@ private fun AlertDialogDeletionWarning(
         title = {
             Text(
                 text = stringResource(R.string.bookmark_delete_folders_confirmation_dialog),
-                color = FirefoxTheme.colors.textPrimary,
             )
         },
         onDismissRequest = onCancelTapped,
@@ -646,7 +640,6 @@ private fun AlertDialogDeletionWarning(
             ) {
                 Text(
                     text = stringResource(R.string.bookmark_menu_delete_button).uppercase(),
-                    color = FirefoxTheme.colors.textAccent,
                 )
             }
         },
@@ -656,11 +649,9 @@ private fun AlertDialogDeletionWarning(
             ) {
                 Text(
                     text = stringResource(R.string.bookmark_delete_negative).uppercase(),
-                    color = FirefoxTheme.colors.textAccent,
                 )
             }
         },
-        backgroundColor = FirefoxTheme.colors.layer2,
     )
 }
 

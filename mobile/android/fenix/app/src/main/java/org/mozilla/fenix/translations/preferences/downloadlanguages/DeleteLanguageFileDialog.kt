@@ -4,16 +4,12 @@
 
 package org.mozilla.fenix.translations.preferences.downloadlanguages
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.button.TextButton
 import mozilla.components.feature.downloads.DefaultFileSizeFormatter
 import mozilla.components.feature.downloads.FileSizeFormatter
@@ -42,10 +38,6 @@ fun DeleteLanguageFileDialog(
 ) {
     AlertDialog(
         onDismissRequest = {},
-        modifier = Modifier.background(
-            color = FirefoxTheme.colors.layer2,
-            shape = RoundedCornerShape(8.dp),
-        ),
         title = {
             val title: String? = if (isAllLanguagesItemType) {
                 stringResource(
@@ -65,7 +57,6 @@ fun DeleteLanguageFileDialog(
             title?.let {
                 Text(
                     text = it,
-                    color = FirefoxTheme.colors.textPrimary,
                     style = FirefoxTheme.typography.headline7,
                 )
             }
@@ -85,7 +76,6 @@ fun DeleteLanguageFileDialog(
 
             Text(
                 text = message,
-                color = FirefoxTheme.colors.textPrimary,
                 style = FirefoxTheme.typography.body2,
             )
         },
@@ -103,7 +93,6 @@ fun DeleteLanguageFileDialog(
                 onClick = { onCancel() },
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer2,
     )
 }
 
