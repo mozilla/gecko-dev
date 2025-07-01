@@ -4,11 +4,15 @@
 
 package org.mozilla.fenix.settings.trustpanel.ui
 
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import mozilla.components.compose.base.button.TextButton
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.parseHtml
@@ -29,15 +33,21 @@ fun ClearSiteDataDialog(
 ) {
     AlertDialog(
         onDismissRequest = {},
+        modifier = Modifier.background(
+            color = FirefoxTheme.colors.layer2,
+            shape = RoundedCornerShape(8.dp),
+        ),
         title = {
             Text(
                 text = stringResource(id = R.string.clear_site_data),
+                color = FirefoxTheme.colors.textPrimary,
                 style = FirefoxTheme.typography.headline7,
             )
         },
         text = {
             Text(
                 text = parseHtml(stringResource(id = R.string.clear_site_data_dialog_description, baseDomain)),
+                color = FirefoxTheme.colors.textPrimary,
                 style = FirefoxTheme.typography.body2,
             )
         },
@@ -55,6 +65,7 @@ fun ClearSiteDataDialog(
                 onClick = { onCancelClick() },
             )
         },
+        backgroundColor = FirefoxTheme.colors.layer2,
     )
 }
 

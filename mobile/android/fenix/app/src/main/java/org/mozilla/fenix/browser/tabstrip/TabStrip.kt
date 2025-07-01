@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.browser.tabstrip
 
-import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
@@ -29,9 +28,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.systemGestureExclusion
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -207,11 +206,8 @@ private fun TabStripContent(
     }
 }
 
-// There is a bug with `BoxWithConstraints` where it flags the `BoxWithConstraintsScope` being unused
-// even though it's being used implicitly below via the `maxWidth` property of `BoxWithConstraintsScope`.
-@SuppressLint("UnusedBoxWithConstraintsScope")
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
+@OptIn(ExperimentalFoundationApi::class)
 private fun TabsList(
     state: TabStripState,
     modifier: Modifier = Modifier,

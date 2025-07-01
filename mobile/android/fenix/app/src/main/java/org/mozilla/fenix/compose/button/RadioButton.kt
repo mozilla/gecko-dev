@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.RadioButtonDefaults
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,15 +37,14 @@ fun RadioButton(
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
-    androidx.compose.material3.RadioButton(
+    androidx.compose.material.RadioButton(
         selected = selected,
         modifier = modifier,
         enabled = enabled,
         colors = RadioButtonDefaults.colors(
             selectedColor = FirefoxTheme.colors.formSelected,
             unselectedColor = FirefoxTheme.colors.formDefault,
-            disabledSelectedColor = FirefoxTheme.colors.formDisabled,
-            disabledUnselectedColor = FirefoxTheme.colors.formDisabled,
+            disabledColor = FirefoxTheme.colors.formDisabled,
         ),
         onClick = onClick,
     )

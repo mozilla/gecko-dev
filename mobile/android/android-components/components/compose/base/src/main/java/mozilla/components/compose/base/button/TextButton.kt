@@ -19,7 +19,7 @@ import java.util.Locale
  *
  * @param text The button text to be displayed.
  * @param onClick Invoked when the user clicks on the button.
- * @param modifier [Modifier] Used to shape and position the underlying [androidx.compose.material3.TextButton].
+ * @param modifier [Modifier] Used to shape and position the underlying [androidx.compose.material.TextButton].
  * @param enabled Controls the enabled state of the button. When `false`, this button will not
  * be clickable.
  * @param textColor [Color] to apply to the button text.

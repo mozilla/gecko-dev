@@ -15,7 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -41,17 +41,15 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Glean Debug Tools UI that allows for glean test pings to be sent.
  *
  * @param gleanDebugToolsStore [GleanDebugToolsStore] used to access [GleanDebugToolsState].
- * @param modifier [Modifier] to be applied to the screen.
  */
 @Composable
 fun GleanDebugToolsScreen(
     gleanDebugToolsStore: GleanDebugToolsStore,
-    modifier: Modifier = Modifier,
 ) {
     val gleanDebugToolsState by gleanDebugToolsStore.observeAsState(gleanDebugToolsStore.state) { it }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(top = FirefoxTheme.layout.space.dynamic400),

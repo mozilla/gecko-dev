@@ -17,9 +17,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -99,8 +99,8 @@ fun DownloadInProgressIndicator(
         CircularProgressIndicator(
             modifier = modifier.size(30.dp),
             color = FirefoxTheme.colors.layerAccent,
+            backgroundColor = FirefoxTheme.colors.actionTertiary,
             strokeWidth = 2.dp,
-            trackColor = FirefoxTheme.colors.actionTertiary,
             strokeCap = StrokeCap.Butt,
         )
     }

@@ -4,8 +4,8 @@
 
 package org.mozilla.fenix.compose.snackbar
 
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.material.SnackbarResult
 import org.mozilla.fenix.compose.snackbar.SnackbarState.Type
 
 /**

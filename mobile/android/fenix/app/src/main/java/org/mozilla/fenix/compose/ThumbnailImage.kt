@@ -6,6 +6,7 @@ package org.mozilla.fenix.compose
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -28,8 +29,6 @@ import mozilla.components.concept.base.images.ImageLoadRequest
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.theme.FirefoxTheme
 
-private val FallbackIconSize = 36.dp
-
 /**
  * Thumbnail belonging to a [ImageLoadRequest]. Asynchronously fetches the bitmap from storage.
  *
@@ -48,15 +47,7 @@ fun ThumbnailImage(
     fallbackContent: @Composable () -> Unit,
 ) {
     if (inComposePreview) {
-        Box(
-            modifier = modifier,
-            contentAlignment = Alignment.Center,
-        ) {
-            Favicon(
-                url = "",
-                size = FallbackIconSize,
-            )
-        }
+        Box(modifier = modifier.background(color = FirefoxTheme.colors.layer3))
     } else {
         var state by remember { mutableStateOf(ThumbnailImageState(null, false)) }
         val scope = rememberCoroutineScope()

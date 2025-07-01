@@ -19,9 +19,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.Card
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,8 +59,9 @@ fun MicrosurveyContent(
 ) {
     Card(
         border = BorderStroke(1.dp, FirefoxTheme.colors.borderPrimary),
+        elevation = 0.dp,
         shape = shape,
-        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        backgroundColor = backgroundColor,
         modifier = Modifier
             .wrapContentHeight()
             .fillMaxWidth()
