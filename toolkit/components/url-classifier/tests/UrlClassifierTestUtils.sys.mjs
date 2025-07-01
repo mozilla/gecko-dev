@@ -189,13 +189,13 @@ export var UrlClassifierTestUtils = {
         update: socialAnnotationUpdate,
       },
       {
-        pref: CONSENTMANAGER_ANNOTATION_TABLE_NAME,
-        name: CONSENTMANAGER_ANNOTATION_TABLE_PREF,
+        pref: CONSENTMANAGER_ANNOTATION_TABLE_PREF,
+        name: CONSENTMANAGER_ANNOTATION_TABLE_NAME,
         update: consentmanagerAnnotationUpdate,
       },
       {
-        pref: ANTIFRAUD_ANNOTATION_TABLE_NAME,
-        name: ANTIFRAUD_ANNOTATION_TABLE_PREF,
+        pref: ANTIFRAUD_ANNOTATION_TABLE_PREF,
+        name: ANTIFRAUD_ANNOTATION_TABLE_NAME,
         update: antifraudAnnotationUpdate,
       },
       {
