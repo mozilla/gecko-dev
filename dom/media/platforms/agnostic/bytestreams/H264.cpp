@@ -1381,16 +1381,15 @@ void H264::WriteExtraData(MediaByteBuffer* aDestExtraData,
     }
     avcc.mSPSs.AppendElement(nalu);
   }
-  // TODO : make PPS parsing failure become hard fail in 1974040.
   if (reader.BitsLeft() < 8) {
-    LOG("Failed to parse numPPS, and soft fail.");
-    return avcc;
+    LOG("Missing numOfPictureParameterSets");
+    return mozilla::Err(NS_ERROR_FAILURE);
   }
   const uint8_t numPPS = reader.ReadBits(8);
   for (uint8_t idx = 0; idx < numPPS; idx++) {
     if (reader.BitsLeft() < 16) {
       LOG("Aborting parsing, not enough bits (16) for PPS length!");
-      break;
+      return mozilla::Err(NS_ERROR_FAILURE);
     }
     uint16_t pictureParameterSetLength = reader.ReadBits(16);
     uint32_t ppsBitsLength = pictureParameterSetLength * 8;
@@ -1398,22 +1397,15 @@ void H264::WriteExtraData(MediaByteBuffer* aDestExtraData,
     if (reader.AdvanceBits(ppsBitsLength) < ppsBitsLength) {
       LOG("Aborting parsing, PPS NALU size (%u bits) is larger than remaining!",
           ppsBitsLength);
-      break;
+      return mozilla::Err(NS_ERROR_FAILURE);
     }
     H264NALU nalu(ppsPtr, pictureParameterSetLength);
     if (nalu.mNalUnitType != H264_NAL_PPS) {
       LOG("Aborting parsing, expect PPS but got incorrect NALU type (%d)!",
           nalu.mNalUnitType);
-      break;
+      return mozilla::Err(NS_ERROR_FAILURE);
     }
     avcc.mPPSs.AppendElement(nalu);
-  }
-
-  // We can't guarantee the following bit contents are still correct, skip them.
-  // This should be removed in bug 1974040 as well.
-  if (avcc.mPPSs.Length() != numPPS) {
-    LOG("Failed to parse all PPS, and soft fail.");
-    return avcc;
   }
 
   // The AVCDecoderConfigurationRecord syntax requires that the SPSExt must be

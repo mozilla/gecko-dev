@@ -717,6 +717,74 @@ TEST(H264, AVCCParsingFailure)
     auto res = AVCCConfig::Parse(extradata);
     EXPECT_TRUE(res.isErr());
   }
+  {
+    // Missing numOfPictureParameterSets
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // profile, compat, level
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x02,        // SPS length = 2
+        0x67, 0x42,        // SPS NAL
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
+  }
+  {
+    // PPS length = 0x0003, but only provides 1 byte of data
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // profile, compat, level
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x02,        // SPS length = 2
+        0x67, 0x42,        // SPS NAL
+        0x01,              // 1 PPS
+        0x00, 0x03,        // PPS length = 3
+        0x68               // Only 1 byte instead of 3
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
+  }
+  {
+    // Insufficient data, wrong PPS length
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // profile, compat, level
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x02,        // SPS length = 2
+        0x67, 0x42,        // SPS NAL
+        0x01,              // 1 PPS
+        0x00               // Wrong PPS length, should be 16 bits
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
+  }
+  {
+    // Expect PPS payload, but the payload is an incorrect NALU type
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // High profile
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x01,        // SPS length = 1
+        0x67,              // SPS NAL
+        0x01,              // 1 PPS
+        0x00, 0x01,        // PPS length = 1
+        0x70               // Expect PPS, but wrong NALU type
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
+  }
 }
 
 TEST(H264, CreateNewExtraData)
