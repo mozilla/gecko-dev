@@ -72,13 +72,11 @@ static constexpr nsLiteralString kAsyncFunctionStarAnonymousPrefix =
 
 // Implement reporting of sink type mismatch violations.
 // https://w3c.github.io/trusted-types/dist/spec/#abstract-opdef-should-sink-type-mismatch-violation-be-blocked-by-content-security-policy
-void ReportSinkTypeMismatchViolations(nsIContentSecurityPolicy* aCSP,
-                                      nsICSPEventListener* aCSPEventListener,
-                                      const nsCString& aFileName,
-                                      uint32_t aLine, uint32_t aColumn,
-                                      const nsAString& aSink,
-                                      const nsAString& aSinkGroup,
-                                      const nsAString& aSource) {
+static void ReportSinkTypeMismatchViolations(
+    nsIContentSecurityPolicy* aCSP, nsICSPEventListener* aCSPEventListener,
+    const nsCString& aFileName, uint32_t aLine, uint32_t aColumn,
+    const nsAString& aSink, const nsAString& aSinkGroup,
+    const nsAString& aSource) {
   MOZ_ASSERT(aSinkGroup == kTrustedTypesOnlySinkGroup);
   MOZ_ASSERT(aCSP);
   MOZ_ASSERT(aCSP->GetRequireTrustedTypesForDirectiveState() !=
@@ -924,31 +922,6 @@ bool AreArgumentsTrustedForEnsureCSPDoesNotBlockStringCompilation(
     return false;
   }
   return compliantString->Equals(codeString);
-}
-
-MOZ_CAN_RUN_SCRIPT const nsAString*
-GetConvertedScriptSourceForPreNavigationCheck(
-    nsIGlobalObject& aGlobalObject, const nsAString& aEncodedScriptSource,
-    const nsAString& aSink, Maybe<nsAutoString>& aResultHolder,
-    ErrorResult& aError) {
-  RefPtr<TrustedScript> convertedScriptSource;
-  nsCOMPtr<nsIGlobalObject> pinnedGlobalObject = &aGlobalObject;
-  ProcessValueWithADefaultPolicy<TrustedScript>(
-      *pinnedGlobalObject, aEncodedScriptSource, aSink,
-      getter_AddRefs(convertedScriptSource), aError);
-
-  // If that algorithm threw an error or convertedScriptSource is not a
-  // TrustedScript object, return "Blocked" and abort further steps.
-  if (aError.Failed()) {
-    return nullptr;
-  }
-  if (!convertedScriptSource) {
-    aError.ThrowTypeError("Pre-Navigation check Blocked"_ns);
-    return nullptr;
-  }
-
-  aResultHolder = Some(convertedScriptSource->mData);
-  return aResultHolder.ptr();
 }
 
 }  // namespace mozilla::dom::TrustedTypeUtils

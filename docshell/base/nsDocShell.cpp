@@ -84,8 +84,6 @@
 #include "mozilla/dom/SessionStoreChangeListener.h"
 #include "mozilla/dom/SessionStoreChild.h"
 #include "mozilla/dom/SessionStoreUtils.h"
-#include "mozilla/dom/TrustedTypeUtils.h"
-#include "mozilla/dom/TrustedTypesConstants.h"
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/UserActivation.h"
@@ -9966,12 +9964,6 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
     if (NS_ERROR_UNKNOWN_PROTOCOL == rv) {
       return NS_OK;
     }
-
-    // The spec says no exception should be raised for pre-navigation check
-    // failures.
-    if (NS_ERROR_DOM_SECURITY_ERR == rv) {
-      return NS_OK;
-    }
   }
 
   return rv;
@@ -10469,81 +10461,6 @@ bool nsDocShell::IsAboutBlankLoadOntoInitialAboutBlank(
           mDocumentViewer->GetDocument()->IsInitialDocument());
 }
 
-nsresult nsDocShell::PerformTrustedTypesPreNavigationCheck(
-    nsDocShellLoadState* aLoadState, nsGlobalWindowInner* aWindow) const {
-  MOZ_ASSERT(aWindow);
-  RefPtr<nsIContentSecurityPolicy> csp = aWindow->GetCsp();
-  if (csp->GetRequireTrustedTypesForDirectiveState() ==
-      RequireTrustedTypesForDirectiveState::NONE) {
-    return NS_OK;
-  }
-
-  // If disposion is enforce for require-trusted-types-for, then we return
-  // errors in order to block navigation. If it's report-only, errors are
-  // ignored and the URL is unchanged.
-  bool shouldBlockOnError = csp->GetRequireTrustedTypesForDirectiveState() ==
-                            RequireTrustedTypesForDirectiveState::ENFORCE;
-
-  // 2. Let urlString be the result of running the URL serializer on
-  // request’s url.
-  nsAutoCString urlString;
-  aLoadState->URI()->GetSpec(urlString);
-
-  // 3. Let encodedScriptSource be the result of removing the leading
-  // "javascript:" from urlString.
-  constexpr auto javascriptScheme = "javascript:"_ns;
-  const nsDependentCSubstring encodedScriptSource =
-      Substring(urlString, javascriptScheme.Length());
-
-  // 4. Let convertedScriptSource be the result of executing Process value
-  // with a default policy algorithm
-  Maybe<nsAutoString> compliantStringHolder;
-  NS_ConvertUTF8toUTF16 encodedScriptSourceUTF16(encodedScriptSource);
-  constexpr nsLiteralString sink = u"Location href"_ns;
-  auto reportPreNavigationCheckViolations = [&csp, &sink,
-                                             &encodedScriptSourceUTF16] {
-    // Report violation the same way as for "Should sink type mismatch
-    // violation be blocked by Content Security Policy", since that's what
-    // other browsers do. See
-    // https://github.com/w3c/trusted-types/issues/584.
-    auto location = JSCallingLocation::Get();
-    TrustedTypeUtils::ReportSinkTypeMismatchViolations(
-        csp, nullptr /* aCSPEventListener */, location.FileName(),
-        location.mLine, location.mColumn, sink, kTrustedTypesOnlySinkGroup,
-        encodedScriptSourceUTF16);
-  };
-  ErrorResult error;
-  auto convertedScriptSource =
-      TrustedTypeUtils::GetConvertedScriptSourceForPreNavigationCheck(
-          *aWindow, encodedScriptSourceUTF16, sink, compliantStringHolder,
-          error);
-  error.WouldReportJSException();
-  if (error.Failed()) {
-    reportPreNavigationCheckViolations();
-    if (shouldBlockOnError) {
-      RETURN_NSRESULT_ON_FAILURE(error);
-    }
-    error.SuppressException();
-    return NS_OK;
-  }
-
-  // 5. Set urlString to be the result of prepending "javascript:" to
-  // stringified convertedScriptSource.
-  urlString = javascriptScheme + NS_ConvertUTF16toUTF8(*convertedScriptSource);
-
-  // 6. Let newURL be the result of running the URL parser on urlString.
-  nsCOMPtr<nsIURI> newURL;
-  nsresult rv = NS_NewURI(getter_AddRefs(newURL), urlString);
-  if (NS_FAILED(rv)) {
-    reportPreNavigationCheckViolations();
-    return shouldBlockOnError ? rv : NS_OK;
-  }
-
-  // 7. Set request’s url to newURL.
-  aLoadState->SetURI(newURL);
-  return NS_OK;
-}
-
 nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
                                Maybe<uint32_t> aCacheKey,
                                nsIRequest** aRequest) {
@@ -10568,32 +10485,6 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
   nsresult rv;
   nsContentPolicyType contentPolicyType = DetermineContentType();
 
-  auto getSourceWindowContext = [this, &aLoadState] {
-    const MaybeDiscardedBrowsingContext& sourceBC =
-        aLoadState->SourceBrowsingContext();
-    if (!sourceBC.IsNullOrDiscarded()) {
-      if (WindowContext* wc = sourceBC.get()->GetCurrentWindowContext()) {
-        return wc;
-      }
-    }
-    WindowContext* wc = mBrowsingContext->GetParentWindowContext();
-    MOZ_ASSERT(wc);
-    return wc;
-  };
-
-  if (aLoadState->URI()->SchemeIs("javascript")) {
-    RefPtr<nsGlobalWindowInner> window =
-        getSourceWindowContext()->GetInnerWindow();
-    rv = PerformTrustedTypesPreNavigationCheck(aLoadState, window);
-    // Default policy might destroy the whole docshell, so check that again.
-    if (mIsBeingDestroyed) {
-      return NS_OK;
-    }
-    if (NS_FAILED(rv)) {
-      return NS_ERROR_DOM_SECURITY_ERR;
-    }
-  }
-
   if (IsSubframe()) {
     MOZ_ASSERT(contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_IFRAME ||
                    contentPolicyType == nsIContentPolicy::TYPE_INTERNAL_FRAME,
@@ -10605,7 +10496,18 @@ nsresult nsDocShell::DoURILoad(nsDocShellLoadState* aLoadState,
         // popup-blocking.
         //
         // We generally want to check the context that initiated the navigation.
-        WindowContext* sourceWindowContext = getSourceWindowContext();
+        WindowContext* sourceWindowContext = [&] {
+          const MaybeDiscardedBrowsingContext& sourceBC =
+              aLoadState->SourceBrowsingContext();
+          if (!sourceBC.IsNullOrDiscarded()) {
+            if (WindowContext* wc = sourceBC.get()->GetCurrentWindowContext()) {
+              return wc;
+            }
+          }
+          return mBrowsingContext->GetParentWindowContext();
+        }();
+
+        MOZ_ASSERT(sourceWindowContext);
         // FIXME: We can't check user-interaction against an OOP window. This is
         // the next best thing we can really do. The load state keeps whether
         // the navigation had a user interaction in process
