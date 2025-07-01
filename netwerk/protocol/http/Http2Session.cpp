@@ -51,6 +51,89 @@ namespace net {
 
 extern const nsCString& TRRProviderKey();
 
+Http2StreamQueueManager::StreamQueue& Http2StreamQueueManager::GetQueue(
+    Http2StreamQueueType aType) {
+  switch (aType) {
+    case Http2StreamQueueType::ReadyForWrite:
+      return mReadyForWrite;
+    case Http2StreamQueueType::QueuedStreams:
+      return mQueuedStreams;
+    case Http2StreamQueueType::SlowConsumersReadyForRead:
+      return mSlowConsumersReadyForRead;
+    default:
+      MOZ_CRASH("Invalid queue type");
+      return mReadyForWrite;
+  }
+}
+
+bool Http2StreamQueueManager::GetQueueFlag(Http2StreamQueueType aType,
+                                           Http2StreamBase* aStream) {
+  switch (aType) {
+    case Http2StreamQueueType::ReadyForWrite:
+      return aStream->InWriteQueue();
+    case Http2StreamQueueType::QueuedStreams:
+      return aStream->Queued();
+    case Http2StreamQueueType::SlowConsumersReadyForRead:
+      return aStream->InReadQueue();
+    default:
+      MOZ_CRASH("Invalid queue type");
+      return false;
+  }
+}
+
+void Http2StreamQueueManager::SetQueueFlag(Http2StreamQueueType aType,
+                                           Http2StreamBase* aStream,
+                                           bool value) {
+  switch (aType) {
+    case Http2StreamQueueType::ReadyForWrite:
+      aStream->SetInWriteQueue(value);
+      break;
+    case Http2StreamQueueType::QueuedStreams:
+      aStream->SetQueued(value);
+      break;
+    case Http2StreamQueueType::SlowConsumersReadyForRead:
+      aStream->SetInReadQueue(value);
+      break;
+    default:
+      MOZ_CRASH("Invalid queue type");
+  }
+}
+
+void Http2StreamQueueManager::RemoveStreamFromAllQueue(
+    Http2StreamBase* aStream) {
+  // This does not immediately remove the stream from the underlying queues.
+  // Instead, it clears the queue flags so that the stream will be skipped
+  // the next time GetNextStreamFromQueue is called.
+  aStream->SetInWriteQueue(false);
+  aStream->SetQueued(false);
+  aStream->SetInReadQueue(false);
+}
+
+void Http2StreamQueueManager::AddStreamToQueue(Http2StreamQueueType aType,
+                                               Http2StreamBase* aStream) {
+  if (GetQueueFlag(aType, aStream)) {
+    return;
+  }
+
+  GetQueue(aType).Push(aStream);
+  SetQueueFlag(aType, aStream, true);
+}
+
+already_AddRefed<Http2StreamBase>
+Http2StreamQueueManager::GetNextStreamFromQueue(Http2StreamQueueType aType) {
+  StreamQueue& queue = GetQueue(aType);
+
+  while (!queue.IsEmpty()) {
+    RefPtr<Http2StreamBase> stream = queue.Pop().get();
+    if (stream && GetQueueFlag(aType, stream)) {
+      SetQueueFlag(aType, stream, false);
+      return stream.forget();
+    }
+  }
+
+  return nullptr;
+}
+
 // Http2Session has multiple inheritance of things that implement nsISupports
 NS_IMPL_ADDREF_INHERITED(Http2Session, nsAHttpConnection)
 NS_IMPL_RELEASE_INHERITED(Http2Session, nsAHttpConnection)
@@ -60,37 +143,6 @@ NS_INTERFACE_MAP_BEGIN(Http2Session)
   NS_INTERFACE_MAP_ENTRY_CONCRETE(Http2Session)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsAHttpConnection)
 NS_INTERFACE_MAP_END
-
-static void RemoveStreamFromQueue(Http2StreamBase* aStream,
-                                  nsTArray<WeakPtr<Http2StreamBase>>& queue) {
-  for (const auto& stream : Reversed(queue)) {
-    if (stream == aStream) {
-      queue.RemoveElement(stream);
-    }
-  }
-}
-
-static void AddStreamToQueue(Http2StreamBase* aStream,
-                             nsTArray<WeakPtr<Http2StreamBase>>& queue) {
-  if (!queue.Contains(aStream)) {
-    queue.AppendElement(aStream);
-  }
-}
-
-static already_AddRefed<Http2StreamBase> GetNextStreamFromQueue(
-    nsTArray<WeakPtr<Http2StreamBase>>& queue) {
-  while (!queue.IsEmpty() && !queue[0]) {
-    MOZ_ASSERT(false);
-    queue.RemoveElementAt(0);
-  }
-  if (queue.IsEmpty()) {
-    return nullptr;
-  }
-
-  RefPtr<Http2StreamBase> stream = queue[0].get();
-  queue.RemoveElementAt(0);
-  return stream.forget();
-}
 
 // "magic" refers to the string that preceeds HTTP/2 on the wire
 // to help find any intermediaries speaking an older version of HTTP
@@ -560,7 +612,7 @@ void Http2Session::CreateStream(nsAHttpTransaction* aHttpTransaction,
   RefPtr<Http2StreamBase> stream = refStream;
   mStreamTransactionHash.InsertOrUpdate(aHttpTransaction, std::move(refStream));
 
-  AddStreamToQueue(stream, mReadyForWrite);
+  mQueueManager.AddStreamToQueue(Http2StreamQueueType::ReadyForWrite, stream);
   SetWriteCallbacks();
 
   // Kick off the SYN transmit without waiting for the poll loop
@@ -624,15 +676,7 @@ void Http2Session::QueueStream(Http2StreamBase* stream) {
 
   LOG3(("Http2Session::QueueStream %p stream %p queued.", this, stream));
 
-#ifdef DEBUG
-  for (const auto& qStream : mQueuedStreams) {
-    MOZ_ASSERT(qStream != stream);
-    MOZ_ASSERT(qStream->Queued());
-  }
-#endif
-
-  stream->SetQueued(true);
-  AddStreamToQueue(stream, mQueuedStreams);
+  mQueueManager.AddStreamToQueue(Http2StreamQueueType::QueuedStreams, stream);
 }
 
 void Http2Session::ProcessPending() {
@@ -640,13 +684,12 @@ void Http2Session::ProcessPending() {
 
   RefPtr<Http2StreamBase> stream;
   while (RoomForMoreConcurrent() &&
-         (stream = GetNextStreamFromQueue(mQueuedStreams))) {
+         (stream = mQueueManager.GetNextStreamFromQueue(
+              Http2StreamQueueType::QueuedStreams))) {
     LOG3(("Http2Session::ProcessPending %p stream %p woken from queue.", this,
           stream.get()));
     MOZ_ASSERT(!stream->CountAsActive());
-    MOZ_ASSERT(stream->Queued());
-    stream->SetQueued(false);
-    AddStreamToQueue(stream, mReadyForWrite);
+    mQueueManager.AddStreamToQueue(Http2StreamQueueType::ReadyForWrite, stream);
     SetWriteCallbacks();
   }
 }
@@ -752,7 +795,7 @@ enum SpdyVersion Http2Session::SpdyVersion() { return SpdyVersion::HTTP_2; }
 uint32_t Http2Session::GetWriteQueueSize() {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  return mReadyForWrite.Length();
+  return mQueueManager.GetWriteQueueSize();
 }
 
 void Http2Session::ChangeDownstreamState(enum internalStateType newState) {
@@ -1257,7 +1300,7 @@ bool Http2Session::VerifyStream(Http2StreamBase* aStream,
        this, aStream, aStream->StreamID(), aOptionalID, aStream->Transaction(),
        test));
 
-  MOZ_ASSERT(false, "VerifyStream");
+  MOZ_DIAGNOSTIC_ASSERT(false, "VerifyStream");
   return false;
 #endif  // DEBUG
 }
@@ -1353,10 +1396,7 @@ void Http2Session::CleanupStream(uint32_t aID, nsresult aResult,
 }
 
 void Http2Session::RemoveStreamFromQueues(Http2StreamBase* aStream) {
-  RemoveStreamFromQueue(aStream, mReadyForWrite);
-  RemoveStreamFromQueue(aStream, mQueuedStreams);
-  RemoveStreamFromQueue(aStream, mPushesReadyForRead);
-  RemoveStreamFromQueue(aStream, mSlowConsumersReadyForRead);
+  mQueueManager.RemoveStreamFromAllQueue(aStream);
 }
 
 void Http2Session::RemoveStreamFromTables(Http2StreamBase* aStream) {
@@ -1971,16 +2011,15 @@ nsresult Http2Session::RecvGoAway(Http2Session* self) {
   // Queued streams can also be deleted from this session and restarted
   // in another one. (they were never sent on the network so they implicitly
   // are not covered by the last-good id.
-  for (const auto& stream : self->mQueuedStreams) {
-    MOZ_ASSERT(stream->Queued());
-    stream->SetQueued(false);
+  RefPtr<Http2StreamBase> queuedStream;
+  while ((queuedStream = self->mQueueManager.GetNextStreamFromQueue(
+              Http2StreamQueueType::QueuedStreams))) {
     if (self->mPeerGoAwayReason == HTTP_1_1_REQUIRED) {
-      stream->DisableSpdy();
+      queuedStream->DisableSpdy();
     }
-    self->CloseStream(stream, NS_ERROR_NET_RESET, false);
-    self->RemoveStreamFromTables(stream);
+    self->CloseStream(queuedStream, NS_ERROR_NET_RESET, false);
+    self->RemoveStreamFromTables(queuedStream);
   }
-  self->mQueuedStreams.Clear();
 
   LOG3(
       ("Http2Session::RecvGoAway %p GOAWAY Last-Good-ID 0x%X status 0x%X "
@@ -2086,7 +2125,8 @@ nsresult Http2Session::RecvWindowUpdate(Http2Session* self) {
           continue;
         }
 
-        AddStreamToQueue(stream, self->mReadyForWrite);
+        self->mQueueManager.AddStreamToQueue(
+            Http2StreamQueueType::ReadyForWrite, stream);
         self->SetWriteCallbacks();
       }
     }
@@ -2557,7 +2597,8 @@ nsresult Http2Session::ReadSegmentsAgain(nsAHttpSegmentReader* reader,
 
   LOG3(("Http2Session::ReadSegments %p", this));
 
-  RefPtr<Http2StreamBase> stream = GetNextStreamFromQueue(mReadyForWrite);
+  RefPtr<Http2StreamBase> stream =
+      mQueueManager.GetNextStreamFromQueue(Http2StreamQueueType::ReadyForWrite);
 
   if (!stream) {
     LOG3(("Http2Session %p could not identify a stream to write; suspending.",
@@ -2675,7 +2716,7 @@ nsresult Http2Session::ReadSegmentsAgain(nsAHttpSegmentReader* reader,
   if (*countRead > 0) {
     LOG3(("Http2Session::ReadSegments %p stream=%p countread=%d", this,
           stream.get(), *countRead));
-    AddStreamToQueue(stream, mReadyForWrite);
+    mQueueManager.AddStreamToQueue(Http2StreamQueueType::ReadyForWrite, stream);
     SetWriteCallbacks();
     return rv;
   }
@@ -2815,20 +2856,10 @@ nsresult Http2Session::WriteSegmentsAgain(nsAHttpSegmentWriter* writer,
 
   SetWriteCallbacks();
 
-  // If there are http transactions attached to a push stream with filled
-  // buffers trigger that data pump here. This only reads from buffers (not the
-  // network) so mDownstreamState doesn't matter.
-  RefPtr<Http2StreamBase> pushConnectedStream =
-      GetNextStreamFromQueue(mPushesReadyForRead);
-  if (pushConnectedStream) {
-    return ProcessConnectedPush(pushConnectedStream, writer, count,
-                                countWritten);
-  }
-
   // feed gecko channels that previously stopped consuming data
   // only take data from stored buffers
-  RefPtr<Http2StreamBase> slowConsumer =
-      GetNextStreamFromQueue(mSlowConsumersReadyForRead);
+  RefPtr<Http2StreamBase> slowConsumer = mQueueManager.GetNextStreamFromQueue(
+      Http2StreamQueueType::SlowConsumersReadyForRead);
   if (slowConsumer) {
     internalStateType savedState = mDownstreamState;
     mDownstreamState = NOT_USING_NETWORK;
@@ -3737,15 +3768,11 @@ void Http2Session::SetNeedsCleanup() {
   ResetDownstreamState();
 }
 
-void Http2Session::ConnectPushedStream(Http2StreamBase* stream) {
-  AddStreamToQueue(stream, mPushesReadyForRead);
-  Unused << ForceRecv();
-}
-
 void Http2Session::ConnectSlowConsumer(Http2StreamBase* stream) {
   LOG3(("Http2Session::ConnectSlowConsumer %p 0x%X\n", this,
         stream->StreamID()));
-  AddStreamToQueue(stream, mSlowConsumersReadyForRead);
+  mQueueManager.AddStreamToQueue(
+      Http2StreamQueueType::SlowConsumersReadyForRead, stream);
   Unused << ForceRecv();
 }
 
@@ -3887,7 +3914,7 @@ void Http2Session::TransactionHasDataToWrite(nsAHttpTransaction* caller) {
         stream->StreamID()));
 
   if (!mClosed) {
-    AddStreamToQueue(stream, mReadyForWrite);
+    mQueueManager.AddStreamToQueue(Http2StreamQueueType::ReadyForWrite, stream);
     SetWriteCallbacks();
   } else {
     LOG3(
@@ -3925,7 +3952,7 @@ void Http2Session::TransactionHasDataToWrite(Http2StreamBase* stream) {
   LOG3(("Http2Session::TransactionHasDataToWrite %p stream=%p ID=0x%x", this,
         stream, stream->StreamID()));
 
-  AddStreamToQueue(stream, mReadyForWrite);
+  mQueueManager.AddStreamToQueue(Http2StreamQueueType::ReadyForWrite, stream);
   SetWriteCallbacks();
   Unused << ForceSend();
 }

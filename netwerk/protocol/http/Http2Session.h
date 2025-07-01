@@ -11,6 +11,7 @@
 
 #include "ASpdySession.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Queue.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "nsAHttpConnection.h"
@@ -37,6 +38,33 @@ class nsHttpConnection;
 
 enum Http2StreamBaseType { Normal, WebSocket, Tunnel, ServerPush };
 enum class ExtendedCONNECTType : uint8_t { Proxy, WebSocket, WebTransport };
+enum class Http2StreamQueueType {
+  ReadyForWrite = 0,
+  QueuedStreams,
+  SlowConsumersReadyForRead
+};
+
+class Http2StreamQueueManager final {
+ public:
+  void AddStreamToQueue(Http2StreamQueueType aType, Http2StreamBase* aStream);
+  void RemoveStreamFromAllQueue(Http2StreamBase* aStream);
+  already_AddRefed<Http2StreamBase> GetNextStreamFromQueue(
+      Http2StreamQueueType aType);
+
+  uint32_t GetWriteQueueSize() const { return mReadyForWrite.Count(); }
+
+ private:
+  using StreamQueue = mozilla::Queue<WeakPtr<Http2StreamBase>>;
+
+  StreamQueue& GetQueue(Http2StreamQueueType aType);
+  bool GetQueueFlag(Http2StreamQueueType aType, Http2StreamBase* aStream);
+  void SetQueueFlag(Http2StreamQueueType aType, Http2StreamBase* aStream,
+                    bool value);
+
+  StreamQueue mReadyForWrite;
+  StreamQueue mQueuedStreams;
+  StreamQueue mSlowConsumersReadyForRead;
+};
 
 // b23b147c-c4f8-4d6e-841a-09f29a010de7
 #define NS_HTTP2SESSION_IID \
@@ -429,10 +457,7 @@ class Http2Session final : public ASpdySession,
       mStreamTransactionHash;
   nsTArray<RefPtr<Http2StreamTunnel>> mTunnelStreams;
 
-  nsTArray<WeakPtr<Http2StreamBase>> mReadyForWrite;
-  nsTArray<WeakPtr<Http2StreamBase>> mQueuedStreams;
-  nsTArray<WeakPtr<Http2StreamBase>> mPushesReadyForRead;
-  nsTArray<WeakPtr<Http2StreamBase>> mSlowConsumersReadyForRead;
+  Http2StreamQueueManager mQueueManager;
 
   // Compression contexts for header transport.
   // HTTP/2 compresses only HTTP headers and does not reset the context in
