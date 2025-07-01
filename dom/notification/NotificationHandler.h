@@ -9,6 +9,7 @@
 
 #include "ErrorList.h"
 #include "nsStringFwd.h"
+#include "nsINotificationHandler.h"
 
 class nsIPrincipal;
 namespace mozilla::dom {
@@ -22,6 +23,21 @@ nsresult RespondOnClick(nsIPrincipal* aPrincipal, const nsAString& aScope,
                         const nsAString& aActionName);
 
 nsresult OpenWindowFor(nsIPrincipal* aPrincipal);
+
+class NotificationHandler final : public nsINotificationHandler {
+ public:
+  NS_DECL_ISUPPORTS
+
+  static already_AddRefed<NotificationHandler> GetSingleton();
+
+  NS_IMETHOD RespondOnClick(nsIPrincipal* aPrincipal,
+                          const nsAString& aNotificationId,
+                          const nsAString& aActionName, bool aAutoClosed,
+                          Promise** aResult) override;
+
+ private:
+  ~NotificationHandler() = default;
+};
 
 }  // namespace mozilla::dom::notification
 

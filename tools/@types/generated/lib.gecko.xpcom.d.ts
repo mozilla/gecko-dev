@@ -836,6 +836,7 @@ interface nsIAlertsService extends nsISupports {
   showAlert(aAlert: nsIAlertNotification, aAlertListener?: nsIObserver): void;
   showAlertNotification(aImageURL: string, aTitle: string, aText: string, aTextClickable?: boolean, aCookie?: string, aAlertListener?: nsIObserver, aName?: string, aDir?: string, aLang?: string, aData?: string, aPrincipal?: nsIPrincipal, aInPrivateBrowsing?: boolean, aRequireInteraction?: boolean): void;
   closeAlert(aName?: string, aContextClosed?: boolean): void;
+  getHistory(): string[];
   teardown(): void;
   pbmTeardown(): void;
 }
@@ -3286,6 +3287,7 @@ interface nsINotificationStorageEntry extends nsISupports {
   readonly silent: boolean;
   readonly dataSerialized: string;
   readonly actions: nsINotificationActionStorageEntry[];
+  readonly serviceWorkerRegistrationScope: string;
 }
 
 type nsINotificationStorageCallback = Callable<{
@@ -3295,7 +3297,15 @@ type nsINotificationStorageCallback = Callable<{
 interface nsINotificationStorage extends nsISupports {
   put(aOrigin: string, aEntry: nsINotificationStorageEntry, aScope: string): void;
   get(origin: string, scope: string, tag: string, aCallback: nsINotificationStorageCallback): void;
+  getById(origin: string, id: string): Promise<any>;
   delete(origin: string, id: string): void;
+  deleteAllExcept(ids: string[]): void;
+}
+
+// https://searchfox.org/mozilla-central/source/dom/notification/nsINotificationHandler.idl
+
+interface nsINotificationHandler extends nsISupports {
+  respondOnClick(aPrincipal: nsIPrincipal, aNotificationId: string, aActionName: string, aAutoClosed: boolean): Promise<any>;
 }
 
 // https://searchfox.org/mozilla-central/source/dom/interfaces/payments/nsIPaymentActionResponse.idl
@@ -15574,6 +15584,7 @@ interface nsIXPCComponents_Interfaces {
   nsINotificationStorageEntry: nsJSIID<nsINotificationStorageEntry>;
   nsINotificationStorageCallback: nsJSIID<nsINotificationStorageCallback>;
   nsINotificationStorage: nsJSIID<nsINotificationStorage>;
+  nsINotificationHandler: nsJSIID<nsINotificationHandler>;
   nsIPaymentResponseData: nsJSIID<nsIPaymentResponseData>;
   nsIGeneralResponseData: nsJSIID<nsIGeneralResponseData>;
   nsIBasicCardResponseData: nsJSIID<nsIBasicCardResponseData>;
