@@ -1630,3 +1630,20 @@ system:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+
+  special_directory_appdata_fallback:
+    type: labeled_boolean
+    lifetime: ping
+    description: |
+      Success status of using SpecialSystemDirectory's fallback path to retrieve
+      either %AppData% or %LocalAppData%.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974357
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255241
+    notification_emails:
+      - nrishel@mozilla.com
+    expires: 145
+    labels:
+      - appdata
+      - localappdata
