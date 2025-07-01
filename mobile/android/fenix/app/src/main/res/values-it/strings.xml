@@ -945,7 +945,7 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Gestore download esterno</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">Gestisci i download con un’altra app</string>
-  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_downloads_settings_clean_up_files_title">Elimina da %s e dal dispositivo</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">La rimozione di file dalla gestione download comporta la rimozione dei file anche dal dispositivo</string>

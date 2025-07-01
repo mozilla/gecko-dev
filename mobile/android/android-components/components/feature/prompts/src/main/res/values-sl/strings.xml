@@ -125,6 +125,8 @@
   <string name="mozac_feature_prompt_repost_negative_button_text">Prekliči</string>
   <!-- Strings show in a dialog that appear when user confirm folder upload -->
   <string name="mozac_feature_prompt_folder_upload_confirm_title">Naloži datoteke?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Preden začnete nalagati iz »%1$s«, se prepričajte, da temu spletnemu mestu zaupate.</string>
   <!-- Pressing this will dismiss the dialog and allow to upload folder -->
   <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Naloži</string>
   <!-- Pressing this will dismiss the dialog and disallow to upload folder -->

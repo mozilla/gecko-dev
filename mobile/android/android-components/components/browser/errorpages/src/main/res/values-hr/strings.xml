@@ -23,9 +23,9 @@
   <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">Prihvati rizik i nastavi</string>
   <!-- The document title and heading of the error page shown when a website uses HSTS. -->
-  <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Ova web stranica zahtjeva sigurnu vezu.</string>
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">Ova web stranica zahtijeva sigurnu vezu.</string>
   <!-- The error message shown when a website uses HSTS. -->
-  <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[<ul> <li>Stranica koju pokušavate vidjeti se ne može prikazati zato što zahtjeva sigurnu vezu.</li> <li>Problemu je najvjerojatnije uzrok web stranica i ne možete ništa napraviti što bi ga riješilo.</li> <li>Možete obavijestiti administratora web stranice o problemu.</li> </ul>]]></string>
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[<ul> <li>Stranica koju pokušavaš vidjeti se ne može prikazati zato što zahtijeva sigurnu vezu.</li> <li>Uzrok tome je najvjerojatnije sama web stranica i ne možeš ništa napraviti što bi riješilo problem.</li> <li>Možeš obavijestiti administratora web stranice o problemu.</li> </ul>]]></string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">Napredno…</string>
   <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
