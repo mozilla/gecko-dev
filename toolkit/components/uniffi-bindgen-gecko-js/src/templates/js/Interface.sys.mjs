@@ -1,5 +1,5 @@
 {{ int.js_docstring }}
-export class {{ int.name }} {
+export class {{ int.js_class_name }} {
     // Use `init` to instantiate this class.
     // DO NOT USE THIS CONSTRUCTOR DIRECTLY
     constructor(opts) {
@@ -39,13 +39,13 @@ export class {{ int.self_type.ffi_converter }} extends FfiConverter {
     static lift(value) {
         const opts = {};
         opts[constructUniffiObject] = value;
-        return new {{ int.name }}(opts);
+        return new {{ int.js_class_name }}(opts);
     }
 
     static lower(value) {
         const ptr = value[uniffiObjectPtr];
         if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a '{{ int.name }}' instance");
+            throw new UniFFITypeError("Object is not a '{{ int.js_class_name }}' instance");
         }
         return ptr;
     }
@@ -77,7 +77,7 @@ export class {{ int.self_type.ffi_converter }} extends FfiConverter {
     static lift(value) {
         const opts = {};
         opts[constructUniffiObject] = value;
-        return new {{ int.name }}(opts);
+        return new {{ int.js_class_name }}(opts);
     }
 
     // lower treats value like a callback interface
@@ -90,7 +90,7 @@ export class {{ int.self_type.ffi_converter }} extends FfiConverter {
     static lowerReceiver(value) {
         const ptr = value[uniffiObjectPtr];
         if (!(ptr instanceof UniFFIPointer)) {
-            throw new UniFFITypeError("Object is not a '{{ int.name }}' instance");
+            throw new UniFFITypeError("Object is not a '{{ int.js_class_name }}' instance");
         }
         return ptr;
     }
