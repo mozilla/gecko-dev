@@ -1111,7 +1111,7 @@ static_assert(uint64_t(MaxArrayPayloadBytes) <
 
 // These limits pertain to our WebAssembly implementation only.
 
-static const unsigned MaxBrTableElems = 1000000;
+static const unsigned MaxBrTableElems = 65520;
 static const unsigned MaxCodeSectionBytes = MaxModuleBytes;
 
 // 512KiB should be enough, considering how Rabaldr uses the stack and
