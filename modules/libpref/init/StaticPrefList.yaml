@@ -14254,7 +14254,7 @@
 # will automatically be blocked.
 - name: network.lna.block_trackers
   type: RelaxedAtomicBool
-  value: true
+  value: false
   mirror: always
 
 # The proxy type. See nsIProtocolProxyService.idl
