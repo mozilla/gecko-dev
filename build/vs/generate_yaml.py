@@ -32,7 +32,7 @@ if __name__ == "__main__":
     # Filter-out data we won't be using.
     for s in selected:
         type = s["type"]
-        if type == "Component" or type == "Workload" or type == "Group":
+        if type in {"Component", "Workload", "Group"}:
             continue
         if type == "Vsix" or s["id"].startswith(("Win10SDK", "Win11SDK")):
             filtered = {k: v for k, v in s.items() if k in ("type", "id", "version")}
