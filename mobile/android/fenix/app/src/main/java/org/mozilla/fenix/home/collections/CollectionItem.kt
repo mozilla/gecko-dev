@@ -11,12 +11,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DismissDirection.EndToStart
-import androidx.compose.material3.DismissDirection.StartToEnd
-import androidx.compose.material3.ExperimentalMaterialApi
-import androidx.compose.material3.SwipeToDismiss
-import androidx.compose.material3.rememberDismissState
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -31,8 +30,8 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.feature.tab.collections.Tab
 import org.mozilla.fenix.R.drawable
 import org.mozilla.fenix.R.string
+import org.mozilla.fenix.compose.DismissibleItemBackground
 import org.mozilla.fenix.compose.list.FaviconListItem
-import org.mozilla.fenix.compose.tabstray.DismissedTabBackground
 import org.mozilla.fenix.ext.toShortUrl
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -55,7 +54,6 @@ private val BOTTOM_TAB_SHAPE = RoundedCornerShape(bottomStart = 8.dp, bottomEnd 
  * @param onClick Invoked when the user click on the tab.
  * @param onRemove Invoked when the user removes the tab informing also if the tab was swiped to be removed.
  */
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun CollectionItem(
     tab: Tab,
@@ -63,17 +61,24 @@ fun CollectionItem(
     onClick: () -> Unit,
     onRemove: (Boolean) -> Unit,
 ) {
-    val dismissState = rememberDismissState()
+    val dismissState = rememberSwipeToDismissBoxState()
 
-    if (dismissState.isDismissed(StartToEnd) || dismissState.isDismissed(EndToStart)) {
-        onRemove(true)
+    LaunchedEffect(dismissState.currentValue) {
+        val value = dismissState.currentValue
+        when (value) {
+            SwipeToDismissBoxValue.StartToEnd, SwipeToDismissBoxValue.EndToStart -> {
+                onRemove(true)
+            }
+            SwipeToDismissBoxValue.Settled -> {} // no-op
+        }
     }
 
-    SwipeToDismiss(
+    SwipeToDismissBox(
         state = dismissState,
-        background = {
-            DismissedTabBackground(
-                dismissDirection = dismissState.dismissDirection,
+        backgroundContent = {
+            DismissibleItemBackground(
+                isSwipeActive = dismissState.dismissDirection != SwipeToDismissBoxValue.Settled,
+                isSwipingToStart = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart,
                 shape = if (isLastInCollection) BOTTOM_TAB_SHAPE else MIDDLE_TAB_SHAPE,
             )
         },
@@ -84,7 +89,7 @@ fun CollectionItem(
         val clippingModifier by remember {
             derivedStateOf {
                 try {
-                    if (dismissState.progress.fraction != 1f) Modifier else Modifier.clipTop()
+                    if (dismissState.progress != 1f) Modifier else Modifier.clipTop()
                 } catch (e: NoSuchElementException) {
                     // `androidx.compose.material.Swipeable.findBounds` couldn't find anchors.
                     // Happened once in testing when deleting a tab. Could not reproduce afterwards.
