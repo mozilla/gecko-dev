@@ -39,7 +39,7 @@
 #include "PeerConnectionCtx.h"
 #include "PeerConnectionImpl.h"
 #include "RemoteTrackSource.h"
-#include "nsDOMDataChannelDeclarations.h"
+#include "RTCDataChannelDeclarations.h"
 #include "transport/dtlsidentity.h"
 #include "sdp/SdpAttribute.h"
 
@@ -67,7 +67,7 @@
 
 #include "mozilla/dom/Document.h"
 #include "nsGlobalWindowInner.h"
-#include "nsDOMDataChannel.h"
+#include "RTCDataChannel.h"
 #include "mozilla/dom/Location.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/NullPrincipal.h"
@@ -992,11 +992,11 @@ nsresult PeerConnectionImpl::MaybeInitializeDataChannel() {
   return NS_ERROR_FAILURE;
 }
 
-already_AddRefed<nsDOMDataChannel> PeerConnectionImpl::CreateDataChannel(
+already_AddRefed<RTCDataChannel> PeerConnectionImpl::CreateDataChannel(
     const nsAString& aLabel, const nsAString& aProtocol, uint16_t aType,
     bool ordered, uint16_t aMaxTime, uint16_t aMaxNum, bool aExternalNegotiated,
     uint16_t aStream, ErrorResult& rv) {
-  RefPtr<nsDOMDataChannel> result;
+  RefPtr<RTCDataChannel> result;
   rv = CreateDataChannel(aLabel, aProtocol, aType, ordered, aMaxTime, aMaxNum,
                          aExternalNegotiated, aStream, getter_AddRefs(result));
   return result.forget();
@@ -1006,7 +1006,7 @@ NS_IMETHODIMP
 PeerConnectionImpl::CreateDataChannel(
     const nsAString& aLabel, const nsAString& aProtocol, uint16_t aType,
     bool ordered, uint16_t aMaxTime, uint16_t aMaxNum, bool aExternalNegotiated,
-    uint16_t aStream, nsDOMDataChannel** aRetval) {
+    uint16_t aStream, RTCDataChannel** aRetval) {
   PC_AUTO_ENTER_API_CALL(false);
   MOZ_ASSERT(aRetval);
 
@@ -1068,7 +1068,7 @@ PeerConnectionImpl::CreateDataChannel(
         JsepTransceiver(SdpMediaSection::MediaType::kApplication, *mUuidGen));
   }
 
-  RefPtr<nsDOMDataChannel> retval;
+  RefPtr<RTCDataChannel> retval;
   rv = NS_NewDOMDataChannel(dataChannel.forget(), aLabel, ordered, maxLifeTime,
                             maxRetransmits, aProtocol, aExternalNegotiated,
                             mWindow, getter_AddRefs(retval));
@@ -1365,7 +1365,7 @@ void PeerConnectionImpl::NotifyDataChannel(
   MOZ_ASSERT(channel);
   CSFLogDebug(LOGTAG, "%s: channel: %p", __FUNCTION__, channel.get());
 
-  RefPtr<nsDOMDataChannel> domchannel;
+  RefPtr<RTCDataChannel> domchannel;
   nsresult rv = NS_NewDOMDataChannel(
       channel.forget(), aLabel, aOrdered, aMaxLifeTime, aMaxRetransmits,
       aProtocol, aNegotiated, mWindow, getter_AddRefs(domchannel));

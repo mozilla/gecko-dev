@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef nsDOMDataChannel_h
-#define nsDOMDataChannel_h
+#ifndef DOM_MEDIA_WEBRTC_RTCDATACHANNEL_H_
+#define DOM_MEDIA_WEBRTC_RTCDATACHANNEL_H_
 
 #include "mozilla/Attributes.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -15,29 +15,25 @@
 #include "mozilla/net/DataChannelListener.h"
 
 namespace mozilla {
+class DataChannel;
+
 namespace dom {
 class Blob;
-}
 
-class DataChannel;
-};  // namespace mozilla
-
-class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
-                               public mozilla::DataChannelListener {
+class RTCDataChannel final : public DOMEventTargetHelper,
+                             public DataChannelListener {
  public:
-  nsDOMDataChannel(const nsAString& aLabel, bool aOrdered,
-                   mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
-                   mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
-                   const nsAString& aProtocol, bool aNegotiated,
-                   already_AddRefed<mozilla::DataChannel>& aDataChannel,
-                   nsPIDOMWindowInner* aWindow);
+  RTCDataChannel(const nsAString& aLabel, bool aOrdered,
+                 Nullable<uint16_t> aMaxLifeTime,
+                 Nullable<uint16_t> aMaxRetransmits, const nsAString& aProtocol,
+                 bool aNegotiated, already_AddRefed<DataChannel>& aDataChannel,
+                 nsPIDOMWindowInner* aWindow);
 
   nsresult Init(nsPIDOMWindowInner* aDOMWindow);
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDOMDataChannel,
-                                           mozilla::DOMEventTargetHelper)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(RTCDataChannel, DOMEventTargetHelper)
 
   // EventTarget
   using EventTarget::EventListenerAdded;
@@ -52,9 +48,9 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
   // WebIDL
   void GetLabel(nsAString& aLabel) const;
   void GetProtocol(nsAString& aProtocol) const;
-  mozilla::dom::Nullable<uint16_t> GetMaxPacketLifeTime() const;
-  mozilla::dom::Nullable<uint16_t> GetMaxRetransmits() const;
-  mozilla::dom::RTCDataChannelState ReadyState() const;
+  Nullable<uint16_t> GetMaxPacketLifeTime() const;
+  Nullable<uint16_t> GetMaxRetransmits() const;
+  RTCDataChannelState ReadyState() const;
   uint32_t BufferedAmount() const;
   uint32_t BufferedAmountLowThreshold() const;
   void SetBufferedAmountLowThreshold(uint32_t aThreshold);
@@ -64,22 +60,20 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
   void Close();
   IMPL_EVENT_HANDLER(message)
   IMPL_EVENT_HANDLER(bufferedamountlow)
-  mozilla::dom::RTCDataChannelType BinaryType() const {
-    return static_cast<mozilla::dom::RTCDataChannelType>(
-        static_cast<int>(mBinaryType));
+  RTCDataChannelType BinaryType() const {
+    return static_cast<RTCDataChannelType>(static_cast<int>(mBinaryType));
   }
-  void SetBinaryType(mozilla::dom::RTCDataChannelType aType) {
+  void SetBinaryType(RTCDataChannelType aType) {
     mBinaryType = static_cast<DataChannelBinaryType>(static_cast<int>(aType));
   }
-  void Send(const nsAString& aData, mozilla::ErrorResult& aRv);
-  void Send(mozilla::dom::Blob& aData, mozilla::ErrorResult& aRv);
-  void Send(const mozilla::dom::ArrayBuffer& aData, mozilla::ErrorResult& aRv);
-  void Send(const mozilla::dom::ArrayBufferView& aData,
-            mozilla::ErrorResult& aRv);
+  void Send(const nsAString& aData, ErrorResult& aRv);
+  void Send(Blob& aData, ErrorResult& aRv);
+  void Send(const ArrayBuffer& aData, ErrorResult& aRv);
+  void Send(const ArrayBufferView& aData, ErrorResult& aRv);
 
   bool Negotiated() const;
   bool Ordered() const;
-  mozilla::dom::Nullable<uint16_t> GetId() const;
+  Nullable<uint16_t> GetId() const;
 
   nsresult DoOnMessageAvailable(const nsACString& aMessage, bool aBinary);
 
@@ -108,17 +102,17 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
   void DontKeepAliveAnyMore();
 
  protected:
-  ~nsDOMDataChannel();
+  ~RTCDataChannel();
 
  private:
-  bool CheckReadyState(mozilla::ErrorResult& aRv);
+  bool CheckReadyState(ErrorResult& aRv);
 
   void ReleaseSelf();
 
   // to keep us alive while we have listeners
-  RefPtr<nsDOMDataChannel> mSelfRef;
+  RefPtr<RTCDataChannel> mSelfRef;
   // Owning reference
-  RefPtr<mozilla::DataChannel> mDataChannel;
+  RefPtr<DataChannel> mDataChannel;
   nsString mOrigin;
   enum DataChannelBinaryType {
     DC_BINARY_TYPE_ARRAYBUFFER,
@@ -130,10 +124,12 @@ class nsDOMDataChannel final : public mozilla::DOMEventTargetHelper,
 
   const nsString mLabel;
   const bool mOrdered;
-  const mozilla::dom::Nullable<uint16_t> mMaxPacketLifeTime;
-  const mozilla::dom::Nullable<uint16_t> mMaxRetransmits;
+  const Nullable<uint16_t> mMaxPacketLifeTime;
+  const Nullable<uint16_t> mMaxRetransmits;
   const nsString mProtocol;
   const bool mNegotiated;
 };
 
-#endif  // nsDOMDataChannel_h
+}  // namespace dom
+}  // namespace mozilla
+#endif  // DOM_MEDIA_WEBRTC_RTCDATACHANNEL_H_

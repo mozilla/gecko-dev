@@ -4,12 +4,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsDOMDataChannel.h"
+#include "RTCDataChannel.h"
 
 #include "base/basictypes.h"
 #include "mozilla/Logging.h"
 
-#include "nsDOMDataChannelDeclarations.h"
+#include "RTCDataChannelDeclarations.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/dom/File.h"
@@ -36,10 +36,10 @@
 #  undef GetBinaryType
 #endif
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
+namespace dom {
 
-nsDOMDataChannel::~nsDOMDataChannel() {
+RTCDataChannel::~RTCDataChannel() {
   // Don't call us anymore!  Likely isn't an issue (or maybe just less of
   // one) once we block GC until all the (appropriate) onXxxx handlers
   // are dropped. (See WebRTC spec)
@@ -49,34 +49,33 @@ nsDOMDataChannel::~nsDOMDataChannel() {
 }
 
 /* virtual */
-JSObject* nsDOMDataChannel::WrapObject(JSContext* aCx,
-                                       JS::Handle<JSObject*> aGivenProto) {
+JSObject* RTCDataChannel::WrapObject(JSContext* aCx,
+                                     JS::Handle<JSObject*> aGivenProto) {
   return RTCDataChannel_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(nsDOMDataChannel)
+NS_IMPL_CYCLE_COLLECTION_CLASS(RTCDataChannel)
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsDOMDataChannel,
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(RTCDataChannel,
                                                   DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsDOMDataChannel,
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(RTCDataChannel,
                                                 DOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-NS_IMPL_ADDREF_INHERITED(nsDOMDataChannel, DOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(nsDOMDataChannel, DOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(RTCDataChannel, DOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(RTCDataChannel, DOMEventTargetHelper)
 
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMDataChannel)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(RTCDataChannel)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-nsDOMDataChannel::nsDOMDataChannel(
-    const nsAString& aLabel, bool aOrdered,
-    mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
-    mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
-    const nsAString& aProtocol, bool aNegotiated,
-    already_AddRefed<mozilla::DataChannel>& aDataChannel,
-    nsPIDOMWindowInner* aWindow)
+RTCDataChannel::RTCDataChannel(const nsAString& aLabel, bool aOrdered,
+                               Nullable<uint16_t> aMaxLifeTime,
+                               Nullable<uint16_t> aMaxRetransmits,
+                               const nsAString& aProtocol, bool aNegotiated,
+                               already_AddRefed<DataChannel>& aDataChannel,
+                               nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow),
       mDataChannel(aDataChannel),
       mBinaryType(DC_BINARY_TYPE_BLOB),
@@ -89,7 +88,7 @@ nsDOMDataChannel::nsDOMDataChannel(
       mProtocol(aProtocol),
       mNegotiated(aNegotiated) {}
 
-nsresult nsDOMDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
+nsresult RTCDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
   nsresult rv;
   nsAutoString urlParam;
 
@@ -121,65 +120,64 @@ nsresult nsDOMDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
 
 // Most of the GetFoo()/SetFoo()s don't need to touch shared resources and
 // are safe after Close()
-void nsDOMDataChannel::GetLabel(nsAString& aLabel) const { aLabel = mLabel; }
+void RTCDataChannel::GetLabel(nsAString& aLabel) const { aLabel = mLabel; }
 
-void nsDOMDataChannel::GetProtocol(nsAString& aProtocol) const {
+void RTCDataChannel::GetProtocol(nsAString& aProtocol) const {
   aProtocol = mProtocol;
 }
 
-mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetId() const {
-  mozilla::dom::Nullable<uint16_t> result = mDataChannel->GetStream();
+Nullable<uint16_t> RTCDataChannel::GetId() const {
+  Nullable<uint16_t> result = mDataChannel->GetStream();
   if (result.Value() == 65535) {
     result.SetNull();
   }
   return result;
 }
 
-mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetMaxPacketLifeTime()
-    const {
+Nullable<uint16_t> RTCDataChannel::GetMaxPacketLifeTime() const {
   return mMaxPacketLifeTime;
 }
 
-mozilla::dom::Nullable<uint16_t> nsDOMDataChannel::GetMaxRetransmits() const {
+Nullable<uint16_t> RTCDataChannel::GetMaxRetransmits() const {
   return mMaxRetransmits;
 }
 
-bool nsDOMDataChannel::Negotiated() const { return mNegotiated; }
+bool RTCDataChannel::Negotiated() const { return mNegotiated; }
 
-bool nsDOMDataChannel::Ordered() const { return mOrdered; }
+bool RTCDataChannel::Ordered() const { return mOrdered; }
 
-RTCDataChannelState nsDOMDataChannel::ReadyState() const {
+RTCDataChannelState RTCDataChannel::ReadyState() const {
   return static_cast<RTCDataChannelState>(mDataChannel->GetReadyState());
 }
 
-uint32_t nsDOMDataChannel::BufferedAmount() const {
+uint32_t RTCDataChannel::BufferedAmount() const {
   if (!mSentClose) {
     return mDataChannel->GetBufferedAmount();
   }
   return 0;
 }
 
-uint32_t nsDOMDataChannel::BufferedAmountLowThreshold() const {
+uint32_t RTCDataChannel::BufferedAmountLowThreshold() const {
   return mDataChannel->GetBufferedAmountLowThreshold();
 }
 
-void nsDOMDataChannel::SetBufferedAmountLowThreshold(uint32_t aThreshold) {
+void RTCDataChannel::SetBufferedAmountLowThreshold(uint32_t aThreshold) {
   mDataChannel->SetBufferedAmountLowThreshold(aThreshold);
 }
 
-void nsDOMDataChannel::Close() {
+void RTCDataChannel::Close() {
   mDataChannel->Close();
   UpdateMustKeepAlive();
 }
 
 // All of the following is copy/pasted from WebSocket.cpp.
-void nsDOMDataChannel::Send(const nsAString& aData, ErrorResult& aRv) {
+void RTCDataChannel::Send(const nsAString& aData, ErrorResult& aRv) {
   if (!CheckReadyState(aRv)) {
     return;
   }
 
   nsCString msgString;
-  if (!AppendUTF16toUTF8(aData, msgString, mozilla::fallible_t())) {
+  if (!AppendUTF16toUTF8(aData, msgString, fallible_t())) {
     aRv.Throw(NS_ERROR_FILE_TOO_BIG);
     return;
   }
@@ -187,7 +185,7 @@ void nsDOMDataChannel::Send(const nsAString& aData, ErrorResult& aRv) {
   mDataChannel->SendMsg(std::move(msgString), aRv);
 }
 
-void nsDOMDataChannel::Send(Blob& aData, ErrorResult& aRv) {
+void RTCDataChannel::Send(Blob& aData, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
 
   if (!CheckReadyState(aRv)) {
@@ -213,7 +211,7 @@ void nsDOMDataChannel::Send(Blob& aData, ErrorResult& aRv) {
   mDataChannel->SendBinaryBlob(aData, aRv);
 }
 
-void nsDOMDataChannel::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
+void RTCDataChannel::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
 
   if (!CheckReadyState(aRv)) {
@@ -229,7 +227,7 @@ void nsDOMDataChannel::Send(const ArrayBuffer& aData, ErrorResult& aRv) {
   mDataChannel->SendBinaryMsg(std::move(msgString), aRv);
 }
 
-void nsDOMDataChannel::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
+void RTCDataChannel::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread(), "Not running on main thread");
 
   if (!CheckReadyState(aRv)) {
@@ -245,7 +243,7 @@ void nsDOMDataChannel::Send(const ArrayBufferView& aData, ErrorResult& aRv) {
   mDataChannel->SendBinaryMsg(std::move(msgString), aRv);
 }
 
-bool nsDOMDataChannel::CheckReadyState(ErrorResult& aRv) {
+bool RTCDataChannel::CheckReadyState(ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
   DataChannelState state = DataChannelState::Closed;
   if (!mSentClose) {
@@ -264,13 +262,13 @@ bool nsDOMDataChannel::CheckReadyState(ErrorResult& aRv) {
   }
 
   MOZ_ASSERT(state == DataChannelState::Open,
-             "Unknown state in nsDOMDataChannel::Send");
+             "Unknown state in RTCDataChannel::Send");
 
   return true;
 }
 
-nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
-                                                bool aBinary) {
+nsresult RTCDataChannel::DoOnMessageAvailable(const nsACString& aData,
+                                              bool aBinary) {
   MOZ_ASSERT(NS_IsMainThread());
 
   DC_VERBOSE((
@@ -339,20 +337,20 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
   return err.StealNSResult();
 }
 
-nsresult nsDOMDataChannel::OnMessageAvailable(nsISupports* aContext,
-                                              const nsACString& aMessage) {
+nsresult RTCDataChannel::OnMessageAvailable(nsISupports* aContext,
+                                            const nsACString& aMessage) {
   MOZ_ASSERT(NS_IsMainThread());
   return DoOnMessageAvailable(aMessage, false);
 }
 
-nsresult nsDOMDataChannel::OnBinaryMessageAvailable(
-    nsISupports* aContext, const nsACString& aMessage) {
+nsresult RTCDataChannel::OnBinaryMessageAvailable(nsISupports* aContext,
+                                                  const nsACString& aMessage) {
   MOZ_ASSERT(NS_IsMainThread());
   return DoOnMessageAvailable(aMessage, true);
 }
 
-nsresult nsDOMDataChannel::OnSimpleEvent(nsISupports* aContext,
-                                         const nsAString& aName) {
+nsresult RTCDataChannel::OnSimpleEvent(nsISupports* aContext,
+                                       const nsAString& aName) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsresult rv = CheckCurrentGlobalCorrectness();
@@ -370,14 +368,14 @@ nsresult nsDOMDataChannel::OnSimpleEvent(nsISupports* aContext,
   return err.StealNSResult();
 }
 
-nsresult nsDOMDataChannel::OnChannelConnected(nsISupports* aContext) {
+nsresult RTCDataChannel::OnChannelConnected(nsISupports* aContext) {
   DC_DEBUG(
       ("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel, __FUNCTION__));
 
   return OnSimpleEvent(aContext, u"open"_ns);
 }
 
-nsresult nsDOMDataChannel::OnChannelClosed(nsISupports* aContext) {
+nsresult RTCDataChannel::OnChannelClosed(nsISupports* aContext) {
   nsresult rv;
   // so we don't have to worry if we're notified from different paths in
   // the underlying code
@@ -397,14 +395,14 @@ nsresult nsDOMDataChannel::OnChannelClosed(nsISupports* aContext) {
   return rv;
 }
 
-nsresult nsDOMDataChannel::OnBufferLow(nsISupports* aContext) {
+nsresult RTCDataChannel::OnBufferLow(nsISupports* aContext) {
   DC_DEBUG(
       ("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel, __FUNCTION__));
 
   return OnSimpleEvent(aContext, u"bufferedamountlow"_ns);
 }
 
-nsresult nsDOMDataChannel::NotBuffered(nsISupports* aContext) {
+nsresult RTCDataChannel::NotBuffered(nsISupports* aContext) {
   // In the rare case that we held off GC to let the buffer drain
   UpdateMustKeepAlive();
   return NS_OK;
@@ -417,7 +415,7 @@ nsresult nsDOMDataChannel::NotBuffered(nsISupports* aContext) {
 //   2. there are outgoing not sent messages.
 //-----------------------------------------------------------------------------
 
-void nsDOMDataChannel::UpdateMustKeepAlive() {
+void RTCDataChannel::UpdateMustKeepAlive() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!mCheckMustKeepAlive) {
@@ -463,7 +461,7 @@ void nsDOMDataChannel::UpdateMustKeepAlive() {
   }
 }
 
-void nsDOMDataChannel::DontKeepAliveAnyMore() {
+void RTCDataChannel::DontKeepAliveAnyMore() {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mSelfRef) {
@@ -475,32 +473,32 @@ void nsDOMDataChannel::DontKeepAliveAnyMore() {
   mCheckMustKeepAlive = false;
 }
 
-void nsDOMDataChannel::ReleaseSelf() {
+void RTCDataChannel::ReleaseSelf() {
   // release our self-reference (safely) by putting it in an event (always)
-  NS_ReleaseOnMainThread("nsDOMDataChannel::mSelfRef", mSelfRef.forget(), true);
+  NS_ReleaseOnMainThread("RTCDataChannel::mSelfRef", mSelfRef.forget(), true);
 }
 
-void nsDOMDataChannel::EventListenerAdded(nsAtom* aType) {
+void RTCDataChannel::EventListenerAdded(nsAtom* aType) {
   MOZ_ASSERT(NS_IsMainThread());
   UpdateMustKeepAlive();
 }
 
-void nsDOMDataChannel::EventListenerRemoved(nsAtom* aType) {
+void RTCDataChannel::EventListenerRemoved(nsAtom* aType) {
   MOZ_ASSERT(NS_IsMainThread());
   UpdateMustKeepAlive();
 }
 
 /* static */
-nsresult NS_NewDOMDataChannel(
-    already_AddRefed<mozilla::DataChannel>&& aDataChannel,
-    const nsAString& aLabel, bool aOrdered,
-    mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
-    mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
-    const nsAString& aProtocol, bool aNegotiated, nsPIDOMWindowInner* aWindow,
-    nsDOMDataChannel** aDomDataChannel) {
-  RefPtr<nsDOMDataChannel> domdc =
-      new nsDOMDataChannel(aLabel, aOrdered, aMaxLifeTime, aMaxRetransmits,
-                           aProtocol, aNegotiated, aDataChannel, aWindow);
+nsresult NS_NewDOMDataChannel(already_AddRefed<DataChannel>&& aDataChannel,
+                              const nsAString& aLabel, bool aOrdered,
+                              Nullable<uint16_t> aMaxLifeTime,
+                              Nullable<uint16_t> aMaxRetransmits,
+                              const nsAString& aProtocol, bool aNegotiated,
+                              nsPIDOMWindowInner* aWindow,
+                              RTCDataChannel** aDomDataChannel) {
+  RefPtr<RTCDataChannel> domdc =
+      new RTCDataChannel(aLabel, aOrdered, aMaxLifeTime, aMaxRetransmits,
+                         aProtocol, aNegotiated, aDataChannel, aWindow);
 
   nsresult rv = domdc->Init(aWindow);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -508,3 +506,6 @@ nsresult NS_NewDOMDataChannel(
   domdc.forget(aDomDataChannel);
   return NS_OK;
 }
+
+}  // end namespace dom
+}  // end namespace mozilla

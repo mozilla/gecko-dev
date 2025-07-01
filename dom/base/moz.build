@@ -115,12 +115,6 @@ EXPORTS += [
     "XPathGenerator.h",
 ]
 
-if CONFIG["MOZ_WEBRTC"]:
-    EXPORTS += [
-        "nsDOMDataChannel.h",
-        "nsDOMDataChannelDeclarations.h",
-    ]
-
 EXPORTS.mozilla += [
     "CallState.h",
     "ConnectedAncestorTracker.h",
@@ -509,11 +503,6 @@ UNIFIED_SOURCES += [
     "WindowNamedPropertiesHandler.cpp",
     "XPathGenerator.cpp",
 ]
-
-if CONFIG["MOZ_WEBRTC"]:
-    UNIFIED_SOURCES += [
-        "nsDOMDataChannel.cpp",
-    ]
 
 if CONFIG["FUZZING"]:
     UNIFIED_SOURCES += [
