@@ -42,7 +42,9 @@ def run_firefox_ui_test(topsrcdir=None, **kwargs):
         kwargs["tests"] = tests
     elif not kwargs.get("tests"):
         # If no tests have been selected, set default ones
-        kwargs["tests"] = os.path.join(fxui_dir, "tests", "functional", "manifest.ini")
+        kwargs["tests"] = [
+            os.path.join(fxui_dir, "tests", "functional", "manifest.toml")
+        ]
 
     kwargs["logger"] = kwargs.pop("log", None)
     if not kwargs["logger"]:
