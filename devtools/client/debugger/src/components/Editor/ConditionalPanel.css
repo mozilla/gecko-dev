@@ -25,7 +25,7 @@
 
 .conditional-breakpoint-panel .input-container:focus-within {
   outline: var(--theme-focus-outline);
-  outline-offset: -4px;
+  outline-offset: -2px;
 }
 
 .conditional-breakpoint-panel .prompt {
