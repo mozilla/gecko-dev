@@ -20,7 +20,6 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.toSafeIntent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -29,7 +28,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.Metrics
-import org.mozilla.fenix.HomeActivity.Companion.PRIVATE_BROWSING_MODE
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.AppStore
@@ -83,54 +81,6 @@ class HomeActivityTest {
 
         val otherIntent = Intent().toSafeIntent()
         assertNull(activity.getIntentSource(otherIntent))
-    }
-
-    @Test
-    fun `GIVEN browsing mode is not set by intent and private mode with a tab persisted WHEN getModeFromIntentOrLastKnown is called THEN returns normal browsing mode`() {
-        val browserStore = BrowserStore(
-            BrowserState(
-                tabs = listOf(
-                    createTab(url = "https://mozilla.org", private = true),
-                ),
-            ),
-        )
-
-        every { testContext.settings() } returns Settings(testContext)
-        every { activity.applicationContext } returns testContext
-        every { testContext.components.core.store } returns browserStore
-
-        testContext.settings().lastKnownMode = BrowsingMode.Private
-
-        assertEquals(BrowsingMode.Private, activity.getModeFromIntentOrLastKnown(null))
-
-        testContext.settings().lastKnownMode = BrowsingMode.Normal
-
-        assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
-    }
-
-    @Test
-    fun `GIVEN last known mode is private mode and no tabs persisted WHEN getModeFromIntentOrLastKnown is called THEN returns normal browsing mode`() {
-        val browserStore = BrowserStore()
-
-        every { testContext.settings() } returns Settings(testContext)
-        every { activity.applicationContext } returns testContext
-        every { testContext.components.core.store } returns browserStore
-
-        testContext.settings().lastKnownMode = BrowsingMode.Private
-
-        assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
-    }
-
-    @Test
-    fun `getModeFromIntentOrLastKnown returns mode from intent when set`() {
-        every { testContext.settings() } returns Settings(testContext)
-        testContext.settings().lastKnownMode = BrowsingMode.Normal
-
-        val intent = Intent()
-        intent.putExtra(PRIVATE_BROWSING_MODE, true)
-
-        assertNotEquals(testContext.settings().lastKnownMode, activity.getModeFromIntentOrLastKnown(intent))
-        assertEquals(BrowsingMode.Private, activity.getModeFromIntentOrLastKnown(intent))
     }
 
     @Test

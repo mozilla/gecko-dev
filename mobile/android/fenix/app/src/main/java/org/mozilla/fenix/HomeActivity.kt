@@ -321,7 +321,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         // There is disk read violations on some devices such as samsung and pixel for android 9/10
         components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
             // Browsing mode & theme setup should always be called before super.onCreate.
-            setupBrowsingMode(getModeFromIntentOrLastKnown(intent))
+            browsingModeManager = createBrowsingModeManager(intent)
             setupTheme()
 
             super.onCreate(savedInstanceState)
@@ -887,7 +887,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             ) + externalSourceIntentProcessors
         val intentHandled =
             intentProcessors.any { it.process(intent, navHost.navController, this.intent, settings()) }
-        browsingModeManager.mode = getModeFromIntentOrLastKnown(intent)
+        browsingModeManager.updateMode(intent)
 
         if (intentHandled) {
             supportFragmentManager
@@ -1105,29 +1105,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     /**
-     * External sources such as 3rd party links and shortcuts use this function to enter
-     * private mode directly before the content view is created. Returns the mode set by the intent
-     * otherwise falls back to normal browsing mode.
-     */
-    @VisibleForTesting
-    internal fun getModeFromIntentOrLastKnown(intent: Intent?): BrowsingMode {
-        intent?.toSafeIntent()?.let {
-            if (it.hasExtra(PRIVATE_BROWSING_MODE)) {
-                val startPrivateMode = it.getBooleanExtra(PRIVATE_BROWSING_MODE, false)
-                return BrowsingMode.fromBoolean(isPrivate = startPrivateMode)
-            }
-        }
-
-        if (settings().lastKnownMode.isPrivate &&
-            components.core.store.state.getNormalOrPrivateTabs(private = true).isNotEmpty()
-        ) {
-            return BrowsingMode.Private
-        }
-
-        return BrowsingMode.Normal
-    }
-
-    /**
      * Determines whether the activity should be pushed to be backstack (i.e., 'minimized' to the recents
      * screen) upon starting.
      * @param intent - The intent that started this activity. Is checked for having the 'START_IN_RECENTS_SCREEN'-extra.
@@ -1138,11 +1115,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             return it.getBooleanExtra(START_IN_RECENTS_SCREEN, false)
         }
         return false
-    }
-
-    private fun setupBrowsingMode(mode: BrowsingMode) {
-        settings().lastKnownMode = mode
-        browsingModeManager = createBrowsingModeManager(mode)
     }
 
     private fun setupTheme() {
@@ -1295,9 +1267,10 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         return super.getSystemService(name)
     }
 
-    private fun createBrowsingModeManager(initialMode: BrowsingMode): BrowsingModeManager {
+    private fun createBrowsingModeManager(intent: Intent?): BrowsingModeManager {
         return DefaultBrowsingModeManager(
-            initialMode = initialMode,
+            intent = intent,
+            store = components.core.store,
             settings = components.settings,
             modeDidChange = { newMode ->
                 updateSecureWindowFlags(newMode)
@@ -1308,7 +1281,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 components.appStore.dispatch(AppAction.BrowsingModeManagerModeChanged(mode = newMode))
             },
         ).also {
-            updateSecureWindowFlags(initialMode)
+            updateSecureWindowFlags(it.mode)
         }
     }
 

@@ -1112,7 +1112,8 @@ class DefaultTabsTrayControllerTest {
         var appStateModeUpdate: BrowsingMode? = null
         browsingModeManager = spyk(
             DefaultBrowsingModeManager(
-                initialMode = BrowsingMode.Private,
+                intent = null,
+                store = browserStore,
                 settings = settings,
                 modeDidChange = mockk(relaxed = true),
                 updateAppStateMode = { updatedMode ->
