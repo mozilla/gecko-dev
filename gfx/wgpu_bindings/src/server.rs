@@ -351,8 +351,14 @@ unsafe fn adapter_request_device(
     new_queue_id: id::QueueId,
 ) -> Option<String> {
     if let wgt::Trace::Directory(ref path) = desc.trace {
-        log::warn!("DeviceDescriptor from child process should not request wgpu trace path, but it did request `{}`",
-                   path.display());
+        log::warn!(
+            concat!(
+                "DeviceDescriptor from child process ",
+                "should not request wgpu trace path, ",
+                "but it did request `{}`"
+            ),
+            path.display()
+        );
     }
     desc.trace = wgt::Trace::Off;
     if let Some(env_dir) = std::env::var_os("WGPU_TRACE") {
@@ -2018,7 +2024,10 @@ impl Global {
                     {
                         self.create_texture_error(Some(id), &desc);
                         error_buf.init(ErrMsg {
-                            message: "Bgra8Unorm with GPUStorageBinding usage with BGRA8UNORM_STORAGE disabled",
+                            message: concat!(
+                                "Bgra8Unorm with GPUStorageBinding usage ",
+                                "with BGRA8UNORM_STORAGE disabled"
+                            ),
                             r#type: ErrorBufferType::Validation,
                         }, device_id);
                         return;
@@ -2541,7 +2550,10 @@ unsafe fn process_message(
                             }
                         }
                         if result.is_none() {
-                            log::error!("Failed to find D3D12 adapter with the same LUID that the compositor is using!");
+                            log::error!(concat!(
+                                "Failed to find D3D12 adapter with the same LUID ",
+                                "that the compositor is using!"
+                            ));
                             result = Some(false);
                         }
                     }
@@ -2692,7 +2704,10 @@ unsafe fn process_message(
                 /* GPUMapMode.READ */ 1 => wgc::device::HostMap::Read,
                 /* GPUMapMode.WRITE */ 2 => wgc::device::HostMap::Write,
                 _ => {
-                    let message = "GPUBuffer.mapAsync 'mode' argument must be either GPUMapMode.READ or GPUMapMode.WRITE";
+                    let message = concat!(
+                        "GPUBuffer.mapAsync 'mode' argument must be ",
+                        "either GPUMapMode.READ or GPUMapMode.WRITE"
+                    );
                     error_buf.init(
                         ErrMsg {
                             message,
