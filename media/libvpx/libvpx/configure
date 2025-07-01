@@ -691,10 +691,9 @@ process_toolchain() {
           check_add_cxxflags -Wno-psabi
         fi
 
-        # Enforce C++11 compatibility.
-        check_add_cxxflags -Wc++14-extensions
-        check_add_cxxflags -Wc++17-extensions
+        # Enforce C++17 compatibility.
         check_add_cxxflags -Wc++20-extensions
+        check_add_cxxflags -Wc++23-extensions
         check_add_cxxflags -Wnon-virtual-dtor
 
         # disable some warnings specific to libyuv / libwebm.
@@ -779,33 +778,33 @@ process_toolchain() {
             soft_enable libyuv
         ;;
         *-android-*)
-            check_add_cxxflags -std=gnu++11 && soft_enable webm_io
+            check_add_cxxflags -std=gnu++17 && soft_enable webm_io
             soft_enable libyuv
             # GTestLog must be modified to use Android logging utilities.
         ;;
         *-darwin-*)
-            check_add_cxxflags -std=gnu++11
+            check_add_cxxflags -std=gnu++17
             # iOS/ARM builds do not work with gtest. This does not match
             # x86 targets.
         ;;
         *-iphonesimulator-*)
-            check_add_cxxflags -std=gnu++11 && soft_enable webm_io
+            check_add_cxxflags -std=gnu++17 && soft_enable webm_io
             soft_enable libyuv
         ;;
         *-win*)
             # Some mingw toolchains don't have pthread available by default.
             # Treat these more like visual studio where threading in gtest
             # would be disabled for the same reason.
-            check_add_cxxflags -std=gnu++11 && soft_enable unit_tests \
+            check_add_cxxflags -std=gnu++17 && soft_enable unit_tests \
               && soft_enable webm_io
             check_cxx "$@" <<EOF && soft_enable libyuv
 int z;
 EOF
         ;;
         *)
-            enabled pthread_h && check_add_cxxflags -std=gnu++11 \
+            enabled pthread_h && check_add_cxxflags -std=gnu++17 \
               && soft_enable unit_tests
-            check_add_cxxflags -std=gnu++11 && soft_enable webm_io
+            check_add_cxxflags -std=gnu++17 && soft_enable webm_io
             check_cxx "$@" <<EOF && soft_enable libyuv
 int z;
 EOF

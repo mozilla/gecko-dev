@@ -863,13 +863,13 @@ static void accumulate_fp_mb_row_stat(TileDataEnc *this_tile,
   this_tile->fp_data.sum_mvcs += fp_acc_data->sum_mvcs;
   this_tile->fp_data.sum_in_vectors += fp_acc_data->sum_in_vectors;
   this_tile->fp_data.intra_smooth_count += fp_acc_data->intra_smooth_count;
+  const int min_start_row = VPXMIN(this_tile->fp_data.image_data_start_row,
+                                   fp_acc_data->image_data_start_row);
   this_tile->fp_data.image_data_start_row =
-      VPXMIN(this_tile->fp_data.image_data_start_row,
-             fp_acc_data->image_data_start_row) == INVALID_ROW
+      (min_start_row == INVALID_ROW)
           ? VPXMAX(this_tile->fp_data.image_data_start_row,
                    fp_acc_data->image_data_start_row)
-          : VPXMIN(this_tile->fp_data.image_data_start_row,
-                   fp_acc_data->image_data_start_row);
+          : min_start_row;
 }
 
 #define NZ_MOTION_PENALTY 128
@@ -1536,9 +1536,9 @@ static int get_twopass_worst_quality(VP9_COMP *cpi, const double section_err,
   last_group_rate_err =
       (double)twopass->rolling_arf_group_actual_bits /
       DOUBLE_DIVIDE_CHECK((double)twopass->rolling_arf_group_target_bits);
-  last_group_rate_err = VPXMAX(0.25, VPXMIN(4.0, last_group_rate_err));
+  last_group_rate_err = fclamp(last_group_rate_err, 0.25, 4.0);
   twopass->bpm_factor *= (3.0 + last_group_rate_err) / 4.0;
-  twopass->bpm_factor = VPXMAX(0.25, VPXMIN(4.0, twopass->bpm_factor));
+  twopass->bpm_factor = fclamp(twopass->bpm_factor, 0.25, 4.0);
 #endif
 
   if (target_rate <= 0) {
@@ -1562,9 +1562,9 @@ static int get_twopass_worst_quality(VP9_COMP *cpi, const double section_err,
     last_group_rate_err =
         (double)twopass->rolling_arf_group_actual_bits /
         DOUBLE_DIVIDE_CHECK((double)twopass->rolling_arf_group_target_bits);
-    last_group_rate_err = VPXMAX(0.25, VPXMIN(4.0, last_group_rate_err));
+    last_group_rate_err = fclamp(last_group_rate_err, 0.25, 4.0);
     twopass->bpm_factor *= (3.0 + last_group_rate_err) / 4.0;
-    twopass->bpm_factor = VPXMAX(0.25, VPXMIN(4.0, twopass->bpm_factor));
+    twopass->bpm_factor = fclamp(twopass->bpm_factor, 0.25, 4.0);
 #endif
 
     // Try and pick a max Q that will be high enough to encode the
@@ -3418,8 +3418,8 @@ static void find_next_key_frame(VP9_COMP *cpi, int kf_show_idx) {
     kf_boost_scan_frames = (int)(VPXMAX(64 * zero_motion_avg - 16,
                                         160 * motion_compensable_avg - 112));
     kf_boost_scan_frames =
-        VPXMAX(VPXMIN(kf_boost_scan_frames, MAX_SCAN_FRAMES_FOR_KF_BOOST),
-               MIN_SCAN_FRAMES_FOR_KF_BOOST);
+        clamp(kf_boost_scan_frames, MIN_SCAN_FRAMES_FOR_KF_BOOST,
+              MAX_SCAN_FRAMES_FOR_KF_BOOST);
   }
   reset_fpf_position(twopass, start_position);
 

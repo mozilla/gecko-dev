@@ -23,6 +23,7 @@
 #include "mcomp.h"
 #include "firstpass.h"
 #include "vpx_dsp/psnr.h"
+#include "vpx_dsp/vpx_dsp_common.h"
 #include "vpx_scale/vpx_scale.h"
 #include "vp8/common/extend.h"
 #include "ratectrl.h"
@@ -1874,8 +1875,7 @@ struct VP8_COMP *vp8_create_compressor(const VP8_CONFIG *oxcf) {
             ? (2 * (cpi->common.mb_rows * cpi->common.mb_cols) /
                cpi->cyclic_refresh_mode_max_mbs_perframe)
             : 10;
-    cpi->gf_interval_onepass_cbr =
-        VPXMIN(40, VPXMAX(6, cpi->gf_interval_onepass_cbr));
+    cpi->gf_interval_onepass_cbr = clamp(cpi->gf_interval_onepass_cbr, 6, 40);
     cpi->baseline_gf_interval = cpi->gf_interval_onepass_cbr;
   }
 

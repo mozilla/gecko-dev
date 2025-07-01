@@ -1,3 +1,7 @@
+2025-05-28 v1.15.2 "Wigeon Duck"
+  This release fixes CVE-2025-5283 (bug webm:413411335), and is ABI compatible
+  with the previous release.
+
 2025-01-09 v1.15.1 "Wigeon Duck"
   This release bumps up the SO major version and fixes the language about ABI
   compatibility in the previous release changelog.

@@ -17,6 +17,7 @@
 #include "vpx/vpx_encoder.h"
 #include "vpx/vpx_ext_ratectrl.h"
 #include "vpx_dsp/psnr.h"
+#include "vpx_dsp/vpx_dsp_common.h"
 #include "vpx_ports/static_assert.h"
 #include "vpx_ports/system_state.h"
 #include "vpx_util/vpx_timestamp.h"
@@ -912,8 +913,7 @@ static vpx_codec_err_t ctrl_set_cpuused(vpx_codec_alg_priv_t *ctx,
   struct vp9_extracfg extra_cfg = ctx->extra_cfg;
   // Use fastest speed setting (speed 9 or -9) if it's set beyond the range.
   extra_cfg.cpu_used = CAST(VP8E_SET_CPUUSED, args);
-  extra_cfg.cpu_used = VPXMIN(9, extra_cfg.cpu_used);
-  extra_cfg.cpu_used = VPXMAX(-9, extra_cfg.cpu_used);
+  extra_cfg.cpu_used = clamp(extra_cfg.cpu_used, -9, 9);
 #if CONFIG_REALTIME_ONLY
   if (extra_cfg.cpu_used > -5 && extra_cfg.cpu_used < 5)
     extra_cfg.cpu_used = (extra_cfg.cpu_used > 0) ? 5 : -5;
@@ -1467,22 +1467,13 @@ static vpx_codec_err_t encoder_encode(vpx_codec_alg_priv_t *ctx,
           timebase_units_to_ticks(timebase_in_ts, pts_end);
       res = image2yuvconfig(img, &sd);
 
-      if (sd.y_width != ctx->cfg.g_w || sd.y_height != ctx->cfg.g_h) {
-        /* from vpx_encoder.h for g_w/g_h:
-           "Note that the frames passed as input to the encoder must have this
-           resolution"
-        */
-        ctx->base.err_detail = "Invalid input frame resolution";
-        res = VPX_CODEC_INVALID_PARAM;
-      } else {
-        // Store the original flags in to the frame buffer. Will extract the
-        // key frame flag when we actually encode this frame.
-        if (vp9_receive_raw_frame(cpi, flags | ctx->next_frame_flags, &sd,
+      // Store the original flags in to the frame buffer. Will extract the
+      // key frame flag when we actually encode this frame.
+      if (vp9_receive_raw_frame(cpi, flags | ctx->next_frame_flags, &sd,
                                 dst_time_stamp, dst_end_time_stamp)) {
-          res = update_error_state(ctx, &cpi->common.error);
-        }
-        ctx->next_frame_flags = 0;
+        res = update_error_state(ctx, &cpi->common.error);
       }
+      ctx->next_frame_flags = 0;
     }
 
     cx_data = ctx->cx_data;
@@ -1989,7 +1980,7 @@ static vpx_codec_err_t ctrl_set_delta_q_uv(vpx_codec_alg_priv_t *ctx,
                                            va_list args) {
   struct vp9_extracfg extra_cfg = ctx->extra_cfg;
   int data = va_arg(args, int);
-  data = VPXMIN(VPXMAX(data, -15), 15);
+  data = clamp(data, -15, 15);
   extra_cfg.delta_q_uv = data;
   return update_extra_cfg(ctx, &extra_cfg);
 }

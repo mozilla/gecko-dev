@@ -1267,7 +1267,7 @@ static void adjust_arnr_filter(VP9_COMP *cpi, int distance, int group_boost,
   if (oxcf->pass == 2) {
     base_strength = oxcf->arnr_strength + cpi->twopass.arnr_strength_adjustment;
     // Clip to allowed range.
-    base_strength = VPXMIN(6, VPXMAX(0, base_strength));
+    base_strength = clamp(base_strength, 0, 6);
   } else {
     base_strength = oxcf->arnr_strength;
   }
