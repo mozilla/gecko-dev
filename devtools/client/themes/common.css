@@ -650,15 +650,6 @@ iframe {
   z-index: 1001;
 }
 
-/* Highlighting search results */
-
-::highlight(devtools-search) {
-  color: var(--theme-search-results-color);
-  background-color: var(--theme-search-results-background);
-  text-decoration: 1px underline var(--theme-search-results-border-color);
-  text-decoration-skip: none;
-}
-
 /* Twisty and checkbox controls */
 
 .theme-twisty {
