@@ -132,3 +132,36 @@ add_task(async function () {
     "Pretty print button has the expected title attribute when it's disabled"
   );
 });
+
+add_task(async function testSystemStylesheet() {
+  const { ui, panel } = await openStyleEditorForURL("about:support");
+
+  const formsEditor = ui.editors.find(
+    editor => editor.friendlyName === "forms.css"
+  );
+  ok(!!formsEditor, "Found the editor for forms.css");
+
+  info("Selecting system style sheet.");
+  await ui.selectStyleSheet(formsEditor.styleSheet);
+
+  ok(
+    formsEditor.sourceEditor.config.readOnly,
+    "The editor for system stylesheet is readonly"
+  );
+
+  const prettyPrintButton = panel.panelWindow.document.querySelector(
+    ".style-editor-prettyPrintButton"
+  );
+  ok(prettyPrintButton, "Pretty print button is displayed");
+  ok(
+    prettyPrintButton.hasAttribute("disabled"),
+    "Pretty print button is disabled"
+  );
+  await waitFor(
+    () =>
+      prettyPrintButton.getAttribute("title") ===
+      "Can’t pretty print read-only style sheet."
+  );
+
+  ok(true, "Pretty print button has the expected title attribute");
+});

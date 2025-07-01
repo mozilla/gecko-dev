@@ -1344,23 +1344,36 @@ export class StyleEditorUI extends EventEmitter {
 
   /**
    * Update the pretty print button.
-   * The button will be disabled if the selected file is an original file.
+   * The button will be disabled if:
+   * - the selected file is read-only
+   * - OR the selected file is an original file
    */
   #updatePrettyPrintButton() {
-    const disable =
-      !this.selectedEditor || !!this.selectedEditor.styleSheet.isOriginalSource;
+    const isReadOnly = !!this.selectedEditor?.sourceEditor?.config?.readOnly;
+    const isOriginalSource =
+      !!this.selectedEditor?.styleSheet?.isOriginalSource;
+
+    const disable = !this.selectedEditor || isOriginalSource || isReadOnly;
 
     // Only update the button if its state needs it
     if (disable !== this.#prettyPrintButton.hasAttribute("disabled")) {
       this.#prettyPrintButton.toggleAttribute("disabled");
-      const l10nString = disable
-        ? "styleeditor-pretty-print-button-disabled"
-        : "styleeditor-pretty-print-button";
-      this.#window.document.l10n.setAttributes(
-        this.#prettyPrintButton,
-        l10nString
-      );
     }
+    let l10nString;
+    if (disable) {
+      if (isReadOnly) {
+        l10nString = "styleeditor-pretty-print-button-disabled-read-only";
+      } else if (isOriginalSource) {
+        l10nString = "styleeditor-pretty-print-button-disabled";
+      }
+    } else {
+      l10nString = "styleeditor-pretty-print-button";
+    }
+
+    this.#window.document.l10n.setAttributes(
+      this.#prettyPrintButton,
+      l10nString
+    );
   }
 
   /**
