@@ -1513,10 +1513,8 @@ void DataChannel::ReleaseConnection() {
   mConnection = nullptr;
 }
 
-void DataChannel::SetListener(DataChannelListener* aListener,
-                              nsISupports* aContext) {
+void DataChannel::SetListener(DataChannelListener* aListener) {
   MOZ_ASSERT(NS_IsMainThread());
-  mContext = aContext;
   mListener = aListener;
 }
 
@@ -1557,12 +1555,12 @@ void DataChannel::DecrementBufferedAmount(uint32_t aSize) {
         if (!wasLow && mBufferedAmount <= mBufferedThreshold) {
           DC_DEBUG(("%s: sending BUFFER_LOW_THRESHOLD for %s/%s: %u",
                     __FUNCTION__, mLabel.get(), mProtocol.get(), mStream));
-          mListener->OnBufferLow(mContext);
+          mListener->OnBufferLow();
         }
         if (mBufferedAmount == 0) {
           DC_DEBUG(("%s: sending NO_LONGER_BUFFERED for %s/%s: %u",
                     __FUNCTION__, mLabel.get(), mProtocol.get(), mStream));
-          mListener->NotBuffered(mContext);
+          mListener->NotBuffered();
           if (mReadyState == DataChannelState::Closing) {
             if (mConnection) {
               // We're done sending
@@ -1590,7 +1588,7 @@ void DataChannel::AnnounceOpen() {
           DC_DEBUG(("%s: sending ON_CHANNEL_OPEN for %s/%s: %u", __FUNCTION__,
                     mLabel.get(), mProtocol.get(), mStream));
           if (mListener) {
-            mListener->OnChannelConnected(mContext);
+            mListener->OnChannelConnected();
           }
         }
       }));
@@ -1626,7 +1624,7 @@ void DataChannel::AnnounceClosed() {
         if (mListener) {
           DC_DEBUG(("%s: sending ON_CHANNEL_CLOSED for %s/%s: %u", __FUNCTION__,
                     mLabel.get(), mProtocol.get(), mStream));
-          mListener->OnChannelClosed(mContext);
+          mListener->OnChannelClosed();
         }
 
         // Stats stuff
@@ -1761,10 +1759,9 @@ nsresult DataChannelOnMessageAvailable::Run() {
       }
 
       if (mType == EventType::OnDataString) {
-        mChannel->mListener->OnMessageAvailable(mChannel->mContext, mData);
+        mChannel->mListener->OnMessageAvailable(mData);
       } else {
-        mChannel->mListener->OnBinaryMessageAvailable(mChannel->mContext,
-                                                      mData);
+        mChannel->mListener->OnBinaryMessageAvailable(mData);
       }
       break;
     case EventType::OnDisconnected:

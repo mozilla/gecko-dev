@@ -44,7 +44,7 @@ RTCDataChannel::~RTCDataChannel() {
   // one) once we block GC until all the (appropriate) onXxxx handlers
   // are dropped. (See WebRTC spec)
   DC_DEBUG(("%p: Close()ing %p", this, mDataChannel.get()));
-  mDataChannel->SetListener(nullptr, nullptr);
+  mDataChannel->SetListener(nullptr);
   mDataChannel->Close();
 }
 
@@ -93,7 +93,7 @@ nsresult RTCDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
   nsAutoString urlParam;
 
   MOZ_ASSERT(mDataChannel);
-  mDataChannel->SetListener(this, nullptr);
+  mDataChannel->SetListener(this);
 
   // Now grovel through the objects to get a usable origin for onMessage
   nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(aDOMWindow);
@@ -337,20 +337,17 @@ nsresult RTCDataChannel::DoOnMessageAvailable(const nsACString& aData,
   return err.StealNSResult();
 }
 
-nsresult RTCDataChannel::OnMessageAvailable(nsISupports* aContext,
-                                            const nsACString& aMessage) {
+nsresult RTCDataChannel::OnMessageAvailable(const nsACString& aMessage) {
   MOZ_ASSERT(NS_IsMainThread());
   return DoOnMessageAvailable(aMessage, false);
 }
 
-nsresult RTCDataChannel::OnBinaryMessageAvailable(nsISupports* aContext,
-                                                  const nsACString& aMessage) {
+nsresult RTCDataChannel::OnBinaryMessageAvailable(const nsACString& aMessage) {
   MOZ_ASSERT(NS_IsMainThread());
   return DoOnMessageAvailable(aMessage, true);
 }
 
-nsresult RTCDataChannel::OnSimpleEvent(nsISupports* aContext,
-                                       const nsAString& aName) {
+nsresult RTCDataChannel::OnSimpleEvent(const nsAString& aName) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsresult rv = CheckCurrentGlobalCorrectness();
@@ -368,14 +365,14 @@ nsresult RTCDataChannel::OnSimpleEvent(nsISupports* aContext,
   return err.StealNSResult();
 }
 
-nsresult RTCDataChannel::OnChannelConnected(nsISupports* aContext) {
+nsresult RTCDataChannel::OnChannelConnected() {
   DC_DEBUG(
       ("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel, __FUNCTION__));
 
-  return OnSimpleEvent(aContext, u"open"_ns);
+  return OnSimpleEvent(u"open"_ns);
 }
 
-nsresult RTCDataChannel::OnChannelClosed(nsISupports* aContext) {
+nsresult RTCDataChannel::OnChannelClosed() {
   nsresult rv;
   // so we don't have to worry if we're notified from different paths in
   // the underlying code
@@ -385,7 +382,7 @@ nsresult RTCDataChannel::OnChannelClosed(nsISupports* aContext) {
     DC_DEBUG(("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel,
               __FUNCTION__));
 
-    rv = OnSimpleEvent(aContext, u"close"_ns);
+    rv = OnSimpleEvent(u"close"_ns);
     // no more events can happen
     mSentClose = true;
   } else {
@@ -395,14 +392,14 @@ nsresult RTCDataChannel::OnChannelClosed(nsISupports* aContext) {
   return rv;
 }
 
-nsresult RTCDataChannel::OnBufferLow(nsISupports* aContext) {
+nsresult RTCDataChannel::OnBufferLow() {
   DC_DEBUG(
       ("%p(%p): %s - Dispatching\n", this, (void*)mDataChannel, __FUNCTION__));
 
-  return OnSimpleEvent(aContext, u"bufferedamountlow"_ns);
+  return OnSimpleEvent(u"bufferedamountlow"_ns);
 }
 
-nsresult RTCDataChannel::NotBuffered(nsISupports* aContext) {
+nsresult RTCDataChannel::NotBuffered() {
   // In the rare case that we held off GC to let the buffer drain
   UpdateMustKeepAlive();
   return NS_OK;

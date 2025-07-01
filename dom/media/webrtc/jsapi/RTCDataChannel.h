@@ -78,21 +78,20 @@ class RTCDataChannel final : public DOMEventTargetHelper,
 
   nsresult DoOnMessageAvailable(const nsACString& aMessage, bool aBinary);
 
-  virtual nsresult OnMessageAvailable(nsISupports* aContext,
-                                      const nsACString& aMessage) override;
+  virtual nsresult OnMessageAvailable(const nsACString& aMessage) override;
 
   virtual nsresult OnBinaryMessageAvailable(
-      nsISupports* aContext, const nsACString& aMessage) override;
+      const nsACString& aMessage) override;
 
-  virtual nsresult OnSimpleEvent(nsISupports* aContext, const nsAString& aName);
+  virtual nsresult OnSimpleEvent(const nsAString& aName);
 
-  virtual nsresult OnChannelConnected(nsISupports* aContext) override;
+  virtual nsresult OnChannelConnected() override;
 
-  virtual nsresult OnChannelClosed(nsISupports* aContext) override;
+  virtual nsresult OnChannelClosed() override;
 
-  virtual nsresult OnBufferLow(nsISupports* aContext) override;
+  virtual nsresult OnBufferLow() override;
 
-  virtual nsresult NotBuffered(nsISupports* aContext) override;
+  virtual nsresult NotBuffered() override;
 
   // if there are "strong event listeners" or outgoing not sent messages
   // then this method keeps the object alive when js doesn't have strong

@@ -7,7 +7,6 @@
 #ifndef NETWERK_SCTP_DATACHANNEL_DATACHANNELLISTENER_H_
 #define NETWERK_SCTP_DATACHANNEL_DATACHANNELLISTENER_H_
 
-#include "nsISupports.h"
 #include "nsString.h"
 
 namespace mozilla {
@@ -20,24 +19,22 @@ class DataChannelListener {
   virtual ~DataChannelListener() = default;
 
   // Called when a DOMString message is received.
-  virtual nsresult OnMessageAvailable(nsISupports* aContext,
-                                      const nsACString& message) = 0;
+  virtual nsresult OnMessageAvailable(const nsACString& message) = 0;
 
   // Called when a binary message is received.
-  virtual nsresult OnBinaryMessageAvailable(nsISupports* aContext,
-                                            const nsACString& message) = 0;
+  virtual nsresult OnBinaryMessageAvailable(const nsACString& message) = 0;
 
   // Called when the channel is connected
-  virtual nsresult OnChannelConnected(nsISupports* aContext) = 0;
+  virtual nsresult OnChannelConnected() = 0;
 
   // Called when the channel is closed
-  virtual nsresult OnChannelClosed(nsISupports* aContext) = 0;
+  virtual nsresult OnChannelClosed() = 0;
 
   // Called when the BufferedAmount drops below the BufferedAmountLowThreshold
-  virtual nsresult OnBufferLow(nsISupports* aContext) = 0;
+  virtual nsresult OnBufferLow() = 0;
 
   // Called when the BufferedAmount drops to 0
-  virtual nsresult NotBuffered(nsISupports* aContext) = 0;
+  virtual nsresult NotBuffered() = 0;
 };
 
 }  // namespace mozilla

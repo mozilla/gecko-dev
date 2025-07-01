@@ -413,7 +413,7 @@ class DataChannel {
   void Close();
 
   // Set the listener (especially for channels created from the other side)
-  void SetListener(DataChannelListener* aListener, nsISupports* aContext);
+  void SetListener(DataChannelListener* aListener);
 
   // Helper for send methods that converts POSIX error codes to an ErrorResult.
   static void SendErrnoToErrorResult(int error, size_t aMessageSize,
@@ -473,7 +473,6 @@ class DataChannel {
 
   // Mainthread only
   DataChannelListener* mListener = nullptr;
-  nsCOMPtr<nsISupports> mContext;
   bool mEverOpened = false;
   const nsCString mLabel;
   const nsCString mProtocol;
