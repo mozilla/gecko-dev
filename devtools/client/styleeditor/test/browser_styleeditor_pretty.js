@@ -60,6 +60,21 @@ add_task(async function () {
     "minified source has been prettified automatically"
   );
 
+  const prettyPrintButton = panel.panelWindow.document.querySelector(
+    ".style-editor-prettyPrintButton"
+  );
+
+  info("Attempt to prettify the stylesheet manually");
+  let onEditorChange = minifiedEditor.sourceEditor.once("changes");
+  EventUtils.synthesizeMouseAtCenter(prettyPrintButton, {}, panel.panelWindow);
+  await onEditorChange;
+
+  is(
+    minifiedEditor.sourceEditor.getText(),
+    PRETTIFIED_CSS_TEXT,
+    "Re-prettifying the stylesheet did not change the text unnecessarily"
+  );
+
   info("Selecting second, non-minified style sheet.");
   await ui.selectStyleSheet(ui.editors[1].styleSheet);
 
@@ -68,10 +83,6 @@ add_task(async function () {
     inlineEditor.sourceEditor.getText(),
     INLINE_STYLESHEET_ORIGINAL_CSS_TEXT,
     "non-minified source has been left untouched"
-  );
-
-  const prettyPrintButton = panel.panelWindow.document.querySelector(
-    ".style-editor-prettyPrintButton"
   );
   ok(prettyPrintButton, "Pretty print button is displayed");
   ok(
@@ -84,7 +95,7 @@ add_task(async function () {
     "Pretty print button has the expected title attribute"
   );
 
-  const onEditorChange = inlineEditor.sourceEditor.once("changes");
+  onEditorChange = inlineEditor.sourceEditor.once("changes");
   EventUtils.synthesizeMouseAtCenter(prettyPrintButton, {}, panel.panelWindow);
   await onEditorChange;
 
@@ -92,6 +103,17 @@ add_task(async function () {
     inlineEditor.sourceEditor.getText(),
     INLINE_STYLESHEET_PRETTIFIED_CSS_TEXT,
     "inline stylesheet was prettified as expected when clicking on pretty print button"
+  );
+
+  info("Attempt to prettify the inline stylesheet again");
+  onEditorChange = inlineEditor.sourceEditor.once("changes");
+  EventUtils.synthesizeMouseAtCenter(prettyPrintButton, {}, panel.panelWindow);
+  await onEditorChange;
+
+  is(
+    inlineEditor.sourceEditor.getText(),
+    INLINE_STYLESHEET_PRETTIFIED_CSS_TEXT,
+    "Re-prettifying the inline stylesheet did not change the text unnecessarily"
   );
 
   info("Selecting original style sheet.");

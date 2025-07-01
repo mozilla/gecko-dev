@@ -4,6 +4,7 @@
 
 "use strict";
 
+const LINE_BREAK_RE = /\r\n?|\n|\u2028|\u2029/;
 const MAX_DATA_URL_LENGTH = 40;
 /**
  * Provide access to the style information in a page.
@@ -258,7 +259,7 @@ function prettifyCSS(text, ruleCount) {
   }
 
   // Stylesheets may start and end with HTML comment tags (possibly with whitespaces
-  // before and after). Remove those first. Don't do anything there aren't any.
+  // before and after). Remove those first. Don't do anything if there aren't any.
   const trimmed = text.trim();
   if (trimmed.startsWith("<!--")) {
     text = trimmed.replace(/^<!--/, "").replace(/-->$/, "").trim();
@@ -394,7 +395,15 @@ function prettifyCSS(text, ruleCount) {
         break;
       }
 
-      if (token.tokenType !== "WhiteSpace") {
+      if (token.tokenType === "WhiteSpace") {
+        if (LINE_BREAK_RE.test(token.text)) {
+          // If we encounter a new line after a significant token, we can
+          // move on to the next significant token.
+          // This avoids messing with declarations with no semi-colon preceding
+          // a closing brace, eg `{\n  color: red\n  }`
+          break;
+        }
+      } else {
         anyNonWS = true;
       }
 
