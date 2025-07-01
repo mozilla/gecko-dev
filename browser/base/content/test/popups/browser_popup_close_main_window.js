@@ -16,10 +16,7 @@ add_task(async function closing_last_window_equals_quitting() {
     return;
   }
 
-  let controller = new AbortController();
-  let { signal } = controller;
-
-  BrowserTestUtils.concealWindow(window, { signal });
+  BrowserTestUtils.concealWindow(window, { signal: testSignal });
 
   let observed = 0;
   function obs() {
@@ -32,8 +29,6 @@ add_task(async function closing_last_window_equals_quitting() {
   await closedPromise;
   is(observed, 1, "Got a notification for closing the normal window.");
   Services.obs.removeObserver(obs, "browser-lastwindow-close-requested");
-
-  controller.abort();
 });
 
 /**
@@ -49,10 +44,7 @@ add_task(async function closing_last_window_equals_quitting() {
     return;
   }
 
-  let controller = new AbortController();
-  let { signal } = controller;
-
-  BrowserTestUtils.concealWindow(window, { signal });
+  BrowserTestUtils.concealWindow(window, { signal: testSignal });
   let observed = 0;
   function obs() {
     observed++;
@@ -78,6 +70,4 @@ add_task(async function closing_last_window_equals_quitting() {
     "Got no notification now that we're closing the last window, as it's a popup."
   );
   Services.obs.removeObserver(obs, "browser-lastwindow-close-requested");
-
-  controller.abort();
 });

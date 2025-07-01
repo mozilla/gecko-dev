@@ -3,7 +3,7 @@
 
 "use strict";
 
-setExpectedFailuresForSelfTest(4);
+setExpectedFailuresForSelfTest(5);
 
 function rejectOnNextTick(error) {
   return new Promise((resolve, reject) => executeSoon(() => reject(error)));
@@ -24,4 +24,10 @@ add_task(async function failWithInt() {
 // This one should display a stack trace
 add_task(async function failWithError() {
   await rejectOnNextTick(new Error("This is an error"));
+});
+
+add_task(async function failWithAbort() {
+  testSignal.addEventListener("abort", () => {
+    throw new Error("err");
+  });
 });

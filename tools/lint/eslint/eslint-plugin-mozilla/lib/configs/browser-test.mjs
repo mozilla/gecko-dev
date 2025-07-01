@@ -54,6 +54,7 @@ export default {
     setExpectedFailuresForSelfTest: "readonly",
     stringContains: "readonly",
     stringMatches: "readonly",
+    testSignal: "readonly",
     todo: "readonly",
     todo_is: "readonly",
     todo_isnot: "readonly",

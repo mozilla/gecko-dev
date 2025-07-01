@@ -1201,6 +1201,13 @@ Tester.prototype = {
     let desc = isSetup ? "setup" : "test";
     currentScope.SimpleTest.info(`Entering ${desc} ${task.name}`);
     let startTimestamp = performance.now();
+    let controller = new AbortController();
+    currentScope.__signal = controller.signal;
+    if (isSetup) {
+      currentScope.registerCleanupFunction(() => {
+        controller.abort();
+      });
+    }
     try {
       let result = await task();
       if (isGenerator(result)) {
@@ -1229,6 +1236,10 @@ Tester.prototype = {
           allowFailure: currentTest.allowFailure,
         })
       );
+    } finally {
+      if (!isSetup) {
+        controller.abort();
+      }
     }
     PromiseTestUtils.assertNoUncaughtRejections();
     ChromeUtils.addProfilerMarker(
@@ -1905,6 +1916,8 @@ testScope.prototype = {
   __timeoutFactor: 1,
   __expectedMinAsserts: 0,
   __expectedMaxAsserts: 0,
+  /** @type {AbortSignal} */
+  __signal: null,
 
   EventUtils: {},
   AccessibilityUtils: {},
@@ -1969,6 +1982,10 @@ testScope.prototype = {
     for (let prop in this) {
       delete this[prop];
     }
+  },
+
+  get testSignal() {
+    return this.__signal;
   },
 };
 
