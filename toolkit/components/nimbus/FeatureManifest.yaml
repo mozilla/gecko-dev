@@ -1278,6 +1278,22 @@ newtabSmartShortcuts:
       type: boolean
       description: >-
         Enable personalized shortcuts
+    over_sample_multiplier:
+      type: int
+      description: >-
+        Controls how many multiples of the frecent we sample before reranking
+    positive_prior:
+      type: int
+      description: >-
+        Alpha in shortcut thompson sampling, exploit faster
+    negative_prior:
+      type: int
+      description: >-
+        Beta in shortcut thompson sampling, explore longer
+    thom_weight:
+      type: int
+      description: >-
+        Percentage weight of thompson sampling relative to frecency
 
 newTabSectionsExperiment:
   description: about:newtab section UI update
