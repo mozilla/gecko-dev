@@ -1,11 +1,17 @@
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["toolkit.osKeyStore.unofficialBuildOnlyLogin", ""]],
+  });
+});
+
 add_task(async function test_fill_creditCard_but_cancel_login() {
-  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
-    todo(
-      OSKeyStoreTestUtils.canTestOSKeyStoreLogin(),
-      "Cannot test OS key store login on official builds."
-    );
+  if (
+    !OSKeyStore.canReauth() ||
+    !OSKeyStoreTestUtils.canTestOSKeyStoreLogin()
+  ) {
+    info("Cannot test login cancel.");
     return;
   }
 

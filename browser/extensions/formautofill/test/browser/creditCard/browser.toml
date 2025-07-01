@@ -80,14 +80,7 @@ skip-if = [
 skip-if = ["true"]
 
 ["browser_creditCard_fill_cancel_login.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan",
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl",
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan && swgl",
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt",
-]
+skip-if = ["os == 'linux'"]
 
 ["browser_creditCard_heuristics.js"]
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"] # Bug 1714221
