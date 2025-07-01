@@ -243,6 +243,14 @@ export namespace schema {
                                 };
                             };
                         };
+                        Download: {
+                            type: string;
+                            properties: {
+                                Enabled: {
+                                    type: string;
+                                };
+                            };
+                        };
                         DragAndDrop: {
                             type: string;
                             properties: {
@@ -527,12 +535,19 @@ export namespace schema {
                 EmailTracking: {
                     type: string;
                 };
+                SuspectedFingerprinting: {
+                    type: string;
+                };
                 Exceptions: {
                     type: string;
                     strict: boolean;
                     items: {
                         type: string;
                     };
+                };
+                Category: {
+                    type: string;
+                    enum: string[];
                 };
             };
         };
@@ -677,7 +692,13 @@ export namespace schema {
                 Pocket: {
                     type: string;
                 };
+                Stories: {
+                    type: string;
+                };
                 SponsoredPocket: {
+                    type: string;
+                };
+                SponsoredStories: {
                     type: string;
                 };
                 Snippets: {

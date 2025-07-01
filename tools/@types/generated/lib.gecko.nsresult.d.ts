@@ -372,6 +372,9 @@ interface nsIXPCComponents_Results {
   /** User attempted basic HTTP authentication when it is disabled */
   NS_ERROR_BASIC_HTTP_AUTH_DISABLED: 0x804b005c;
 
+  /** The access to local network is denied */
+  NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED: 0x804b005d;
+
   // Error codes return from the proxy
 
   /** The connection to the proxy server was refused */
@@ -505,6 +508,12 @@ interface nsIXPCComponents_Results {
 
   /** Can't access a wrapped JS object from a different thread */
   NS_ERROR_NOT_SAME_THREAD: 0x80460004;
+
+  /** Access to restricted URI denied */
+  NS_ERROR_DOM_BAD_URI: 0x805303f4;
+
+  /** Opening the Websocket failed */
+  NS_ERROR_WEBSOCKET_CONNECTION_REFUSED: 0x804b0057;
 
   // storage related codes (from mozStorage.h)
 

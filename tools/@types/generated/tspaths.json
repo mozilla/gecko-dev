@@ -101,9 +101,6 @@
       "chrome://browser/content/profiles/profile-card.mjs": [
         "browser/components/profiles/content/profile-card.mjs"
       ],
-      "chrome://browser/content/profiles/profiles-group.mjs": [
-        "browser/components/profiles/content/profiles-group.mjs"
-      ],
       "chrome://browser/content/profiles/profiles-theme-card.mjs": [
         "browser/components/profiles/content/profiles-theme-card.mjs"
       ],
@@ -173,18 +170,6 @@
       "chrome://global/content/elements/browser-custom-element.mjs": [
         "toolkit/content/widgets/browser-custom-element.mjs"
       ],
-      "chrome://global/content/elements/moz-box-button.mjs": [
-        "toolkit/content/widgets/moz-box-button/moz-box-button.mjs"
-      ],
-      "chrome://global/content/elements/moz-box-group.mjs": [
-        "toolkit/content/widgets/moz-box-group/moz-box-group.mjs"
-      ],
-      "chrome://global/content/elements/moz-box-item.mjs": [
-        "toolkit/content/widgets/moz-box-item/moz-box-item.mjs"
-      ],
-      "chrome://global/content/elements/moz-box-link.mjs": [
-        "toolkit/content/widgets/moz-box-link/moz-box-link.mjs"
-      ],
       "chrome://global/content/elements/moz-button-group.mjs": [
         "toolkit/content/widgets/moz-button-group/moz-button-group.mjs"
       ],
@@ -200,18 +185,6 @@
       "chrome://global/content/elements/moz-fieldset.mjs": [
         "toolkit/content/widgets/moz-fieldset/moz-fieldset.mjs"
       ],
-      "chrome://global/content/elements/moz-five-star.mjs": [
-        "toolkit/content/widgets/moz-five-star/moz-five-star.mjs"
-      ],
-      "chrome://global/content/elements/moz-input-folder.mjs": [
-        "toolkit/content/widgets/moz-input-folder/moz-input-folder.mjs"
-      ],
-      "chrome://global/content/elements/moz-input-password.mjs": [
-        "toolkit/content/widgets/moz-input-password/moz-input-password.mjs"
-      ],
-      "chrome://global/content/elements/moz-input-search.mjs": [
-        "toolkit/content/widgets/moz-input-search/moz-input-search.mjs"
-      ],
       "chrome://global/content/elements/moz-input-text.mjs": [
         "toolkit/content/widgets/moz-input-text/moz-input-text.mjs"
       ],
@@ -221,29 +194,14 @@
       "chrome://global/content/elements/moz-message-bar.mjs": [
         "toolkit/content/widgets/moz-message-bar/moz-message-bar.mjs"
       ],
-      "chrome://global/content/elements/moz-page-nav.mjs": [
-        "toolkit/content/widgets/moz-page-nav/moz-page-nav.mjs"
-      ],
-      "chrome://global/content/elements/moz-radio-group.mjs": [
-        "toolkit/content/widgets/moz-radio-group/moz-radio-group.mjs"
-      ],
-      "chrome://global/content/elements/moz-select.mjs": [
-        "toolkit/content/widgets/moz-select/moz-select.mjs"
-      ],
       "chrome://global/content/elements/moz-support-link.mjs": [
         "toolkit/content/widgets/moz-support-link/moz-support-link.mjs"
-      ],
-      "chrome://global/content/elements/moz-toggle.mjs": [
-        "toolkit/content/widgets/moz-toggle/moz-toggle.mjs"
       ],
       "chrome://global/content/elements/moz-visual-picker.mjs": [
         "toolkit/content/widgets/moz-visual-picker/moz-visual-picker.mjs"
       ],
       "chrome://global/content/elements/panel-list.js": [
         "toolkit/content/widgets/panel-list/panel-list.js"
-      ],
-      "chrome://global/content/lit-select-control.mjs": [
-        "toolkit/content/widgets/lit-select-control.mjs"
       ],
       "chrome://global/content/lit-utils.mjs": [
         "toolkit/content/widgets/lit-utils.mjs"
@@ -283,6 +241,9 @@
       ],
       "chrome://global/content/ml/StopWords.sys.mjs": [
         "toolkit/components/ml/content/nlp/StopWords.sys.mjs"
+      ],
+      "chrome://global/content/ml/ThomSample.sys.mjs": [
+        "toolkit/components/ml/content/ThomSample.sys.mjs"
       ],
       "chrome://global/content/ml/backends/LlamaPipeline.mjs": [
         "toolkit/components/ml/content/backends/LlamaPipeline.mjs"
@@ -401,17 +362,8 @@
       "chrome://mochitests/content/chrome/toolkit/components/workerloader/tests/moduleD-circular.js": [
         "toolkit/components/workerloader/tests/moduleD-circular.js"
       ],
-      "chrome://pocket/content/Pocket.sys.mjs": [
-        "browser/components/pocket/content/Pocket.sys.mjs"
-      ],
-      "chrome://pocket/content/SaveToPocket.sys.mjs": [
-        "browser/components/pocket/content/SaveToPocket.sys.mjs"
-      ],
       "chrome://pocket/content/pktApi.sys.mjs": [
         "browser/components/pocket/content/pktApi.sys.mjs"
-      ],
-      "chrome://pocket/content/pktTelemetry.sys.mjs": [
-        "browser/components/pocket/content/pktTelemetry.sys.mjs"
       ],
       "chrome://remote/content/components/Marionette.sys.mjs": [
         "remote/components/Marionette.sys.mjs"
@@ -803,9 +755,6 @@
       "resource:///actors/AboutNewTabParent.sys.mjs": [
         "browser/actors/AboutNewTabParent.sys.mjs"
       ],
-      "resource:///actors/AboutPocketParent.sys.mjs": [
-        "browser/actors/AboutPocketParent.sys.mjs"
-      ],
       "resource:///actors/AboutPrivateBrowsingParent.sys.mjs": [
         "browser/actors/AboutPrivateBrowsingParent.sys.mjs"
       ],
@@ -857,6 +806,9 @@
       "resource:///modules/AboutNewTabRedirector.sys.mjs": [
         "browser/components/newtab/AboutNewTabRedirector.sys.mjs"
       ],
+      "resource:///modules/AboutNewTabResourceMapping.sys.mjs": [
+        "browser/components/newtab/AboutNewTabResourceMapping.sys.mjs"
+      ],
       "resource:///modules/AccountsGlue.sys.mjs": [
         "browser/components/AccountsGlue.sys.mjs"
       ],
@@ -874,9 +826,6 @@
       ],
       "resource:///modules/AttributionCode.sys.mjs": [
         "browser/components/attribution/AttributionCode.sys.mjs"
-      ],
-      "resource:///modules/BrowserContentHandler.sys.mjs": [
-        "browser/components/BrowserContentHandler.sys.mjs"
       ],
       "resource:///modules/BrowserGlue.sys.mjs": [
         "browser/components/BrowserGlue.sys.mjs"
@@ -1373,6 +1322,12 @@
       "resource:///modules/firefox-view-tabs-setup-manager.sys.mjs": [
         "browser/components/firefoxview/firefox-view-tabs-setup-manager.sys.mjs"
       ],
+      "resource:///modules/ipprotection/IPProtection.sys.mjs": [
+        "browser/components/ipprotection/IPProtection.sys.mjs"
+      ],
+      "resource:///modules/ipprotection/IPProtectionPanel.sys.mjs": [
+        "browser/components/ipprotection/IPProtectionPanel.sys.mjs"
+      ],
       "resource:///modules/pagedata/OpenGraphPageData.sys.mjs": [
         "browser/components/pagedata/OpenGraphPageData.sys.mjs"
       ],
@@ -1442,6 +1397,9 @@
       "resource:///modules/sessionstore/SessionStore.sys.mjs": [
         "browser/components/sessionstore/SessionStore.sys.mjs"
       ],
+      "resource:///modules/sessionstore/SessionWindowUI.sys.mjs": [
+        "browser/components/sessionstore/SessionWindowUI.sys.mjs"
+      ],
       "resource:///modules/sessionstore/SessionWriter.sys.mjs": [
         "browser/components/sessionstore/SessionWriter.sys.mjs"
       ],
@@ -1487,8 +1445,26 @@
       "resource:///modules/syncedtabs/util.sys.mjs": [
         "browser/components/syncedtabs/util.sys.mjs"
       ],
-      "resource:///modules/taskbartabs/TaskbarTabUI.sys.mjs": [
-        "browser/components/taskbartabs/TaskbarTabUI.sys.mjs"
+      "resource:///modules/taskbartabs/TaskbarTabs.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabs.sys.mjs"
+      ],
+      "resource:///modules/taskbartabs/TaskbarTabsChrome.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabsChrome.sys.mjs"
+      ],
+      "resource:///modules/taskbartabs/TaskbarTabsPageAction.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabsPageAction.sys.mjs"
+      ],
+      "resource:///modules/taskbartabs/TaskbarTabsPin.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabsPin.sys.mjs"
+      ],
+      "resource:///modules/taskbartabs/TaskbarTabsRegistry.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabsRegistry.sys.mjs"
+      ],
+      "resource:///modules/taskbartabs/TaskbarTabsUtils.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabsUtils.sys.mjs"
+      ],
+      "resource:///modules/taskbartabs/TaskbarTabsWindowManager.sys.mjs": [
+        "browser/components/taskbartabs/TaskbarTabsWindowManager.sys.mjs"
       ],
       "resource:///modules/topsites/TippyTopProvider.sys.mjs": [
         "browser/components/topsites/TippyTopProvider.sys.mjs"
@@ -3494,9 +3470,6 @@
       "resource://devtools/client/performance-new/shared/browser.js": [
         "devtools/client/performance-new/shared/browser.js"
       ],
-      "resource://devtools/shared/performance-new/symbolication.sys.mjs": [
-        "devtools/shared/performance-new/symbolication.sys.mjs"
-      ],
       "resource://devtools/client/performance-new/shared/typescript-lazy-load.sys.mjs": [
         "devtools/client/performance-new/shared/typescript-lazy-load.sys.mjs"
       ],
@@ -4790,6 +4763,9 @@
       "resource://devtools/server/startup/content-process.sys.mjs": [
         "devtools/server/startup/content-process.sys.mjs"
       ],
+      "resource://devtools/server/startup/worker.sys.mjs": [
+        "devtools/server/startup/worker.sys.mjs"
+      ],
       "resource://devtools/server/tracer/tracer.sys.mjs": [
         "devtools/server/tracer/tracer.sys.mjs"
       ],
@@ -5002,6 +4978,9 @@
       ],
       "resource://devtools/shared/performance-new/recording-utils.sys.mjs": [
         "devtools/shared/performance-new/recording-utils.sys.mjs"
+      ],
+      "resource://devtools/shared/performance-new/symbolication.sys.mjs": [
+        "devtools/shared/performance-new/symbolication.sys.mjs"
       ],
       "resource://devtools/shared/platform/CacheEntry.sys.mjs": [
         "devtools/shared/platform/CacheEntry.sys.mjs"
@@ -5533,15 +5512,6 @@
       ],
       "resource://gre/modules/DelayedInit.sys.mjs": [
         "mobile/shared/modules/geckoview/DelayedInit.sys.mjs"
-      ],
-      "moz-src:///toolkit/components/doh/DoHConfig.sys.mjs": [
-        "toolkit/components/doh/DoHConfig.sys.mjs"
-      ],
-      "moz-src:///toolkit/components/doh/DoHController.sys.mjs": [
-        "toolkit/components/doh/DoHController.sys.mjs"
-      ],
-      "moz-src:///toolkit/components/doh/DoHHeuristics.sys.mjs": [
-        "toolkit/components/doh/DoHHeuristics.sys.mjs"
       ],
       "resource://gre/modules/DownloadCore.sys.mjs": [
         "toolkit/components/downloads/DownloadCore.sys.mjs"
@@ -6185,9 +6155,6 @@
       "resource://gre/modules/SyncedBookmarksMirror.sys.mjs": [
         "toolkit/components/places/SyncedBookmarksMirror.sys.mjs"
       ],
-      "moz-src:///toolkit/components/doh/TRRPerformance.sys.mjs": [
-        "toolkit/components/doh/TRRPerformance.sys.mjs"
-      ],
       "resource://gre/modules/TaskScheduler.sys.mjs": [
         "toolkit/components/taskscheduler/TaskScheduler.sys.mjs"
       ],
@@ -6680,8 +6647,14 @@
       "resource://newtab/lib/SectionsManager.sys.mjs": [
         "browser/extensions/newtab/lib/SectionsManager.sys.mjs"
       ],
+      "resource://newtab/lib/ShortcutsRanker.sys.mjs": [
+        "browser/extensions/newtab/lib/ShortcutsRanker.sys.mjs"
+      ],
       "resource://newtab/lib/SiteClassifier.sys.mjs": [
         "browser/extensions/newtab/lib/SiteClassifier.sys.mjs"
+      ],
+      "resource://newtab/lib/SmartShortcutsFeed.sys.mjs": [
+        "browser/extensions/newtab/lib/SmartShortcutsFeed.sys.mjs"
       ],
       "resource://newtab/lib/StartupCacheInit.sys.mjs": [
         "browser/extensions/newtab/lib/StartupCacheInit.sys.mjs"
@@ -6721,6 +6694,9 @@
       ],
       "resource://nimbus/FirefoxLabs.sys.mjs": [
         "toolkit/components/nimbus/FirefoxLabs.sys.mjs"
+      ],
+      "resource://nimbus/lib/Enrollments.sys.mjs": [
+        "toolkit/components/nimbus/lib/Enrollments.sys.mjs"
       ],
       "resource://nimbus/lib/ExperimentManager.sys.mjs": [
         "toolkit/components/nimbus/lib/ExperimentManager.sys.mjs"
