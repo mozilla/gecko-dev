@@ -8,6 +8,11 @@
   <title>Test animation of the "width" &amp; "height" &lt;length&gt; attributes on the "use" element</title>
   <script type="text/javascript">
     function doTest() {
+      // The use elements below reference symbols. Setting the value of the
+      // 'width' or 'height' disables/enables its rendering when zero/non-zero.
+      // We're checking that the use elements render as normal once the set
+      // is over because there's no fill="freeze" here, and that if the set
+      // is in place, the use elements don't render.
       setTimeAndSnapshot(1, true);
     }
     window.addEventListener("MozReftestInvalidate", doTest, false);
@@ -15,23 +20,37 @@
   <script xlink:href="smil-util.js" type="text/javascript"/>
 
   <defs>
-    <g id="g1">
+    <symbol id="s1">
       <rect width="100" height="50" fill="lime" />
-    </g>
-    <g id="g2">
+    </symbol>
+    <symbol id="s2">
       <rect y="50" width="100" height="50" fill="lime" />
-    </g>
+    </symbol>
+    <symbol id="s3">
+      <rect x="100" width="100" height="50" fill="red" />
+    </symbol>
+    <symbol id="s4">
+      <rect x="100" y="50" width="100" height="50" fill="red" />
+    </symbol>
   </defs>
 
   <rect width="100%" height="100%" fill="lime"/>
   <rect width="100" height="100" fill="red" />
-  <use xlink:href="#g1">
+  <use xlink:href="#s1">
     <set attributeName="width"
       to="0" begin="0s" dur="0.5s"/>
   </use>
-  <use xlink:href="#g2">
+  <use xlink:href="#s2">
     <set attributeName="height"
       to="0" begin="0s" dur="0.5s"/>
+  </use>
+  <use xlink:href="#s3">
+    <set attributeName="width"
+      to="0" begin="0s" dur="2s"/>
+  </use>
+  <use xlink:href="#s4">
+    <set attributeName="height"
+      to="0" begin="0s" dur="2s"/>
   </use>
 
 </svg>
