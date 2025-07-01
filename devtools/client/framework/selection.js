@@ -72,6 +72,8 @@ class Selection extends EventEmitter {
   // a child of a slot in the "shadow DOM". The latter is called the slotted version.
   #isSlotted = false;
 
+  #searchQuery;
+
   #onMutations = mutations => {
     let attributeChange = false;
     let pseudoChange = false;
@@ -177,13 +179,18 @@ class Selection extends EventEmitter {
    *
    * @param {NodeFront} nodeFront
    *        The NodeFront being selected.
-   * @param {Object} (optional)
-   *        - {String} reason: Reason that triggered the selection, will be fired with
-   *          the "new-node-front" event.
-   *        - {Boolean} isSlotted: Is the selection representing the slotted version of
-   *          the node.
+   * @param {Object} options (optional)
+   * @param {String} options.reason: Reason that triggered the selection, will be fired with
+   *        the "new-node-front" event.
+   * @param {Boolean} options.isSlotted: Is the selection representing the slotted version
+   *        of the node.
+   * @param {String} options.searchQuery: If the selection was triggered by a search, the
+   *        query of said search
    */
-  setNodeFront(nodeFront, { reason = "unknown", isSlotted = false } = {}) {
+  setNodeFront(
+    nodeFront,
+    { reason = "unknown", isSlotted = false, searchQuery = null } = {}
+  ) {
     this.reason = reason;
 
     // If an inlineTextChild text node is being set, then set it's parent instead.
@@ -202,6 +209,7 @@ class Selection extends EventEmitter {
     this.emit("node-front-will-unset");
 
     this.#isSlotted = isSlotted;
+    this.#searchQuery = searchQuery;
     this.#nodeFront = nodeFront;
 
     if (nodeFront) {
@@ -375,6 +383,10 @@ class Selection extends EventEmitter {
 
   supportsScrollIntoView() {
     return this.isElementNode();
+  }
+
+  getSearchQuery() {
+    return this.#searchQuery;
   }
 }
 

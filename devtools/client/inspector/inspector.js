@@ -785,6 +785,10 @@ Inspector.prototype = {
   },
 
   _clearSearchResultsLabel(result) {
+    // Pipe the search-cleared event as this.search is a getter that will create
+    // the InspectorSearch instance, which we don't really need/want when a callsite
+    // only want to react to the search being cleared.
+    this.emit("search-cleared");
     return this._updateSearchResultsLabel(result, true);
   },
 
