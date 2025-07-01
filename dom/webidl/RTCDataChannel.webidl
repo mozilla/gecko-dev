@@ -17,10 +17,9 @@ enum RTCDataChannelType {
 [Exposed=Window]
 interface RTCDataChannel : EventTarget
 {
-  readonly attribute DOMString label;
+  readonly attribute USVString label;
   readonly attribute boolean negotiated;
   readonly attribute boolean ordered;
-  readonly attribute boolean reliable;
   readonly attribute unsigned short? maxPacketLifeTime;
   readonly attribute unsigned short? maxRetransmits;
   readonly attribute USVString protocol;
