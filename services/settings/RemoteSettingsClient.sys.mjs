@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 import { Downloader } from "resource://services-settings/Attachments.sys.mjs";
 
@@ -352,18 +353,19 @@ export class RemoteSettingsClient extends EventEmitter {
     // This attribute allows signature verification to be disabled, when running tests
     // or when pulling data from a dev server.
     this.verifySignature = AppConstants.REMOTE_SETTINGS_VERIFY_SIGNATURE;
+  }
 
-    ChromeUtils.defineLazyGetter(
-      this,
-      "db",
-      () => new lazy.Database(this.identifier)
-    );
+  #lazy = XPCOMUtils.declareLazy({
+    db: () => new lazy.Database(this.identifier),
+    attachments: () => new AttachmentDownloader(this),
+  });
 
-    ChromeUtils.defineLazyGetter(
-      this,
-      "attachments",
-      () => new AttachmentDownloader(this)
-    );
+  get db() {
+    return this.#lazy.db;
+  }
+
+  get attachments() {
+    return this.#lazy.attachments;
   }
 
   /**
