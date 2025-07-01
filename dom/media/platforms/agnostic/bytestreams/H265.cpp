@@ -158,13 +158,8 @@ Result<HVCCConfig, nsresult> HVCCConfig::Parse(
       const uint8_t* currentPtr =
           aExtraData->Elements() + reader.BitCount() / 8;
       H265NALU nalu(currentPtr, nalUnitLength);
-      // ReadBits can only read at most 32 bits at a time.
-      uint32_t nalSize = nalUnitLength * 8;
-      while (nalSize > 0) {
-        uint32_t readBits = nalSize > 32 ? 32 : nalSize;
-        reader.ReadBits(readBits);
-        nalSize -= readBits;
-      }
+      uint32_t nalBitsLength = nalUnitLength * 8;
+      Unused << reader.AdvanceBits(nalBitsLength);
       // Per ISO_IEC-14496-15-2022, 8.3.2.1.3 Semantics, NALU should only be
       // SPS/PPS/VPS or SEI, ignore all the other types of NALU.
       if (nalu.IsSPS() || nalu.IsPPS() || nalu.IsVPS() || nalu.IsSEI()) {

@@ -31,6 +31,12 @@ class BitReader {
   // Limited to unsigned 64 bits.
   CheckedUint64 ReadULEB128();
 
+  // Advance bits and return the actual number of bits forwarded. Unlike
+  // ReadBits, which can only read up to 32 bits, this function does not limit
+  // how many bits it can advance. If fewer bits are available than requested,
+  // it will only advance the available bits.
+  size_t AdvanceBits(size_t aNum);
+
   // Return the number of bits parsed so far;
   size_t BitCount() const;
   // Return the number of bits left.

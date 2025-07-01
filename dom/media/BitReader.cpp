@@ -6,6 +6,8 @@
 
 #include "BitReader.h"
 
+#include "mozilla/Unused.h"
+
 namespace mozilla {
 
 BitReader::BitReader(const mozilla::MediaByteBuffer* aBuffer)
@@ -192,6 +194,18 @@ uint32_t BitReader::GetBitLength(const mozilla::MediaByteBuffer* aNAL) {
     size -= c + 1;
   }
   return size;
+}
+
+size_t BitReader::AdvanceBits(size_t aNum) {
+  const size_t advanceBits = std::min(aNum, BitsLeft());
+  size_t temp = advanceBits;
+  while (temp > 0) {
+    uint32_t readBits = temp > 32 ? 32 : temp;
+    // TODO : return error if reading less bits than expectation in bug 1972401.
+    Unused << ReadBits(readBits);
+    temp -= readBits;
+  }
+  return advanceBits;
 }
 
 }  // namespace mozilla
