@@ -212,7 +212,7 @@ mod foreign {
         resource::{
             BufferAccessError, CreateBufferError, CreateQuerySetError, CreateSamplerError,
             CreateTextureError, CreateTextureViewError, DestroyedResourceError,
-            InvalidResourceError, MissingBufferUsageError,
+            InvalidResourceError, MissingBufferUsageError, MissingTextureUsageError,
         },
     };
     use wgt::RequestAdapterError;
@@ -281,6 +281,12 @@ mod foreign {
     }
 
     impl HasErrorBufferType for MissingBufferUsageError {
+        fn error_type(&self) -> ErrorBufferType {
+            ErrorBufferType::Validation
+        }
+    }
+
+    impl HasErrorBufferType for MissingTextureUsageError {
         fn error_type(&self) -> ErrorBufferType {
             ErrorBufferType::Validation
         }
@@ -411,6 +417,7 @@ mod foreign {
                 CreateBindGroupError::DestroyedResource(e) => e.error_type(),
                 CreateBindGroupError::InvalidResource(e) => e.error_type(),
                 CreateBindGroupError::MissingBufferUsage(e) => e.error_type(),
+                CreateBindGroupError::MissingTextureUsage(e) => e.error_type(),
 
                 CreateBindGroupError::BindingArrayPartialLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayLengthMismatch { .. }
@@ -421,7 +428,6 @@ mod foreign {
                 | CreateBindGroupError::BindingsNumMismatch { .. }
                 | CreateBindGroupError::DuplicateBinding(_)
                 | CreateBindGroupError::MissingBindingDeclaration(_)
-                | CreateBindGroupError::MissingTextureUsage(_)
                 | CreateBindGroupError::SingleBindingExpected
                 | CreateBindGroupError::UnalignedBufferOffset(_, _, _)
                 | CreateBindGroupError::BufferRangeTooLarge { .. }
@@ -607,6 +613,7 @@ mod foreign {
             match self {
                 TransferError::MemoryInitFailure(e) => e.error_type(),
                 TransferError::MissingBufferUsage(e) => e.error_type(),
+                TransferError::MissingTextureUsage(e) => e.error_type(),
 
                 TransferError::SameSourceDestinationBuffer
                 | TransferError::BufferOverrun { .. }
@@ -635,7 +642,6 @@ mod foreign {
                 | TransferError::MissingDownlevelFlags(_)
                 | TransferError::InvalidSampleCount { .. }
                 | TransferError::InvalidMipLevel { .. }
-                | TransferError::MissingTextureUsage(..)
                 | TransferError::SampleCountNotEqual { .. } => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
