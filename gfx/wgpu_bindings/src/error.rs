@@ -212,7 +212,7 @@ mod foreign {
         resource::{
             BufferAccessError, CreateBufferError, CreateQuerySetError, CreateSamplerError,
             CreateTextureError, CreateTextureViewError, DestroyedResourceError,
-            InvalidResourceError,
+            InvalidResourceError, MissingBufferUsageError,
         },
     };
     use wgt::RequestAdapterError;
@@ -280,17 +280,23 @@ mod foreign {
         }
     }
 
+    impl HasErrorBufferType for MissingBufferUsageError {
+        fn error_type(&self) -> ErrorBufferType {
+            ErrorBufferType::Validation
+        }
+    }
+
     impl HasErrorBufferType for BufferAccessError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 BufferAccessError::Device(e) => e.error_type(),
                 BufferAccessError::DestroyedResource(e) => e.error_type(),
                 BufferAccessError::InvalidResource(e) => e.error_type(),
+                BufferAccessError::MissingBufferUsage(e) => e.error_type(),
 
                 BufferAccessError::Failed
                 | BufferAccessError::AlreadyMapped
                 | BufferAccessError::MapAlreadyPending
-                | BufferAccessError::MissingBufferUsage(_)
                 | BufferAccessError::NotMapped
                 | BufferAccessError::UnalignedRange
                 | BufferAccessError::UnalignedOffset { .. }
@@ -404,6 +410,7 @@ mod foreign {
                 CreateBindGroupError::Device(e) => e.error_type(),
                 CreateBindGroupError::DestroyedResource(e) => e.error_type(),
                 CreateBindGroupError::InvalidResource(e) => e.error_type(),
+                CreateBindGroupError::MissingBufferUsage(e) => e.error_type(),
 
                 CreateBindGroupError::BindingArrayPartialLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayLengthMismatch { .. }
@@ -414,7 +421,6 @@ mod foreign {
                 | CreateBindGroupError::BindingsNumMismatch { .. }
                 | CreateBindGroupError::DuplicateBinding(_)
                 | CreateBindGroupError::MissingBindingDeclaration(_)
-                | CreateBindGroupError::MissingBufferUsage(_)
                 | CreateBindGroupError::MissingTextureUsage(_)
                 | CreateBindGroupError::SingleBindingExpected
                 | CreateBindGroupError::UnalignedBufferOffset(_, _, _)
@@ -600,6 +606,7 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 TransferError::MemoryInitFailure(e) => e.error_type(),
+                TransferError::MissingBufferUsage(e) => e.error_type(),
 
                 TransferError::SameSourceDestinationBuffer
                 | TransferError::BufferOverrun { .. }
@@ -628,7 +635,6 @@ mod foreign {
                 | TransferError::MissingDownlevelFlags(_)
                 | TransferError::InvalidSampleCount { .. }
                 | TransferError::InvalidMipLevel { .. }
-                | TransferError::MissingBufferUsage(..)
                 | TransferError::MissingTextureUsage(..)
                 | TransferError::SampleCountNotEqual { .. } => ErrorBufferType::Validation,
 
