@@ -163,7 +163,7 @@ class DefaultAddonUpdater(
 
     @VisibleForTesting
     internal val updateStatusStorage = UpdateStatusStorage()
-    internal var updateAttempStorage = UpdateAttemptStorage(applicationContext)
+    internal var updateAttemptStorage = UpdateAttemptStorage(applicationContext)
 
     /**
      * See [AddonUpdater.registerForFutureUpdates]. If an add-on is already registered nothing will happen.
@@ -185,7 +185,7 @@ class DefaultAddonUpdater(
             .cancelUniqueWork(getUniquePeriodicWorkName(addonId))
         logger.info("unregisterForFutureUpdates $addonId")
         scope.launch {
-            updateAttempStorage.remove(addonId)
+            updateAttemptStorage.remove(addonId)
         }
     }
 

@@ -308,7 +308,7 @@ class DefaultAddonUpdaterTest {
 
         val addonId = "addonId"
 
-        updater.updateAttempStorage = mock()
+        updater.updateAttemptStorage = mock()
 
         val workId = updater.getUniquePeriodicWorkName(addonId)
 
@@ -328,7 +328,7 @@ class DefaultAddonUpdaterTest {
 
         workData = workManager.getWorkInfosForUniqueWork(workId).await()
         assertEquals(WorkInfo.State.CANCELLED, workData.first().state)
-        verify(updater.updateAttempStorage).remove(addonId)
+        verify(updater.updateAttemptStorage).remove(addonId)
     }
 
     @Test
