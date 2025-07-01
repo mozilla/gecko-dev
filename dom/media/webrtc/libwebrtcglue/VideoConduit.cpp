@@ -362,8 +362,9 @@ RefPtr<VideoSessionConduit> VideoSessionConduit::Create(
     CSFLogError(LOGTAG, "%s VideoConduit Init Failed ", __FUNCTION__);
     return nullptr;
   }
-  CSFLogVerbose(LOGTAG, "%s Successfully created VideoConduit ", __FUNCTION__);
-  return obj.forget();
+  CSFLogVerbose(LOGTAG, "%s Successfully created VideoConduit %p", __FUNCTION__,
+                obj.get());
+  return obj;
 }
 
 #define INIT_MIRROR(name, val) \
@@ -391,6 +392,11 @@ WebrtcVideoConduit::Control::Control(const RefPtr<AbstractThread>& aCallThread)
                   webrtc::DegradationPreference::DISABLED) {}
 #undef INIT_MIRROR
 
+#define INIT_CANONICAL(name, val) \
+  name(mCall->mCallThread, val, "WebrtcVideoConduit::" #name " (Canonical)")
+#define INIT_MIRROR(name, val)            \
+  name(AbstractThread::MainThread(), val, \
+       "WebrtcVideoConduit::" #name " (Mirror)")
 WebrtcVideoConduit::WebrtcVideoConduit(
     RefPtr<WebrtcCallWrapper> aCall, nsCOMPtr<nsISerialEventTarget> aStsThread,
     Options aOptions, std::string aPCHandle, const TrackingId& aRecvTrackingId)
@@ -422,9 +428,13 @@ WebrtcVideoConduit::WebrtcVideoConduit(
       mRecvTransport(this),
       mSendStreamConfig(&mSendTransport),
       mVideoStreamFactory("WebrtcVideoConduit::mVideoStreamFactory"),
-      mRecvStreamConfig(&mRecvTransport) {
+      mRecvStreamConfig(&mRecvTransport),
+      INIT_CANONICAL(mCanonicalRtpSources, {}),
+      INIT_MIRROR(mRtpSources, {}) {
   mRecvStreamConfig.rtp.rtcp_event_observer = this;
 }
+#undef INIT_MIRROR
+#undef INIT_CANONICAL
 
 WebrtcVideoConduit::~WebrtcVideoConduit() {
   CSFLogDebug(LOGTAG, "%s ", __FUNCTION__);
@@ -1305,6 +1315,7 @@ MediaConduitErrorCode WebrtcVideoConduit::Init() {
       [self = detail::RawPtr(this)](uint64_t aPluginID) {
         self.get()->mRecvCodecPluginIDs.RemoveElement(aPluginID);
       });
+  mRtpSources.Connect(&mCanonicalRtpSources);
 
   MOZ_ALWAYS_SUCCEEDS(mCallThread->Dispatch(NS_NewRunnableFunction(
       __func__, [this, self = RefPtr<WebrtcVideoConduit>(this)] {
@@ -1325,6 +1336,7 @@ RefPtr<GenericPromise> WebrtcVideoConduit::Shutdown() {
   mReceiverRtpEventListener.DisconnectIfExists();
   mReceiverRtcpEventListener.DisconnectIfExists();
   mSenderRtcpEventListener.DisconnectIfExists();
+  mRtpSources.DisconnectIfConnected();
 
   return InvokeAsync(
       mCallThread, __func__, [this, self = RefPtr<WebrtcVideoConduit>(this)] {
@@ -1613,25 +1625,8 @@ void WebrtcVideoConduit::OnRtpReceived(webrtc::RtpPacketReceived&& aPacket,
   // grab the value now while on the call thread, and dispatch to main
   // to store the cached value if we have new source information.
   // See Bug 1845621.
-  std::vector<webrtc::RtpSource> sources;
   if (mRecvStream) {
-    sources = mRecvStream->GetSources();
-  }
-
-  bool needsCacheUpdate = false;
-  {
-    MutexAutoLock lock(mMutex);
-    needsCacheUpdate = sources != mRtpSources;
-  }
-
-  // only dispatch to main if we have new data
-  if (needsCacheUpdate) {
-    GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
-        __func__, [this, rtpSources = std::move(sources),
-                   self = RefPtr<WebrtcVideoConduit>(this)]() {
-          MutexAutoLock lock(mMutex);
-          mRtpSources = rtpSources;
-        }));
+    mCanonicalRtpSources = mRecvStream->GetSources();
   }
 
   mRtpPacketEvent.Notify();
@@ -1997,8 +1992,8 @@ void WebrtcVideoConduit::SetTransportActive(bool aActive) {
   mTransportActive = aActive;
 }
 
-std::vector<webrtc::RtpSource> WebrtcVideoConduit::GetUpstreamRtpSources()
-    const {
+const std::vector<webrtc::RtpSource>&
+WebrtcVideoConduit::GetUpstreamRtpSources() const {
   MOZ_ASSERT(NS_IsMainThread());
   return mRtpSources;
 }

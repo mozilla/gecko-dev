@@ -47,10 +47,6 @@ namespace dom {
 struct RTCRtpSourceEntry;
 }
 
-namespace dom {
-struct RTCRtpSourceEntry;
-}
-
 enum class MediaSessionConduitLocalDirection : int { kSend, kRecv };
 
 class VideoSessionConduit;
@@ -193,7 +189,8 @@ class MediaSessionConduit {
                                              const uint8_t aAudioLevel);
 
  protected:
-  virtual std::vector<webrtc::RtpSource> GetUpstreamRtpSources() const = 0;
+  virtual const std::vector<webrtc::RtpSource>& GetUpstreamRtpSources()
+      const = 0;
 
  private:
   void UpdateRtpSources(const std::vector<webrtc::RtpSource>& aSources) const;

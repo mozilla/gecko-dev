@@ -241,7 +241,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
         aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtcpReceived);
   }
 
-  std::vector<webrtc::RtpSource> GetUpstreamRtpSources() const override;
+  const std::vector<webrtc::RtpSource>& GetUpstreamRtpSources() const override;
 
   void RequestKeyFrame(FrameTransformerProxy* aProxy) override;
   void GenerateKeyFrame(const Maybe<std::string>& aRid,
@@ -503,9 +503,11 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // Protected by mRendererMonitor
   dom::RTCVideoFrameHistoryInternal mReceivedFrameHistory;
 
-  // Written only on the main thread.  Guarded by mMutex, except for
-  // reads on the main thread.
-  std::vector<webrtc::RtpSource> mRtpSources;
+  // Call thread only.
+  Canonical<std::vector<webrtc::RtpSource>> mCanonicalRtpSources;
+
+  // Main thread only mirror of mCanonicalRtpSources.
+  Mirror<std::vector<webrtc::RtpSource>> mRtpSources;
 
   // Cache of stats that holds the send stream stats during the stream
   // recreation process. After DeleteSendStream() then CreateSendStream() and
