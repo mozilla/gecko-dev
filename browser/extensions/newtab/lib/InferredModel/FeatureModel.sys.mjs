@@ -18,20 +18,14 @@ const MAX_INT_32 = 2 ** 32;
 
 /**
  * Divides numerator fields by the denominator. Value is set to 0 if denominator is missing or 0.
- * Adds 0 value for all situations where there is a denominator but no numerator value.
  * @param {Object.<string, number>} numerator
  * @param {Object.<string, number>} denominator
  * returns {Object.<string, number>}
  */
-export function divideDict(numerator, denominator) {
+function divideDict(numerator, denominator) {
   const result = {};
   Object.keys(numerator).forEach(k => {
     result[k] = denominator[k] ? numerator[k] / denominator[k] : 0;
-  });
-  Object.keys(denominator).forEach(k => {
-    if (!(k in result)) {
-      result[k] = 0.0;
-    }
   });
   return result;
 }
@@ -402,18 +396,19 @@ export class FeatureModel {
       totalResults = dictApply(totalResults, x => x / numClicks);
     }
 
-    const zeroFilledResult = {};
-    // Set non-click or impression values in a way that preserves original key order
-    Object.values(this.interestVectorModel).forEach(interestFeature => {
-      zeroFilledResult[interestFeature.name] =
-        totalResults[interestFeature.name] || 0;
-    });
-    totalResults = zeroFilledResult;
-
     if (numClicks >= 0) {
       totalResults[SPECIAL_FEATURE_CLICK] = numClicks;
     }
+
     if (applyThresholding) {
+      if (applyDifferentialPrivacy) {
+        // Zero values need to be shown so they can be randomized
+        Object.values(this.interestVectorModel).forEach(interestFeature => {
+          if (!(interestFeature.name in totalResults)) {
+            totalResults[interestFeature.name] = 0;
+          }
+        });
+      }
       for (const key of Object.keys(totalResults)) {
         if (key in this.interestVectorModel) {
           totalResults[key] = this.interestVectorModel[key].applyThresholds(
@@ -449,22 +444,17 @@ export class FeatureModel {
 
   /**
    * Applies laplace noise to values in a dictionary if specified in the model
-   * @param {Object} inputDict key-value pairs
-   * @param {boolean} clipZero If true clip less than zero values to zero
+   * @param {Object} inputDict
    * @returns
    */
-  applyLaplaceNoise(inputDict, clipZero = true) {
+  applyLaplaceNoise(inputDict) {
     if (!this.noiseScale) {
       return;
     }
     for (const key in inputDict) {
       if (typeof inputDict[key] === "number") {
         const noise = this.laplaceNoiseFn(this.noiseScale);
-        if (clipZero) {
-          inputDict[key] = Math.max(inputDict[key] + noise, 0);
-        } else {
-          inputDict[key] += noise;
-        }
+        inputDict[key] += noise;
       }
     }
   }

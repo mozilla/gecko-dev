@@ -4,7 +4,6 @@ ChromeUtils.defineESModuleGetters(this, {
   FeatureModel: "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs",
   dictAdd: "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs",
   dictApply: "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs",
-  divideDict: "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs",
   DayTimeWeighting: "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs",
   InterestFeatures: "resource://newtab/lib/InferredModel/FeatureModel.sys.mjs",
   unaryEncodeDiffPrivacy:
@@ -30,50 +29,6 @@ add_task(function test_dictApply() {
     identity,
     input,
     "Should return same values with identity function"
-  );
-});
-
-add_task(function test_divideDict_basic() {
-  const numerator = { a: 6, b: 4 };
-  const denominator = { a: 2, b: 2 };
-  const result = divideDict(numerator, denominator);
-  Assert.deepEqual(
-    result,
-    { a: 3, b: 2 },
-    "Basic division should correctly divide numerator by denominator"
-  );
-});
-
-add_task(function test_divideDict_missingDenominator() {
-  const numerator = { a: 6, b: 4 };
-  const denominator = {};
-  const result = divideDict(numerator, denominator);
-  Assert.deepEqual(
-    result,
-    { a: 0, b: 0 },
-    "Missing denominator keys should yield 0 for each numerator key"
-  );
-});
-
-add_task(function test_divideDict_zeroDenominator() {
-  const numerator = { a: 5, b: 10 };
-  const denominator = { a: 0, b: 2 };
-  const result = divideDict(numerator, denominator);
-  Assert.deepEqual(
-    result,
-    { a: 0, b: 5 },
-    "Zero denominator should produce 0. non-zero denominator should divide normally"
-  );
-});
-
-add_task(function test_divideDict_missingNumerator() {
-  const numerator = {};
-  const denominator = { a: 3, b: 5 };
-  const result = divideDict(numerator, denominator);
-  Assert.deepEqual(
-    result,
-    { a: 0.0, b: 0.0 },
-    "Denominator keys without numerator should yield 0.0 for each key"
   );
 });
 
@@ -225,7 +180,7 @@ const jsonModelData = {
   interest_vector: {
     news_reader: {
       features: { pub_nytimes_com: 0.5, pub_cnn_com: 0.5 },
-      thresholds: [0.3, 0.4],
+      thresholds: [0.3, 0.4, 0.5],
       diff_p: 1,
       diff_q: 0,
     },
