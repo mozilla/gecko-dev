@@ -2357,18 +2357,4 @@ STATIC_ASSERT_TYPE_LAYOUTS_MATCH(nsSize, nsSize_Simple);
 STATIC_ASSERT_FIELD_OFFSET_MATCHES(nsSize, nsSize_Simple, width);
 STATIC_ASSERT_FIELD_OFFSET_MATCHES(nsSize, nsSize_Simple, height);
 
-/**
- * <div rustbindgen="true" replaces="mozilla::UniquePtr">
- *
- * TODO(Emilio): This is a workaround and we should be able to get rid of this
- * one.
- */
-template <typename T>
-struct UniquePtr_Simple {
-  T* mPtr;
-};
-
-STATIC_ASSERT_TYPE_LAYOUTS_MATCH(mozilla::UniquePtr<int>,
-                                 UniquePtr_Simple<int>);
-
 #endif /* nsStyleStruct_h___ */

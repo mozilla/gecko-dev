@@ -13,7 +13,8 @@
 #include "mozilla/dom/DocumentOrShadowRoot.h"
 #include "mozilla/dom/NameSpaceConstants.h"
 #include "mozilla/dom/ShadowRootBinding.h"
-#include "mozilla/ServoBindings.h"
+#include "mozilla/ServoBindingTypes.h"
+#include "mozilla/BindgenUniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsStubMutationObserver.h"
@@ -24,6 +25,9 @@ class nsIContent;
 class nsIPrincipal;
 
 namespace mozilla {
+
+struct StyleAuthorStyles;
+struct StyleRuleChange;
 
 class EventChainPreVisitor;
 class ServoStyleRuleMap;
@@ -283,7 +287,7 @@ class ShadowRoot final : public DocumentFragment, public DocumentOrShadowRoot {
   // https://github.com/rust-lang/rust-bindgen/issues/380
 
   // The computed data from the style sheets.
-  UniquePtr<StyleAuthorStyles> mServoStyles;
+  BindgenUniquePtr<StyleAuthorStyles> mServoStyles;
   UniquePtr<mozilla::ServoStyleRuleMap> mStyleRuleMap;
 
   using SlotArray = TreeOrderedArray<HTMLSlotElement*>;

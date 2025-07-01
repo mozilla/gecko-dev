@@ -9,6 +9,7 @@
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/LinkStyle.h"
 #include "nsNameSpaceManager.h"
+#include "nsNetUtil.h"
 
 using mozilla::dom::LinkStyle;
 

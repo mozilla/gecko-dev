@@ -75,6 +75,7 @@ EXPORTS.mozilla += [
     "AnimatedPropertyIDSet.h",
     "AnimationCollection.h",
     "AttributeStyles.h",
+    "BindgenUniquePtr.h",
     "BuiltInStyleSheetList.h",
     "BuiltInStyleSheets.h",
     "CachedInheritingStyles.h",

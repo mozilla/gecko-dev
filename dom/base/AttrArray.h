@@ -13,7 +13,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
-#include "mozilla/UniquePtr.h"
+#include "mozilla/BindgenUniquePtr.h"
 #include "mozilla/Span.h"
 #include "mozilla/dom/BorrowedAttrInfo.h"
 
@@ -190,7 +190,7 @@ class AttrArray {
   bool GrowBy(uint32_t aGrowSize);
   bool GrowTo(uint32_t aCapacity);
 
-  void Clear() { mImpl = nullptr; }
+  void Clear() { mImpl.reset(); }
 
  private:
   // Tries to create an attribute, growing the buffer if needed, with the given
@@ -248,7 +248,7 @@ class AttrArray {
     return mImpl ? mImpl->Attrs() : mozilla::Span<const InternalAttr>();
   }
 
-  mozilla::UniquePtr<Impl> mImpl;
+  mozilla::BindgenUniquePtr<Impl> mImpl;
 };
 
 #endif

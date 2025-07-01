@@ -15,6 +15,7 @@
 #include "mozilla/dom/Notification.h"
 #include "nsISupportsPrimitives.h"
 #include "nsPIDOMWindow.h"
+#include "nsServiceManagerUtils.h"
 #include "nsIWindowWatcher.h"
 
 using namespace mozilla;
