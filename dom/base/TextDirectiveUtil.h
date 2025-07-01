@@ -13,6 +13,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/TimeStamp.h"
 #include "nsStringFwd.h"
 

@@ -9,6 +9,7 @@
 #include "mozilla/dom/Document.h"
 #include "nsCOMPtr.h"
 #include "nsIURI.h"
+#include "nsNetUtil.h"
 #include "nsTextFragment.h"
 #include "nsTextNode.h"
 #include "nsString.h"
