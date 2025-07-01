@@ -209,6 +209,7 @@ mod foreign {
         pipeline::{
             CreateComputePipelineError, CreateRenderPipelineError, CreateShaderModuleError,
         },
+        ray_tracing::ValidateAsActionsError,
         resource::{
             BufferAccessError, CreateBufferError, CreateQuerySetError, CreateSamplerError,
             CreateTextureError, CreateTextureViewError, DestroyedResourceError,
@@ -746,6 +747,17 @@ mod foreign {
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
+            }
+        }
+    }
+
+    impl HasErrorBufferType for ValidateAsActionsError {
+        fn error_type(&self) -> ErrorBufferType {
+            match self {
+                ValidateAsActionsError::DestroyedResource(e) => e.error_type(),
+                ValidateAsActionsError::UsedUnbuiltTlas(..)
+                | ValidateAsActionsError::UsedUnbuiltBlas(..)
+                | ValidateAsActionsError::BlasNewerThenTlas(..) => ErrorBufferType::Validation,
             }
         }
     }
