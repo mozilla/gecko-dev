@@ -86,14 +86,37 @@ class HomeActivityTest {
     }
 
     @Test
-    fun `GIVEN browsing mode is not set by intent WHEN getModeFromIntentOrLastKnown is called THEN returns normal browsing mode`() {
+    fun `GIVEN browsing mode is not set by intent and private mode with a tab persisted WHEN getModeFromIntentOrLastKnown is called THEN returns normal browsing mode`() {
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab(url = "https://mozilla.org", private = true),
+                ),
+            ),
+        )
+
         every { testContext.settings() } returns Settings(testContext)
         every { activity.applicationContext } returns testContext
+        every { testContext.components.core.store } returns browserStore
+
         testContext.settings().lastKnownMode = BrowsingMode.Private
 
-        assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
+        assertEquals(BrowsingMode.Private, activity.getModeFromIntentOrLastKnown(null))
 
         testContext.settings().lastKnownMode = BrowsingMode.Normal
+
+        assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
+    }
+
+    @Test
+    fun `GIVEN last known mode is private mode and no tabs persisted WHEN getModeFromIntentOrLastKnown is called THEN returns normal browsing mode`() {
+        val browserStore = BrowserStore()
+
+        every { testContext.settings() } returns Settings(testContext)
+        every { activity.applicationContext } returns testContext
+        every { testContext.components.core.store } returns browserStore
+
+        testContext.settings().lastKnownMode = BrowsingMode.Private
 
         assertEquals(BrowsingMode.Normal, activity.getModeFromIntentOrLastKnown(null))
     }

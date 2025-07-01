@@ -1117,6 +1117,13 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 return BrowsingMode.fromBoolean(isPrivate = startPrivateMode)
             }
         }
+
+        if (settings().lastKnownMode.isPrivate &&
+            components.core.store.state.getNormalOrPrivateTabs(private = true).isNotEmpty()
+        ) {
+            return BrowsingMode.Private
+        }
+
         return BrowsingMode.Normal
     }
 
