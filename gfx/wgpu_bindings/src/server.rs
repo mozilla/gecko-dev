@@ -241,16 +241,16 @@ fn support_use_external_texture_in_swap_chain(
     #[cfg(target_os = "windows")]
     {
         if backend != wgt::Backend::Dx12 {
-            log::info!(concat!(
-                "WebGPU: disabling ExternalTexture swapchain: \n",
-                "wgpu backend is not Dx12"
-            ));
+            log::info!(
+                "WebGPU: disabling ExternalTexture swapchain: \n\
+                        wgpu backend is not Dx12"
+            );
             return false;
         }
         if !is_hardware {
             log::info!(
-                "WebGPU: disabling ExternalTexture swapchain: \n",
-                "Dx12 backend is not hardware"
+                "WebGPU: disabling ExternalTexture swapchain: \n\
+                        Dx12 backend is not hardware"
             );
             return false;
         }
@@ -260,10 +260,10 @@ fn support_use_external_texture_in_swap_chain(
     #[cfg(target_os = "linux")]
     {
         let support = if backend != wgt::Backend::Vulkan {
-            log::info!(concat!(
-                "WebGPU: disabling ExternalTexture swapchain: \n",
-                "wgpu backend is not Vulkan"
-            ));
+            log::info!(
+                "WebGPU: disabling ExternalTexture swapchain: \n\
+                        wgpu backend is not Vulkan"
+            );
             false
         } else {
             unsafe {
@@ -288,10 +288,8 @@ fn support_use_external_texture_in_swap_chain(
                         let supported = capabilities.supports_extension(extension);
                         if !supported {
                             log::info!(
-                                concat!(
-                                    "WebGPU: disabling ExternalTexture swapchain: \n",
-                                    "Vulkan extension not supported: {:?}",
-                                ),
+                                "WebGPU: disabling ExternalTexture swapchain: \n\
+                                        Vulkan extension not supported: {:?}",
                                 extension.to_string_lossy()
                             );
                         }
@@ -306,17 +304,17 @@ fn support_use_external_texture_in_swap_chain(
     #[cfg(target_os = "macos")]
     {
         if backend != wgt::Backend::Metal {
-            log::info!(concat!(
-                "WebGPU: disabling ExternalTexture swapchain: \n",
-                "wgpu backend is not Metal"
-            ));
+            log::info!(
+                "WebGPU: disabling ExternalTexture swapchain: \n\
+                        wgpu backend is not Metal"
+            );
             return false;
         }
         if !is_hardware {
-            log::info!(concat!(
-                "WebGPU: disabling ExternalTexture swapchain: \n",
-                "Metal backend is not hardware"
-            ));
+            log::info!(
+                "WebGPU: disabling ExternalTexture swapchain: \n\
+                        Metal backend is not hardware"
+            );
             return false;
         }
 
@@ -327,11 +325,11 @@ fn support_use_external_texture_in_swap_chain(
         };
 
         if !version.at_least((10, 14), (12, 0), /* os_is_mac */ true) {
-            log::info!(concat!(
-                "WebGPU: disabling ExternalTexture swapchain:\n",
-                "operating system version is not at least 10.14 (macOS) or 12.0 (iOS)\n",
-                "shared event not supported"
-            ));
+            log::info!(
+                "WebGPU: disabling ExternalTexture swapchain:\n\
+                        operating system version is not at least 10.14 (macOS) or 12.0 (iOS)\n\
+                        shared event not supported"
+            );
             return false;
         }
 
@@ -351,14 +349,8 @@ unsafe fn adapter_request_device(
     new_queue_id: id::QueueId,
 ) -> Option<String> {
     if let wgt::Trace::Directory(ref path) = desc.trace {
-        log::warn!(
-            concat!(
-                "DeviceDescriptor from child process ",
-                "should not request wgpu trace path, ",
-                "but it did request `{}`"
-            ),
-            path.display()
-        );
+        log::warn!("DeviceDescriptor from child process should not request wgpu trace path, but it did request `{}`",
+                   path.display());
     }
     desc.trace = wgt::Trace::Off;
     if let Some(env_dir) = std::env::var_os("WGPU_TRACE") {
@@ -2024,10 +2016,7 @@ impl Global {
                     {
                         self.create_texture_error(Some(id), &desc);
                         error_buf.init(ErrMsg {
-                            message: concat!(
-                                "Bgra8Unorm with GPUStorageBinding usage ",
-                                "with BGRA8UNORM_STORAGE disabled"
-                            ),
+                            message: "Bgra8Unorm with GPUStorageBinding usage with BGRA8UNORM_STORAGE disabled",
                             r#type: ErrorBufferType::Validation,
                         }, device_id);
                         return;
@@ -2550,10 +2539,7 @@ unsafe fn process_message(
                             }
                         }
                         if result.is_none() {
-                            log::error!(concat!(
-                                "Failed to find D3D12 adapter with the same LUID ",
-                                "that the compositor is using!"
-                            ));
+                            log::error!("Failed to find D3D12 adapter with the same LUID that the compositor is using!");
                             result = Some(false);
                         }
                     }
@@ -2704,10 +2690,7 @@ unsafe fn process_message(
                 /* GPUMapMode.READ */ 1 => wgc::device::HostMap::Read,
                 /* GPUMapMode.WRITE */ 2 => wgc::device::HostMap::Write,
                 _ => {
-                    let message = concat!(
-                        "GPUBuffer.mapAsync 'mode' argument must be ",
-                        "either GPUMapMode.READ or GPUMapMode.WRITE"
-                    );
+                    let message = "GPUBuffer.mapAsync 'mode' argument must be either GPUMapMode.READ or GPUMapMode.WRITE";
                     error_buf.init(
                         ErrMsg {
                             message,

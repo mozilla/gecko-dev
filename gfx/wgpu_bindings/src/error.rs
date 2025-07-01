@@ -197,23 +197,21 @@ mod foreign {
             GetBindGroupLayoutError,
         },
         command::{
-            ClearError, CommandEncoderError, CommandEncoderError, ComputePassError,
-            CreateRenderBundleError, EncoderStateError, QueryError, QueryUseError,
-            RenderBundleError, RenderPassError, ResolveError, TransferError,
+            ClearError, CommandEncoderError, ComputePassError, CreateRenderBundleError,
+            EncoderStateError, QueryError, QueryUseError, RenderBundleError, RenderPassError,
+            ResolveError, TransferError,
         },
         device::{
             queue::{QueueSubmitError, QueueWriteError},
-            DeviceError, MissingFeatures,
+            DeviceError,
         },
         instance::RequestDeviceError,
         pipeline::{
             CreateComputePipelineError, CreateRenderPipelineError, CreateShaderModuleError,
         },
-        ray_tracing::ValidateAsActionsError,
         resource::{
             BufferAccessError, CreateBufferError, CreateQuerySetError, CreateSamplerError,
-            CreateTextureError, CreateTextureViewError, DestroyedResourceError,
-            InvalidResourceError, MissingBufferUsageError, MissingTextureUsageError,
+            CreateTextureError, CreateTextureViewError,
         },
     };
     use wgt::RequestAdapterError;
@@ -238,8 +236,6 @@ mod foreign {
             match self {
                 RequestDeviceError::Device(e) => e.error_type(),
 
-                RequestDeviceError::TimestampNormalizerInitFailed(..) => ErrorBufferType::Internal,
-
                 RequestDeviceError::UnsupportedFeature(_)
                 | RequestDeviceError::LimitsExceeded(_) => ErrorBufferType::Validation,
 
@@ -255,8 +251,6 @@ mod foreign {
                 CreateBufferError::Device(e) => e.error_type(),
                 CreateBufferError::AccessError(e) => e.error_type(),
 
-                CreateBufferError::IndirectValidationBindGroup(_) => ErrorBufferType::Internal,
-
                 CreateBufferError::UnalignedSize
                 | CreateBufferError::InvalidUsage(_)
                 | CreateBufferError::UsageMismatch(_)
@@ -269,41 +263,17 @@ mod foreign {
         }
     }
 
-    impl HasErrorBufferType for DestroyedResourceError {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
-    impl HasErrorBufferType for InvalidResourceError {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
-    impl HasErrorBufferType for MissingBufferUsageError {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
-    impl HasErrorBufferType for MissingTextureUsageError {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
     impl HasErrorBufferType for BufferAccessError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 BufferAccessError::Device(e) => e.error_type(),
-                BufferAccessError::DestroyedResource(e) => e.error_type(),
-                BufferAccessError::InvalidResource(e) => e.error_type(),
-                BufferAccessError::MissingBufferUsage(e) => e.error_type(),
 
                 BufferAccessError::Failed
+                | BufferAccessError::InvalidResource(_)
+                | BufferAccessError::DestroyedResource(_)
                 | BufferAccessError::AlreadyMapped
                 | BufferAccessError::MapAlreadyPending
+                | BufferAccessError::MissingBufferUsage(_)
                 | BufferAccessError::NotMapped
                 | BufferAccessError::UnalignedRange
                 | BufferAccessError::UnalignedOffset { .. }
@@ -319,18 +289,10 @@ mod foreign {
         }
     }
 
-    impl HasErrorBufferType for MissingFeatures {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
     impl HasErrorBufferType for CreateTextureError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateTextureError::Device(e) => e.error_type(),
-                CreateTextureError::CreateTextureView(e) => e.error_type(),
-                CreateTextureError::MissingFeatures(_, e) => e.error_type(),
 
                 CreateTextureError::InvalidUsage(_)
                 | CreateTextureError::InvalidDimension(_)
@@ -344,6 +306,7 @@ mod foreign {
                 | CreateTextureError::InvalidMultisampledFormat(_)
                 | CreateTextureError::InvalidSampleCount(..)
                 | CreateTextureError::MultisampledNotRenderAttachment
+                | CreateTextureError::MissingFeatures(_, _)
                 | CreateTextureError::MissingDownlevelFlags(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
@@ -356,14 +319,12 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateSamplerError::Device(e) => e.error_type(),
-                CreateSamplerError::MissingFeatures(e) => e.error_type(),
 
                 CreateSamplerError::InvalidLodMinClamp(_)
                 | CreateSamplerError::InvalidLodMaxClamp { .. }
                 | CreateSamplerError::InvalidAnisotropy(_)
-                | CreateSamplerError::InvalidFilterModeWithAnisotropy { .. } => {
-                    ErrorBufferType::Validation
-                }
+                | CreateSamplerError::InvalidFilterModeWithAnisotropy { .. }
+                | CreateSamplerError::MissingFeatures(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -380,11 +341,7 @@ mod foreign {
                 | CreateBindGroupLayoutError::Entry { .. }
                 | CreateBindGroupLayoutError::TooManyBindings(_)
                 | CreateBindGroupLayoutError::InvalidBindingIndex { .. }
-                | CreateBindGroupLayoutError::InvalidVisibility(_)
-                | CreateBindGroupLayoutError::ContainsBothBindingArrayAndDynamicOffsetArray
-                | CreateBindGroupLayoutError::ContainsBothBindingArrayAndUniformBuffer => {
-                    ErrorBufferType::Validation
-                }
+                | CreateBindGroupLayoutError::InvalidVisibility(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -396,10 +353,10 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreatePipelineLayoutError::Device(e) => e.error_type(),
-                CreatePipelineLayoutError::MissingFeatures(e) => e.error_type(),
-                CreatePipelineLayoutError::InvalidResource(e) => e.error_type(),
 
-                CreatePipelineLayoutError::MisalignedPushConstantRange { .. }
+                CreatePipelineLayoutError::InvalidResource(_)
+                | CreatePipelineLayoutError::MisalignedPushConstantRange { .. }
+                | CreatePipelineLayoutError::MissingFeatures(_)
                 | CreatePipelineLayoutError::MoreThanOnePushConstantRangePerStage { .. }
                 | CreatePipelineLayoutError::PushConstantRangeTooLarge { .. }
                 | CreatePipelineLayoutError::TooManyBindings(_)
@@ -415,12 +372,9 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateBindGroupError::Device(e) => e.error_type(),
-                CreateBindGroupError::DestroyedResource(e) => e.error_type(),
-                CreateBindGroupError::InvalidResource(e) => e.error_type(),
-                CreateBindGroupError::MissingBufferUsage(e) => e.error_type(),
-                CreateBindGroupError::MissingTextureUsage(e) => e.error_type(),
 
-                CreateBindGroupError::BindingArrayPartialLengthMismatch { .. }
+                CreateBindGroupError::InvalidResource(_)
+                | CreateBindGroupError::BindingArrayPartialLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayLengthMismatch { .. }
                 | CreateBindGroupError::BindingArrayZeroLength
                 | CreateBindGroupError::BindingRangeTooLarge { .. }
@@ -429,6 +383,8 @@ mod foreign {
                 | CreateBindGroupError::BindingsNumMismatch { .. }
                 | CreateBindGroupError::DuplicateBinding(_)
                 | CreateBindGroupError::MissingBindingDeclaration(_)
+                | CreateBindGroupError::MissingBufferUsage(_)
+                | CreateBindGroupError::MissingTextureUsage(_)
                 | CreateBindGroupError::SingleBindingExpected
                 | CreateBindGroupError::UnalignedBufferOffset(_, _, _)
                 | CreateBindGroupError::BufferRangeTooLarge { .. }
@@ -443,12 +399,7 @@ mod foreign {
                 | CreateBindGroupError::DepthStencilAspect
                 | CreateBindGroupError::StorageReadNotSupported(_)
                 | CreateBindGroupError::ResourceUsageCompatibility(_)
-                | CreateBindGroupError::MissingTLASVertexReturn { .. }
-                | CreateBindGroupError::StorageAtomicNotSupported(..)
-                | CreateBindGroupError::StorageWriteNotSupported(..)
-                | CreateBindGroupError::StorageReadWriteNotSupported(..) => {
-                    ErrorBufferType::Validation
-                }
+                | CreateBindGroupError::DestroyedResource(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -460,12 +411,12 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateShaderModuleError::Device(e) => e.error_type(),
-                CreateShaderModuleError::MissingFeatures(e) => e.error_type(),
 
                 CreateShaderModuleError::Generation => ErrorBufferType::Internal,
 
                 CreateShaderModuleError::Parsing(_)
                 | CreateShaderModuleError::Validation(_)
+                | CreateShaderModuleError::MissingFeatures(_)
                 | CreateShaderModuleError::InvalidGroupIndex { .. } => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
@@ -478,14 +429,15 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateComputePipelineError::Device(e) => e.error_type(),
-                CreateComputePipelineError::InvalidResource(e) => e.error_type(),
 
                 CreateComputePipelineError::Internal(_) => ErrorBufferType::Internal,
 
-                CreateComputePipelineError::Implicit(_)
+                CreateComputePipelineError::InvalidResource(_)
+                | CreateComputePipelineError::Implicit(_)
                 | CreateComputePipelineError::Stage(_)
-                | CreateComputePipelineError::MissingDownlevelFlags(_)
-                | CreateComputePipelineError::PipelineConstants(_) => ErrorBufferType::Validation,
+                | CreateComputePipelineError::MissingDownlevelFlags(_) => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -497,12 +449,11 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateRenderPipelineError::Device(e) => e.error_type(),
-                CreateRenderPipelineError::MissingFeatures(e) => e.error_type(),
-                CreateRenderPipelineError::InvalidResource(e) => e.error_type(),
 
                 CreateRenderPipelineError::Internal { .. } => ErrorBufferType::Internal,
 
                 CreateRenderPipelineError::ColorAttachment(_)
+                | CreateRenderPipelineError::InvalidResource(_)
                 | CreateRenderPipelineError::Implicit(_)
                 | CreateRenderPipelineError::ColorState(_, _)
                 | CreateRenderPipelineError::DepthStencilState(_)
@@ -515,30 +466,10 @@ mod foreign {
                 | CreateRenderPipelineError::ShaderLocationClash(_)
                 | CreateRenderPipelineError::StripIndexFormatForNonStripTopology { .. }
                 | CreateRenderPipelineError::ConservativeRasterizationNonFillPolygonMode
+                | CreateRenderPipelineError::MissingFeatures(_)
                 | CreateRenderPipelineError::MissingDownlevelFlags(_)
                 | CreateRenderPipelineError::Stage { .. }
-                | CreateRenderPipelineError::UnalignedShader { .. }
-                | CreateRenderPipelineError::VertexAttributeStrideTooLarge { .. }
-                | CreateRenderPipelineError::PipelineConstants { .. }
-                | CreateRenderPipelineError::BlendFactorOnUnsupportedTarget { .. }
-                | CreateRenderPipelineError::PipelineExpectsShaderToUseDualSourceBlending
-                | CreateRenderPipelineError::ShaderExpectsPipelineToUseDualSourceBlending
-                | CreateRenderPipelineError::NoTargetSpecified => ErrorBufferType::Validation,
-
-                // N.B: forced non-exhaustiveness
-                _ => ErrorBufferType::Validation,
-            }
-        }
-    }
-
-    impl HasErrorBufferType for EncoderStateError {
-        fn error_type(&self) -> ErrorBufferType {
-            match self {
-                EncoderStateError::Invalid
-                | EncoderStateError::Ended
-                | EncoderStateError::Locked
-                | EncoderStateError::Unlocked
-                | EncoderStateError::Submitted => ErrorBufferType::Validation,
+                | CreateRenderPipelineError::UnalignedShader { .. } => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -548,8 +479,6 @@ mod foreign {
 
     impl HasErrorBufferType for RenderBundleError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. May
             // need some upstream work to do this properly.
             ErrorBufferType::Validation
@@ -564,8 +493,6 @@ mod foreign {
                 | DeviceError::Lost => ErrorBufferType::DeviceLost,
                 DeviceError::OutOfMemory => ErrorBufferType::OutOfMemory,
                 DeviceError::ResourceCreationFailed => ErrorBufferType::Internal,
-
-                // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Internal,
             }
         }
@@ -574,12 +501,8 @@ mod foreign {
     impl HasErrorBufferType for CreateTextureViewError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                CreateTextureViewError::Device(e) => e.error_type(),
-                CreateTextureViewError::MissingFeatures(e) => e.error_type(),
-                CreateTextureViewError::DestroyedResource(e) => e.error_type(),
-                CreateTextureViewError::InvalidResource(e) => e.error_type(),
-
                 CreateTextureViewError::InvalidTextureViewDimension { .. }
+                | CreateTextureViewError::InvalidResource(_)
                 | CreateTextureViewError::InvalidMultisampledTextureViewDimension(_)
                 | CreateTextureViewError::InvalidCubemapTextureDepth { .. }
                 | CreateTextureViewError::InvalidCubemapArrayTextureDepth { .. }
@@ -591,11 +514,7 @@ mod foreign {
                 | CreateTextureViewError::InvalidArrayLayerCount { .. }
                 | CreateTextureViewError::InvalidAspect { .. }
                 | CreateTextureViewError::FormatReinterpretation { .. }
-                | CreateTextureViewError::TextureViewFormatNotRenderable(_)
-                | CreateTextureViewError::TextureViewFormatNotStorage(_)
-                | CreateTextureViewError::InvalidTextureViewUsage { .. } => {
-                    ErrorBufferType::Validation
-                }
+                | CreateTextureViewError::DestroyedResource(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -613,8 +532,6 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 TransferError::MemoryInitFailure(e) => e.error_type(),
-                TransferError::MissingBufferUsage(e) => e.error_type(),
-                TransferError::MissingTextureUsage(e) => e.error_type(),
 
                 TransferError::SameSourceDestinationBuffer
                 | TransferError::BufferOverrun { .. }
@@ -642,8 +559,7 @@ mod foreign {
                 | TransferError::TextureFormatsNotCopyCompatible { .. }
                 | TransferError::MissingDownlevelFlags(_)
                 | TransferError::InvalidSampleCount { .. }
-                | TransferError::InvalidMipLevel { .. }
-                | TransferError::SampleCountNotEqual { .. } => ErrorBufferType::Validation,
+                | TransferError::InvalidMipLevel { .. } => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -653,8 +569,6 @@ mod foreign {
 
     impl HasErrorBufferType for ComputePassError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -665,13 +579,11 @@ mod foreign {
     impl HasErrorBufferType for QueryError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
-                QueryError::Device(e) => e.error_type(),
                 QueryError::EncoderState(e) => e.error_type(),
                 QueryError::Use(e) => e.error_type(),
                 QueryError::Resolve(e) => e.error_type(),
-                QueryError::MissingFeature(e) => e.error_type(),
-                QueryError::DestroyedResource(e) => e.error_type(),
-                QueryError::InvalidResource(e) => e.error_type(),
+
+                QueryError::InvalidResource(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -681,8 +593,6 @@ mod foreign {
 
     impl HasErrorBufferType for QueryUseError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -692,8 +602,6 @@ mod foreign {
 
     impl HasErrorBufferType for ResolveError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -713,8 +621,6 @@ mod foreign {
 
     impl HasErrorBufferType for ClearError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -722,35 +628,12 @@ mod foreign {
         }
     }
 
-    impl HasErrorBufferType for ColorAttachmentError {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
-    impl HasErrorBufferType for AttachmentError {
-        fn error_type(&self) -> ErrorBufferType {
-            ErrorBufferType::Validation
-        }
-    }
-
     impl HasErrorBufferType for CommandEncoderError {
         fn error_type(&self) -> ErrorBufferType {
-            match self {
-                CommandEncoderError::State(e) => e.error_type(),
-                CommandEncoderError::Device(e) => e.error_type(),
-                CommandEncoderError::InvalidColorAttachment(e) => e.error_type(),
-                CommandEncoderError::InvalidAttachment(e) => e.error_type(),
-                CommandEncoderError::InvalidResource(e) => e.error_type(),
-                CommandEncoderError::MissingFeatures(e) => e.error_type(),
-                CommandEncoderError::TimestampWritesInvalid(e) => e.error_type(),
-
-                CommandEncoderError::TimestampWriteIndicesEqual { .. }
-                | CommandEncoderError::TimestampWriteIndicesMissing => ErrorBufferType::Validation,
-
-                // N.B: forced non-exhaustiveness
-                _ => ErrorBufferType::Validation,
-            }
+            // We can't classify this ourselves, because inner error classification is private. We
+            // may need some upstream work to do this properly. For now, we trust that this opaque
+            // type only ever represents `Validation`.
+            ErrorBufferType::Validation
         }
     }
 
@@ -759,26 +642,13 @@ mod foreign {
             match self {
                 QueueSubmitError::Queue(e) => e.error_type(),
                 QueueSubmitError::Unmap(e) => e.error_type(),
-                QueueSubmitError::CommandEncoder(e) => e.error_type(),
-                QueueSubmitError::DestroyedResource(e) => e.error_type(),
-                QueueSubmitError::InvalidResource(e) => e.error_type(),
 
-                QueueSubmitError::BufferStillMapped(_)
-                | QueueSubmitError::ValidateAsActionsError(_) => ErrorBufferType::Validation,
+                QueueSubmitError::DestroyedResource(_)
+                | QueueSubmitError::BufferStillMapped(_)
+                | QueueSubmitError::InvalidResource(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
-            }
-        }
-    }
-
-    impl HasErrorBufferType for ValidateAsActionsError {
-        fn error_type(&self) -> ErrorBufferType {
-            match self {
-                ValidateAsActionsError::DestroyedResource(e) => e.error_type(),
-                ValidateAsActionsError::UsedUnbuiltTlas(..)
-                | ValidateAsActionsError::UsedUnbuiltBlas(..)
-                | ValidateAsActionsError::BlasNewerThenTlas(..) => ErrorBufferType::Validation,
             }
         }
     }
@@ -789,8 +659,6 @@ mod foreign {
                 QueueWriteError::Queue(e) => e.error_type(),
                 QueueWriteError::Transfer(e) => e.error_type(),
                 QueueWriteError::MemoryInitFailure(e) => e.error_type(),
-                QueueWriteError::DestroyedResource(e) => e.error_type(),
-                QueueWriteError::InvalidResource(e) => e.error_type(),
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -800,8 +668,6 @@ mod foreign {
 
     impl HasErrorBufferType for GetBindGroupLayoutError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -811,8 +677,6 @@ mod foreign {
 
     impl HasErrorBufferType for CreateRenderBundleError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
@@ -824,12 +688,9 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateQuerySetError::Device(e) => e.error_type(),
-                CreateQuerySetError::MissingFeatures(e) => e.error_type(),
-
-                CreateQuerySetError::ZeroCount | CreateQuerySetError::TooManyQueries { .. } => {
-                    ErrorBufferType::Validation
-                }
-
+                CreateQuerySetError::ZeroCount
+                | CreateQuerySetError::TooManyQueries { .. }
+                | CreateQuerySetError::MissingFeatures(..) => ErrorBufferType::Validation,
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
             }
