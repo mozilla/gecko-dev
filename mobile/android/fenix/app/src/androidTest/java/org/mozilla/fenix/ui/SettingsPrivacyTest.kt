@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui
 
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.HomeActivityTestRule
@@ -54,6 +55,7 @@ class SettingsPrivacyTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243362
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1974939")
     @Test
     fun verifyDataCollectionSettingsTest() {
         homeScreen {}.openThreeDotMenu {}.openSettings {}.openSettingsSubMenuDataCollection {
