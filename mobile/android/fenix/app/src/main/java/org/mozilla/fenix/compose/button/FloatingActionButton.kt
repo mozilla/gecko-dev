@@ -56,7 +56,7 @@ fun FloatingActionButton(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier,
-        backgroundColor = FirefoxTheme.colors.actionPrimary,
+        containerColor = FirefoxTheme.colors.actionPrimary,
         contentColor = FirefoxTheme.colors.textActionPrimary,
         elevation = elevation,
     ) {
@@ -70,7 +70,6 @@ fun FloatingActionButton(
             Icon(
                 painter = icon,
                 contentDescription = contentDescription,
-                tint = FirefoxTheme.colors.iconOnColor,
             )
 
             if (!label.isNullOrBlank()) {
