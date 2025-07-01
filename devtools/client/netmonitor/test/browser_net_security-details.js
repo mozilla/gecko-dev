@@ -30,7 +30,12 @@ add_task(async function () {
   );
   await wait;
 
+  info("Wait until the Security Tab is visible");
+  const waitForSecurityTab = waitForDOM(document, "#security-tab");
   store.dispatch(Actions.toggleNetworkDetails());
+  await waitForSecurityTab;
+
+  info("Selecting the Security Tab");
   clickOnSidebarTab(document, "security");
   await waitUntil(() =>
     document.querySelector("#security-panel .security-info-value")

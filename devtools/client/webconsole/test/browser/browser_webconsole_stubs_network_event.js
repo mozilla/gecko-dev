@@ -94,8 +94,8 @@ async function generateNetworkEventStubs() {
     }
   };
   const onUpdated = updates => {
-    for (const { resource } of updates) {
-      addNetworkUpdateStub(resource);
+    for (const { resource, update } of updates) {
+      addNetworkUpdateStub(resource, update);
     }
   };
 
@@ -117,8 +117,9 @@ async function generateNetworkEventStubs() {
         resolve();
       };
     });
+
     const networkEventUpdateDone = new Promise(resolve => {
-      addNetworkUpdateStub = resource => {
+      addNetworkUpdateStub = (resource, update) => {
         const updateKey = `${key} update`;
         stubs.set(key, getCleanedPacket(key, getOrderedResource(resource)));
         stubs.set(
@@ -128,7 +129,10 @@ async function generateNetworkEventStubs() {
           // Hand-picking only what we need should prevent this.
           getCleanedPacket(updateKey, getOrderedResource(resource))
         );
-        resolve();
+
+        if (update.resourceUpdates.responseEndAvailable) {
+          resolve();
+        }
       };
     });
 

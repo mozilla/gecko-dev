@@ -184,7 +184,7 @@ add_task(async function () {
     "All the page events should be recorded."
   );
 
-  validateRequests(EXPECTED_REQUESTS, monitor);
+  await validateRequests(EXPECTED_REQUESTS, monitor);
 
   // Sort the requests by initiator and check the order
   EventUtils.sendMouseEvent(

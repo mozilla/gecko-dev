@@ -19,12 +19,14 @@ const CSP_BLOCKED_REASON_CODE = 4000;
 add_task(async function testContentProcessRequests() {
   info(`Tests for NETWORK_EVENT resources fired from the content process`);
 
-  const expectedAvailable = [
+  const expectedNetworkEvents = [
     {
       url: CSP_URL,
       method: "GET",
       isNavigationRequest: true,
       chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
     {
       url: JS_CSP_URL,
@@ -32,6 +34,8 @@ add_task(async function testContentProcessRequests() {
       blockedReason: CSP_BLOCKED_REASON_CODE,
       isNavigationRequest: false,
       chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
     {
       url: CSS_CSP_URL,
@@ -39,35 +43,102 @@ add_task(async function testContentProcessRequests() {
       blockedReason: CSP_BLOCKED_REASON_CODE,
       isNavigationRequest: false,
       chromeContext: false,
-    },
-  ];
-  const expectedUpdated = [
-    {
-      url: CSP_URL,
-      method: "GET",
-      isNavigationRequest: true,
-      chromeContext: false,
-    },
-    {
-      url: JS_CSP_URL,
-      method: "GET",
-      blockedReason: CSP_BLOCKED_REASON_CODE,
-      isNavigationRequest: false,
-      chromeContext: false,
-    },
-    {
-      url: CSS_CSP_URL,
-      method: "GET",
-      blockedReason: CSP_BLOCKED_REASON_CODE,
-      isNavigationRequest: false,
-      chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
   ];
 
+  const expectedUpdates = {
+    [CSP_URL]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
+    },
+    [JS_CSP_URL]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+        responseEndAvailable: {
+          responseEndAvailable: true,
+        },
+      },
+    },
+    [CSS_CSP_URL]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
+    },
+  };
+
   await assertNetworkResourcesOnPage(
     CSP_URL,
-    expectedAvailable,
-    expectedUpdated
+    expectedNetworkEvents,
+    expectedUpdates
   );
 });
 
@@ -90,12 +161,14 @@ add_task(async function testCanceledRequest() {
   const pageUrl =
     "https://example.org/document-builder.sjs?html=" + encodeURIComponent(html);
 
-  const expectedAvailable = [
+  const expectedNetworkEvents = [
     {
       url: pageUrl,
       method: "GET",
       isNavigationRequest: true,
       chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
     {
       url: requestUrl,
@@ -103,23 +176,69 @@ add_task(async function testCanceledRequest() {
       isNavigationRequest: false,
       blockedReason: "NS_BINDING_ABORTED",
       chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
   ];
-  const expectedUpdated = [
-    {
-      url: pageUrl,
-      method: "GET",
-      isNavigationRequest: true,
-      chromeContext: false,
+
+  const expectedUpdates = {
+    [pageUrl]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
     },
-    {
-      url: requestUrl,
-      method: "GET",
-      isNavigationRequest: false,
-      blockedReason: "NS_BINDING_ABORTED",
-      chromeContext: false,
+    [requestUrl]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
     },
-  ];
+  };
 
   // Register a one-off listener to cancel the XHR request
   // Using XMLHttpRequest's abort() method from the content process
@@ -140,8 +259,8 @@ add_task(async function testCanceledRequest() {
 
   await assertNetworkResourcesOnPage(
     pageUrl,
-    expectedAvailable,
-    expectedUpdated
+    expectedNetworkEvents,
+    expectedUpdates
   );
 });
 
@@ -159,16 +278,18 @@ add_task(async function testIframeRequest() {
   const pageUrl =
     "https://example.org/document-builder.sjs?html=" + encodeURIComponent(html);
 
-  const expectedAvailable = [
+  const expectedNetworkEvents = [
+    // The top level navigation request relates to the previous top level target.
+    // Unfortunately, it is hard to test because it is racy.
+    // The target front might be destroyed and `targetFront.url` will be null.
+    // Or not just yet and be equal to "about:blank".
     {
       url: pageUrl,
       method: "GET",
       chromeContext: false,
       isNavigationRequest: true,
-      // The top level navigation request relates to the previous top level target.
-      // Unfortunately, it is hard to test because it is racy.
-      // The target front might be destroyed and `targetFront.url` will be null.
-      // Or not just yet and be equal to "about:blank".
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
     {
       url: iframeUrl,
@@ -176,6 +297,8 @@ add_task(async function testIframeRequest() {
       isNavigationRequest: false,
       targetFrontUrl: pageUrl,
       chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
     {
       url: iframeRequestUrl,
@@ -183,40 +306,109 @@ add_task(async function testIframeRequest() {
       isNavigationRequest: false,
       targetFrontUrl: iframeUrl,
       chromeContext: false,
-    },
-  ];
-  const expectedUpdated = [
-    {
-      url: pageUrl,
-      method: "GET",
-      isNavigationRequest: true,
-      chromeContext: false,
-    },
-    {
-      url: iframeUrl,
-      method: "GET",
-      isNavigationRequest: false,
-      chromeContext: false,
-    },
-    {
-      url: iframeRequestUrl,
-      method: "GET",
-      isNavigationRequest: false,
-      chromeContext: false,
+      requestCookiesAvailable: true,
+      requestHeadersAvailable: true,
     },
   ];
 
+  const expectedUpdates = {
+    [pageUrl]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
+    },
+    [iframeUrl]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
+    },
+    [iframeRequestUrl]: {
+      responseStart: {
+        status: "200",
+        mimeType: "text/html",
+        responseCookiesAvailable: true,
+        responseHeadersAvailable: true,
+        responseStartAvailable: true,
+      },
+      eventTimingsAvailable: {
+        totalTime: 12,
+        eventTimingsAvailable: true,
+      },
+      securityInfoAvailable: {
+        securityState: "secure",
+        isRacing: false,
+        securityInfoAvailable: true,
+      },
+      responseContentAvailable: {
+        contentSize: 200,
+        transferredSize: 343,
+        mimeType: "text/html",
+        blockedReason: 0,
+        responseContentAvailable: true,
+      },
+      responseEndAvailable: {
+        responseEndAvailable: true,
+      },
+    },
+  };
+
   await assertNetworkResourcesOnPage(
     pageUrl,
-    expectedAvailable,
-    expectedUpdated
+    expectedNetworkEvents,
+    expectedUpdates
   );
 });
 
 async function assertNetworkResourcesOnPage(
   url,
-  expectedAvailable,
-  expectedUpdated
+  expectedNetworkEvents,
+  expectedUpdates
 ) {
   // First open a blank document to avoid spawning any request
   const tab = await addTab("about:blank");
@@ -225,35 +417,49 @@ async function assertNetworkResourcesOnPage(
   await commands.targetCommand.startListening();
   const { resourceCommand } = commands;
 
+  const matchedRequests = {};
+
   const onAvailable = resources => {
     for (const resource of resources) {
       // Immediately assert the resource, as the same resource object
       // will be notified to onUpdated and so if we assert it later
       // we will not highlight attributes that aren't set yet from onAvailable.
-      const idx = expectedAvailable.findIndex(e => e.url === resource.url);
+      if (matchedRequests[resource.url] !== undefined) {
+        return;
+      }
+      const idx = expectedNetworkEvents.findIndex(e => e.url === resource.url);
       Assert.notEqual(
         idx,
         -1,
         "Found a matching available notification for: " + resource.url
       );
-      // Remove the match from the list in case there is many requests with the same url
-      const [expected] = expectedAvailable.splice(idx, 1);
+      // Track already matched resources in case there is many requests with the same url
+      if (idx >= 0) {
+        matchedRequests[resource.url] = 0;
+      }
 
-      assertResources(resource, expected);
+      assertNetworkResources(resource, expectedNetworkEvents[idx]);
     }
   };
+
   const onUpdated = updates => {
-    for (const { resource } of updates) {
-      const idx = expectedUpdated.findIndex(e => e.url === resource.url);
+    for (const {
+      resource,
+      update: { resourceUpdates },
+    } of updates) {
+      const idx = expectedNetworkEvents.findIndex(e => e.url === resource.url);
       Assert.notEqual(
         idx,
         -1,
-        "Found a matching updated notification for: " + resource.url
+        "Found a matching available notification for the update: " +
+          resource.url
       );
-      // Remove the match from the list in case there is many requests with the same url
-      const [expected] = expectedUpdated.splice(idx, 1);
 
-      assertResources(resource, expected);
+      matchedRequests[resource.url] = matchedRequests[resource.url] + 1;
+      assertNetworkUpdateResources(
+        resourceUpdates,
+        expectedUpdates[resource.url]
+      );
     }
   };
 
@@ -270,12 +476,8 @@ async function assertNetworkResourcesOnPage(
 
   // Make sure we processed all the expected request updates
   await waitFor(
-    () => !expectedAvailable.length,
+    () => Object.keys(matchedRequests).length == expectedNetworkEvents.length,
     "Wait for all expected available notifications"
-  );
-  await waitFor(
-    () => !expectedUpdated.length,
-    "Wait for all expected updated notifications"
   );
 
   resourceCommand.unwatchResources([resourceCommand.TYPES.NETWORK_EVENT], {
@@ -284,11 +486,10 @@ async function assertNetworkResourcesOnPage(
   });
 
   await commands.destroy();
-
   BrowserTestUtils.removeTab(tab);
 }
 
-function assertResources(actual, expected) {
+function assertNetworkResources(actual, expected) {
   is(
     actual.resourceType,
     ResourceCommand.TYPES.NETWORK_EVENT,
@@ -314,5 +515,21 @@ function assertResources(actual, expected) {
     } else {
       is(actual[name], expected[name], `The '${name}' attribute is correct`);
     }
+  }
+}
+
+// Assert that the correct resource information are available for the resource update type
+function assertNetworkUpdateResources(actual, expected) {
+  const updateTypes = Object.keys(expected);
+  const expectedUpdateType = updateTypes.find(
+    type => actual[`${type}Available`]
+  );
+  const expectedUpdates = expected[expectedUpdateType];
+  for (const name in expectedUpdates) {
+    is(
+      expectedUpdates[name],
+      actual[name],
+      `The resource update "${name}" contains the expected value "${actual[name]}"`
+    );
   }
 }

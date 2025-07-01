@@ -300,7 +300,7 @@ const updatedTypes = [
   "NetMonitor:NetworkEventUpdated:EventTimings",
 ];
 
-// Start collecting all networkEventUpdate event when panel is opened.
+// Start collecting all networkEventUpdate events when the panel is opened.
 // removeTab() should be called once all corresponded RECEIVED_* events finished.
 function startNetworkEventUpdateObserver(panelWin) {
   updatingTypes.forEach(type =>
@@ -584,7 +584,7 @@ function waitForNetworkEvents(monitor, getRequests, options = {}) {
   });
 }
 
-function verifyRequestItemTarget(
+async function verifyRequestItemTarget(
   document,
   requestList,
   requestItem,
@@ -769,25 +769,38 @@ function verifyRequestItemTarget(
   );
 
   if (status !== undefined) {
+    info("Wait for the request status to be updated");
+    await waitFor(
+      () =>
+        target.querySelector(".requests-list-status-code").textContent == status
+    );
+
     const value = target
       .querySelector(".requests-list-status-code")
       .getAttribute("data-status-code");
-    const codeValue = target.querySelector(
-      ".requests-list-status-code"
-    ).textContent;
-    const tooltip = target
-      .querySelector(".requests-list-status-code")
-      .getAttribute("title");
-    info("Displayed status: " + value);
-    info("Displayed code: " + codeValue);
-    info("Tooltip status: " + tooltip);
     is(
       `${value}`,
       displayedStatus ? `${displayedStatus}` : `${status}`,
-      "The displayed status is correct."
+      `The displayed status "${value}" is correct.`
     );
-    is(`${codeValue}`, `${status}`, "The displayed status code is correct.");
-    is(tooltip, status + " " + statusText, "The tooltip status is correct.");
+
+    const codeValue = target.querySelector(
+      ".requests-list-status-code"
+    ).textContent;
+    is(
+      `${codeValue}`,
+      `${status}`,
+      `The displayed status code "${codeValue}" is correct.`
+    );
+
+    const tooltip = target
+      .querySelector(".requests-list-status-code")
+      .getAttribute("title");
+    is(
+      tooltip,
+      status + " " + statusText,
+      `The tooltip status "${tooltip}" is correct.`
+    );
   }
   if (cause !== undefined) {
     const value = Array.from(
@@ -818,28 +831,45 @@ function verifyRequestItemTarget(
     is(tooltip, fullMimeType, "The tooltip type is correct.");
   }
   if (transferred !== undefined) {
-    const value = target.querySelector(
-      ".requests-list-transferred"
-    ).textContent;
+    let transferedValue;
+    info("Wait for the transfered value to get updated");
+    const trnsOk = await waitFor(() => {
+      transferedValue = target.querySelector(
+        ".requests-list-transferred"
+      ).textContent;
+      return transferedValue == transferred;
+    });
+    ok(
+      trnsOk,
+      `The displayed transferred size "${transferedValue}" is correct.`
+    );
+
     const tooltip = target
       .querySelector(".requests-list-transferred")
       .getAttribute("title");
-    info("Displayed transferred size: " + value);
-    info("Tooltip transferred size: " + tooltip);
-    is(value, transferred, "The displayed transferred size is correct.");
-    is(tooltip, transferred, "The tooltip transferred size is correct.");
+    is(
+      tooltip,
+      transferred,
+      `The tooltip transferred size "${tooltip}" is correct.`
+    );
   }
   if (size !== undefined) {
-    const value = target.querySelector(".requests-list-size").textContent;
+    let sizeValue;
+    info("Wait for the size to get updated");
+    const sizeOk = await waitFor(() => {
+      sizeValue = target.querySelector(".requests-list-size").textContent;
+      return sizeValue == size;
+    });
+    ok(sizeOk, `The displayed size "${sizeValue}" is correct.`);
+
     const tooltip = target
       .querySelector(".requests-list-size")
       .getAttribute("title");
-    info("Displayed size: " + value);
-    info("Tooltip size: " + tooltip);
-    is(value, size, "The displayed size is correct.");
-    is(tooltip, size, "The tooltip size is correct.");
+    is(tooltip, size, `The tooltip size "${tooltip}" is correct.`);
   }
   if (time !== undefined) {
+    info("Wait for timings total to get updated");
+    await waitFor(() => target.querySelector(".requests-list-timings-total"));
     const value = target.querySelector(
       ".requests-list-timings-total"
     ).textContent;
@@ -1139,7 +1169,9 @@ async function selectIndexAndWaitForSourceEditor(monitor, index) {
 /**
  * Helper function for executing XHRs on a test page.
  *
- * @param {Number} count Number of requests to be executed.
+ * @param {Object} monitor
+ * @param {Object} tab - The current browser tab
+ * @param {Number} count - Number of requests to be executed.
  */
 async function performRequests(monitor, tab, count) {
   const wait = waitForNetworkEvents(monitor, count);
@@ -1183,27 +1215,28 @@ function getSettingsMenuItem(monitor, itemKey) {
 /**
  * Wait for lazy fields to be loaded in a request.
  *
- * @param Object Store redux store containing request list.
- * @param array fields array of strings which contain field names to be checked
- * on the request.
+ * @param {Object} Store - redux store containing request list.
+ * @param {Array} fields - array of strings which contain field names to be checked
+ * @param {Number} id - The id of the request whose data we need to wait for
+ * @param {Number} index - The position of the request in the sorted request list.
  */
-function waitForRequestData(store, fields, id) {
+function waitForRequestData(store, fields, id, index = 0) {
   return waitUntil(() => {
     let item;
     if (id) {
       item = getRequestById(store.getState(), id);
     } else {
-      item = getSortedRequests(store.getState())[0];
+      item = getSortedRequests(store.getState())[index];
     }
     if (!item) {
       return false;
     }
     for (const field of fields) {
-      if (!item[field]) {
+      if (item[field] == undefined) {
         return false;
       }
     }
-    return true;
+    return item;
   });
 }
 
@@ -1264,7 +1297,7 @@ function queryTelemetryEvents(query) {
  *     When set to true, requests are allowed to be in a different order in the
  *     netmonitor than in the expected requests array. Defaults to false.
  */
-function validateRequests(requests, monitor, options = {}) {
+async function validateRequests(requests, monitor, options = {}) {
   const { allowDifferentOrder } = options;
   const { document, store, windowRequire } = monitor.panelWin;
 
@@ -1273,7 +1306,7 @@ function validateRequests(requests, monitor, options = {}) {
   );
   const sortedRequests = getSortedRequests(store.getState());
 
-  requests.forEach((spec, i) => {
+  for (const [i, spec] of requests.entries()) {
     const { method, url, causeType, causeUri, stack } = spec;
 
     let requestItem;
@@ -1283,7 +1316,7 @@ function validateRequests(requests, monitor, options = {}) {
       requestItem = sortedRequests[i];
     }
 
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       requestItem,
@@ -1346,7 +1379,7 @@ function validateRequests(requests, monitor, options = {}) {
     } else {
       is(stackLen, 0, `Request #${i} (${causeType}) has an empty stacktrace`);
     }
-  });
+  }
 }
 
 /**

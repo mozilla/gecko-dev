@@ -43,6 +43,8 @@ add_task(async function () {
 
   store.dispatch(Actions.openStatistics(connector, true));
 
+  await waitForAllNetworkUpdateEvents();
+
   ok(
     document.querySelector(".statistics-panel"),
     "The main panel is switched to the statistics panel."

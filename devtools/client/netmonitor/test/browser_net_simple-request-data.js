@@ -157,7 +157,7 @@ function test() {
         );
         */
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -188,7 +188,7 @@ function test() {
       // Can't test for the exact request headers size because the value may
       // vary across platforms ("User-Agent" header differs).
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -212,7 +212,7 @@ function test() {
         "The requestCookies data has an incorrect |cookies| property."
       );
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -245,7 +245,7 @@ function test() {
         "The responseHeaders data has an incorrect |headersSize| property."
       );
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -269,7 +269,7 @@ function test() {
         "The responseCookies data has an incorrect |cookies| property."
       );
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -312,7 +312,7 @@ function test() {
       await waitUntil(() => requestsListStatus.title);
       await waitForDOMIfNeeded(requestListItem, ".requests-list-timings-total");
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -350,7 +350,7 @@ function test() {
         "The mimeType data has an incorrect value."
       );
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -381,7 +381,7 @@ function test() {
         "The attached totalTime should be positive."
       );
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,
@@ -443,7 +443,7 @@ function test() {
         "The eventTimings data has an incorrect |totalTime| property."
       );
 
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         requestItem,

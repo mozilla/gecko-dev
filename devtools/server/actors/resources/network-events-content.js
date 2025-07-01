@@ -205,14 +205,13 @@ class NetworkEventContentWatcher {
     // should always be considered as available. But the client still
     // heavily relies on those `Available` flags to fetch additional data,
     // so it is better to keep them for consistency.
-    lazy.NetworkUtils.setEventAsAvailable(
-      networkEvent.resourceUpdates,
-      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_HEADERS
-    );
-    lazy.NetworkUtils.setEventAsAvailable(
-      networkEvent.resourceUpdates,
-      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_COOKIES
-    );
+
+    // Set the flags on the resource so that the front-end can fetch
+    // and display request headers and cookies details asap.
+    lazy.NetworkUtils.setEventAsAvailable(resource, [
+      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_HEADERS,
+      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_COOKIES,
+    ]);
 
     this.networkEvents.set(resource.resourceId, networkEvent);
 
@@ -220,6 +219,9 @@ class NetworkEventContentWatcher {
 
     networkEventActor.addCacheDetails({ fromCache });
     if (type == RESOURCE_TYPES.BLOCKED) {
+      lazy.NetworkUtils.setEventAsAvailable(networkEvent.resourceUpdates, [
+        lazy.NetworkUtils.NETWORK_EVENT_TYPES.RESPONSE_END,
+      ]);
       this._emitUpdate(networkEvent);
     } else if (type == RESOURCE_TYPES.CACHED) {
       networkEventActor.addResponseStart({ channel, fromCache: true });
@@ -273,14 +275,10 @@ class NetworkEventContentWatcher {
         resourceUpdates.remotePort = updateResource.remotePort;
         resourceUpdates.waitingTime = updateResource.waitingTime;
 
-        lazy.NetworkUtils.setEventAsAvailable(
-          resourceUpdates,
-          NETWORK_EVENT_TYPES.RESPONSE_COOKIES
-        );
-        lazy.NetworkUtils.setEventAsAvailable(
-          resourceUpdates,
-          NETWORK_EVENT_TYPES.RESPONSE_HEADERS
-        );
+        lazy.NetworkUtils.setEventAsAvailable(resourceUpdates, [
+          NETWORK_EVENT_TYPES.RESPONSE_COOKIES,
+          NETWORK_EVENT_TYPES.RESPONSE_HEADERS,
+        ]);
         break;
       case NETWORK_EVENT_TYPES.RESPONSE_CONTENT:
         resourceUpdates.contentSize = updateResource.contentSize;
@@ -292,22 +290,35 @@ class NetworkEventContentWatcher {
         break;
     }
 
-    lazy.NetworkUtils.setEventAsAvailable(
-      resourceUpdates,
-      updateResource.updateType
-    );
+    lazy.NetworkUtils.setEventAsAvailable(resourceUpdates, [
+      updateResource.updateType,
+    ]);
+
     receivedUpdates.push(updateResource.updateType);
 
     // Here we explicitly call all three `add` helpers on each network event
     // actor so in theory we could check only the last one to be called, ie
     // responseContent.
-    const isComplete =
+    const isResponseComplete =
       receivedUpdates.includes(NETWORK_EVENT_TYPES.RESPONSE_START) &&
       receivedUpdates.includes(NETWORK_EVENT_TYPES.RESPONSE_CONTENT) &&
       receivedUpdates.includes(NETWORK_EVENT_TYPES.EVENT_TIMINGS);
 
-    if (isComplete) {
+    if (isResponseComplete) {
+      // Lets add an event to clearly define the last update expected to be
+      // emitted. There will be no more updates after this.
+      lazy.NetworkUtils.setEventAsAvailable(resourceUpdates, [
+        NETWORK_EVENT_TYPES.RESPONSE_END,
+      ]);
+    }
+
+    if (
+      updateResource.updateType == NETWORK_EVENT_TYPES.RESPONSE_START ||
+      isResponseComplete
+    ) {
       this._emitUpdate(networkEvent);
+      // clean up already sent updates
+      networkEvent.resourceUpdates = {};
     }
   }
 

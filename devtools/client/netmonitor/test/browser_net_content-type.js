@@ -34,7 +34,7 @@ add_task(async function () {
     await waitForDOMIfNeeded(requestItem, ".requests-list-timings-total");
   }
 
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],
@@ -49,7 +49,7 @@ add_task(async function () {
       time: true,
     }
   );
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[1],
@@ -64,7 +64,7 @@ add_task(async function () {
       time: true,
     }
   );
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[2],
@@ -79,7 +79,7 @@ add_task(async function () {
       time: true,
     }
   );
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[3],
@@ -94,7 +94,7 @@ add_task(async function () {
       time: true,
     }
   );
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[4],
@@ -109,7 +109,7 @@ add_task(async function () {
       time: true,
     }
   );
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[5],
@@ -125,7 +125,7 @@ add_task(async function () {
       time: true,
     }
   );
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[6],

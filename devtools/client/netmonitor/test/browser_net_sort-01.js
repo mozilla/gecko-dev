@@ -223,7 +223,7 @@ add_task(async function () {
     }
 
     for (let i = 0, len = order.length / 5; i < len; i++) {
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         getSortedRequests(store.getState())[order[i]],
@@ -241,7 +241,7 @@ add_task(async function () {
       );
     }
     for (let i = 0, len = order.length / 5; i < len; i++) {
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         getSortedRequests(store.getState())[order[i + len]],
@@ -259,7 +259,7 @@ add_task(async function () {
       );
     }
     for (let i = 0, len = order.length / 5; i < len; i++) {
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         getSortedRequests(store.getState())[order[i + len * 2]],
@@ -277,7 +277,7 @@ add_task(async function () {
       );
     }
     for (let i = 0, len = order.length / 5; i < len; i++) {
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         getSortedRequests(store.getState())[order[i + len * 3]],
@@ -295,7 +295,7 @@ add_task(async function () {
       );
     }
     for (let i = 0, len = order.length / 5; i < len; i++) {
-      verifyRequestItemTarget(
+      await verifyRequestItemTarget(
         document,
         getDisplayedRequests(store.getState()),
         getSortedRequests(store.getState())[order[i + len * 4]],

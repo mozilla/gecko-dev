@@ -206,6 +206,9 @@ add_task(async function () {
   typeInNetmonitor(SEARCH_STRING, monitor);
   EventUtils.synthesizeKey("KEY_Enter");
 
+  // Wait for all the updates to complete
+  await waitForAllNetworkUpdateEvents();
+
   // Wait until there are two resources rendered in the results
   await waitForDOMIfNeeded(
     document,
@@ -233,7 +236,7 @@ add_task(async function () {
     ".search-panel-content .treeRow.resultRow"
   );
 
-  // test contex menu entries for contained content:
+  // test context menu entries for contained content:
   const firstContentMatch = contentMatches[0];
   await checkContentMenuCopy(firstContentMatch, matchingUrls[0], monitor);
 

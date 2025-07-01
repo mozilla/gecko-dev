@@ -88,7 +88,7 @@ add_task(async function () {
     })
   );
 
-  validateRequests(expectedRequests, monitor);
+  await validateRequests(expectedRequests, monitor);
 
   await teardown(monitor);
 });

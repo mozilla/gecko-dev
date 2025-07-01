@@ -26,13 +26,24 @@ add_task(async function () {
 
   const firstItem = document.querySelectorAll(".request-list-item")[0];
 
+  info("Wait for content for the transfered column to be updated");
+  const transferredValue = await waitFor(() => {
+    const value = firstItem.querySelector(
+      ".requests-list-transferred"
+    ).innerText;
+    if (value == "") {
+      return false;
+    }
+    return value;
+  });
+
   is(
     firstItem.querySelector(".requests-list-url").innerText,
     URL,
     "The url in the displayed request is correct"
   );
   is(
-    firstItem.querySelector(".requests-list-transferred").innerText,
+    transferredValue,
     "NS_ERROR_UNKNOWN_HOST",
     "The error in the displayed request is correct"
   );

@@ -116,6 +116,8 @@ add_task(async function () {
   info("Performing requests #2...");
   await performRequestsAndWait();
 
+  await waitForAllNetworkUpdateEvents();
+
   let index = 0;
   for (const request of REQUEST_DATA) {
     const requestItem = document.querySelectorAll(".request-list-item")[index];

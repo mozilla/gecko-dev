@@ -43,23 +43,35 @@ add_task(async function () {
     redirectUrlSecurityIcon,
   ] = document.querySelectorAll(".requests-security-state-icon");
 
+  const initialDomainSecurityOk = await waitUntil(() =>
+    initialDomainSecurityIcon.classList.contains("security-state-insecure")
+  );
   ok(
-    initialDomainSecurityIcon.classList.contains("security-state-insecure"),
+    initialDomainSecurityOk,
     "Initial request was marked insecure for domain column."
   );
 
+  const redirectDomainSecurityOk = await waitUntil(() =>
+    redirectDomainSecurityIcon.classList.contains("security-state-secure")
+  );
   ok(
-    redirectDomainSecurityIcon.classList.contains("security-state-secure"),
+    redirectDomainSecurityOk,
     "Redirected request was marked secure for domain column."
   );
 
+  const initialUrlSecurityOk = await waitUntil(() =>
+    initialUrlSecurityIcon.classList.contains("security-state-insecure")
+  );
   ok(
-    initialUrlSecurityIcon.classList.contains("security-state-insecure"),
+    initialUrlSecurityOk,
     "Initial request was marked insecure for URL column."
   );
 
+  const redirectUrlSecurityOk = await waitUntil(() =>
+    redirectUrlSecurityIcon.classList.contains("security-state-secure")
+  );
   ok(
-    redirectUrlSecurityIcon.classList.contains("security-state-secure"),
+    redirectUrlSecurityOk,
     "Redirected request was marked secure for URL column."
   );
 

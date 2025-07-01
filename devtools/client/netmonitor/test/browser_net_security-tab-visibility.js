@@ -78,6 +78,8 @@ add_task(async function () {
       document.querySelectorAll(".request-list-item")[0]
     );
 
+    await waitForAllNetworkUpdateEvents();
+
     is(
       getSelectedRequest(store.getState()).securityState,
       testcase.securityState,

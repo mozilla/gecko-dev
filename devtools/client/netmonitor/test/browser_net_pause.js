@@ -30,7 +30,7 @@ add_task(async function () {
     noRequest = false;
   });
 
-  monitor.panelWin.api.once(TEST_EVENTS.NETWORK_EVENT_UPDATED, () => {
+  monitor.panelWin.api.on(EVENTS.PAYLOAD_READY, () => {
     noRequest = false;
   });
 

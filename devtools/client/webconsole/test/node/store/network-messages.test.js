@@ -94,6 +94,7 @@ describe("Network message reducer:", () => {
           {
             id: "message1",
             data: {
+              securityState: "insecure",
               securityInfo,
             },
           },

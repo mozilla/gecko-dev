@@ -239,6 +239,7 @@ add_task(async function () {
   }
 
   async function testContents(visibility) {
+    await waitForAllNetworkUpdateEvents();
     const requestItems = document.querySelectorAll(".request-list-item");
     for (const requestItem of requestItems) {
       requestItem.scrollIntoView();
@@ -292,7 +293,7 @@ add_task(async function () {
       const { method, url, data } = EXPECTED_REQUESTS[i];
       for (let j = i; j < visibility.length; j += EXPECTED_REQUESTS.length) {
         if (visibility[j]) {
-          verifyRequestItemTarget(
+          await verifyRequestItemTarget(
             document,
             getDisplayedRequests(store.getState()),
             getSortedRequests(store.getState())[i],

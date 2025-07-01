@@ -182,9 +182,9 @@ add_task(async function () {
 
   store.dispatch(Actions.batchEnable(false));
 
+  const wait = waitForNetworkEvents(monitor, REQUEST_COUNT);
   await navigateTo(TOP_URL);
-
-  await waitForNetworkEvents(monitor, REQUEST_COUNT);
+  await wait;
 
   is(
     store.getState().requests.requests.length,
@@ -219,7 +219,7 @@ add_task(async function () {
     }
     const { method, url, causeType, causeUri, stack } = spec;
 
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       requestItem,

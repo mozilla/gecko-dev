@@ -34,7 +34,7 @@ add_task(async function () {
   await waitUntil(() => requestsListStatus.title);
   await waitForDOMIfNeeded(requestItem, ".requests-list-timings-total");
 
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     getDisplayedRequests(store.getState()),
     getSortedRequests(store.getState())[0],

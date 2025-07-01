@@ -401,7 +401,7 @@ add_task(async function () {
       await waitUntil(() => requestsListStatus.title);
     }
 
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[a],
@@ -417,7 +417,7 @@ add_task(async function () {
         size: L10N.getFormatStrWithNumbers("networkMenu.sizeB", 0),
       }
     );
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[b],
@@ -433,7 +433,7 @@ add_task(async function () {
         size: L10N.getFormatStrWithNumbers("networkMenu.sizeB", 19),
       }
     );
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[c],
@@ -449,7 +449,7 @@ add_task(async function () {
         size: L10N.getFormatStrWithNumbers("networkMenu.sizeB", 29),
       }
     );
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[d],
@@ -465,7 +465,7 @@ add_task(async function () {
         size: L10N.getFormatStrWithNumbers("networkMenu.sizeB", 39),
       }
     );
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[e],

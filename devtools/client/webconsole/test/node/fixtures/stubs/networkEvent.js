@@ -21,7 +21,7 @@ const rawPackets = new Map();
 rawPackets.set(`GET request`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent4",
+  "actor": "server0.conn0.netEvent5",
   "startedDateTime": "2019-11-04T11:06:34.542Z",
   "method": "GET",
   "url": "https://example.com/inexistent.html",
@@ -46,14 +46,14 @@ rawPackets.set(`GET request`, {
   "referrerPolicy": "strict-origin-when-cross-origin",
   "blockedReason": 0,
   "totalTime": 2,
-  "securityState": "insecure",
+  "securityState": "secure",
   "isRacing": false
 });
 
 rawPackets.set(`GET request update`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent4",
+  "actor": "server0.conn0.netEvent5",
   "startedDateTime": "2020-07-07T14:41:14.572Z",
   "method": "GET",
   "url": "https://example.com/inexistent.html",
@@ -78,14 +78,14 @@ rawPackets.set(`GET request update`, {
   "referrerPolicy": "strict-origin-when-cross-origin",
   "blockedReason": 0,
   "totalTime": 3,
-  "securityState": "insecure",
+  "securityState": "secure",
   "isRacing": false
 });
 
 rawPackets.set(`XHR GET request`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent6",
+  "actor": "server0.conn0.netEvent7",
   "startedDateTime": "2020-07-07T14:41:14.612Z",
   "method": "GET",
   "url": "https://example.com/inexistent.html",
@@ -124,7 +124,7 @@ rawPackets.set(`XHR GET request`, {
 rawPackets.set(`XHR GET request update`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent6",
+  "actor": "server0.conn0.netEvent7",
   "method": "GET",
   "url": "https://example.com/inexistent.html",
   "isXHR": true,
@@ -162,7 +162,7 @@ rawPackets.set(`XHR GET request update`, {
 rawPackets.set(`XHR POST request`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent8",
+  "actor": "server0.conn0.netEvent9",
   "startedDateTime": "2019-11-04T11:06:35.007Z",
   "method": "POST",
   "url": "https://example.com/inexistent.html",
@@ -201,7 +201,7 @@ rawPackets.set(`XHR POST request`, {
 rawPackets.set(`XHR POST request update`, {
   "resourceType": "network-event",
   "timeStamp": 1572867483805,
-  "actor": "server0.conn0.netEvent8",
+  "actor": "server0.conn0.netEvent9",
   "method": "POST",
   "url": "https://example.com/inexistent.html",
   "isXHR": true,

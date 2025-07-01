@@ -62,7 +62,9 @@ async function checkHSTS({ url, usesHSTS}) {
       .watchResources([resourceCommand.TYPES.NETWORK_EVENT], {
         onAvailable: () => {},
         onUpdated: resourceUpdate => {
-          resolve(resourceUpdate[0].resource);
+          if (resourceUpdate[0].update.resourceUpdates.responseEndAvailable) {
+            resolve(resourceUpdate[0].resource);
+          }
         },
       })
       .then(() => {

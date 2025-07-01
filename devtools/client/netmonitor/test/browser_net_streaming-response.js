@@ -49,8 +49,8 @@ add_task(async function () {
     await waitForDOMIfNeeded(requestItem, ".requests-list-timings-total");
   }
 
-  REQUESTS.forEach(([fmt], i) => {
-    verifyRequestItemTarget(
+  for (const [i, [fmt]] of REQUESTS.entries()) {
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[i],
@@ -61,7 +61,7 @@ add_task(async function () {
         statusText: "OK",
       }
     );
-  });
+  }
 
   wait = waitForDOM(document, "#response-panel");
   store.dispatch(Actions.toggleNetworkDetails());

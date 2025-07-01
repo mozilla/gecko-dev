@@ -449,24 +449,32 @@ class FirefoxDataProvider {
    * The handler for when the network event resource is updated.
    *
    * @param {object} resource The updated network event resource.
+   * @param {object} update The update packet, includes the latest resource updates
    */
-  async onNetworkResourceUpdated(resource) {
+  async onNetworkResourceUpdated(resource, update) {
     // Identify the channel as SSE if mimeType is event-stream.
     if (resource?.mimeType?.includes("text/event-stream")) {
       await this.setEventStreamFlag(resource.actor);
     }
 
-    this.pendingRequests.delete(resource.actor);
     if (this.actionsEnabled && this.actions.updateRequest) {
       await this.actions.updateRequest(resource.actor, resource, true);
     }
 
-    // This event is fired only once per request, once all the properties are fetched
-    // from `onNetworkResourceUpdated`. There should be no more RDP requests after this.
-    // Note that this event might be consumed by extension so, emit it in production
-    // release as well.
+    // This event is fired multiple times per request
     this.emitForTests(TEST_EVENTS.NETWORK_EVENT_UPDATED, resource.actor);
-    this.emit(EVENTS.PAYLOAD_READY, resource);
+    if (
+      // @backward-compat { version 142 } Trait to support backward
+      // compatibility with the old server which sends only one update.
+      // This can be removed after 142 is in release.
+      !this.commands.watcherFront.traits.multipleNetworkEventUpdates ||
+      (this.commands.watcherFront.traits.multipleNetworkEventUpdates &&
+        update.resourceUpdates.responseEndAvailable)
+    ) {
+      this.pendingRequests.delete(resource.actor);
+      // The EVENTS.PAYLOAD_READY might be consumed by extensions.
+      this.emit(EVENTS.PAYLOAD_READY, resource);
+    }
   }
 
   /**

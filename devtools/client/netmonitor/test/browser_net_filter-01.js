@@ -500,6 +500,7 @@ add_task(async function () {
     const requestItems = document.querySelectorAll(".request-list-item");
     for (const requestItem of requestItems) {
       requestItem.scrollIntoView();
+      await waitUntil(() => requestItem.querySelector(".status-code"));
       const requestsListStatus = requestItem.querySelector(".status-code");
       EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
       await waitUntil(() => requestsListStatus.title);
@@ -539,7 +540,7 @@ add_task(async function () {
 
       if (shouldBeVisible) {
         const { method, url, data } = EXPECTED_REQUESTS[i];
-        verifyRequestItemTarget(
+        await verifyRequestItemTarget(
           document,
           getDisplayedRequests(store.getState()),
           getSortedRequests(store.getState())[i],

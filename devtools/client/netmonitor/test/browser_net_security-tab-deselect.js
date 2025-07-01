@@ -38,8 +38,10 @@ add_task(async function () {
   );
   await wait;
 
+  info("Wait until the Security tab is visible");
+  wait = waitForDOM(document, "#security-tab");
+
   info("Selecting secure request.");
-  wait = waitForDOM(document, ".tabs");
   EventUtils.sendMouseEvent(
     { type: "mousedown" },
     document.querySelectorAll(".request-list-item")[0]

@@ -40,15 +40,15 @@ add_task(async function () {
   await wait;
 
   info("Checking the flight and preflight methods");
-  ["POST", "OPTIONS"].forEach((method, index) => {
-    verifyRequestItemTarget(
+  for (const [index, method] of ["POST", "OPTIONS"].entries()) {
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[index],
       method,
       requestUrl
     );
-  });
+  }
 
   await teardown(monitor);
 });

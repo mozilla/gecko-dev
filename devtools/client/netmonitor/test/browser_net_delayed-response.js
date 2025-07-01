@@ -14,40 +14,35 @@ function setupTestServer() {
     response.setStatusLine(request.httpVersion, 200, "OK");
     response.write(
       `<!DOCTYPE html>
-      <html>
-        <body>Test for delayed responses</body>
-      </html>
-    `
+        <html>
+          <body>Test for delayed responses</body>
+        </html>
+      `
     );
   });
 
-  // TODO: Not easy to follow, clean up the pattern after fixing the bug Bug 1557795.
-  let resolveResponse;
-  const waitForResponse = new Promise(resolve => {
-    resolveResponse = resolve;
-  });
+  const { promise, resolve } = Promise.withResolvers();
+  let delayedResponse;
   httpServer.registerPathHandler(
     "/delayed-response",
     function (request, response) {
       response.processAsync();
-      resolveResponse(() => {
-        response.setStatusLine(response.httpVersion, 400, "OK");
-        response.setHeader("Content-Type", "text/plain", false);
-        response.write("Here is some content");
-        response.finish();
-      });
+      delayedResponse = response;
+      resolve();
     }
   );
-  return { httpServer, waitForResponse };
+
+  const resolveResponse = () => {
+    delayedResponse.setStatusLine(delayedResponse.httpVersion, 200, "OK");
+    delayedResponse.setHeader("Content-Type", "text/plain", false);
+    delayedResponse.write("Here is some content");
+    delayedResponse.finish();
+  };
+  return { httpServer, responseCreated: promise, resolveResponse };
 }
 
 add_task(async function () {
-  // TODO: Enable this test when Bug 1557795 gets fixed.
-  // eslint-disable-next-line no-constant-condition
-  if (true) {
-    return;
-  }
-  const { httpServer, waitForResponse } = setupTestServer();
+  const { httpServer, responseCreated, resolveResponse } = setupTestServer();
   const port = httpServer.identity.primaryPort;
 
   const { tab, monitor } = await initNetMonitor(
@@ -67,12 +62,12 @@ add_task(async function () {
   const waitForRequest = waitUntil(() =>
     document.querySelector(".request-list-item")
   );
-  await SpecialPowers.spawn(tab.linkedBrowser, URL, async url => {
+  SpecialPowers.spawn(tab.linkedBrowser, [URL], async url => {
     await content.wrappedJSObject.fetch(url);
   });
-  await waitForRequest;
+  await Promise.all([responseCreated, waitForRequest]);
 
-  const request = document.querySelector(".request-list-item");
+  let request = document.querySelector(".request-list-item");
 
   // Should be available when the network event is created
   info("Assert that the URL is in the column");
@@ -83,48 +78,84 @@ add_task(async function () {
   );
 
   // Should be available on the `response start` event
-  info("Assert that the status is in the column");
-  todo_is(
+  info("Assert that the status is not yet in the column");
+  is(
     request.querySelector(".requests-list-status-code")?.textContent,
-    "200",
-    "The status of the request should be displayed"
+    undefined,
+    "The status of the request should not be displayed"
   );
 
   info("Open the headers panel and check that the panel is not empty");
-  const waitForHeadersPanel = waitForDOM(document, "#headers-panel");
+  let waitForHeadersPanel = waitForDOM(document, "#headers-panel");
   store.dispatch(Actions.toggleNetworkDetails());
   EventUtils.sendMouseEvent({ type: "mousedown" }, request);
   await waitForHeadersPanel;
 
-  isnot(
-    document.querySelector(".empty-notice")?.innerText,
-    "No headers for this request",
-    "The headers should not be empty"
+  info("Assert that the status is not yet in the column");
+  is(
+    request.querySelector(".requests-list-status-code")?.textContent,
+    undefined,
+    "The status of the request should not yet be displayed"
   );
 
+  info("Wait for the response headers");
+  await waitForDOM(document, "#requestHeaders");
+
   ok(
-    !!document.querySelectorAll("#requestHeaders treeRow").length,
+    !!document.querySelectorAll("#requestHeaders .treeRow").length,
     "The list of request headers should be visible"
   );
 
   ok(
-    !document.querySelectorAll("#responseHeaders treeRow").length,
-    "The list of response headers should not be visible"
+    !document.querySelectorAll("#responseHeaders .treeRow").length,
+    "The list of response headers should not be visible yet"
   );
 
+  info("Open the response panel and wait for the response content");
+  let waitForResponsePanel = waitForDOM(
+    document,
+    "#response-panel .empty-notice"
+  );
+  clickOnSidebarTab(document, "response");
+  await waitForResponsePanel;
+
+  is(
+    document.querySelector("#response-panel .empty-notice").innerText,
+    "No response data available for this request",
+    "The response text is not available yet"
+  );
+
+  info("Switch back to the headers panel");
+  waitForHeadersPanel = waitForDOM(document, "#headers-panel");
+  clickOnSidebarTab(document, "headers");
+  await waitForHeadersPanel;
+
   info("Complete the response");
-  (await waitForResponse)();
+  resolveResponse();
 
   info("Wait for the response headers");
   await waitForDOM(document, "#responseHeaders");
 
+  info("Assert that the status is now in the column");
+  request = document.querySelector(".request-list-item");
+  is(
+    request.querySelector(".requests-list-status-code").textContent,
+    "200",
+    "The status of the request should be displayed"
+  );
+
+  ok(
+    !!document.querySelectorAll("#requestHeaders .treeRow").length,
+    "The list of request headers should still be visible"
+  );
+
   ok(
     !!document.querySelectorAll("#responseHeaders .treeRow").length,
-    "The list of response headers should be visible"
+    "The list of response headers should now be visible"
   );
 
   info("Open the response panel and wait for the response content");
-  const waitForResponsePanel = waitForDOM(
+  waitForResponsePanel = waitForDOM(
     document,
     "#response-panel .CodeMirror-code"
   );

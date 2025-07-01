@@ -34,7 +34,7 @@ async function testNetworkEventResourcesWithExistingResources() {
         isNavigationRequest: false,
       },
     },
-    // 1 update events fired, when live request is updated.
+    // 2 update events fired, when live request is updated.
     expectedResourcesOnUpdated: {
       [`${EXAMPLE_DOMAIN}live_get.html`]: {
         resourceType: ResourceCommand.TYPES.NETWORK_EVENT,
@@ -56,7 +56,7 @@ async function testNetworkEventResourcesWithoutExistingResources() {
         isNavigationRequest: false,
       },
     },
-    // 1 update events fired, when live request is updated.
+    // 2 update events fired, when live request is updated.
     expectedResourcesOnUpdated: {
       [`${EXAMPLE_DOMAIN}live_get.html`]: {
         resourceType: ResourceCommand.TYPES.NETWORK_EVENT,
@@ -68,9 +68,9 @@ async function testNetworkEventResourcesWithoutExistingResources() {
 
 /**
  * This test helper is slightly complex as we workaround the fact
- * that the server is not able to record network request done in the past.
+ * that the server is not able to record network requests done in the past.
  * Because of that we have to start observer requests via ResourceCommand.watchResources
- * before doing a request, and, before doing the actual call to watchResources
+ * before doing a request, and before doing the actual call to watchResources
  * we want to assert the behavior of.
  */
 async function testNetworkEventResourcesWithCachedRequest(options) {
@@ -86,14 +86,21 @@ async function testNetworkEventResourcesWithCachedRequest(options) {
   );
 
   // Register a first empty listener in order to ensure populating ResourceCommand
-  // internal cache of NETWORK_EVENT's. We can't retrieved past network requests
-  // when calling server's `watchResources`.
+  // internal cache of NETWORK_EVENT's. We can't retrieve past network requests
+  // when calling the server's `watchResources`.
   let resolveCachedRequestAvailable;
   const onCachedRequestAvailable = new Promise(
     r => (resolveCachedRequestAvailable = r)
   );
   const onAvailableToPopulateInternalCache = () => {};
-  const onUpdatedToPopulateInternalCache = resolveCachedRequestAvailable;
+
+  // We get multiple updates, wait for all the updates
+  const onUpdatedToPopulateInternalCache = resourceUpdates => {
+    if (resourceUpdates[0].update.resourceUpdates.responseEndAvailable) {
+      resolveCachedRequestAvailable();
+    }
+  };
+
   await resourceCommand.watchResources([resourceCommand.TYPES.NETWORK_EVENT], {
     ignoreExistingResources: true,
     onAvailable: onAvailableToPopulateInternalCache,
@@ -178,7 +185,6 @@ async function testNetworkEventResourcesWithCachedRequest(options) {
   }
 
   info("Check the resources on updated");
-
   await waitUntil(
     () =>
       Object.keys(actualResourcesOnUpdated).length ==

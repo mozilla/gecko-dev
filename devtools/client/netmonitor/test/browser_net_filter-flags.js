@@ -143,7 +143,7 @@ const EXPECTED_REQUESTS = [
 
 add_task(async function () {
   const { monitor } = await initNetMonitor(FILTERING_URL, { requestCount: 1 });
-  const { document, store, windowRequire } = monitor.panelWin;
+  const { document, store, windowRequire, connector } = monitor.panelWin;
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   const { getDisplayedRequests, getSortedRequests } = windowRequire(
     "devtools/client/netmonitor/src/selectors/index"
@@ -332,7 +332,7 @@ add_task(async function () {
 
   info(" > Test has-response-header");
   setFreetextFilter("has-response-header:Content-Type");
-  await testContents([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+  await testContents([1, 1, 1, 1, 1, 1, 1, 1, 1, 1], true);
 
   setFreetextFilter("has-response-header:Last-Modified");
   await testContents([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -364,7 +364,13 @@ add_task(async function () {
 
   await teardown(monitor);
 
-  async function testContents(visibility) {
+  async function testContents(visibility, waitForAllResponseHeaders = false) {
+    if (waitForAllResponseHeaders) {
+      await waitForRequestDataForAllRequests(store, connector, [
+        "responseHeaders",
+      ]);
+    }
+
     const items = getSortedRequests(store.getState());
     let visibleItems = getDisplayedRequests(store.getState());
 
@@ -421,7 +427,7 @@ add_task(async function () {
 
       if (shouldBeVisible) {
         const { method, url, data } = EXPECTED_REQUESTS[i];
-        verifyRequestItemTarget(
+        await verifyRequestItemTarget(
           document,
           getDisplayedRequests(store.getState()),
           getSortedRequests(store.getState())[i],
@@ -433,3 +439,23 @@ add_task(async function () {
     }
   }
 });
+
+function waitForRequestDataForAllRequests(store, connector, fields) {
+  return waitUntil(async () => {
+    const requests = getSortedRequests(store.getState());
+    for (const request of requests) {
+      if (!request) {
+        return false;
+      }
+      for (const field of fields) {
+        if (request[`${field}Available`] && !request[field]) {
+          await connector.requestData(request.id, field);
+        }
+        if (request[field] == undefined) {
+          return false;
+        }
+      }
+    }
+    return true;
+  });
+}

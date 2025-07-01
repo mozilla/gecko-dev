@@ -66,7 +66,7 @@ add_task(async function () {
   );
 
   testFilterButtons(monitor, "all");
-  testContents([0, 1, 2, 3, 4, 5, 6], 7, 0);
+  await testContents([0, 1, 2, 3, 4, 5, 6], 7, 0);
 
   info("Sorting by size, ascending.");
   EventUtils.sendMouseEvent(
@@ -74,7 +74,7 @@ add_task(async function () {
     document.querySelector("#requests-list-contentSize-button")
   );
   testFilterButtons(monitor, "all");
-  testContents([6, 4, 5, 0, 1, 2, 3], 7, 6);
+  await testContents([6, 4, 5, 0, 1, 2, 3], 7, 6);
 
   info("Testing html filtering.");
   EventUtils.sendMouseEvent(
@@ -82,7 +82,7 @@ add_task(async function () {
     document.querySelector(".requests-list-filter-html-button")
   );
   testFilterButtons(monitor, "html");
-  testContents([6, 4, 5, 0, 1, 2, 3], 1, 6);
+  await testContents([6, 4, 5, 0, 1, 2, 3], 1, 6);
 
   info("Performing more requests.");
   // As the view is filtered and there is only one request for which we fetch event timings
@@ -93,7 +93,7 @@ add_task(async function () {
   info("Testing html filtering again.");
   resetSorting();
   testFilterButtons(monitor, "html");
-  testContents([8, 13, 9, 11, 10, 12, 0, 4, 1, 5, 2, 6, 3, 7], 2, 13);
+  await testContents([8, 13, 9, 11, 10, 12, 0, 4, 1, 5, 2, 6, 3, 7], 2, 13);
 
   info("Performing more requests.");
   // As the view is filtered and there is only one request for which we fetch event timings
@@ -104,7 +104,7 @@ add_task(async function () {
   info("Testing html filtering again.");
   resetSorting();
   testFilterButtons(monitor, "html");
-  testContents(
+  await testContents(
     [12, 13, 20, 14, 16, 18, 15, 17, 19, 0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11],
     3,
     20
@@ -132,7 +132,9 @@ add_task(async function () {
     );
   }
 
-  function testContents(order, visible, selection) {
+  async function testContents(order, visible, selection) {
+    await waitForAllNetworkUpdateEvents();
+
     isnot(
       getSelectedRequest(store.getState()),
       null,

@@ -36,12 +36,14 @@ add_task(async function () {
 
   store.dispatch(Actions.batchEnable(false));
 
-  const wait = waitForNetworkEvents(monitor, 1);
+  const wait = waitForNetworkEvents(monitor, 1, { expectedEventTimings: 1 });
   reloadBrowser({ waitForLoad: false });
   await wait;
 
   const firstItem = document.querySelectorAll(".request-list-item")[0];
-
+  await waitUntil(
+    () => firstItem.querySelector(".requests-list-status").innerText !== ""
+  );
   is(
     firstItem.querySelector(".requests-list-url").innerText,
     URL,

@@ -26,7 +26,7 @@ add_task(async function () {
   store.dispatch(Actions.batchEnable(false));
 
   // Perform first batch of requests.
-  await performRequests(monitor, tab, 1);
+  await performRequests(monitor, tab, 1, { expectedEventTimings: 1 });
 
   await verifyRequest(0);
 
@@ -46,7 +46,7 @@ add_task(async function () {
   await wait;
 
   // Perform another batch of requests.
-  await performRequests(monitor, tab, 1);
+  await performRequests(monitor, tab, 1, { expectedEventTimings: 1 });
 
   await verifyRequest(1);
 
@@ -56,12 +56,13 @@ add_task(async function () {
     const requestItems = document.querySelectorAll(".request-list-item");
     for (const requestItem of requestItems) {
       requestItem.scrollIntoView();
+      await waitUntil(() => requestItem.querySelector(".status-code"));
       const requestsListStatus = requestItem.querySelector(".status-code");
       EventUtils.sendMouseEvent({ type: "mouseover" }, requestsListStatus);
       await waitUntil(() => requestsListStatus.title);
       await waitForDOMIfNeeded(requestItem, ".requests-list-timings-total");
     }
-    verifyRequestItemTarget(
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[index],

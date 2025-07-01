@@ -40,6 +40,9 @@ add_task(async function () {
   await performRequestsInContent(REQUESTS);
   await waitNetwork;
 
+  // Wait for status for all the requests to get updated
+  await waitForAllRequestStatusUpdates(document);
+
   EventUtils.synthesizeMouseAtCenter(
     document.querySelector(".devtools-filterinput"),
     {},
@@ -193,3 +196,15 @@ add_task(async function () {
 
   await teardown(monitor);
 });
+
+function waitForAllRequestStatusUpdates(document) {
+  return waitFor(() => {
+    const requestItems = document.querySelectorAll(".request-list-item");
+    for (const requestItem of requestItems) {
+      if (!requestItem.querySelector(".status-code")) {
+        return false;
+      }
+    }
+    return true;
+  });
+}

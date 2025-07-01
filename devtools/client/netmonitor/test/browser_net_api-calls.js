@@ -33,15 +33,15 @@ add_task(async function () {
   // Execute requests.
   await performRequests(monitor, tab, 5);
 
-  REQUEST_URIS.forEach(function (uri, index) {
-    verifyRequestItemTarget(
+  for (const [index, uri] of REQUEST_URIS.entries()) {
+    await verifyRequestItemTarget(
       document,
       getDisplayedRequests(store.getState()),
       getSortedRequests(store.getState())[index],
       "GET",
       uri
     );
-  });
+  }
 
   await teardown(monitor);
 });

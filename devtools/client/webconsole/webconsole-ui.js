@@ -542,11 +542,11 @@ class WebConsoleUI {
     }
 
     const messageUpdates = [];
-    for (const { resource } of updates) {
+    for (const { resource, update } of updates) {
       if (
         resource.resourceType == this.hud.resourceCommand.TYPES.NETWORK_EVENT
       ) {
-        this.networkDataProvider?.onNetworkResourceUpdated(resource);
+        this.networkDataProvider?.onNetworkResourceUpdated(resource, update);
         messageUpdates.push(resource);
       }
     }

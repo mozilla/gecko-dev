@@ -135,7 +135,7 @@ class RootActor extends Actor {
             "dom.worker.console.dispatch_events_to_main_thread"
           )
         : true,
-      // @backward-compat { version 143 } Process Descriptor's `getWatcher()`
+      // @backward-compat { version 142 } Process Descriptor's `getWatcher()`
       // supports a new 'enableWindowGlobalThreadActors' flag to enable
       // the WindowGlobal's thread actors when debugging the whole browser.
       // This was actually changed in 137, but we support it for VSCode until

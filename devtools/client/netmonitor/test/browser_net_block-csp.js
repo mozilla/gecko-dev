@@ -50,7 +50,7 @@ async function testRequestsBlockedByCSP(baseUrl, page) {
 
   info("Ensure the attempt to load a CSS file shows a blocked CSP error");
 
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     displayedRequests,
     styleRequest,
@@ -69,7 +69,7 @@ async function testRequestsBlockedByCSP(baseUrl, page) {
 
   info("Test that the attempt to load a JS file shows a blocked CSP error");
 
-  verifyRequestItemTarget(
+  await verifyRequestItemTarget(
     document,
     displayedRequests,
     scriptRequest,
