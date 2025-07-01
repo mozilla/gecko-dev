@@ -129,7 +129,7 @@ function part1()
 }
 
 function toRGBA(c) {
-  return SpecialPowers.wrap(window).InspectorUtils.colorToRGBA(c);
+  return SpecialPowers.wrap(window).InspectorUtils.colorToRGBA(c, document);
 }
 
 function systemColor(c) {

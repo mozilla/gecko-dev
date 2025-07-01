@@ -6,7 +6,7 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
   <script type="application/javascript">
-  const InspectorUtils = SpecialPowers.wrap(window).InspectorUtils;
+  const InspectorUtils = SpecialPowers.InspectorUtils;
 
   testColor("red", {r:255, g:0, b:0, a:1});
   testColor("#f00", {r:255, g:0, b:0, a:1});
@@ -25,10 +25,13 @@
   testColor("hsl(170,60%,40%,0.9)", {r:41, g:163, b:143, a:0.9});
   testColor("hsla(170,60%,40%,0.9)", {r:41, g:163, b:143, a:0.9});
 
+  // NOTE: LightweightThemeConsumer is the only consumer of this API, for
+  // backwards compat reasons... But it doesn't seem like it'd really need to
+  // care about system colors, so maybe we can remove it in the future.
   isnot(
-    InspectorUtils.colorToRGBA("ButtonText"),
+    InspectorUtils.colorToRGBA("ButtonText", document),
     null,
-    "Should support system colors"
+    "Should support system colors when given a displayed document"
   );
 
   function testColor(color, expected) {

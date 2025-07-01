@@ -738,10 +738,10 @@ class SelectableProfileServiceClass extends EventEmitter {
     let themeFgColor = computedStyles.getPropertyValue("--toolbar-color");
     let themeBgColor = computedStyles.getPropertyValue("--toolbar-bgcolor");
 
-    let bg = window.InspectorUtils.colorToRGBA(themeBgColor);
+    let bg = InspectorUtils.colorToRGBA(themeBgColor, window.document);
     let themeBg = `rgba(${bg.r}, ${bg.r}, ${bg.b}, ${bg.a})`;
 
-    let fg = window.InspectorUtils.colorToRGBA(themeFgColor);
+    let fg = InspectorUtils.colorToRGBA(themeFgColor, window.document);
     let themeFg = `rgba(${fg.r}, ${fg.g}, ${fg.b}, ${fg.a})`;
 
     return { themeBg, themeFg };

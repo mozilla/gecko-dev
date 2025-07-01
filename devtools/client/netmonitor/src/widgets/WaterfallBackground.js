@@ -156,12 +156,12 @@ class WaterfallBackground {
       document.ownerGlobal
     );
     const { r, g, b, a } =
-      InspectorUtils.colorToRGBA(colorStr) ||
+      InspectorUtils.colorToRGBA(colorStr, document) ||
       // In theory we shouldn't get null as a result, but we got reports that it was in
       // some cases (Bug 1924882, Bug 1973307).
       // Until we actually get to the cause of this, let's use a default color that works
       // for both light and dark themes.
-      InspectorUtils.colorToRGBA("#888");
+      InspectorUtils.colorToRGBA("#888", document);
     return [r, g, b, a * 255];
   }
 
