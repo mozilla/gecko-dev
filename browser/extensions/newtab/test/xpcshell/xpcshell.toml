@@ -26,6 +26,8 @@ support-files = ["topstories.json"]
 
 ["test_PlacesFeed.js"]
 
+["test_SmartShortcutsFeed.js"]
+
 ["test_StartupCacheInit.js"]
 
 ["test_Store.js"]

@@ -20,6 +20,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AdsFeed: "resource://newtab/lib/AdsFeed.sys.mjs",
   InferredPersonalizationFeed:
     "resource://newtab/lib/InferredPersonalizationFeed.sys.mjs",
+  SmartShortcutsFeed: "resource://newtab/lib/SmartShortcutsFeed.sys.mjs",
   DEFAULT_SITES: "resource://newtab/lib/DefaultSites.sys.mjs",
   DefaultPrefs: "resource://newtab/lib/ActivityStreamPrefs.sys.mjs",
   DiscoveryStreamFeed: "resource://newtab/lib/DiscoveryStreamFeed.sys.mjs",
@@ -56,6 +57,11 @@ const REGION_INFERRED_PERSONALIZATION_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.region-config";
 const LOCALE_INFERRED_PERSONALIZATION_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.locale-config";
+
+const REGION_SHORTCUTS_PERSONALIZATION_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.shortcuts.personalization.region-config";
+const LOCALE_SHORTCUTS_PERSONALIZATION_CONFIG =
+  "browser.newtabpage.activity-stream.discoverystream.shortcuts.personalization.locale-config";
 
 const REGION_WEATHER_CONFIG =
   "browser.newtabpage.activity-stream.discoverystream.region-weather-config";
@@ -114,6 +120,13 @@ function useInferredPersonalization({ geo, locale }) {
   return (
     csvPrefHasValue(REGION_INFERRED_PERSONALIZATION_CONFIG, geo) &&
     csvPrefHasValue(LOCALE_INFERRED_PERSONALIZATION_CONFIG, locale)
+  );
+}
+
+function useShortcutsPersonalization({ geo, locale }) {
+  return (
+    csvPrefHasValue(REGION_SHORTCUTS_PERSONALIZATION_CONFIG, geo) &&
+    csvPrefHasValue(LOCALE_SHORTCUTS_PERSONALIZATION_CONFIG, locale)
   );
 }
 
@@ -639,6 +652,14 @@ export const PREFS_CONFIG = new Map([
       title: "Boolean flag to enable inferred personalizaton",
       // pref is dynamic
       getValue: useInferredPersonalization,
+    },
+  ],
+  [
+    "discoverystream.shortcuts.personalization.enabled",
+    {
+      title: "Boolean flag to enable inferred personalizaton",
+      // pref is dynamic
+      getValue: useShortcutsPersonalization,
     },
   ],
   [
@@ -1366,6 +1387,13 @@ const FEEDS_DATA = [
     factory: () => new lazy.InferredPersonalizationFeed(),
     title:
       "Handles generating and caching an interest vector for inferred personalization",
+    value: true,
+  },
+  {
+    name: "smartshortcutsfeed",
+    factory: () => new lazy.SmartShortcutsFeed(),
+    title:
+      "Handles generating and caching an interest vector for shortcuts personalization",
     value: true,
   },
   {
