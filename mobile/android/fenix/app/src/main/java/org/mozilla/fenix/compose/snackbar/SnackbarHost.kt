@@ -32,7 +32,7 @@ fun SnackbarHost(
     ) { snackbarData ->
         Snackbar(
             snackbarState = SnackbarState(
-                message = snackbarData.message,
+                message = snackbarData.visuals.message,
                 type = Type.Default,
                 action = snackbarData.action,
             ),
@@ -45,7 +45,7 @@ fun SnackbarHost(
     ) { snackbarData ->
         Snackbar(
             snackbarState = SnackbarState(
-                message = snackbarData.message,
+                message = snackbarData.visuals.message,
                 type = Type.Warning,
                 action = snackbarData.action,
             ),
@@ -54,7 +54,7 @@ fun SnackbarHost(
 }
 
 private val SnackbarData.action: Action?
-    get() = actionLabel?.let {
+    get() = visuals.actionLabel?.let {
         Action(
             label = it,
             onClick = this::performAction,
