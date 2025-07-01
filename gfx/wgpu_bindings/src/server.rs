@@ -241,16 +241,16 @@ fn support_use_external_texture_in_swap_chain(
     #[cfg(target_os = "windows")]
     {
         if backend != wgt::Backend::Dx12 {
-            log::info!(
-                "WebGPU: disabling ExternalTexture swapchain: \n\
-                        wgpu backend is not Dx12"
-            );
+            log::info!(concat!(
+                "WebGPU: disabling ExternalTexture swapchain: \n",
+                "wgpu backend is not Dx12"
+            ));
             return false;
         }
         if !is_hardware {
             log::info!(
-                "WebGPU: disabling ExternalTexture swapchain: \n\
-                        Dx12 backend is not hardware"
+                "WebGPU: disabling ExternalTexture swapchain: \n",
+                "Dx12 backend is not hardware"
             );
             return false;
         }
@@ -260,10 +260,10 @@ fn support_use_external_texture_in_swap_chain(
     #[cfg(target_os = "linux")]
     {
         let support = if backend != wgt::Backend::Vulkan {
-            log::info!(
-                "WebGPU: disabling ExternalTexture swapchain: \n\
-                        wgpu backend is not Vulkan"
-            );
+            log::info!(concat!(
+                "WebGPU: disabling ExternalTexture swapchain: \n",
+                "wgpu backend is not Vulkan"
+            ));
             false
         } else {
             unsafe {
@@ -288,8 +288,10 @@ fn support_use_external_texture_in_swap_chain(
                         let supported = capabilities.supports_extension(extension);
                         if !supported {
                             log::info!(
-                                "WebGPU: disabling ExternalTexture swapchain: \n\
-                                        Vulkan extension not supported: {:?}",
+                                concat!(
+                                    "WebGPU: disabling ExternalTexture swapchain: \n",
+                                    "Vulkan extension not supported: {:?}",
+                                ),
                                 extension.to_string_lossy()
                             );
                         }
@@ -304,17 +306,17 @@ fn support_use_external_texture_in_swap_chain(
     #[cfg(target_os = "macos")]
     {
         if backend != wgt::Backend::Metal {
-            log::info!(
-                "WebGPU: disabling ExternalTexture swapchain: \n\
-                        wgpu backend is not Metal"
-            );
+            log::info!(concat!(
+                "WebGPU: disabling ExternalTexture swapchain: \n",
+                "wgpu backend is not Metal"
+            ));
             return false;
         }
         if !is_hardware {
-            log::info!(
-                "WebGPU: disabling ExternalTexture swapchain: \n\
-                        Metal backend is not hardware"
-            );
+            log::info!(concat!(
+                "WebGPU: disabling ExternalTexture swapchain: \n",
+                "Metal backend is not hardware"
+            ));
             return false;
         }
 
@@ -325,11 +327,11 @@ fn support_use_external_texture_in_swap_chain(
         };
 
         if !version.at_least((10, 14), (12, 0), /* os_is_mac */ true) {
-            log::info!(
-                "WebGPU: disabling ExternalTexture swapchain:\n\
-                        operating system version is not at least 10.14 (macOS) or 12.0 (iOS)\n\
-                        shared event not supported"
-            );
+            log::info!(concat!(
+                "WebGPU: disabling ExternalTexture swapchain:\n",
+                "operating system version is not at least 10.14 (macOS) or 12.0 (iOS)\n",
+                "shared event not supported"
+            ));
             return false;
         }
 
