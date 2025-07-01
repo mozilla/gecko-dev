@@ -1899,10 +1899,8 @@ nsresult CacheStorageService::DoomStorageEntry(
 
     LOG(("  dooming file only for %s", entryKey.get()));
 
-    RefPtr<CacheEntryDoomByKeyCallback> callback;
-    if (aCallback) {
-      callback = new CacheEntryDoomByKeyCallback(aCallback);
-    }
+    RefPtr<CacheEntryDoomByKeyCallback> callback(
+        new CacheEntryDoomByKeyCallback(aCallback));
     rv = CacheFileIOManager::DoomFileByKey(entryKey, callback);
     NS_ENSURE_SUCCESS(rv, rv);
 
