@@ -41,15 +41,17 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * Glean Debug Tools UI that allows for glean test pings to be sent.
  *
  * @param gleanDebugToolsStore [GleanDebugToolsStore] used to access [GleanDebugToolsState].
+ * @param modifier [Modifier] to be applied to the screen.
  */
 @Composable
 fun GleanDebugToolsScreen(
     gleanDebugToolsStore: GleanDebugToolsStore,
+    modifier: Modifier = Modifier,
 ) {
     val gleanDebugToolsState by gleanDebugToolsStore.observeAsState(gleanDebugToolsStore.state) { it }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(top = FirefoxTheme.layout.space.dynamic400),
