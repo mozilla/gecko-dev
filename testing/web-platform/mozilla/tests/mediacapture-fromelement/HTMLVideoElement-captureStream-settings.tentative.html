@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>HTMLVideoElement.captureStream().track.getSettings()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script>
+'use strict';
+
+// Tentative pending resolution of https://github.com/w3c/mediacapture-fromelement/issues/48.
+
+promise_test(async t => {
+  if (!document.body) {
+    await new Promise(r => document.addEventListener("DOMContentLoaded", r, {once: true}));
+  }
+
+  // Create a canvas and wait for a frame to be captured.
+  const canvas = document.createElement("canvas");
+  canvas.width = 166;
+  canvas.height = 72;
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = 'green';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await new Promise(r => requestAnimationFrame(r));
+
+  // Capture the canvas and check track settings.
+  const video = document.createElement("video");
+  video.srcObject = canvas.captureStream();
+  t.add_cleanup(async () => {
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.srcObject = null;
+  });
+  video.play();
+  await new Promise(r => video.onloadedmetadata = r);
+  const stream = video.mozCaptureStream();
+  const [track] = stream.getTracks();
+
+  assert_equals(track.getSettings().width, 166, "Track width setting initially set");
+  assert_equals(track.getSettings().height, 72, "Track height setting initially set");
+
+  // Resize the canvas and check that track settings are updated.
+  canvas.width = 200;
+  canvas.height = 100;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await new Promise(r => video.onresize = r);
+  assert_equals(track.getSettings().width, 200, "Track width setting follows captured frames");
+  assert_equals(track.getSettings().height, 100, "Track height setting follows captured frames");
+}, "HTMLVideoElement.captureStream() with MediaStream source creates tracks that populate resolution settings");
+
+promise_test(async t => {
+  const video = document.createElement("video");
+  video.preload = "auto";
+  video.src = getVideoURI("/media/2x2-green");
+  t.add_cleanup(async () => video.src = "");
+  await new Promise(r => video.onloadedmetadata = r);
+  const stream = video.mozCaptureStream();
+  const [track] = stream.getVideoTracks();
+
+  assert_equals(track.getSettings().width, 2, "Track width setting");
+  assert_equals(track.getSettings().height, 2, "Track height setting");
+}, "HTMLVideoElement.captureStream() with file source creates tracks that populate resolution settings");
+</script>

@@ -68,13 +68,6 @@ class VideoRenderer {
 
  public:
   /**
-   * Callback Function reportng any change in the video-frame dimensions
-   * @param width:  current width of the video @ decoder
-   * @param height: current height of the video @ decoder
-   */
-  virtual void FrameSizeChange(unsigned int width, unsigned int height) = 0;
-
-  /**
    * Callback Function reporting decoded frame for processing.
    * @param video_frame: reference to decoded video frame
    * NOTE: If decoded video frame is passed through buffer , it is the
@@ -397,6 +390,7 @@ class VideoSessionConduit : public MediaSessionConduit {
   virtual Maybe<Ssrc> GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const = 0;
 
   virtual Maybe<gfx::IntSize> GetLastResolution() const = 0;
+  virtual AbstractCanonical<Maybe<gfx::IntSize>>* CanonicalReceivingSize() = 0;
 
   virtual void RequestKeyFrame(FrameTransformerProxy* aProxy) = 0;
   virtual void GenerateKeyFrame(const Maybe<std::string>& aRid,

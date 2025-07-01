@@ -401,10 +401,12 @@ WebrtcVideoConduit::WebrtcVideoConduit(
     RefPtr<WebrtcCallWrapper> aCall, nsCOMPtr<nsISerialEventTarget> aStsThread,
     Options aOptions, std::string aPCHandle, const TrackingId& aRecvTrackingId)
     : mRendererMonitor("WebrtcVideoConduit::mRendererMonitor"),
-      mCallThread(aCall->mCallThread),
+      mCall(std::move(aCall)),
+      mCallThread(mCall->mCallThread),
       mStsThread(std::move(aStsThread)),
-      mControl(aCall->mCallThread),
-      mWatchManager(this, aCall->mCallThread),
+      mControl(mCall->mCallThread),
+      INIT_CANONICAL(mCanonicalReceivingSize, {}),
+      mWatchManager(this, mCall->mCallThread),
       mMutex("WebrtcVideoConduit::mMutex"),
       mDecoderFactory(MakeUnique<WebrtcVideoDecoderFactory>(
           mCallThread.get(), aPCHandle, aRecvTrackingId)),
@@ -423,7 +425,6 @@ WebrtcVideoConduit::WebrtcVideoConduit(
       mLockScaling(aOptions.mLockScaling),
       mSpatialLayers(aOptions.mSpatialLayers),
       mTemporalLayers(aOptions.mTemporalLayers),
-      mCall(std::move(aCall)),
       mSendTransport(this),
       mRecvTransport(this),
       mSendStreamConfig(&mSendTransport),
@@ -992,7 +993,7 @@ Maybe<Ssrc> WebrtcVideoConduit::GetAssociatedLocalRtxSSRC(Ssrc aSsrc) const {
 }
 
 Maybe<gfx::IntSize> WebrtcVideoConduit::GetLastResolution() const {
-  MutexAutoLock lock(mMutex);
+  MOZ_ASSERT(mCallThread->IsOnCurrentThread());
   return mLastSize;
 }
 
@@ -1329,6 +1330,7 @@ MediaConduitErrorCode WebrtcVideoConduit::Init() {
 RefPtr<GenericPromise> WebrtcVideoConduit::Shutdown() {
   MOZ_ASSERT(NS_IsMainThread());
 
+  mCanonicalReceivingSize.DisconnectAll();
   mSendPluginCreated.DisconnectIfExists();
   mSendPluginReleased.DisconnectIfExists();
   mRecvPluginCreated.DisconnectIfExists();
@@ -1470,8 +1472,6 @@ MediaConduitErrorCode WebrtcVideoConduit::AttachRenderer(
   {
     ReentrantMonitorAutoEnter enter(mRendererMonitor);
     mRenderer = aVideoRenderer;
-    // Make sure the renderer knows the resolution
-    mRenderer->FrameSizeChange(mReceivingWidth, mReceivingHeight);
   }
 
   return kMediaConduitNoError;
@@ -1512,11 +1512,7 @@ void WebrtcVideoConduit::OnSendFrame(const webrtc::VideoFrame& aFrame) {
     MOZ_ASSERT(size != gfx::IntSize(0, 0));
     // Note coverity will flag this since it thinks they can be 0
     MOZ_ASSERT(mCurSendCodecConfig);
-
-    {
-      MutexAutoLock lock(mMutex);
-      mLastSize = Some(size);
-    }
+    mLastSize = Some(size);
   }
 
   MOZ_ASSERT(!aFrame.color_space(), "Unexpected use of color space");
@@ -1839,13 +1835,16 @@ void WebrtcVideoConduit::OnRecvFrame(const webrtc::VideoFrame& aFrame) {
   }
 
   bool needsNewHistoryElement = mReceivedFrameHistory.mEntries.IsEmpty();
-
-  if (mReceivingWidth != aFrame.width() ||
-      mReceivingHeight != aFrame.height()) {
-    mReceivingWidth = aFrame.width();
-    mReceivingHeight = aFrame.height();
-    mRenderer->FrameSizeChange(mReceivingWidth, mReceivingHeight);
-    needsNewHistoryElement = true;
+  {
+    const Maybe frameSize = Some(gfx::IntSize{aFrame.width(), aFrame.height()});
+    if (frameSize != mReceivingSize) {
+      mReceivingSize = frameSize;
+      needsNewHistoryElement = true;
+      MOZ_ALWAYS_SUCCEEDS(mCallThread->Dispatch(NS_NewRunnableFunction(
+          __func__, [this, self = RefPtr(this), frameSize] {
+            mCanonicalReceivingSize = frameSize;
+          })));
+    }
   }
 
   if (!needsNewHistoryElement) {
@@ -1879,14 +1878,15 @@ void WebrtcVideoConduit::OnRecvFrame(const webrtc::VideoFrame& aFrame) {
   currentEntry.mConsecutiveFrames++;
   currentEntry.mLastFrameTimestamp = historyNow;
   // Attempt to retrieve an timestamp encoded in the image pixels if enabled.
-  if (mVideoLatencyTestEnable && mReceivingWidth && mReceivingHeight) {
+  if (mVideoLatencyTestEnable && mReceivingSize) {
     uint64_t now = PR_Now();
     uint64_t timestamp = 0;
     uint8_t* data =
         const_cast<uint8_t*>(aFrame.video_frame_buffer()->GetI420()->DataY());
-    bool ok = YuvStamper::Decode(
-        mReceivingWidth, mReceivingHeight, mReceivingWidth, data,
-        reinterpret_cast<unsigned char*>(&timestamp), sizeof(timestamp), 0, 0);
+    bool ok = YuvStamper::Decode(mReceivingSize->width, mReceivingSize->height,
+                                 mReceivingSize->width, data,
+                                 reinterpret_cast<unsigned char*>(&timestamp),
+                                 sizeof(timestamp), 0, 0);
     if (ok) {
       VideoLatencyUpdate(now - timestamp);
     }

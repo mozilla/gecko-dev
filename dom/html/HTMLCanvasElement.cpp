@@ -817,6 +817,11 @@ class CanvasCaptureTrackSource : public MediaStreamTrackSource {
     return !mCaptureStream->Canvas()->GetIsOpaque();
   }
 
+  void GetSettings(dom::MediaTrackSettings& aResult) override {
+    aResult.mWidth.Construct(mCaptureStream->Canvas()->Width());
+    aResult.mHeight.Construct(mCaptureStream->Canvas()->Height());
+  }
+
   void Stop() override {
     if (!mCaptureStream) {
       return;

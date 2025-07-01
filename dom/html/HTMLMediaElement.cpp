@@ -1123,13 +1123,15 @@ class HTMLMediaElement::MediaElementTrackSource
                                            MediaStreamTrackSource)
 
   /* MediaDecoder track source */
-  MediaElementTrackSource(ProcessedMediaTrack* aTrack, nsIPrincipal* aPrincipal,
-                          OutputMuteState aMuteState, bool aHasAlpha)
+  MediaElementTrackSource(HTMLMediaElement* aOwner, ProcessedMediaTrack* aTrack,
+                          nsIPrincipal* aPrincipal, OutputMuteState aMuteState,
+                          bool aHasAlpha)
       : MediaStreamTrackSource(
             aPrincipal, nsString(),
             TrackingId(TrackingId::Source::MediaElementDecoder,
                        sDecoderCaptureSourceId++,
                        TrackingId::TrackAcrossProcesses::Yes)),
+        mOwner(aOwner),
         mTrack(aTrack),
         mIntendedElementMuteState(aMuteState),
         mElementMuteState(aMuteState),
@@ -1138,7 +1140,8 @@ class HTMLMediaElement::MediaElementTrackSource
   }
 
   /* MediaStream track source */
-  MediaElementTrackSource(MediaStreamTrack* aCapturedTrack,
+  MediaElementTrackSource(HTMLMediaElement* aOwner,
+                          MediaStreamTrack* aCapturedTrack,
                           MediaStreamTrackSource* aCapturedTrackSource,
                           ProcessedMediaTrack* aTrack, MediaInputPort* aPort,
                           OutputMuteState aMuteState)
@@ -1147,6 +1150,7 @@ class HTMLMediaElement::MediaElementTrackSource
             TrackingId(TrackingId::Source::MediaElementStream,
                        sStreamCaptureSourceId++,
                        TrackingId::TrackAcrossProcesses::Yes)),
+        mOwner(aOwner),
         mCapturedTrack(aCapturedTrack),
         mCapturedTrackSource(aCapturedTrackSource),
         mTrack(aTrack),
@@ -1270,11 +1274,26 @@ class HTMLMediaElement::MediaElementTrackSource
     return mMediaDecoderHasAlpha.valueOr(false);
   }
 
+  void GetSettings(dom::MediaTrackSettings& aResult) override {
+    if (!mOwner) {
+      return;
+    }
+
+    auto* elem = mOwner->AsHTMLVideoElement();
+    if (!elem) {
+      return;
+    }
+
+    aResult.mWidth.Construct(elem->VideoWidth());
+    aResult.mHeight.Construct(elem->VideoHeight());
+  }
+
   ProcessedMediaTrack* Track() const { return mTrack; }
 
  private:
   virtual ~MediaElementTrackSource() { Destroy(); };
 
+  WeakPtr<HTMLMediaElement> mOwner;
   RefPtr<MediaStreamTrack> mCapturedTrack;
   RefPtr<MediaStreamTrackSource> mCapturedTrackSource;
   const RefPtr<ProcessedMediaTrack> mTrack;
@@ -3987,7 +4006,7 @@ void HTMLMediaElement::UpdateOutputTrackSources() {
         principal = NodePrincipal();
       }
       source = MakeAndAddRef<MediaElementTrackSource>(
-          track, principal, OutputTracksMuted(),
+          this, track, principal, OutputTracksMuted(),
           type == MediaSegment::VIDEO
               ? HTMLVideoElement::FromNode(this)->HasAlpha()
               : false);
@@ -4011,7 +4030,7 @@ void HTMLMediaElement::UpdateOutputTrackSources() {
       track = inputTrack->Graph()->CreateForwardedInputTrack(type);
       RefPtr<MediaInputPort> port = inputTrack->ForwardTrackContentsTo(track);
       source = MakeAndAddRef<MediaElementTrackSource>(
-          inputTrack, &inputTrack->GetSource(), track, port,
+          this, inputTrack, &inputTrack->GetSource(), track, port,
           OutputTracksMuted());
 
       // Track is muted initially, so we don't leak data if it's added while

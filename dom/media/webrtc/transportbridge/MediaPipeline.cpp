@@ -1589,7 +1589,6 @@ class MediaPipelineReceiveVideo::PipelineRenderer
   void Detach() { mPipeline = nullptr; }
 
   // Implement VideoRenderer
-  void FrameSizeChange(unsigned int aWidth, unsigned int aHeight) override {}
   void RenderVideoFrame(const webrtc::VideoFrame& aVideoFrame) override {
     mPipeline->mListener->RenderVideoFrame(aVideoFrame);
   }

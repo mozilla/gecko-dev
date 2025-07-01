@@ -241,6 +241,10 @@ class WebrtcVideoConduit : public VideoSessionConduit,
         aEvent.Connect(mCallThread, this, &WebrtcVideoConduit::OnRtcpReceived);
   }
 
+  AbstractCanonical<Maybe<gfx::IntSize>>* CanonicalReceivingSize() override {
+    return &mCanonicalReceivingSize;
+  }
+
   const std::vector<webrtc::RtpSource>& GetUpstreamRtpSources() const override;
 
   void RequestKeyFrame(FrameTransformerProxy* aProxy) override;
@@ -285,11 +289,10 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // Accessed on any thread under mRendererMonitor.
   RefPtr<mozilla::VideoRenderer> mRenderer;
 
-  // Accessed on any thread under mRendererMonitor.
-  unsigned short mReceivingWidth = 0;
-
-  // Accessed on any thread under mRendererMonitor.
-  unsigned short mReceivingHeight = 0;
+  // WEBRTC.ORG Call API
+  // Const so can be accessed on any thread. All methods are called on the Call
+  // thread.
+  const RefPtr<WebrtcCallWrapper> mCall;
 
   // Call worker thread. All access to mCall->Call() happens here.
   const nsCOMPtr<nsISerialEventTarget> mCallThread;
@@ -347,6 +350,13 @@ class WebrtcVideoConduit : public VideoSessionConduit,
     explicit Control(const RefPtr<AbstractThread>& aCallThread);
   } mControl;
 
+  // Accessed only on the frame receiving thread, under mRendererMonitor.
+  Maybe<gfx::IntSize> mReceivingSize;
+
+  // Canonical for mirroring mReceivingWidth and mReceivingHeight. Call thread
+  // only.
+  Canonical<Maybe<gfx::IntSize>> mCanonicalReceivingSize;
+
   // WatchManager allowing Mirrors and other watch targets to trigger functions
   // that will update the webrtc.org configuration.
   WatchManager<WebrtcVideoConduit> mWatchManager;
@@ -397,8 +407,7 @@ class WebrtcVideoConduit : public VideoSessionConduit,
   // Must call webrtc::Call::DestroyVideoReceive/SendStream to delete this.
   webrtc::VideoSendStream* mSendStream = nullptr;
 
-  // Written on the frame feeding thread.
-  // Guarded by mMutex, except for reads on the frame feeding thread.
+  // Size of the most recently sent video frame. Call thread only.
   Maybe<gfx::IntSize> mLastSize;
 
   // Written on the frame feeding thread, the timestamp of the last frame on the
@@ -441,11 +450,6 @@ class WebrtcVideoConduit : public VideoSessionConduit,
 
   // Target jitter buffer to be applied to the receive stream in milliseconds.
   uint16_t mJitterBufferTargetMs = 0;
-
-  // WEBRTC.ORG Call API
-  // Const so can be accessed on any thread. All methods are called on the Call
-  // thread.
-  const RefPtr<WebrtcCallWrapper> mCall;
 
   // Set up in the ctor and then not touched. Called through by the streams on
   // any thread. Safe since we own and control the lifetime of the streams.

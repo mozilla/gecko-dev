@@ -166,6 +166,8 @@ class RTCRtpReceiver : public nsISupports,
 
   const RTCStatsTimestampMaker* GetTimestampMaker() const;
 
+  Maybe<gfx::IntSize> ReceivingSize() const;
+
  private:
   virtual ~RTCRtpReceiver();
 
@@ -215,6 +217,8 @@ class RTCRtpReceiver : public nsISupports,
   Canonical<Maybe<RtpRtcpConfig>> mVideoRtpRtcpConfig;
   Canonical<bool> mReceiving;
   Canonical<RefPtr<FrameTransformerProxy>> mFrameTransformerProxy;
+
+  Mirror<Maybe<gfx::IntSize>> mReceivingSize;
 };
 
 }  // namespace dom

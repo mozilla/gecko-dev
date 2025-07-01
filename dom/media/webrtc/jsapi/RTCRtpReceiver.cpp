@@ -119,6 +119,8 @@ static PrincipalHandle GetPrincipalHandle(nsPIDOMWindowInner* aWindow,
 #define INIT_CANONICAL(name, val)         \
   name(AbstractThread::MainThread(), val, \
        "RTCRtpReceiver::" #name " (Canonical)")
+#define INIT_MIRROR(name, val) \
+  name(AbstractThread::MainThread(), val, "RTCRtpReceiver::" #name " (Mirror)")
 
 RTCRtpReceiver::RTCRtpReceiver(
     nsPIDOMWindowInner* aWindow, PrincipalPrivacy aPrivacy,
@@ -140,7 +142,8 @@ RTCRtpReceiver::RTCRtpReceiver(
       INIT_CANONICAL(mVideoCodecs, std::vector<VideoCodecConfig>()),
       INIT_CANONICAL(mVideoRtpRtcpConfig, Nothing()),
       INIT_CANONICAL(mReceiving, false),
-      INIT_CANONICAL(mFrameTransformerProxy, nullptr) {
+      INIT_CANONICAL(mFrameTransformerProxy, nullptr),
+      INIT_MIRROR(mReceivingSize, {}) {
   PrincipalHandle principalHandle = GetPrincipalHandle(aWindow, aPrivacy);
   const bool isAudio = aConduit->type() == MediaSessionConduit::AUDIO;
 
@@ -168,6 +171,8 @@ RTCRtpReceiver::RTCRtpReceiver(
         mPc->GetHandle(), aTransportHandler, aCallThread, mStsThread.get(),
         *aConduit->AsVideoSessionConduit(), mTrackSource->Stream(), aTrackingId,
         principalHandle, aPrivacy);
+    mReceivingSize.Connect(
+        aConduit->AsVideoSessionConduit().ref()->CanonicalReceivingSize());
   }
 
   mPipeline->InitControl(this);
@@ -191,6 +196,7 @@ RTCRtpReceiver::RTCRtpReceiver(
   mParameters.mCodecs.Construct();
 }
 
+#undef INIT_MIRROR
 #undef INIT_CANONICAL
 
 RTCRtpReceiver::~RTCRtpReceiver() { MOZ_ASSERT(!mPipeline); }
@@ -695,6 +701,7 @@ void RTCRtpReceiver::Shutdown() {
     mTrackSource->Destroy();
   }
   mCallThread = nullptr;
+  mReceivingSize.DisconnectIfConnected();
   mRtcpByeListener.DisconnectIfExists();
   mRtcpTimeoutListener.DisconnectIfExists();
   mUnmuteListener.DisconnectIfExists();
@@ -1136,6 +1143,12 @@ const RTCStatsTimestampMaker* RTCRtpReceiver::GetTimestampMaker() const {
     return nullptr;
   }
   return &mPc->GetTimestampMaker();
+}
+
+Maybe<gfx::IntSize> RTCRtpReceiver::ReceivingSize() const {
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(mPipeline->mConduit->type() == MediaSessionConduit::VIDEO);
+  return mReceivingSize.Ref();
 }
 
 }  // namespace mozilla::dom

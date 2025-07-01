@@ -50,6 +50,15 @@ void RemoteTrackSource::Destroy() {
   }
 }
 
+void RemoteTrackSource::GetSettings(dom::MediaTrackSettings& aSettings) {
+  if (mStream->mType == MediaSegment::VIDEO) {
+    const gfx::IntSize size = mReceiver->ReceivingSize().valueOrFrom(
+        [] { return gfx::IntSize{0, 0}; });
+    aSettings.mWidth.Construct(size.width);
+    aSettings.mHeight.Construct(size.height);
+  }
+}
+
 auto RemoteTrackSource::ApplyConstraints(
     const dom::MediaTrackConstraints& aConstraints, dom::CallerType aCallerType)
     -> RefPtr<ApplyConstraintsPromise> {
