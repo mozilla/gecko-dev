@@ -8,6 +8,8 @@ skip-if = ["true"] # bug 1057615
 
 ["browser_validation_invisible.js"]
 
+["browser_validation_message_update.js"]
+
 ["browser_validation_navigation.js"]
 
 ["browser_validation_other_popups.js"]
