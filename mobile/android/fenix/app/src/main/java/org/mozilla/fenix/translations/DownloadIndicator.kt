@@ -99,8 +99,8 @@ fun DownloadInProgressIndicator(
         CircularProgressIndicator(
             modifier = modifier.size(30.dp),
             color = FirefoxTheme.colors.layerAccent,
-            backgroundColor = FirefoxTheme.colors.actionTertiary,
             strokeWidth = 2.dp,
+            trackColor = FirefoxTheme.colors.actionTertiary,
             strokeCap = StrokeCap.Butt,
         )
     }

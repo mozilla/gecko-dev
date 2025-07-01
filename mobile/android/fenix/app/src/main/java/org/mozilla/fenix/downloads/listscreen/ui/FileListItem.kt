@@ -208,14 +208,15 @@ private fun DownloadProgressIndicator(
             LinearProgressIndicator(
                 modifier = Modifier.clearAndSetSemantics {},
                 color = FirefoxTheme.colors.borderAccent,
-                backgroundColor = FirefoxTheme.colors.borderPrimary,
+                trackColor = FirefoxTheme.colors.borderPrimary,
             )
         } else {
             LinearProgressIndicator(
                 modifier = Modifier.clearAndSetSemantics {},
-                progress = progress,
+                progress = { progress },
                 color = FirefoxTheme.colors.borderAccent,
-                backgroundColor = FirefoxTheme.colors.borderPrimary,
+                trackColor = FirefoxTheme.colors.borderPrimary,
+                drawStopIndicator = {},
             )
         }
     }
