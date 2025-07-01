@@ -1463,6 +1463,51 @@ void H264::WriteExtraData(MediaByteBuffer* aDestExtraData,
   return avcc;
 }
 
+already_AddRefed<mozilla::MediaByteBuffer> AVCCConfig::CreateNewExtraData()
+    const {
+  auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+  BitWriter writer(extradata);
+  writer.WriteBits(mConfigurationVersion, 8);
+  writer.WriteBits(mAVCProfileIndication, 8);
+  writer.WriteBits(mProfileCompatibility, 8);
+  writer.WriteBits(mAVCLevelIndication, 8);
+  writer.WriteBits(0x111111, 6);  // reserved
+  writer.WriteBits(mLengthSizeMinusOne, 2);
+  writer.WriteBits(0x111, 3);  // reserved
+  writer.WriteBits(mSPSs.Length(), 5);
+  for (const auto& nalu : mSPSs) {
+    writer.WriteBits(nalu.mNALU.Length(), 16);
+    MOZ_DIAGNOSTIC_ASSERT(writer.BitCount() % 8 == 0);
+    extradata->AppendElements(nalu.mNALU.Elements(), nalu.mNALU.Length());
+    writer.AdvanceBytes(nalu.mNALU.Length());
+  }
+  writer.WriteBits(mPPSs.Length(), 8);
+  for (const auto& nalu : mPPSs) {
+    writer.WriteBits(nalu.mNALU.Length(), 16);
+    MOZ_DIAGNOSTIC_ASSERT(writer.BitCount() % 8 == 0);
+    extradata->AppendElements(nalu.mNALU.Elements(), nalu.mNALU.Length());
+    writer.AdvanceBytes(nalu.mNALU.Length());
+  }
+  if (mAVCProfileIndication != 66 && mAVCProfileIndication != 77 &&
+      mAVCProfileIndication != 88 && mChromaFormat.isSome() &&
+      mBitDepthLumaMinus8.isSome() && mBitDepthChromaMinus8.isSome()) {
+    writer.WriteBits(0x111111, 6);  // reserved
+    writer.WriteBits(*mChromaFormat, 2);
+    writer.WriteBits(0x11111, 5);  // reserved
+    writer.WriteBits(*mBitDepthLumaMinus8, 3);
+    writer.WriteBits(0x11111, 5);  // reserved
+    writer.WriteBits(*mBitDepthChromaMinus8, 3);
+    writer.WriteBits(mSPSExts.Length(), 8);
+    for (const auto& nalu : mSPSExts) {
+      writer.WriteBits(nalu.mNALU.Length(), 16);
+      MOZ_DIAGNOSTIC_ASSERT(writer.BitCount() % 8 == 0);
+      extradata->AppendElements(nalu.mNALU.Elements(), nalu.mNALU.Length());
+      writer.AdvanceBytes(nalu.mNALU.Length());
+    }
+  }
+  return AVCCConfig::Parse(extradata).isOk() ? extradata.forget() : nullptr;
+}
+
 H264NALU::H264NALU(const uint8_t* aData, uint32_t aByteCount)
     : mNALU(aData, aByteCount) {
   // Per 7.3.1 NAL unit syntax
