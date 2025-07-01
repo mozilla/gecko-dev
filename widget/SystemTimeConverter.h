@@ -215,6 +215,15 @@ class SystemTimeConverter {
     if (aTimeAsTimeStamp) {
       *aTimeAsTimeStamp =
           mReferenceTimeStamp + TimeDuration::FromMilliseconds(wholeMillis);
+
+      if (aTimeAsTimeStamp->IsNull()) {
+        MOZ_CRASH_UNSAFE_PRINTF(
+            "Failed to compute the new timestamp, aTime: %" PRIu32
+            ", timeDelta: %" PRIu32 ", wholeMillis: %" PRId64
+            ", timeToTimeStamp: %" PRId64,
+            static_cast<uint32_t>(aTime), static_cast<uint32_t>(timeDelta),
+            wholeMillis, timeToTimeStamp);
+      }
     }
 
     return isNewer;
