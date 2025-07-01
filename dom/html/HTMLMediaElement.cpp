@@ -3165,6 +3165,9 @@ uint32_t HTMLMediaElement::GetPreloadDefault() const {
   if (mMediaSource) {
     return HTMLMediaElement::PRELOAD_METADATA;
   }
+  if (ShouldResistFingerprinting(RFPTarget::NetworkConnection)) {
+    return HTMLMediaElement::PRELOAD_METADATA;
+  }
   if (OnCellularConnection()) {
     return Preferences::GetInt("media.preload.default.cellular",
                                HTMLMediaElement::PRELOAD_NONE);
@@ -3174,6 +3177,9 @@ uint32_t HTMLMediaElement::GetPreloadDefault() const {
 }
 
 uint32_t HTMLMediaElement::GetPreloadDefaultAuto() const {
+  if (ShouldResistFingerprinting(RFPTarget::NetworkConnection)) {
+    return HTMLMediaElement::PRELOAD_ENOUGH;
+  }
   if (OnCellularConnection()) {
     return Preferences::GetInt("media.preload.auto.cellular",
                                HTMLMediaElement::PRELOAD_METADATA);

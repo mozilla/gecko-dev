@@ -17,7 +17,7 @@ const FPP_PBM_PREF = "privacy.fingerprintingProtection.pbmode";
 const ENABLE_FPP_PBM = [FPP_PBM_PREF, true];
 const DISABLE_FPP_PBM = [FPP_PBM_PREF, false];
 
-const RFP_TARGET = "NavigatorConnection";
+const RFP_TARGET = "NetworkConnection";
 const OVERRIDES_ENABLED = `-AllTargets,+${RFP_TARGET}`;
 const OVERRIDES_DISABLED = "-AllTargets";
 const GRANULAR_OVERRIDES_ENABLED = JSON.stringify([

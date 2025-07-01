@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>
+  Test that RFP hides preload behaviour when the NetworkConnection RFP target is enabled
+</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/dom/serviceworkers/test/utils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+</head>
+<script>
+"use strict";
+
+async function run_test(preload) {
+  // Set all preload prefs to 1=None so that we can be sure RFP overrides the behavior
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["media.preload.default.cellular", 1],
+      ["media.preload.default", 1],
+      ["media.preload.auto.cellular", 1],
+      ["media.preload.auto", 1],
+    ],
+  });
+
+  const audioThatShouldntBeLoaded = new Audio();
+  for (const event of ["loadedmetadata", "loadeddata", "error"]) {
+    audioThatShouldntBeLoaded.addEventListener(event, () => {
+      ok(
+        false,
+        `Audio event ${event} should not be called as RFP is disabled currently and the pref is respected`
+      );
+    });
+  }
+  await Promise.all([
+    new Promise(resolve => {
+      audioThatShouldntBeLoaded.addEventListener("suspend", () => {
+        resolve();
+      });
+    }),
+    (audioThatShouldntBeLoaded.preload = preload),
+    (audioThatShouldntBeLoaded.src = "owl.mp3"),
+  ]);
+
+  // Enable RFP and verify that the new audio element loads
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["privacy.fingerprintingProtection", true],
+      [
+        "privacy.fingerprintingProtection.overrides",
+        "-AllTargets,+NetworkConnection",
+      ],
+    ],
+  });
+
+  const audioThatShouldBeLoaded = new Audio();
+  const promises = ["loadedmetadata", "loadeddata"].map(event => {
+    return new Promise(resolve => {
+      audioThatShouldBeLoaded.addEventListener(event, () => {
+        ok(
+          true,
+          `Audio event ${event} should be called as fingerprinting protection overrides preload prefs`
+        );
+        resolve();
+      });
+    });
+  });
+  audioThatShouldBeLoaded.addEventListener("error", () => {
+    ok(
+      false,
+      "Audio event error should not be called as as fingerprinting protection overrides preload prefs"
+    );
+  });
+  audioThatShouldBeLoaded.preload = preload;
+  audioThatShouldBeLoaded.src = "owl.mp3";
+  await Promise.all(promises);
+
+  await SpecialPowers.popPrefEnv(); // Pop the RFP prefs
+  await SpecialPowers.popPrefEnv(); // Pop the preload prefs
+}
+
+add_task(async function () {
+  await run_test("auto");
+  await run_test(undefined);
+});
+</script>
+</html>

@@ -840,6 +840,8 @@ skip-if = [
 skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64'"] # TIMEOUT
 scheme = "https"
 
+["test_networkconnection_spoofing.html"]
+
 ["test_play_events_2.html"]
 
 ["test_playback.html"]
