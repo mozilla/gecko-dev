@@ -34,7 +34,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +73,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.compose.base.textfield.TextFieldColors
@@ -839,7 +839,7 @@ private fun EmptyList(
             if (state is EmptyListState.NotAuthenticated) {
                 TextButton(
                     onClick = { dispatcher(SignIntoSyncClicked) },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = FirefoxTheme.colors.actionPrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = FirefoxTheme.colors.actionPrimary),
                     shape = RoundedCornerShape(4.dp),
                     modifier = Modifier
                         .heightIn(36.dp)
