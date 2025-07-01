@@ -249,7 +249,7 @@
   <!-- The content of the notification displayed when an add-on needs a new permission -->
   <string name="mozac_feature_addons_updater_notification_content_singular">Potrebna je nova dozvola</string>
   <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
-  <string name="mozac_feature_addons_updater_notification_channel_2">Ažuriranja dodataka</string>
+  <string name="mozac_feature_addons_updater_notification_channel_2">Aktualiziranja proširenja</string>
   <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_addons_supported_checker_notification_channel" tools:ignore="UnusedResources">Provjeritelj dostupnih dodataka</string>
   <!-- The tile of the notification, this will be shown to the user when one newly supported add-on is available. -->

@@ -222,6 +222,10 @@
   <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">ተጨማሪ ይወቁ</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">ቅጥያዎችን ያስተዳድሩ</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">ተጨማሪ</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">ያነሰ</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">የሚመከሩ ቅጥያዎች</string>
   <!--
@@ -235,6 +239,8 @@
   <string name="browser_menu_extensions_disabled_description">ለጊዜው ተሰናክሏል</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">ምንም ቅጥያዎች አልነቁም</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">የሚመከር ቅጥያ ይሞክሩ</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">የመለያ መረጃ</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -310,6 +316,10 @@
   <string name="browser_menu_sign_in">ይግቡ</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">የይለፍ ቃላትን፣ ትሮችን እና ሌሎችን አመሳስል</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">ዕልባቶችን፣ የይለፍ ቃላትን፣ ትሮችን እና ሌሎችን አመሳስል</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">የይለፍ ቃላትን፣ ዕልባቶችን እና ሌሎችን አመሳስል</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">ለማመሳሰል ተመልሰው ይግቡ</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -362,10 +372,14 @@
   <string name="browser_menu_save_description" moz:removedIn="141" tools:ignore="UnusedResources">ዕልባት አክል፣ አቋራጭ፣ ዋና ገፅ፣ ስብስብ፣ ፒዲኤፍ</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ለዚህ ገጽ ዕልባት ያድርጉ</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">የዕልባት ገጽ</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">እልባት አርትዕ</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">እንደ ፒዲኤፍ አስቀምጥ…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">እንደ PDF አስቀምጥ</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">የአንባቢ እይታን ያብሩ</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -374,20 +388,37 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">ወደ የግል ያልሆነ ትር ይሂዱ</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">ገጽ ተርጉም…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">ገጽ ተርጉም</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">የተበላሽ ጣቢያ አሳውቅ…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">የተበላሽ ጣቢያ አሳውቅ</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">ወደ %1$s ተተርጉሟል</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">ተተርጉሟል</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">አትም…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">አትም</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">%1$s አቋርጥ</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">%1$s ነባሪ ያድርጉት</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">ሰከንዶች ይወስዳል። በማንኛውም ጊዜ ይቀይሩ።</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">አሰናብት</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -762,6 +793,8 @@
   <string name="preferences_pbm_lock_screen_title">በግል አሰሳ ውስጥ ትሮችን ለመደበቅ የማያ ገጽ መቆለፊያን ይጠቀሙ</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">በጣት አሻራ፣ በመልክ መክፈቻ ወይም በፒን ትሮችን ይመልከቱ።</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">በጣት አሻራ፣ ፒን ወይም በመልክ መክፈቻ ትሮችን ይመልከቱ።</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">የኩኪ ባነር ማገጃ</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -826,6 +859,8 @@
   <string name="preferences_category_account">መለያ</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">የአድራሻ አሞሌ መገኛ</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">የመሳሪያ አሞሌ አቀማመጥ</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">ገጽታ</string>
   <!-- Preference for customizing the home screen -->
@@ -908,6 +943,14 @@
   <string name="preferences_open_links_in_apps_never">በፍጹም</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">የውጭ ማውረድ አስተዳዳሪ</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">ውርዶችን በሌላ መተግበሪያ ያስተዳድሩ</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">ከ%s እና መሳሪያ ሰርዝ</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">ፋይሎችን ከአውርድ አስተዳዳሪዎ ማስወገድ እንዲሁ ከመሣሪያዎ ያስወግዳቸዋል</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">የወረዱ</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">የGecko ምዝግብ ማስታወሻዎችን አንቃ</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -936,6 +979,20 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">ይህን ቅጥያ የሚያምኑት ከሆነ በእያንዳንዱ ድር ጣቢያ ላይ ፈቃድ ሊሰጡት ይችላሉ።</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ይህ ቅጥያ ምንም ፈቃዶችን አይፈልግም።</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">ገንቢው እንዳለው ይህ ቅጥያ፡- %1$s ይሰበስባል።</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">ገንቢው እንዳለው ይህ ቅጥያ፡- %1$s ይሰበስባል</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">ገንቢው ይህ ቅጥያ የውሂብ መሰብሰብ አያስፈልገውም ብሏል።</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">አስፈላጊ ፈቃዶች፡-</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">አማራጭ ፈቃዶች፡-</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">አስፈላጊ መረጃ መሰብሰብ፡-</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">አማራጭ መረጃ መሰብሰብ፡-</string>
   <!--
     Add-on Preferences
 
@@ -967,6 +1024,8 @@
   <string name="customize_toggle_recently_visited">በቅርብ ጊዜ የተጎበኙ</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">አነቃቂ ታሪኮች</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">ትርክቶች</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">በ%s የተጎላበተ መጣጥፎች</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -1007,6 +1066,46 @@
   <string name="wallpapers_onboarding_dialog_body_text">እርስዎን የሚያናግር ልጣፍ ይምረጡ።</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">ተጨማሪ ልጣፎችን ያስሱ</string>
+  <!--
+    Icon picker
+
+    Title for the "Default" alternative app icon variant in the icon picker screen.
+  -->
+  <string name="alternative_app_icon_option_default">ነባሪ</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">ፈካ ያለ</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">ጨለም ያለ</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">ቀይ</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">አረንጓዴ</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">ሰማያዊ</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">ሐምራዊ</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">ጥቁር ሐምራዊ</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">የፀሐይ መውጣት</string>
+  <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
+  <string name="alternative_app_icon_option_gradient_golden_hour">ወርቃማ ሰዓት</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">ጀንበር ስትጠልቅ</string>
+  <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
+  <string name="alternative_app_icon_option_gradient_blue_hour">ፈዛዛ ሰማያዊ</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">ድንግዝግዝ</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">እኩለ ሌሊት</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">በ @heyheymomodraws የተፈጠረ</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">ድፍን ቀለሞች</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">ቅልቅል ቀለሞች</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">ሌላ</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1166,6 +1265,10 @@
   <string name="preference_top_toolbar">ከላይ</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">ከታች</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">ቀላል</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">ዝርግ</string>
   <!--
     Theme Preferences
 
@@ -1434,6 +1537,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">እቃዎች ተሰርዘዋል፡ %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">ፋይል አውርድ በ፡-</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">\"%1$s\" ተሰርዟል</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1478,6 +1583,16 @@
   <string name="download_navigate_back_description">ወደ ኋላ ዳስስ</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">ተመለስ እና ፍለጋን ዝጋ</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">ለአፍታ አቁም</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">ከቆመበት ቀጥል</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">እንደገና ይሞክሩ</string>
   <string name="download_clear_search_description">አጽዳ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL አጋራ</string>
@@ -1505,6 +1620,8 @@
   <string name="download_time_period_last_30_days">ባለፉት 30 ቀናት</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">ይበልጥ የቆየ</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">ማውረድን በማዘጋጀት ላይ…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1512,12 +1629,33 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ይቀራል</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • በ%3$s ውስጥ።</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the estimated download time remaining is still being calculated.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • በመጠባበቅ ላይ</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • ባለበት ቆሟል</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ለአፍታ ቆሟል</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">በመጠባበቅ ላይ</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ማውረድ አልተሳካም</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">ዝርዝሮች</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ውርዶችን ይፈልጉ</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1630,6 +1768,8 @@
   <string name="bookmark_menu_copy_button">ቅዳ</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">አጋራ</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">ሁሉንም ምረጥ</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">በአዲስ ትር ክፈት</string>
   <!-- Bookmark overflow menu open in private tab button -->

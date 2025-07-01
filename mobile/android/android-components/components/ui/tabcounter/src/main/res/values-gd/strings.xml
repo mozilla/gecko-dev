@@ -5,6 +5,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_tab_counter_open_tab_tray">Tha tabaichean (%1$s) fosgailte. Thoir gnogag airson leum a ghearradh gu taba eile.</string>
+  <!--
+    Message announced to the user when tab tray is selected used by a11y services
+    The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_open_tab_counter_tab_tray">Tha tabaichean neo-phrìobhaideach fosgailte, %1$s dhiubh. Thoir gnogag airson leum a ghearradh gu taba eile.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Taba ùr</string>
   <!-- Browser menu button that creates a private tab -->

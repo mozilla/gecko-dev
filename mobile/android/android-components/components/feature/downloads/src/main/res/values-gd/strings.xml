@@ -38,6 +38,13 @@
     %1$s will be replaced with the name of the file.
   -->
   <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">Tha %1$s ann mu thràth.</string>
+  <!--
+    Alert dialog confirmation before downloading a file without network connection, this is the description.
+    %1$s will be replaced with the name of the file.
+  -->
+  <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">Cha deach %1$s a luchdadh a-nuas.</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Thoir sùil air a’ cheangal agad is feuch ris a-rithist.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">Chan urrainn dha %1$s a leithid seo a dh’fhaidhle a luchdadh a-nuas</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

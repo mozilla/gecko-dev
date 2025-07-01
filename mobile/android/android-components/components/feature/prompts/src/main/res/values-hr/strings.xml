@@ -35,9 +35,9 @@
   <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
   <string name="mozac_feature_prompt_login_save_headline_2">Spremiti lozinku?</string>
   <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
-  <string name="mozac_feature_prompt_login_update_headline_2">Ažurirati lozinku?</string>
+  <string name="mozac_feature_prompt_login_update_headline_2">Aktualizirati lozinku?</string>
   <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-  <string name="mozac_feature_prompt_login_add_username_headline_2">Ažurirati korisničko ime?</string>
+  <string name="mozac_feature_prompt_login_add_username_headline_2">Aktualizirati korisničko ime?</string>
   <!--
     Text for a label for the field when prompt requesting a text is shown.
 
@@ -113,9 +113,9 @@
   <!-- Title for showing the suggest strong password saved confirmation snackbar -->
   <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Lozinka spremljena</string>
   <!-- Title for showing the suggest strong password updated confirmation snackbar -->
-  <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Lozinka je ažurirana</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Lozinka je aktualizirana</string>
   <!-- Title for showing the username updated confirmation snackbar -->
-  <string name="mozac_feature_prompt_login_snackbar_username_updated">Korisničko ime je ažurirano</string>
+  <string name="mozac_feature_prompt_login_snackbar_username_updated">Korisničko ime je aktualizirano</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
   <string name="mozac_feature_prompt_repost_title">Ponovno poslati podatke ovoj stranici?</string>
   <string name="mozac_feature_prompt_repost_message">Osvježavanje ove stranice moglo bi ponoviti nedavne radnje, kao što su dvostruko plaćanje ili komentiranje.</string>
@@ -146,7 +146,7 @@
   <!-- Text for the title of a save credit card dialog. -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_title">Sigurno spremiti ovu karticu?</string>
   <!-- Text for the title of an update credit card dialog. -->
-  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Ažuriraj datum isteka kartice?</string>
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Aktualizirati datum isteka kartice?</string>
   <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s šifrira broj vaše kartice. Vaš sigurnosni kod neće biti spremljen.</string>
   <!--

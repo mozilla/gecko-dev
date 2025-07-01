@@ -5,7 +5,7 @@
   <!-- Text for confirmation for a negative action in dialog. -->
   <string name="mozac_feature_prompts_cancel">Ακύρωση</string>
   <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
-  <string name="mozac_feature_prompts_no_more_dialogs">Να απαγορεύεται σε αυτή τη σελίδα να δημιουργεί επιπρόσθετους διαλόγους</string>
+  <string name="mozac_feature_prompts_no_more_dialogs">Αποτροπή δημιουργίας επιπρόσθετων διαλόγων από αυτήν τη σελίδα</string>
   <!-- Text for a positive button, when an user selects a date in date/time picker. -->
   <string name="mozac_feature_prompts_set_date">Ορισμός</string>
   <!-- Text for a button that clears the selected input in the date/time picker. -->
@@ -31,7 +31,7 @@
   <!-- Error text displayed underneath the password field when it is in an error case -->
   <string name="mozac_feature_prompt_error_empty_password_2">Εισαγάγετε έναν κωδικό πρόσβασης</string>
   <!-- Error text displayed underneath the password field when it is in an error case -->
-  <string name="mozac_feature_prompt_error_unknown_cause_2">Αδυναμία αποθήκευσης κωδικού πρόσβασης</string>
+  <string name="mozac_feature_prompt_error_unknown_cause_2">Δεν είναι δυνατή η αποθήκευση του κωδικού πρόσβασης</string>
   <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
   <string name="mozac_feature_prompt_login_save_headline_2">Αποθήκευση κωδικού πρόσβασης;</string>
   <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->

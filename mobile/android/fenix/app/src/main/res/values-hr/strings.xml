@@ -1041,7 +1041,7 @@
   -->
   <string name="wallpapers_item_name_content_description">Stavke pozadine: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
-  <string name="wallpaper_updated_snackbar_message">Pozadina ažurirana!</string>
+  <string name="wallpaper_updated_snackbar_message">Pozadina je aktualizirana!</string>
   <!-- Snackbar label for action to view selected wallpaper -->
   <string name="wallpaper_updated_snackbar_action">Prikaži</string>
   <!-- Snackbar message for when wallpaper couldn't be downloaded -->

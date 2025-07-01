@@ -2652,7 +2652,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Hostname löschen</string>
   <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
-  <string name="login_detail_menu_button_content_description">Menü mit Detail der Zugangsdaten</string>
+  <string name="login_detail_menu_button_content_description">Menü: Details der Zugangsdaten</string>
   <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
   <string name="login_details_navigate_back_button_content_description">Rückwärts navigieren</string>
   <!-- Edit text for the login detail menu edit button -->

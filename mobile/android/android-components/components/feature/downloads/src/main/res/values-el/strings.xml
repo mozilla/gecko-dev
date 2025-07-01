@@ -48,7 +48,7 @@
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">Το %1$s δεν μπορεί να κάνει λήψη αυτού του τύπου αρχείου</string>
   <!-- Message that appears when the downloaded file could not be opened. -->
-  <string name="mozac_feature_downloads_could_not_open_file">Αδυναμία ανοίγματος αρχείου</string>
+  <string name="mozac_feature_downloads_could_not_open_file">Δεν ήταν δυνατό το άνοιγμα του αρχείου</string>
   <!-- Message that appears when the downloaded file is a specific type (%1$s) that Android doesn't support opening. -->
   <string name="mozac_feature_downloads_open_not_supported1">Δεν βρέθηκε εφαρμογή για άνοιγμα αρχείων %1$s</string>
   <!-- Button that pauses the download when pressed. -->
@@ -66,7 +66,7 @@
   <!-- Title for the third party download app chooser dialog -->
   <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">Ολοκλήρωση ενέργειας με</string>
   <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->
-  <string name="mozac_feature_downloads_unable_to_open_third_party_app">Αδυναμία ανοίγματος του %1$s</string>
+  <string name="mozac_feature_downloads_unable_to_open_third_party_app">Δεν είναι δυνατό το άνοιγμα του «%1$s»</string>
   <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
   <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Απαιτείται άδεια για πρόσβαση σε αρχεία και πολυμέσα για τη λήψη αρχείων. Μεταβείτε στις Ρυθμίσεις Android, πατήστε «Δικαιώματα» και επιλέξτε «Να επιτρέπεται».</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
