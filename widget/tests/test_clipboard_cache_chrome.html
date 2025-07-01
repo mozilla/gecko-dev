@@ -16,7 +16,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1812543
 <script class="testbody" type="application/javascript">
 
 function testClipboardCache(aClipboardType, aAsync, aIsSupportGetFromCachedTransferable) {
-  add_task(async function test_clipboard_get() {
+  add_task(function test_clipboard_get() {
     info(`test_clipboard_get ${aAsync ? "async " : ""}` +
          `with pref ${aIsSupportGetFromCachedTransferable ? "enabled" : "disabled"}`);
 
@@ -87,13 +87,13 @@ function testClipboardCache(aClipboardType, aAsync, aIsSupportGetFromCachedTrans
     }
 
     info(`Clean all clipboard data`);
-    await cleanupAllClipboard();
+    cleanupAllClipboard();
   });
 }
 
 function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
   add_task(async function setup() {
-    await cleanupAllClipboard();
+    cleanupAllClipboard();
     await SpecialPowers.pushPrefEnv({
       set: [
         [
@@ -109,7 +109,7 @@ function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
       return;
     }
 
-    add_task(async function test_clipboard_hasDataMatchingFlavors() {
+    add_task(function test_clipboard_hasDataMatchingFlavors() {
       info(`test_clipboard_hasDataMatchingFlavors with pref ` +
            `${aIsSupportGetFromCachedTransferable ? "enabled" : "disabled"}`);
 
@@ -185,7 +185,7 @@ function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
          `Check if there is text/foo flavor on clipboard ${type}`);
 
       // Clean clipboard data.
-      await cleanupAllClipboard();
+      cleanupAllClipboard();
     });
 
     add_task(async function test_clipboard_asyncGetData() {
@@ -220,13 +220,13 @@ function runClipboardCacheTests(aIsSupportGetFromCachedTransferable) {
       await testClipboardData(await getClipboardDataSnapshot(type), clipboardData);
 
       info(`Should not get the data from other clipboard type`);
-      for (let otherType of clipboardTypes) {
+      clipboardTypes.forEach(async function(otherType) {
         if (otherType != type &&
             clipboard.isClipboardTypeSupported(otherType)) {
           info(`Check clipboard type ${otherType}`);
           await testClipboardData(await getClipboardDataSnapshot(otherType), {});
         }
-      }
+      });
 
       info(`Check data on clipboard ${type} again`);
       await testClipboardData(await getClipboardDataSnapshot(type), clipboardData);

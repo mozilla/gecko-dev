@@ -373,15 +373,12 @@ nsClipboard::GetNativeClipboardSequenceNumber(ClipboardType aWhichClipboard) {
 // So if clipboard contains images only remove text MIME offer.
 bool nsClipboard::HasSuitableData(int32_t aWhichClipboard,
                                   const nsACString& aFlavor) {
-  MOZ_CLIPBOARD_LOG("%s for %s", __FUNCTION__,
-                    PromiseFlatCString(aFlavor).get());
+  MOZ_CLIPBOARD_LOG("nsClipboard::HasSuitableData");
 
   auto targets = mContext->GetTargets(aWhichClipboard);
   if (!targets) {
     MOZ_CLIPBOARD_LOG("    X11: no targes at clipboard (null), quit.\n");
-    // It is possible that clipboard owner doesn't provide TARGETS properly, but
-    // the text data is still available.
-    return aFlavor.EqualsLiteral(kTextMime);
+    return false;
   }
 
   for (const auto& atom : targets.AsSpan()) {
@@ -405,7 +402,6 @@ bool nsClipboard::HasSuitableData(int32_t aWhichClipboard,
     }
     // We have some other MIME type on clipboard which can be hopefully
     // converted to text without any problem.
-    // XXX should only return true for text/plain type?
     MOZ_CLIPBOARD_LOG(
         "    X11: text types in clipboard, no need to filter them.\n");
     return true;
@@ -882,12 +878,14 @@ static bool FlavorMatchesTarget(const nsACString& aFlavor, GdkAtom aTarget) {
     return false;
   }
   if (aFlavor.Equals(atom_name.get())) {
+    MOZ_CLIPBOARD_LOG("    has %s\n", atom_name.get());
     return true;
   }
   // X clipboard supports image/jpeg, but we want to emulate support
   // for image/jpg as well
   if (aFlavor.EqualsLiteral(kJPGImageMime) &&
       !strcmp(atom_name.get(), kJPEGImageMime)) {
+    MOZ_CLIPBOARD_LOG("    has image/jpg\n");
     return true;
   }
   // application/x-moz-file should be treated like text/uri-list
@@ -911,30 +909,21 @@ nsClipboard::HasNativeClipboardDataMatchingFlavors(
       aWhichClipboard == kSelectionClipboard ? "primary" : "clipboard");
 
   if (!mContext) {
-    MOZ_CLIPBOARD_LOG("    nsRetrievalContext is not available\n");
     return Err(NS_ERROR_FAILURE);
   }
 
   auto targets = mContext->GetTargets(aWhichClipboard);
   if (!targets) {
     MOZ_CLIPBOARD_LOG("    no targes at clipboard (null)\n");
-    // If TARGETS is not available, fallback to checking for text data directly,
-    // as the clipboard owner might not set TARGETS properly, but the text is
-    // still available.
-    for (auto& flavor : aFlavorList) {
-      if (flavor.EqualsLiteral(kTextMime)) {
-        MOZ_CLIPBOARD_LOG("    try text data\n");
-        if (auto clipboardData = mContext->GetClipboardText(aWhichClipboard)) {
-          return true;
-        }
-        MOZ_CLIPBOARD_LOG("    no text data\n");
-      }
-    }
     return false;
   }
 
 #ifdef MOZ_LOGGING
   if (MOZ_CLIPBOARD_LOG_ENABLED()) {
+    MOZ_CLIPBOARD_LOG("    Asking for content:\n");
+    for (auto& flavor : aFlavorList) {
+      MOZ_CLIPBOARD_LOG("        MIME %s\n", flavor.get());
+    }
     MOZ_CLIPBOARD_LOG("    Clipboard content (target nums %zu):\n",
                       targets.AsSpan().Length());
     for (const auto& target : targets.AsSpan()) {
@@ -955,6 +944,7 @@ nsClipboard::HasNativeClipboardDataMatchingFlavors(
     if (flavor.EqualsLiteral(kTextMime) &&
         gtk_targets_include_text(targets.AsSpan().data(),
                                  targets.AsSpan().Length())) {
+      MOZ_CLIPBOARD_LOG("    has kTextMime\n");
       return true;
     }
     for (const auto& target : targets.AsSpan()) {
@@ -964,7 +954,7 @@ nsClipboard::HasNativeClipboardDataMatchingFlavors(
     }
   }
 
-  MOZ_CLIPBOARD_LOG("    no matched targes at clipboard\n");
+  MOZ_CLIPBOARD_LOG("    no targes at clipboard (bad match)\n");
   return false;
 }
 
@@ -1002,73 +992,44 @@ void nsClipboard::AsyncHasNativeClipboardDataMatchingFlavors(
         UniquePtr<TragetCallbackHandler> handler(
             static_cast<TragetCallbackHandler*>(aData));
 
+        GdkAtom* targets = nullptr;
+        gint targetsNum = 0;
         if (gtk_selection_data_get_length(aSelection) > 0) {
-          GdkAtom* targets = nullptr;
-          gint targetsNum = 0;
           gtk_selection_data_get_targets(aSelection, &targets, &targetsNum);
 
-          if (targetsNum > 0) {
 #ifdef MOZ_LOGGING
-            if (MOZ_CLIPBOARD_LOG_ENABLED()) {
-              MOZ_CLIPBOARD_LOG("    Clipboard content (target nums %d):\n",
-                                targetsNum);
-              for (int i = 0; i < targetsNum; i++) {
-                GUniquePtr<gchar> atom_name(gdk_atom_name(targets[i]));
-                if (!atom_name) {
-                  MOZ_CLIPBOARD_LOG("        failed to get MIME\n");
-                  continue;
-                }
-                MOZ_CLIPBOARD_LOG("        MIME %s\n", atom_name.get());
-              }
-            }
-#endif
-
-            nsTArray<nsCString> results;
-            for (auto& flavor : handler->mAcceptedFlavorList) {
-              if (flavor.EqualsLiteral(kTextMime) &&
-                  gtk_targets_include_text(targets, targetsNum)) {
-                results.AppendElement(flavor);
+          if (MOZ_CLIPBOARD_LOG_ENABLED()) {
+            MOZ_CLIPBOARD_LOG("  Clipboard content (target nums %d):\n",
+                              targetsNum);
+            for (int i = 0; i < targetsNum; i++) {
+              GUniquePtr<gchar> atom_name(gdk_atom_name(targets[i]));
+              if (!atom_name) {
+                MOZ_CLIPBOARD_LOG("    failed to get MIME\n");
                 continue;
               }
-              for (int i = 0; i < targetsNum; i++) {
-                if (FlavorMatchesTarget(flavor, targets[i])) {
-                  results.AppendElement(flavor);
-                }
+              MOZ_CLIPBOARD_LOG("    MIME %s\n", atom_name.get());
+            }
+          }
+#endif
+        }
+        nsTArray<nsCString> results;
+        if (targetsNum) {
+          for (auto& flavor : handler->mAcceptedFlavorList) {
+            MOZ_CLIPBOARD_LOG("  looking for %s", flavor.get());
+            if (flavor.EqualsLiteral(kTextMime) &&
+                gtk_targets_include_text(targets, targetsNum)) {
+              results.AppendElement(flavor);
+              MOZ_CLIPBOARD_LOG("    has kTextMime\n");
+              continue;
+            }
+            for (int i = 0; i < targetsNum; i++) {
+              if (FlavorMatchesTarget(flavor, targets[i])) {
+                results.AppendElement(flavor);
               }
             }
-            handler->mCallback(std::move(results));
-            return;
           }
         }
-
-        // If TARGETS is not available, fallback to checking for text data
-        // directly, as the clipboard owner might not set TARGETS properly, but
-        // the text is still available.
-        MOZ_CLIPBOARD_LOG("    no targets found\n");
-        for (auto& flavor : handler->mAcceptedFlavorList) {
-          if (flavor.EqualsLiteral(kTextMime)) {
-            MOZ_CLIPBOARD_LOG("    try text data\n");
-            gtk_clipboard_request_text(
-                aClipboard,
-                [](GtkClipboard* aClipboard, const gchar* aText,
-                   gpointer aData) -> void {
-                  MOZ_CLIPBOARD_LOG(
-                      "gtk_clipboard_request_text async handler (%p)", aData);
-                  UniquePtr<TragetCallbackHandler> handler(
-                      static_cast<TragetCallbackHandler*>(aData));
-
-                  nsTArray<nsCString> results;
-                  if (aText) {
-                    results.AppendElement(kTextMime);
-                  }
-                  handler->mCallback(std::move(results));
-                },
-                handler.release());
-            return;
-          }
-        }
-
-        handler->mCallback(nsTArray<nsCString>{});
+        handler->mCallback(std::move(results));
       },
       new TragetCallbackHandler(aFlavorList, std::move(aCallback)));
 }

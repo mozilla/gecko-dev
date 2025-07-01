@@ -14,7 +14,7 @@ const clipboardTypes = [
   clipboard.kSelectionCache,
 ];
 
-async function emptyClipboardData(aType) {
+function emptyClipboardData(aType) {
   // XXX gtk doesn't support emptying clipboard data which is stored from
   // other application (bug 1853884). As a workaround, we set dummy data
   // to the clipboard first to ensure the subsequent emptyClipboard call
@@ -24,20 +24,15 @@ async function emptyClipboardData(aType) {
   }
 
   clipboard.emptyClipboard(aType);
-
-  // Give some time for GTK to process owner change callback.
-  await new Promise(resolve => SimpleTest.executeSoon(resolve));
-  let snapshot = getClipboardDataSnapshotSync(aType);
-  isDeeply(snapshot.flavorList, [], "Clipboard should be empty");
 }
 
-async function cleanupAllClipboard() {
-  for (let type of clipboardTypes) {
+function cleanupAllClipboard() {
+  clipboardTypes.forEach(function (type) {
     if (clipboard.isClipboardTypeSupported(type)) {
       info(`cleanup clipboard ${type}`);
-      await emptyClipboardData(type);
+      emptyClipboardData(type);
     }
-  }
+  });
 }
 
 function generateRandomString() {
