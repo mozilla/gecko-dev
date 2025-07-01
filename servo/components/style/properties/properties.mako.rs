@@ -1707,14 +1707,14 @@ pub struct ComputedValuesInner {
     % endfor
     custom_properties: crate::custom_properties::ComputedCustomProperties,
 
-    /// The writing mode of this computed values struct.
-    pub writing_mode: WritingMode,
-
     /// The effective zoom value.
     pub effective_zoom: computed::Zoom,
 
     /// A set of flags we use to store misc information regarding this style.
     pub flags: ComputedValueFlags,
+
+    /// The writing mode of this computed values struct.
+    pub writing_mode: WritingMode,
 
     /// The rule node representing the ordered list of rules matched for this
     /// node.  Can be None for default values and text nodes.  This is
@@ -2966,7 +2966,7 @@ macro_rules! longhand_properties_idents {
 
 // Large pages generate tens of thousands of ComputedValues.
 #[cfg(feature = "gecko")]
-size_of_test!(ComputedValues, 240);
+size_of_test!(ComputedValues, 248);
 #[cfg(feature = "servo")]
 size_of_test!(ComputedValues, 208);
 
