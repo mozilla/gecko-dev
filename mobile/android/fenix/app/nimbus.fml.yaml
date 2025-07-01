@@ -610,6 +610,9 @@ features:
     defaults:
       - channel: release
         value:
+          enabled: false
+      - channel: release
+        value:
           report-site-issue: false
 
   mars:
