@@ -200,10 +200,10 @@ class PeerConnectionImpl final
   }
   // DataConnection observers
   void NotifyDataChannel(already_AddRefed<DataChannel> aChannel,
-                         const nsAString& aLabel, bool aOrdered,
+                         const nsACString& aLabel, bool aOrdered,
                          dom::Nullable<uint16_t> aMaxLifeTime,
                          dom::Nullable<uint16_t> aMaxRetransmits,
-                         const nsAString& aProtocol, bool aNegotiated)
+                         const nsACString& aProtocol, bool aNegotiated)
       // PeerConnectionImpl only inherits from DataChannelConnection
       // inside libxul.
       override;
@@ -426,8 +426,8 @@ class PeerConnectionImpl final
   nsresult MaybeInitializeDataChannel();
 
   NS_IMETHODIMP_TO_ERRORRESULT_RETREF(RTCDataChannel, CreateDataChannel,
-                                      ErrorResult& rv, const nsAString& aLabel,
-                                      const nsAString& aProtocol,
+                                      ErrorResult& rv, const nsACString& aLabel,
+                                      const nsACString& aProtocol,
                                       uint16_t aType, bool outOfOrderAllowed,
                                       uint16_t aMaxTime, uint16_t aMaxNum,
                                       bool aExternalNegotiated,

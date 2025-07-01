@@ -23,10 +23,11 @@ class Blob;
 class RTCDataChannel final : public DOMEventTargetHelper,
                              public DataChannelListener {
  public:
-  RTCDataChannel(const nsAString& aLabel, bool aOrdered,
+  RTCDataChannel(const nsACString& aLabel, bool aOrdered,
                  Nullable<uint16_t> aMaxLifeTime,
-                 Nullable<uint16_t> aMaxRetransmits, const nsAString& aProtocol,
-                 bool aNegotiated, already_AddRefed<DataChannel>& aDataChannel,
+                 Nullable<uint16_t> aMaxRetransmits,
+                 const nsACString& aProtocol, bool aNegotiated,
+                 already_AddRefed<DataChannel>& aDataChannel,
                  nsPIDOMWindowInner* aWindow);
 
   nsresult Init(nsPIDOMWindowInner* aDOMWindow);
@@ -46,8 +47,8 @@ class RTCDataChannel final : public DOMEventTargetHelper,
   nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
   // WebIDL
-  void GetLabel(nsAString& aLabel) const;
-  void GetProtocol(nsAString& aProtocol) const;
+  void GetLabel(nsACString& aLabel) const;
+  void GetProtocol(nsACString& aProtocol) const;
   Nullable<uint16_t> GetMaxPacketLifeTime() const;
   Nullable<uint16_t> GetMaxRetransmits() const;
   RTCDataChannelState ReadyState() const;
@@ -122,11 +123,11 @@ class RTCDataChannel final : public DOMEventTargetHelper,
   bool mCheckMustKeepAlive;
   bool mSentClose;
 
-  const nsString mLabel;
+  const nsCString mLabel;
   const bool mOrdered;
   const Nullable<uint16_t> mMaxPacketLifeTime;
   const Nullable<uint16_t> mMaxRetransmits;
-  const nsString mProtocol;
+  const nsCString mProtocol;
   const bool mNegotiated;
 };
 

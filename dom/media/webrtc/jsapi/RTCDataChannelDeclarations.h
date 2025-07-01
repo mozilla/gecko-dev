@@ -23,10 +23,10 @@ namespace dom {
 class RTCDataChannel;
 
 nsresult NS_NewDOMDataChannel(already_AddRefed<DataChannel>&& aDataChannel,
-                              const nsAString& aLabel, bool aOrdered,
+                              const nsACString& aLabel, bool aOrdered,
                               Nullable<uint16_t> aMaxLifeTime,
                               Nullable<uint16_t> aMaxRetransmits,
-                              const nsAString& aProtocol, bool aNegotiated,
+                              const nsACString& aProtocol, bool aNegotiated,
                               nsPIDOMWindowInner* aWindow,
                               RTCDataChannel** aDomDataChannel);
 

@@ -63,7 +63,7 @@ dictionary RTCDataChannelInit {
   unsigned short maxPacketLifeTime;
   [EnforceRange]
   unsigned short maxRetransmits;
-  USVString      protocol = "";
+  UTF8String     protocol = "";
   boolean        negotiated = false;
   [EnforceRange]
   unsigned short id;
@@ -168,7 +168,7 @@ interface RTCPeerConnection : EventTarget  {
 
   readonly attribute RTCSctpTransport? sctp;
   // Data channel.
-  RTCDataChannel createDataChannel (USVString label,
+  RTCDataChannel createDataChannel (UTF8String label,
                                     optional RTCDataChannelInit dataChannelDict = {});
   attribute EventHandler ondatachannel;
 };

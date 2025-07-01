@@ -993,7 +993,7 @@ nsresult PeerConnectionImpl::MaybeInitializeDataChannel() {
 }
 
 already_AddRefed<RTCDataChannel> PeerConnectionImpl::CreateDataChannel(
-    const nsAString& aLabel, const nsAString& aProtocol, uint16_t aType,
+    const nsACString& aLabel, const nsACString& aProtocol, uint16_t aType,
     bool ordered, uint16_t aMaxTime, uint16_t aMaxNum, bool aExternalNegotiated,
     uint16_t aStream, ErrorResult& rv) {
   RefPtr<RTCDataChannel> result;
@@ -1004,7 +1004,7 @@ already_AddRefed<RTCDataChannel> PeerConnectionImpl::CreateDataChannel(
 
 NS_IMETHODIMP
 PeerConnectionImpl::CreateDataChannel(
-    const nsAString& aLabel, const nsAString& aProtocol, uint16_t aType,
+    const nsACString& aLabel, const nsACString& aProtocol, uint16_t aType,
     bool ordered, uint16_t aMaxTime, uint16_t aMaxNum, bool aExternalNegotiated,
     uint16_t aStream, RTCDataChannel** aRetval) {
   PC_AUTO_ENTER_API_CALL(false);
@@ -1043,8 +1043,7 @@ PeerConnectionImpl::CreateDataChannel(
     return rv;
   }
   dataChannel = mDataConnection->Open(
-      NS_ConvertUTF16toUTF8(aLabel), NS_ConvertUTF16toUTF8(aProtocol), prPolicy,
-      ordered,
+      aLabel, aProtocol, prPolicy, ordered,
       prPolicy == DataChannelReliabilityPolicy::LimitedRetransmissions
           ? aMaxNum
           : (prPolicy == DataChannelReliabilityPolicy::LimitedLifetime
@@ -1355,10 +1354,10 @@ RefPtr<dom::RTCRtpTransceiver> PeerConnectionImpl::GetTransceiver(
 }
 
 void PeerConnectionImpl::NotifyDataChannel(
-    already_AddRefed<DataChannel> aChannel, const nsAString& aLabel,
+    already_AddRefed<DataChannel> aChannel, const nsACString& aLabel,
     bool aOrdered, mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
     mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
-    const nsAString& aProtocol, bool aNegotiated) {
+    const nsACString& aProtocol, bool aNegotiated) {
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
   RefPtr<DataChannel> channel(aChannel);

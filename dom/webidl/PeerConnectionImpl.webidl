@@ -123,7 +123,7 @@ interface PeerConnectionImpl  {
 
   /* Data channels */
   [Throws]
-  RTCDataChannel createDataChannel(DOMString label, DOMString protocol,
+  RTCDataChannel createDataChannel(UTF8String label, UTF8String protocol,
     unsigned short type, boolean ordered,
     unsigned short maxTime, unsigned short maxNum,
     boolean externalNegotiated, unsigned short stream);

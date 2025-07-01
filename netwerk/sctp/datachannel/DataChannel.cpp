@@ -641,10 +641,9 @@ void DataChannelConnection::HandleOpenRequestMessage(
           // TODO(bug 1974443): Have nsDOMDataChannel create the DataChannel
           // object, or have DataChannel take an nsDOMDataChannel, to avoid
           // passing this param list more than once?
-          mListener->NotifyDataChannel(do_AddRef(channel),
-                                       NS_ConvertUTF8toUTF16(label), ordered,
-                                       maxLifeTime, maxRetransmits,
-                                       NS_ConvertUTF8toUTF16(protocol), false);
+          mListener->NotifyDataChannel(do_AddRef(channel), label, ordered,
+                                       maxLifeTime, maxRetransmits, protocol,
+                                       false);
           // Spec says to queue this in the queued task for ondatachannel
           channel->AnnounceOpen();
         }

@@ -146,10 +146,10 @@ class DataChannelConnection : public net::NeckoTargetHolder {
 
     // Called when a new DataChannel has been opened by the other side.
     virtual void NotifyDataChannel(
-        already_AddRefed<DataChannel> aChannel, const nsAString& aLabel,
+        already_AddRefed<DataChannel> aChannel, const nsACString& aLabel,
         bool aOrdered, mozilla::dom::Nullable<uint16_t> aMaxLifeTime,
         mozilla::dom::Nullable<uint16_t> aMaxRetransmits,
-        const nsAString& aProtocol, bool aNegotiated) = 0;
+        const nsACString& aProtocol, bool aNegotiated) = 0;
 
     // Called when a DataChannel transitions to state open
     virtual void NotifyDataChannelOpen(DataChannel* aChannel) = 0;

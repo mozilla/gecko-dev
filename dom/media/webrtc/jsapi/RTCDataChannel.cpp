@@ -70,10 +70,10 @@ NS_IMPL_RELEASE_INHERITED(RTCDataChannel, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(RTCDataChannel)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-RTCDataChannel::RTCDataChannel(const nsAString& aLabel, bool aOrdered,
+RTCDataChannel::RTCDataChannel(const nsACString& aLabel, bool aOrdered,
                                Nullable<uint16_t> aMaxLifeTime,
                                Nullable<uint16_t> aMaxRetransmits,
-                               const nsAString& aProtocol, bool aNegotiated,
+                               const nsACString& aProtocol, bool aNegotiated,
                                already_AddRefed<DataChannel>& aDataChannel,
                                nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow),
@@ -120,9 +120,9 @@ nsresult RTCDataChannel::Init(nsPIDOMWindowInner* aDOMWindow) {
 
 // Most of the GetFoo()/SetFoo()s don't need to touch shared resources and
 // are safe after Close()
-void RTCDataChannel::GetLabel(nsAString& aLabel) const { aLabel = mLabel; }
+void RTCDataChannel::GetLabel(nsACString& aLabel) const { aLabel = mLabel; }
 
-void RTCDataChannel::GetProtocol(nsAString& aProtocol) const {
+void RTCDataChannel::GetProtocol(nsACString& aProtocol) const {
   aProtocol = mProtocol;
 }
 
@@ -490,10 +490,10 @@ void RTCDataChannel::EventListenerRemoved(nsAtom* aType) {
 
 /* static */
 nsresult NS_NewDOMDataChannel(already_AddRefed<DataChannel>&& aDataChannel,
-                              const nsAString& aLabel, bool aOrdered,
+                              const nsACString& aLabel, bool aOrdered,
                               Nullable<uint16_t> aMaxLifeTime,
                               Nullable<uint16_t> aMaxRetransmits,
-                              const nsAString& aProtocol, bool aNegotiated,
+                              const nsACString& aProtocol, bool aNegotiated,
                               nsPIDOMWindowInner* aWindow,
                               RTCDataChannel** aDomDataChannel) {
   RefPtr<RTCDataChannel> domdc =
