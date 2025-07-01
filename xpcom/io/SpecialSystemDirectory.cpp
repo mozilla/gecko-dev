@@ -98,34 +98,6 @@ static nsresult GetWindowsFolder(int aFolder, nsIFile** aFile) {
   return NS_NewLocalFile(nsDependentString(path, len), aFile);
 }
 
-/*
- * Return the default save-to location for the Windows Library passed in
- * through aFolderId.
- */
-static nsresult GetLibrarySaveToPath(int aFallbackFolderId,
-                                     REFKNOWNFOLDERID aFolderId,
-                                     nsIFile** aFile) {
-  RefPtr<IShellLibrary> shellLib;
-  RefPtr<IShellItem> savePath;
-  SHLoadLibraryFromKnownFolder(aFolderId, STGM_READ, IID_IShellLibrary,
-                               getter_AddRefs(shellLib));
-
-  if (shellLib && SUCCEEDED(shellLib->GetDefaultSaveFolder(
-                      DSFT_DETECT, IID_IShellItem, getter_AddRefs(savePath)))) {
-    wchar_t* str = nullptr;
-    if (SUCCEEDED(savePath->GetDisplayName(SIGDN_FILESYSPATH, &str))) {
-      nsAutoString path;
-      path.Assign(str);
-      path.Append('\\');
-      nsresult rv = NS_NewLocalFile(path, aFile);
-      CoTaskMemFree(str);
-      return rv;
-    }
-  }
-
-  return GetWindowsFolder(aFallbackFolderId, aFile);
-}
-
 /**
  * Provides a fallback for getting the path to APPDATA or LOCALAPPDATA by
  * querying the registry when the call to SHGetSpecialFolderPathW is unable to
@@ -680,8 +652,7 @@ nsresult GetSpecialSystemDirectory(SystemDirectories aSystemSystemDirectory,
       return rv;
     }
     case Win_Documents: {
-      return GetLibrarySaveToPath(CSIDL_MYDOCUMENTS, FOLDERID_DocumentsLibrary,
-                                  aFile);
+      return GetKnownFolder(FOLDERID_Documents, aFile);
     }
 #endif  // XP_WIN
 
