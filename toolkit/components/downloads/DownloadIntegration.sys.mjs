@@ -21,6 +21,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DownloadSpamProtection: "resource:///modules/DownloadSpamProtection.sys.mjs",
   DownloadStore: "resource://gre/modules/DownloadStore.sys.mjs",
   DownloadUIHelper: "resource://gre/modules/DownloadUIHelper.sys.mjs",
+  DownloadsCommon: "resource:///modules/DownloadsCommon.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
 });
@@ -1318,8 +1319,11 @@ var DownloadObserver = {
         for (let download of this._contentAnalysisWarnInProgressDownloads) {
           blockPromises.push(
             (async () => {
-              await download.respondToContentAnalysisWarnWithBlock();
-              await download.finalize(true);
+              // Since the user is blocking this download and we're about to
+              // quit, delete the download from the list. (this will also
+              // delete the file on disk and report to the DLP agent that
+              // we have blocked it)
+              await lazy.DownloadsCommon.deleteDownload(download);
             })()
           );
         }
