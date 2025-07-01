@@ -143,8 +143,14 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
         return NS_OK;
       }
       extra_data = aSample->mExtraData;
-    } else if (H264::CompareExtraData(extra_data, mCurrentConfig.mExtraData)) {
-      return NS_OK;
+    } else {
+      // A situation where inband SPS exists in the sample.
+#ifdef MOZ_WMF_MEDIA_ENGINE
+      extra_data = MergeParameterSetsWhenInbandSPSExists(extra_data);
+#endif
+      if (H264::CompareExtraData(extra_data, mCurrentConfig.mExtraData)) {
+        return NS_OK;
+      }
     }
 
     // Store the sample's extradata so we don't trigger a false positive
@@ -232,6 +238,54 @@ class H264ChangeMonitor : public MediaChangeMonitor::CodecChangeMonitor {
     mCurrentConfig.mExtraData = aExtraData;
     mTrackInfo = new TrackInfoSharedPtr(mCurrentConfig, mStreamID++);
   }
+
+#ifdef MOZ_WMF_MEDIA_ENGINE
+  // Merge aExtraData, containing in-band parameter set updates having at least
+  // one SPS, with mCurrentConfig.mExtraData, and return the merged
+  // AVCDecoderConfigurationRecord. The existing PPSs (if any) are retained iff
+  // no new PPSs are in aExtraData. Partial updates of only some SPSs or of
+  // only some PPSs are not yet supported.
+  RefPtr<MediaByteBuffer> MergeParameterSetsWhenInbandSPSExists(
+      MediaByteBuffer* aExtraData) const {
+    // TODO : consider to enable this for other decoders if necessary in bug
+    // 1973611
+    if (!mIsMediaEnginePlayback) {
+      return aExtraData;
+    }
+
+    auto res = AVCCConfig::Parse(aExtraData);
+    MOZ_ASSERT(res.isOk());
+    auto avccNew = res.unwrap();
+    if (avccNew.NumPPS() != 0) {
+      // New extradata already has PPS.
+      return aExtraData;
+    }
+
+    // A case where the new extradata includes an SPS change but lacks a
+    // PPS. This implies that the PPS might be present in the previous
+    // extradata, making it a candidate for reuse. This refinement could
+    // potentially resolve the DRM_E_H264_SH_PPS_NOT_FOUND error.
+    res = AVCCConfig::Parse(mCurrentConfig.mExtraData);
+    if (res.isErr()) {
+      return aExtraData;
+    }
+    const auto avccOld = res.unwrap();
+    if (avccOld.NumPPS() == 0) {
+      // Still no PPS, there is nothing we can do.
+      return aExtraData;
+    }
+
+    // Reuse the previous PPS then generate a new extradata.
+    MOZ_ASSERT(avccNew.NumPPS() == 0 && avccOld.NumPPS() != 0);
+    avccNew.mPPSs.AppendElements(avccOld.mPPSs);
+    if (RefPtr<MediaByteBuffer> newExtraData = avccNew.CreateNewExtraData()) {
+      LOG("Refining extradata by inserting PPS to ensure both SPS and PPS "
+          "are present");
+      return newExtraData;
+    }
+    return aExtraData;
+  }
+#endif
 
   VideoInfo mCurrentConfig;
   uint32_t mStreamID = 0;

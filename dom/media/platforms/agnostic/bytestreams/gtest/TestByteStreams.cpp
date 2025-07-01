@@ -719,6 +719,94 @@ TEST(H264, AVCCParsingFailure)
   }
 }
 
+TEST(H264, CreateNewExtraData)
+{
+  // First create an AVCC config without sps, pps
+  auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+  const uint8_t avccBytesBuffer[] = {
+      0x01,  // configurationVersion
+      0x64,  // AVCProfileIndication (High Profile = 100)
+      0x00,  // profile_compatibility
+      0x1E,  // AVCLevelIndication (Level 3.0)
+      0xFF,  // 6 bits reserved (111111) + 2 bits lengthSizeMinusOne (3 -> 4
+             // bytes)
+      0xE0,  // 3 bits reserved (111) + 5 bits numOfSPS = 0
+      0x00,  // numOfPPS = 0
+      0xFC,  // 6 bits reserved (111111) + 2 bits chroma_format = 0 (4:2:0)
+      0xF8,  // 5 bits reserved (11111) + 3 bits bit_depth_luma_minus8 = 0
+             // (8-bit)
+      0xF8,  // 5 bits reserved (11111) + 3 bits bit_depth_chroma_minus8 = 0
+             // (8-bit)
+      0x00   // numOfSequenceParameterSetExt = 0
+  };
+  extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+  auto res = AVCCConfig::Parse(extradata);
+  EXPECT_TRUE(res.isOk());
+  auto avcc = res.unwrap();
+  EXPECT_EQ(avcc.NumSPS(), 0u);
+  EXPECT_EQ(avcc.NumPPS(), 0u);
+
+  // Create new extradata with 1 SPS
+  const uint8_t sps[] = {
+      0x67,
+      0x64,
+      0x00,
+      0x1F,
+  };
+  H264NALU spsNALU = H264NALU(sps, std::size(sps));
+  avcc.mSPSs.AppendElement(spsNALU);
+  extradata = avcc.CreateNewExtraData();
+  res = AVCCConfig::Parse(extradata);
+  EXPECT_TRUE(res.isOk());
+  avcc = res.unwrap();
+  EXPECT_EQ(avcc.NumSPS(), 1u);
+  EXPECT_EQ(avcc.NumPPS(), 0u);
+
+  // Create new extradata with 1 SPS and 1 PPS
+  const uint8_t pps[] = {
+      0x68,
+      0xCE,
+  };
+  H264NALU ppsNALU = H264NALU(pps, std::size(pps));
+  avcc.mPPSs.AppendElement(ppsNALU);
+  extradata = avcc.CreateNewExtraData();
+  res = AVCCConfig::Parse(extradata);
+  EXPECT_TRUE(res.isOk());
+  avcc = res.unwrap();
+  EXPECT_EQ(avcc.NumSPS(), 1u);
+  EXPECT_EQ(avcc.NumPPS(), 1u);
+
+  // Create new extradata with 2 SPS and 1 PPS
+  avcc.mSPSs.AppendElement(spsNALU);
+  extradata = avcc.CreateNewExtraData();
+  res = AVCCConfig::Parse(extradata);
+  EXPECT_TRUE(res.isOk());
+  avcc = res.unwrap();
+  EXPECT_EQ(avcc.NumSPS(), 2u);
+  EXPECT_EQ(avcc.NumPPS(), 1u);
+
+  // Create new extradata with 2 SPS and 2 PPS
+  avcc.mPPSs.AppendElement(ppsNALU);
+  extradata = avcc.CreateNewExtraData();
+  res = AVCCConfig::Parse(extradata);
+  EXPECT_TRUE(res.isOk());
+  avcc = res.unwrap();
+  EXPECT_EQ(avcc.NumSPS(), 2u);
+  EXPECT_EQ(avcc.NumPPS(), 2u);
+
+  // Besides SPS and PPS, let's ensure chroma_format, bit_depth_luma_minus8 and
+  // bit_depth_chroma_minus8 are preserved correctly as well
+  EXPECT_EQ(*avcc.mChromaFormat, 0);
+  EXPECT_EQ(*avcc.mBitDepthLumaMinus8, 0);
+  EXPECT_EQ(*avcc.mBitDepthChromaMinus8, 0);
+
+  // Use a wrong attribute, which will generate an invalid config
+  avcc.mConfigurationVersion = 5;
+  extradata = avcc.CreateNewExtraData();
+  res = AVCCConfig::Parse(extradata);
+  EXPECT_TRUE(res.isErr());
+}
+
 TEST(H265, HVCCParsingSuccess)
 {
   {

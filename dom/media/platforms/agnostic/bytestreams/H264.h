@@ -647,6 +647,12 @@ struct AVCCConfig final {
   uint32_t NumPPS() const { return mPPSs.Length(); }
   uint32_t NumSPSExt() const { return mSPSExts.Length(); }
 
+  // This method is used when the attributes of AVCCConfig are modified, and
+  // then you want to create a new byte buffer based on the updated attributes.
+  // If the updated attributes make the config invalid, this method will return
+  // nullptr.
+  already_AddRefed<mozilla::MediaByteBuffer> CreateNewExtraData() const;
+
  private:
   AVCCConfig() = default;
 };
