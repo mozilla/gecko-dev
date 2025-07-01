@@ -7,6 +7,7 @@
 #include "BitReader.h"
 
 #include "mozilla/Unused.h"
+#include "nsStringFwd.h"
 
 namespace mozilla {
 
@@ -29,7 +30,12 @@ BitReader::~BitReader() = default;
 uint32_t BitReader::ReadBits(size_t aNum) {
   MOZ_ASSERT(aNum <= 32);
   if (mTotalBitsLeft < aNum) {
-    NS_WARNING("Reading past end of buffer");
+#ifdef DEBUG
+    nsAutoCString msg;
+    msg.AppendFmt("Reading past end of buffer, totalBitsLeft={}, num={}",
+                  mTotalBitsLeft, aNum);
+    NS_WARNING(msg.get());
+#endif
     return 0;
   }
   uint32_t result = 0;
