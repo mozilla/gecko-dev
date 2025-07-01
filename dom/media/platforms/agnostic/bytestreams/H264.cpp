@@ -1106,7 +1106,7 @@ uint32_t H264::ComputeMaxRefFrames(const mozilla::MediaByteBuffer* aExtraData) {
 /* static */
 uint8_t H264::NumSPS(const mozilla::MediaByteBuffer* aExtraData) {
   auto avcc = AVCCConfig::Parse(aExtraData);
-  return avcc.isErr() ? 0 : avcc.unwrap().mNumSPS;
+  return avcc.isErr() ? 0 : avcc.unwrap().NumSPS();
 }
 
 /* static */
@@ -1345,18 +1345,131 @@ void H264::WriteExtraData(MediaByteBuffer* aDestExtraData,
   if (!aExtraData || aExtraData->Length() < 7) {
     return mozilla::Err(NS_ERROR_FAILURE);
   }
-  const auto& byteBuffer = *aExtraData;
-  if (byteBuffer[0] != 1) {
+  AVCCConfig avcc{};
+  BitReader reader(aExtraData);
+
+  avcc.mConfigurationVersion = reader.ReadBits(8);
+  if (avcc.mConfigurationVersion != 1) {
+    LOG("Invalid configuration version %u", avcc.mConfigurationVersion);
     return mozilla::Err(NS_ERROR_FAILURE);
   }
-  AVCCConfig avcc{};
-  avcc.mConfigurationVersion = byteBuffer[0];
-  avcc.mAVCProfileIndication = byteBuffer[1];
-  avcc.mProfileCompatibility = byteBuffer[2];
-  avcc.mAVCLevelIndication = byteBuffer[3];
-  avcc.mLengthSizeMinusOne = byteBuffer[4] & 0x3;
-  avcc.mNumSPS = byteBuffer[5] & 0x1F;
+  avcc.mAVCProfileIndication = reader.ReadBits(8);
+  avcc.mProfileCompatibility = reader.ReadBits(8);
+  avcc.mAVCLevelIndication = reader.ReadBits(8);
+  Unused << reader.ReadBits(6);  // reserved
+  avcc.mLengthSizeMinusOne = reader.ReadBits(2);
+  Unused << reader.ReadBits(3);  // reserved
+  const uint8_t numSPS = reader.ReadBits(5);
+  for (uint8_t idx = 0; idx < numSPS; idx++) {
+    if (reader.BitsLeft() < 16) {
+      LOG("Aborting parsing, not enough bits (16) for SPS length!");
+      return mozilla::Err(NS_ERROR_FAILURE);
+    }
+    uint16_t sequenceParameterSetLength = reader.ReadBits(16);
+    uint32_t spsBitsLength = sequenceParameterSetLength * 8;
+    const uint8_t* spsPtr = aExtraData->Elements() + reader.BitCount() / 8;
+    if (reader.AdvanceBits(spsBitsLength) < spsBitsLength) {
+      LOG("Aborting parsing, SPS NALU size (%u bits) is larger than remaining!",
+          spsBitsLength);
+      return mozilla::Err(NS_ERROR_FAILURE);
+    }
+    H264NALU nalu(spsPtr, sequenceParameterSetLength);
+    if (nalu.mNalUnitType != H264_NAL_SPS) {
+      LOG("Aborting parsing, expect SPS but got incorrect NALU type (%d)!",
+          nalu.mNalUnitType);
+      return mozilla::Err(NS_ERROR_FAILURE);
+    }
+    avcc.mSPSs.AppendElement(nalu);
+  }
+  // TODO : make PPS parsing failure become hard fail in 1974040.
+  if (reader.BitsLeft() < 8) {
+    LOG("Failed to parse numPPS, and soft fail.");
+    return avcc;
+  }
+  const uint8_t numPPS = reader.ReadBits(8);
+  for (uint8_t idx = 0; idx < numPPS; idx++) {
+    if (reader.BitsLeft() < 16) {
+      LOG("Aborting parsing, not enough bits (16) for PPS length!");
+      break;
+    }
+    uint16_t pictureParameterSetLength = reader.ReadBits(16);
+    uint32_t ppsBitsLength = pictureParameterSetLength * 8;
+    const uint8_t* ppsPtr = aExtraData->Elements() + reader.BitCount() / 8;
+    if (reader.AdvanceBits(ppsBitsLength) < ppsBitsLength) {
+      LOG("Aborting parsing, PPS NALU size (%u bits) is larger than remaining!",
+          ppsBitsLength);
+      break;
+    }
+    H264NALU nalu(ppsPtr, pictureParameterSetLength);
+    if (nalu.mNalUnitType != H264_NAL_PPS) {
+      LOG("Aborting parsing, expect PPS but got incorrect NALU type (%d)!",
+          nalu.mNalUnitType);
+      break;
+    }
+    avcc.mPPSs.AppendElement(nalu);
+  }
+
+  // We can't guarantee the following bit contents are still correct, skip them.
+  // This should be removed in bug 1974040 as well.
+  if (avcc.mPPSs.Length() != numPPS) {
+    LOG("Failed to parse all PPS, and soft fail.");
+    return avcc;
+  }
+
+  // The AVCDecoderConfigurationRecord syntax requires that the SPSExt must be
+  // present if AVCProfileIndication is not 66 (Baseline), 77 (Main), or 88
+  // (Extended). However, in practice, many H.264 streams in the wild omit the
+  // SPSExt fields, especially when default values are used (e.g.,
+  // chroma_format_idc = 1 for 4:2:0 chroma format, bit_depth_luma_minus8 = 0,
+  // and bit_depth_chroma_minus8 = 0) Therefore, parsing this part is not
+  // mandatory and fail to parse this part will not cause an actual error.
+  // Instead, we will simply clear the incorrect result.
+  if (avcc.mAVCProfileIndication != 66 && avcc.mAVCProfileIndication != 77 &&
+      avcc.mAVCProfileIndication != 88 && reader.BitsLeft() >= 32) {
+    Unused << reader.ReadBits(6);  // reserved
+    avcc.mChromaFormat = Some(reader.ReadBits(2));
+    Unused << reader.ReadBits(5);  // reserved
+    avcc.mBitDepthLumaMinus8 = Some(reader.ReadBits(3));
+    Unused << reader.ReadBits(5);  // reserved
+    avcc.mBitDepthChromaMinus8 = Some(reader.ReadBits(3));
+    const uint8_t numOfSequenceParameterSetExt = reader.ReadBits(8);
+    for (uint8_t idx = 0; idx < numOfSequenceParameterSetExt; idx++) {
+      if (reader.BitsLeft() < 16) {
+        LOG("Aborting parsing, not enough bits (16) for SPSExt length!");
+        break;
+      }
+      uint16_t sequenceParameterSetExtLength = reader.ReadBits(16);
+      uint32_t spsExtBitsLength = sequenceParameterSetExtLength * 8;
+      const uint8_t* spsExtPtr = aExtraData->Elements() + reader.BitCount() / 8;
+      if (reader.AdvanceBits(spsExtBitsLength) < spsExtBitsLength) {
+        LOG("Aborting parsing, SPS Ext NALU size (%u bits) is larger than "
+            "remaining!",
+            spsExtBitsLength);
+        break;
+      }
+      H264NALU nalu(spsExtPtr, sequenceParameterSetExtLength);
+      if (nalu.mNalUnitType != H264_NAL_SPS_EXT) {
+        LOG("Aborting parsing, expect SPSExt but got incorrect NALU type "
+            "(%d)!",
+            nalu.mNalUnitType);
+        break;
+      }
+      avcc.mSPSExts.AppendElement(nalu);
+    }
+    if (avcc.mSPSExts.Length() != numOfSequenceParameterSetExt) {
+      LOG("Failed to parse all SPSExt, and soft fail.");
+    }
+  }
   return avcc;
+}
+
+H264NALU::H264NALU(const uint8_t* aData, uint32_t aByteCount)
+    : mNALU(aData, aByteCount) {
+  // Per 7.3.1 NAL unit syntax
+  BitReader reader(aData, aByteCount * 8);
+  Unused << reader.ReadBit();    // forbidden_zero_bit
+  Unused << reader.ReadBits(2);  // nal_ref_idc
+  mNalUnitType = reader.ReadBits(5);
 }
 
 #undef READUE
