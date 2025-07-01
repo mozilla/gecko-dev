@@ -366,26 +366,278 @@ TEST(AnnexB, HVCCToAnnexBConversion)
 
 TEST(H264, AVCCParsingSuccess)
 {
-  auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
-  uint8_t avccBytesBuffer[] = {
-      1 /* version */,
-      0x64 /* profile (High) */,
-      0 /* profile compat (0) */,
-      40 /* level (40) */,
-      0xfc | 3 /* nal size - 1 */,
-      0xe0 /* num SPS (0) */,
-      0 /* num PPS (0) */
-  };
-  extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
-  auto rv = AVCCConfig::Parse(extradata);
-  EXPECT_TRUE(rv.isOk());
-  const auto avcc = rv.unwrap();
-  EXPECT_EQ(avcc.mConfigurationVersion, 1);
-  EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
-  EXPECT_EQ(avcc.mProfileCompatibility, 0);
-  EXPECT_EQ(avcc.mAVCLevelIndication, 40);
-  EXPECT_EQ(avcc.NALUSize(), 4);
-  EXPECT_EQ(avcc.mNumSPS, 0);
+  {
+    // AVCC without SPS, PPS and SPSExt
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    uint8_t avccBytesBuffer[] = {
+        1 /* version */,
+        0x64 /* profile (High) */,
+        0 /* profile compat (0) */,
+        40 /* level (40) */,
+        0xfc | 3 /* nal size - 1 */,
+        0xe0 /* num SPS (0) */,
+        0 /* num PPS (0) */
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 40);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 0u);
+    EXPECT_EQ(avcc.NumPPS(), 0u);
+    EXPECT_TRUE(avcc.mChromaFormat.isNothing());
+    EXPECT_TRUE(avcc.mBitDepthLumaMinus8.isNothing());
+    EXPECT_TRUE(avcc.mBitDepthChromaMinus8.isNothing());
+    EXPECT_EQ(avcc.NumSPSExt(), 0u);
+    EXPECT_EQ(avcc.mSPSExts.Length(), 0u);
+  }
+  {
+    // AVCC with SPS, PPS but no chroma format, lumn/chrom bit depth and SPSExt.
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        // configurationVersion
+        0x01,
+        // AVCProfileIndication (e.g., High Profile = 100)
+        0x64,
+        // profile_compatibility
+        0x00,
+        // AVCLevelIndication
+        0x1E,
+        // 6 bits reserved (111111) + 2 bits lengthSizeMinusOne (3 -> 4 bytes)
+        0xFF,
+        // 3 bits reserved (111) + 5 bits numOfSPS (1)
+        0xE1,
+        // SPS[0] length = 0x0004
+        0x00,
+        0x04,
+        // SPS NAL unit (fake)
+        0x67,
+        0x64,
+        0x00,
+        0x1F,
+        // numOfPPS = 1
+        0x01,
+        // PPS[0] length = 0x0002
+        0x00,
+        0x02,
+        // PPS NAL unit (fake)
+        0x68,
+        0xCE,
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 0x1E);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 1u);
+    EXPECT_EQ(avcc.NumPPS(), 1u);
+    EXPECT_TRUE(avcc.mChromaFormat.isNothing());
+    EXPECT_TRUE(avcc.mBitDepthLumaMinus8.isNothing());
+    EXPECT_TRUE(avcc.mBitDepthChromaMinus8.isNothing());
+    EXPECT_EQ(avcc.NumSPSExt(), 0u);
+    EXPECT_EQ(avcc.mSPSExts.Length(), 0u);
+  }
+  {
+    // AVCC with SPS, PPS and SPSExt.
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        // configurationVersion
+        0x01,
+        // AVCProfileIndication (e.g., High Profile = 100)
+        0x64,
+        // profile_compatibility
+        0x00,
+        // AVCLevelIndication
+        0x1E,
+        // 6 bits reserved (111111) + 2 bits lengthSizeMinusOne (3 -> 4 bytes)
+        0xFF,
+        // 3 bits reserved (111) + 5 bits numOfSPS (1)
+        0xE1,
+        // SPS[0] length = 0x0004
+        0x00, 0x04,
+        // SPS NAL unit (fake)
+        0x67, 0x64, 0x00, 0x1F,
+        // numOfPPS = 1
+        0x01,
+        // PPS[0] length = 0x0002
+        0x00, 0x02,
+        // PPS NAL unit (fake)
+        0x68, 0xCE,
+        // 6 bits reserved (111111) + 2 bits chroma_format (0 -> 4:2:0)
+        0xFC,
+        // 5 bits reserved (11111) + 3 bits bit_depth_luma_minus8 (0 -> 8-bit)
+        0xF8,
+        // 5 bits reserved (11111) + 3 bits bit_depth_chroma_minus8 (0 -> 8-bit)
+        0xF8,
+        // numOfSPSext = 1
+        0x01,
+        // SPS Ext[0] length = 0x0003
+        0x00, 0x03,
+        // SPS Ext NAL unit (fake)
+        0x6D, 0xB2, 0x20};
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 0x1E);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 1u);
+    EXPECT_EQ(avcc.NumPPS(), 1u);
+    EXPECT_EQ(*avcc.mChromaFormat, 0);
+    EXPECT_EQ(*avcc.mBitDepthLumaMinus8, 0);
+    EXPECT_EQ(*avcc.mBitDepthChromaMinus8, 0);
+    EXPECT_EQ(avcc.NumSPSExt(), 1u);
+  }
+  // Following part are optional, fail to parse them won't cause an actual error
+  {
+    // SPS Ext length = 0x0004, but only provides 2 bytes of data
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // High profile
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x01,        // SPS length = 1
+        0x67,              // SPS NAL
+        0x01,              // 1 PPS
+        0x00, 0x01,        // PPS length = 1
+        0x68,              // PPS NAL
+        0xFC,              // expect at least 32 bits but not enough
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 0x1E);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 1u);
+    EXPECT_EQ(avcc.NumPPS(), 1u);
+    EXPECT_TRUE(avcc.mChromaFormat.isNothing());
+    EXPECT_TRUE(avcc.mBitDepthLumaMinus8.isNothing());
+    EXPECT_TRUE(avcc.mBitDepthChromaMinus8.isNothing());
+    EXPECT_EQ(avcc.NumSPSExt(), 0u);
+  }
+  {
+    // SPS Ext length = 0x0004, but only provides 2 bytes of data
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // High profile
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x01,        // SPS length = 1
+        0x67,              // SPS NAL
+        0x01,              // 1 PPS
+        0x00, 0x01,        // PPS length = 1
+        0x68,              // PPS NAL
+        0xFC,              // reserved + chroma_format=0
+        0xF8,              // reserved + bit_depth_luma_minus8=0
+        0xF8,              // reserved + bit_depth_chroma_minus8=0
+        0x01,              // numOfSPSExt = 1
+        0x00, 0x04,        // SPS Ext length = 4
+        0x6A, 0x01         // Only 2 bytes of SPSExt NAL
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 0x1E);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 1u);
+    EXPECT_EQ(avcc.NumPPS(), 1u);
+    EXPECT_EQ(*avcc.mChromaFormat, 0);
+    EXPECT_EQ(*avcc.mBitDepthLumaMinus8, 0);
+    EXPECT_EQ(*avcc.mBitDepthChromaMinus8, 0);
+    EXPECT_EQ(avcc.NumSPSExt(), 0u);
+  }
+  {
+    // Insuffient data, wrong SPSEXT length
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // High profile
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x01,        // SPS length = 1
+        0x67,              // SPS NAL
+        0x01,              // 1 PPS
+        0x00, 0x01,        // PPS length = 1
+        0x68,              // PPS NAL
+        0xFC,              // reserved + chroma_format=0
+        0xF8,              // reserved + bit_depth_luma_minus8=0
+        0xF8,              // reserved + bit_depth_chroma_minus8=0
+        0x01,              // numOfSPSExt = 1
+        0x00,              // Wrong SPS Ext length, should be 16 bits
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 0x1E);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 1u);
+    EXPECT_EQ(avcc.NumPPS(), 1u);
+    EXPECT_EQ(*avcc.mChromaFormat, 0);
+    EXPECT_EQ(*avcc.mBitDepthLumaMinus8, 0);
+    EXPECT_EQ(*avcc.mBitDepthChromaMinus8, 0);
+    EXPECT_EQ(avcc.NumSPSExt(), 0u);
+  }
+  {
+    //  Expect SPSExt payload, but the payload is an incorrect NALU type
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // High profile
+        0xFF,              // reserved + lengthSizeMinusOne
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x01,        // SPS length = 1
+        0x67,              // SPS NAL
+        0x01,              // 1 PPS
+        0x00, 0x01,        // PPS length = 1
+        0x68,              // PPS NAL
+        0xFC,              // reserved + chroma_format=0
+        0xF8,              // reserved + bit_depth_luma_minus8=0
+        0xF8,              // reserved + bit_depth_chroma_minus8=0
+        0x01,              // numOfSPSExt = 1
+        0x00, 0x03,        // SPS Ext[0] length = 0x0003
+        0x77, 0xB2, 0x20,  // Expect SPSExt, but wrong NALU type
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isOk());
+    const auto avcc = res.unwrap();
+    EXPECT_EQ(avcc.mConfigurationVersion, 1);
+    EXPECT_EQ(avcc.mAVCProfileIndication, 0x64);
+    EXPECT_EQ(avcc.mProfileCompatibility, 0);
+    EXPECT_EQ(avcc.mAVCLevelIndication, 0x1E);
+    EXPECT_EQ(avcc.NALUSize(), 4);
+    EXPECT_EQ(avcc.NumSPS(), 1u);
+    EXPECT_EQ(avcc.NumPPS(), 1u);
+    EXPECT_EQ(*avcc.mChromaFormat, 0);
+    EXPECT_EQ(*avcc.mBitDepthLumaMinus8, 0);
+    EXPECT_EQ(*avcc.mBitDepthChromaMinus8, 0);
+    EXPECT_EQ(avcc.NumSPSExt(), 0u);
+  }
 }
 
 TEST(H264, AVCCParsingFailure)
@@ -420,6 +672,50 @@ TEST(H264, AVCCParsingFailure)
     extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
     auto avcc = AVCCConfig::Parse(extradata);
     EXPECT_TRUE(avcc.isErr());
+  }
+  {
+    // Insuffient data, wrong SPS length
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // profile, compat, level
+        0xFF,              // reserved + lengthSizeMinusOne (2 bits)
+        0xE1,              // reserved + 1 SPS
+        0x00,              // Wrong SPS length, should be 16 bits
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
+  }
+  {
+    // SPS length = 0x0004, but only provides 2 bytes of data
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // profile, compat, level
+        0xFF,              // reserved + lengthSizeMinusOne (2 bits)
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x04,        // SPS length = 4
+        0x67, 0x42         // Only 2 bytes of SPS payload (should be 4)
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
+  }
+  {
+    // Expect SPS payload, but the payload is an incorrect NALU type
+    auto extradata = MakeRefPtr<mozilla::MediaByteBuffer>();
+    const uint8_t avccBytesBuffer[] = {
+        0x01,              // configurationVersion
+        0x64, 0x00, 0x1E,  // profile, compat, level
+        0xFF,              // reserved + lengthSizeMinusOne (2 bits)
+        0xE1,              // reserved + 1 SPS
+        0x00, 0x02,        // SPS length = 2
+        0x55, 0xCE,        // Expect SPS, but wrong NALU type
+    };
+    extradata->AppendElements(avccBytesBuffer, std::size(avccBytesBuffer));
+    auto res = AVCCConfig::Parse(extradata);
+    EXPECT_TRUE(res.isErr());
   }
 }
 
