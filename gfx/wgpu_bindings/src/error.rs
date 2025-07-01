@@ -203,7 +203,7 @@ mod foreign {
         },
         device::{
             queue::{QueueSubmitError, QueueWriteError},
-            DeviceError,
+            DeviceError, MissingFeatures,
         },
         instance::RequestDeviceError,
         pipeline::{
@@ -293,11 +293,18 @@ mod foreign {
         }
     }
 
+    impl HasErrorBufferType for MissingFeatures {
+        fn error_type(&self) -> ErrorBufferType {
+            ErrorBufferType::Validation
+        }
+    }
+
     impl HasErrorBufferType for CreateTextureError {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateTextureError::Device(e) => e.error_type(),
                 CreateTextureError::CreateTextureView(e) => e.error_type(),
+                CreateTextureError::MissingFeatures(_, e) => e.error_type(),
 
                 CreateTextureError::InvalidUsage(_)
                 | CreateTextureError::InvalidDimension(_)
@@ -311,7 +318,6 @@ mod foreign {
                 | CreateTextureError::InvalidMultisampledFormat(_)
                 | CreateTextureError::InvalidSampleCount(..)
                 | CreateTextureError::MultisampledNotRenderAttachment
-                | CreateTextureError::MissingFeatures(_, _)
                 | CreateTextureError::MissingDownlevelFlags(_) => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
@@ -324,12 +330,14 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateSamplerError::Device(e) => e.error_type(),
+                CreateSamplerError::MissingFeatures(e) => e.error_type(),
 
                 CreateSamplerError::InvalidLodMinClamp(_)
                 | CreateSamplerError::InvalidLodMaxClamp { .. }
                 | CreateSamplerError::InvalidAnisotropy(_)
-                | CreateSamplerError::InvalidFilterModeWithAnisotropy { .. }
-                | CreateSamplerError::MissingFeatures(_) => ErrorBufferType::Validation,
+                | CreateSamplerError::InvalidFilterModeWithAnisotropy { .. } => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -362,10 +370,10 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreatePipelineLayoutError::Device(e) => e.error_type(),
+                CreatePipelineLayoutError::MissingFeatures(e) => e.error_type(),
 
                 CreatePipelineLayoutError::InvalidResource(_)
                 | CreatePipelineLayoutError::MisalignedPushConstantRange { .. }
-                | CreatePipelineLayoutError::MissingFeatures(_)
                 | CreatePipelineLayoutError::MoreThanOnePushConstantRangePerStage { .. }
                 | CreatePipelineLayoutError::PushConstantRangeTooLarge { .. }
                 | CreatePipelineLayoutError::TooManyBindings(_)
@@ -426,12 +434,12 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateShaderModuleError::Device(e) => e.error_type(),
+                CreateShaderModuleError::MissingFeatures(e) => e.error_type(),
 
                 CreateShaderModuleError::Generation => ErrorBufferType::Internal,
 
                 CreateShaderModuleError::Parsing(_)
                 | CreateShaderModuleError::Validation(_)
-                | CreateShaderModuleError::MissingFeatures(_)
                 | CreateShaderModuleError::InvalidGroupIndex { .. } => ErrorBufferType::Validation,
 
                 // N.B: forced non-exhaustiveness
@@ -463,6 +471,7 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateRenderPipelineError::Device(e) => e.error_type(),
+                CreateRenderPipelineError::MissingFeatures(e) => e.error_type(),
 
                 CreateRenderPipelineError::Internal { .. } => ErrorBufferType::Internal,
 
@@ -480,7 +489,6 @@ mod foreign {
                 | CreateRenderPipelineError::ShaderLocationClash(_)
                 | CreateRenderPipelineError::StripIndexFormatForNonStripTopology { .. }
                 | CreateRenderPipelineError::ConservativeRasterizationNonFillPolygonMode
-                | CreateRenderPipelineError::MissingFeatures(_)
                 | CreateRenderPipelineError::MissingDownlevelFlags(_)
                 | CreateRenderPipelineError::Stage { .. }
                 | CreateRenderPipelineError::UnalignedShader { .. }
@@ -541,6 +549,7 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateTextureViewError::Device(e) => e.error_type(),
+                CreateTextureViewError::MissingFeatures(e) => e.error_type(),
 
                 CreateTextureViewError::InvalidTextureViewDimension { .. }
                 | CreateTextureViewError::InvalidResource(_)
@@ -558,8 +567,9 @@ mod foreign {
                 | CreateTextureViewError::DestroyedResource(_)
                 | CreateTextureViewError::TextureViewFormatNotRenderable(_)
                 | CreateTextureViewError::TextureViewFormatNotStorage(_)
-                | CreateTextureViewError::InvalidTextureViewUsage { .. }
-                | CreateTextureViewError::MissingFeatures(_) => ErrorBufferType::Validation,
+                | CreateTextureViewError::InvalidTextureViewUsage { .. } => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -633,10 +643,11 @@ mod foreign {
                 QueryError::EncoderState(e) => e.error_type(),
                 QueryError::Use(e) => e.error_type(),
                 QueryError::Resolve(e) => e.error_type(),
+                QueryError::MissingFeature(e) => e.error_type(),
 
-                QueryError::InvalidResource(_)
-                | QueryError::MissingFeature(_)
-                | QueryError::DestroyedResource(_) => ErrorBufferType::Validation,
+                QueryError::InvalidResource(_) | QueryError::DestroyedResource(_) => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
@@ -759,9 +770,11 @@ mod foreign {
         fn error_type(&self) -> ErrorBufferType {
             match self {
                 CreateQuerySetError::Device(e) => e.error_type(),
-                CreateQuerySetError::ZeroCount
-                | CreateQuerySetError::TooManyQueries { .. }
-                | CreateQuerySetError::MissingFeatures(..) => ErrorBufferType::Validation,
+                CreateQuerySetError::MissingFeatures(e) => e.error_type(),
+
+                CreateQuerySetError::ZeroCount | CreateQuerySetError::TooManyQueries { .. } => {
+                    ErrorBufferType::Validation
+                }
 
                 // N.B: forced non-exhaustiveness
                 _ => ErrorBufferType::Validation,
