@@ -1014,9 +1014,7 @@ class GeckoEngineSession(
                     request.isRedirect,
                     request.isDirectNavigation,
                     isSubframeRequest,
-                )?.takeUnless {
-                    it is InterceptionResponse.AppIntent && request.isDirectNavigation
-                }?.apply {
+                )?.apply {
                     when (this) {
                         is InterceptionResponse.AppIntent -> {
                             appRedirectUrl = lastLoadRequestUri
