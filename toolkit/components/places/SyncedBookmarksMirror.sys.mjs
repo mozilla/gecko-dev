@@ -479,10 +479,15 @@ export class SyncedBookmarksMirror {
    *        mirror is finalized.
    */
   async store(records, { needsMerge = true, signal = null } = {}) {
+    let finalizeOrInterruptSignal = signal
+      ? AbortSignal.any([this.finalizeController.signal, signal])
+      : this.finalizeController.signal;
+
     let options = {
       needsMerge,
-      signal: anyAborted(this.finalizeController.signal, signal),
+      signal: finalizeOrInterruptSignal,
     };
+
     await this.db.executeBeforeShutdown("SyncedBookmarksMirror: store", db =>
       db.executeTransaction(async () => {
         for (let record of records) {
@@ -575,10 +580,9 @@ export class SyncedBookmarksMirror {
     // block shutdown. Since all new items are in the mirror, we'll just try
     // to merge again on the next sync.
 
-    let finalizeOrInterruptSignal = anyAborted(
-      this.finalizeController.signal,
-      signal
-    );
+    let finalizeOrInterruptSignal = signal
+      ? AbortSignal.any([this.finalizeController.signal, signal])
+      : this.finalizeController.signal;
 
     let changeRecords;
     try {
@@ -2583,38 +2587,6 @@ function bagToNamedCounts(bag, names) {
     }
   }
   return counts;
-}
-
-/**
- * Returns an `AbortSignal` that aborts if either `finalizeSignal` or
- * `interruptSignal` aborts. This is like `Promise.race`, but for
- * cancellations.
- *
- * @param  {AbortSignal} finalizeSignal
- * @param  {AbortSignal?} interruptSignal
- * @returns {AbortSignal}
- */
-function anyAborted(finalizeSignal, interruptSignal = null) {
-  if (finalizeSignal.aborted || !interruptSignal) {
-    // If the mirror was already finalized, or we don't have an interrupt
-    // signal for this merge, just use the finalize signal.
-    return finalizeSignal;
-  }
-  if (interruptSignal.aborted) {
-    // If the merge was interrupted, return its already-aborted signal.
-    return interruptSignal;
-  }
-  // Otherwise, we return a new signal that aborts if either the mirror is
-  // finalized, or the merge is interrupted, whichever happens first.
-  let controller = new AbortController();
-  function onAbort() {
-    finalizeSignal.removeEventListener("abort", onAbort);
-    interruptSignal.removeEventListener("abort", onAbort);
-    controller.abort();
-  }
-  finalizeSignal.addEventListener("abort", onAbort);
-  interruptSignal.addEventListener("abort", onAbort);
-  return controller.signal;
 }
 
 // Common unknown fields for places items
