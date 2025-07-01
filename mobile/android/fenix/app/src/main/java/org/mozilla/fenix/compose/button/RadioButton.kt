@@ -44,7 +44,8 @@ fun RadioButton(
         colors = RadioButtonDefaults.colors(
             selectedColor = FirefoxTheme.colors.formSelected,
             unselectedColor = FirefoxTheme.colors.formDefault,
-            disabledColor = FirefoxTheme.colors.formDisabled,
+            disabledSelectedColor = FirefoxTheme.colors.formDisabled,
+            disabledUnselectedColor = FirefoxTheme.colors.formDisabled,
         ),
         onClick = onClick,
     )
