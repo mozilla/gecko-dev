@@ -399,3 +399,12 @@ menupopup[needsgutter] {
     }
   }
 }
+
+menuitem[badge]::after {
+  border-radius: var(--border-radius-small);
+  border: 1px solid;
+  color: var(--text-color-deemphasized);
+  content: attr(badge);
+  margin-inline-start: var(--space-small);
+  padding: var(--space-xxsmall) var(--space-small);
+}
