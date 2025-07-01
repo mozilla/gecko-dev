@@ -6,11 +6,11 @@
 
 #include "NotificationParent.h"
 
-#include "nsThreadUtils.h"
+#include "NotificationHandler.h"
 #include "NotificationUtils.h"
+#include "nsThreadUtils.h"
 #include "mozilla/AlertNotification.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/dom/ClientOpenWindowUtils.h"
 #include "mozilla/dom/ServiceWorkerManager.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "nsComponentManagerUtils.h"
@@ -60,7 +60,7 @@ class NotificationObserver final : public nsIObserver {
     } else if (mScope.IsEmpty()) {
       if (topic == AlertTopic::Click) {
         // No actor there, we need to open up a window ourselves
-        return OpenWindow();
+        return OpenWindowFor(mPrincipal);
       }
       // Nothing to do
       return NS_OK;
@@ -80,6 +80,15 @@ class NotificationObserver final : public nsIObserver {
 
     MOZ_ASSERT(topic == AlertTopic::Click || topic == AlertTopic::Finished);
 
+    if (topic == AlertTopic::Click) {
+      nsCOMPtr<nsIAlertAction> action = do_QueryInterface(aSubject);
+      nsAutoString actionName;
+      if (action) {
+        MOZ_TRY(action->GetAction(actionName));
+      }
+      return RespondOnClick(mPrincipal, mScope, mNotification, actionName);
+    }
+
     RefPtr<ServiceWorkerManager> swm = ServiceWorkerManager::GetInstance();
     if (!swm) {
       return NS_ERROR_FAILURE;
@@ -87,21 +96,6 @@ class NotificationObserver final : public nsIObserver {
 
     nsAutoCString originSuffix;
     MOZ_TRY(mPrincipal->GetOriginSuffix(originSuffix));
-
-    if (topic == AlertTopic::Click) {
-      nsCOMPtr<nsIAlertAction> action = do_QueryInterface(aSubject);
-      nsAutoString actionName;
-      if (action) {
-        MOZ_TRY(action->GetAction(actionName));
-      }
-      nsresult rv = swm->SendNotificationClickEvent(originSuffix, mScope,
-                                                    mNotification, actionName);
-      if (NS_FAILED(rv)) {
-        // No active service worker, let's do the last resort
-        return OpenWindow();
-      }
-      return NS_OK;
-    }
 
     MOZ_ASSERT(topic == AlertTopic::Finished);
     (void)NS_WARN_IF(NS_FAILED(
@@ -134,19 +128,6 @@ class NotificationObserver final : public nsIObserver {
     }
     MOZ_ASSERT_UNREACHABLE("Unknown alert topic");
     return AlertTopic::Finished;
-  }
-
-  nsresult OpenWindow() {
-    nsAutoCString origin;
-    MOZ_TRY(mPrincipal->GetOrigin(origin));
-
-    // XXX: We should be able to just pass nsIPrincipal directly
-    mozilla::ipc::PrincipalInfo info{};
-    MOZ_TRY(PrincipalToPrincipalInfo(mPrincipal, &info));
-
-    (void)ClientOpenWindow(
-        nullptr, ClientOpenWindowArgs(info, Nothing(), ""_ns, origin));
-    return NS_OK;
   }
 
   // May want to replace with SWR ID, see bug 1881812

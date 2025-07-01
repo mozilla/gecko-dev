@@ -22,6 +22,7 @@ EXPORTS.mozilla.dom += [
 EXPORTS.mozilla.dom.notification += [
     "IPCUtils.h",
     "NotificationChild.h",
+    "NotificationHandler.h",
     "NotificationParent.h",
     "NotificationUtils.h",
 ]
@@ -29,6 +30,7 @@ EXPORTS.mozilla.dom.notification += [
 UNIFIED_SOURCES += [
     "Notification.cpp",
     "NotificationChild.cpp",
+    "NotificationHandler.cpp",
     "NotificationParent.cpp",
     "NotificationUtils.cpp",
 ]
