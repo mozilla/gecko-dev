@@ -119,7 +119,7 @@ private fun LoginsList(store: LoginsStore) {
                 text = state.searchText ?: "",
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
 
         if (state.searchText.isNullOrEmpty() && state.loginItems.isEmpty()) {

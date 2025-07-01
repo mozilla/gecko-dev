@@ -62,7 +62,7 @@ fun MicrosurveyBottomSheet(
     var isSubmitted by remember { mutableStateOf(false) }
 
     Scaffold(
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
         topBar = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,

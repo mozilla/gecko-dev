@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.webcompat.ui
 
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +68,6 @@ private const val PROBLEM_DESCRIPTION_MAX_LINES = 5
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Suppress("LongMethod")
-@SuppressLint("UnusedMaterialScaffoldPaddingParameter")
 @Composable
 fun WebCompatReporter(
     store: WebCompatReporterStore,
@@ -88,10 +86,11 @@ fun WebCompatReporter(
                 },
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer2,
-    ) {
+        containerColor = FirefoxTheme.colors.layer2,
+    ) { paddingValues ->
         Column(
             modifier = Modifier.verticalScroll(rememberScrollState())
+                .padding(paddingValues)
                 .imePadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {

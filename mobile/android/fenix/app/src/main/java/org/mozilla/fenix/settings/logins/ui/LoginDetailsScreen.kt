@@ -57,7 +57,7 @@ internal fun LoginDetailsScreen(store: LoginsStore) {
                 onBackClick = { store.dispatch(LoginsDetailBackClicked) },
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
         Column(
             modifier = Modifier

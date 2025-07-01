@@ -90,7 +90,7 @@ class GleanDebugToolsFragment : ComposeFragment() {
                         backgroundColor = FirefoxTheme.colors.layer1,
                     )
                 },
-                backgroundColor = FirefoxTheme.colors.layer1,
+                containerColor = FirefoxTheme.colors.layer1,
             ) {
                 GleanDebugToolsScreen(
                     gleanDebugToolsStore = store,

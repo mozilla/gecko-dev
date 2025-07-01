@@ -206,7 +206,7 @@ fun DownloadsScreen(
                 )
             }
         },
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
         snackbarHost = {
             SnackbarHost(
                 snackbarHostState = snackbarHostState,

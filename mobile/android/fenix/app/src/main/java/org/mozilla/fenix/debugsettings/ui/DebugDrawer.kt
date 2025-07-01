@@ -68,7 +68,7 @@ fun DebugDrawer(
                 elevation = 5.dp,
             )
         },
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
         NavHost(
             navController = navController,
