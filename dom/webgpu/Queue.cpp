@@ -307,6 +307,14 @@ void Queue::CopyExternalImageToTexture(
     const dom::GPUCopyExternalImageSourceInfo& aSource,
     const dom::GPUCopyExternalImageDestInfo& aDestination,
     const dom::GPUExtent3D& aCopySize, ErrorResult& aRv) {
+  if (aSource.mOrigin.IsRangeEnforcedUnsignedLongSequence()) {
+    auto seq = aSource.mOrigin.GetAsRangeEnforcedUnsignedLongSequence();
+    if (seq.Length() > 2) {
+      aRv.ThrowTypeError("`origin` must have a sequence size of 2 or less");
+      return;
+    }
+  }
+
   const auto dstFormat = ToWebGLTexelFormat(aDestination.mTexture->Format());
   if (dstFormat == WebGLTexelFormat::FormatNotSupportingAnyConversion) {
     aRv.ThrowInvalidStateError("Unsupported destination format");
@@ -414,11 +422,6 @@ void Queue::CopyExternalImageToTexture(
                                         gfx::DataSourceSurface::READ);
   if (!map.IsMapped()) {
     aRv.ThrowInvalidStateError("Cannot map surface from source");
-    return;
-  }
-
-  if (!aSource.mOrigin.IsGPUOrigin2DDict()) {
-    aRv.ThrowInvalidStateError("Cannot get origin from source");
     return;
   }
 
