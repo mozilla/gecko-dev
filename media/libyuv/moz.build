@@ -28,6 +28,8 @@ libyuv_non_unified_sources = [
     'libyuv/source/mjpeg_decoder.cc',
     'libyuv/source/rotate_argb.cc',
     'libyuv/source/row_common.cc',
+    'libyuv/source/row_lasx.cc',  # duplicate definitions with row_lsx.cc
+    'libyuv/source/row_lsx.cc',
     'libyuv/source/scale.cc',
     'libyuv/source/scale_common.cc',
     'libyuv/source/scale_uv.cc',

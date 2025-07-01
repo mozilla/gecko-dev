@@ -1,0 +1,88 @@
+https://chromium-review.googlesource.com/c/libyuv/libyuv/+/6241803 (rebased)
+https://chromium-review.googlesource.com/c/libyuv/libyuv/+/6241804
+
+diff --git a/libyuv.gyp b/libyuv.gyp
+--- a/libyuv.gyp
++++ b/libyuv.gyp
+@@ -26,15 +26,30 @@
+     'clang%': 0,
+     # Link-Time Optimizations.
+     'use_lto%': 0,
++    # Enable LASX on LoongArch by default.
++    "loong_lasx%": 1,
++    # Enable LSX on LoongArch by default. Has no effect if loong_lasx is
++    # enabled because LASX implies LSX according to the architecture specs.
++    "loong_lsx%": 1,
+     'mips_msa%': 0,  # Default to msa off.
+     'build_neon': 0,
++    "build_lasx": 0,
++    "build_lsx": 0,
+     'build_msa': 0,
++
+     'conditions': [
+        ['(target_arch == "armv7" or target_arch == "armv7s" or \
+        (target_arch == "arm" and arm_version >= 7) or target_arch == "arm64")\
+        and (arm_neon == 1 or arm_neon_optional == 1)', {
+          'build_neon': 1,
+        }],
++       ['(target_arch == "loong64") and (loong_lasx == 1)', {
++         "build_lasx": 1,
++         "build_lsx": 1,  # LASX implies LSX.
++       }],
++       ['(target_arch == "loong64") and (loong_lsx == 1)', {
++         "build_lsx": 1,
++       }],
+        ['(target_arch == "mipsel" or target_arch == "mips64el")\
+        and (mips_msa == 1)',
+        {
+@@ -60,6 +75,16 @@
+             '-Wno-unused-parameter',
+          ],
+         }],
++        ["build_lasx != 0", {
++          "cflags": ["-mlasx"],
++        }, {  # build_lasx == 0
++          "cflags": ["-mno-lasx"],
++        }],
++        ["build_lsx != 0", {
++          "cflags": ["-mlsx"],
++        }, {  # build_lsx == 0
++          "cflags": ["-mno-lsx"],
++        }],
+         ['build_neon != 0', {
+           'defines': [
+             'LIBYUV_NEON',
+diff --git a/libyuv.gypi b/libyuv.gypi
+--- a/libyuv.gypi
++++ b/libyuv.gypi
+@@ -42,6 +42,7 @@
+       'include/libyuv/convert_from.h',
+       'include/libyuv/convert_from_argb.h',
+       'include/libyuv/cpu_id.h',
++      'include/libyuv/cpu_support.h',
+       'include/libyuv/loongson_intrinsics.h',
+       'include/libyuv/macros_msa.h',
+       'include/libyuv/mjpeg_decoder.h',
+@@ -80,18 +81,22 @@
+       'source/rotate_argb.cc',
+       'source/rotate_common.cc',
+       'source/rotate_gcc.cc',
++      'source/rotate_lsx.cc',
+       'source/rotate_msa.cc',
+       'source/rotate_win.cc',
+       'source/row_any.cc',
+       'source/row_common.cc',
+       'source/row_gcc.cc',
+       'source/row_msa.cc',
++      'source/row_lasx.cc',
++      'source/row_lsx.cc',
+       'source/row_win.cc',
+       'source/scale.cc',
+       'source/scale_any.cc',
+       'source/scale_argb.cc',
+       'source/scale_common.cc',
+       'source/scale_gcc.cc',
++      'source/scale_lsx.cc',
+       'source/scale_msa.cc',
+       'source/scale_rgb.cc',
+       'source/scale_uv.cc',
