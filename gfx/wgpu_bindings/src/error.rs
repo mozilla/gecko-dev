@@ -197,9 +197,9 @@ mod foreign {
             GetBindGroupLayoutError,
         },
         command::{
-            ClearError, CommandEncoderError, ComputePassError, CreateRenderBundleError,
-            EncoderStateError, QueryError, QueryUseError, RenderBundleError, RenderPassError,
-            ResolveError, TransferError,
+            ClearError, CommandEncoderError, CommandEncoderError, ComputePassError,
+            CreateRenderBundleError, EncoderStateError, QueryError, QueryUseError,
+            RenderBundleError, RenderPassError, ResolveError, TransferError,
         },
         device::{
             queue::{QueueSubmitError, QueueWriteError},
@@ -722,14 +722,35 @@ mod foreign {
         }
     }
 
+    impl HasErrorBufferType for ColorAttachmentError {
+        fn error_type(&self) -> ErrorBufferType {
+            ErrorBufferType::Validation
+        }
+    }
+
+    impl HasErrorBufferType for AttachmentError {
+        fn error_type(&self) -> ErrorBufferType {
+            ErrorBufferType::Validation
+        }
+    }
+
     impl HasErrorBufferType for CommandEncoderError {
         fn error_type(&self) -> ErrorBufferType {
-            // TODO: <https://bugzilla.mozilla.org/show_bug.cgi?id=1840926>
-            //
-            // We can't classify this ourselves, because inner error classification is private. We
-            // may need some upstream work to do this properly. For now, we trust that this opaque
-            // type only ever represents `Validation`.
-            ErrorBufferType::Validation
+            match self {
+                CommandEncoderError::State(e) => e.error_type(),
+                CommandEncoderError::Device(e) => e.error_type(),
+                CommandEncoderError::InvalidColorAttachment(e) => e.error_type(),
+                CommandEncoderError::InvalidAttachment(e) => e.error_type(),
+                CommandEncoderError::InvalidResource(e) => e.error_type(),
+                CommandEncoderError::MissingFeatures(e) => e.error_type(),
+                CommandEncoderError::TimestampWritesInvalid(e) => e.error_type(),
+
+                CommandEncoderError::TimestampWriteIndicesEqual { .. }
+                | CommandEncoderError::TimestampWriteIndicesMissing => ErrorBufferType::Validation,
+
+                // N.B: forced non-exhaustiveness
+                _ => ErrorBufferType::Validation,
+            }
         }
     }
 
