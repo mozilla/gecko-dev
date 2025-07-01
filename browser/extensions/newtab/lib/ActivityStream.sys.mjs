@@ -1375,7 +1375,7 @@ const FEEDS_DATA = [
     value: true,
   },
   {
-    name: "trendingseachfeed",
+    name: "trendingsearchfeed",
     factory: () => new lazy.TrendingSearchFeed(),
     title: "Handles fetching the google trending search API",
     value: true,

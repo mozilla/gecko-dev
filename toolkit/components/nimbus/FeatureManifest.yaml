@@ -1474,7 +1474,7 @@ newtabTrendingSearchWidget:
       type: boolean
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.trendingSearch.enabled
+        pref: browser.newtabpage.activity-stream.system.trendingSearch.enabled
       description: Enables the refined cards layout for newtab
     variant:
       type: string
