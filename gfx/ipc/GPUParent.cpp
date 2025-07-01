@@ -120,7 +120,7 @@ static media::MediaCodecsSupported GetFullMediaCodecSupport(
     }
   });
 #endif
-  return media::MCSInfo::GetSupportFromFactory();
+  return media::MCSInfo::GetSupportFromFactory(aForceRefresh);
 }
 
 static GPUParent* sGPUParent;
