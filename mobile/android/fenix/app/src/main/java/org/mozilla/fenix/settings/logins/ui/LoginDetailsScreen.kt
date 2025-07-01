@@ -15,10 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.material.Icon
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material.TopAppBar
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -83,7 +83,7 @@ private fun LoginDetailTopBar(
     var showMenu by remember { mutableStateOf(false) }
 
     TopAppBar(
-        backgroundColor = FirefoxTheme.colors.layer1,
+        containerColor = FirefoxTheme.colors.layer1,
         title = {
             Text(
                 text = loginItem.getDomainName(),
@@ -92,7 +92,7 @@ private fun LoginDetailTopBar(
             )
         },
         navigationIcon = {
-            androidx.compose.material.IconButton(onClick = onBackClick) {
+            androidx.compose.material3.IconButton(onClick = onBackClick) {
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_back_24),
                     contentDescription = stringResource(

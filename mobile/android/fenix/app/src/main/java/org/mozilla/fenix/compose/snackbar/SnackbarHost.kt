@@ -4,13 +4,13 @@
 
 package org.mozilla.fenix.compose.snackbar
 
-import androidx.compose.material.Snackbar
-import androidx.compose.material.SnackbarData
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.SnackbarState.Type
-import androidx.compose.material.SnackbarHost as MaterialSnackbarHost
+import androidx.compose.material3.SnackbarHost as MaterialSnackbarHost
 
 /**
  * Host for [Snackbar]s to properly show, hide, and dismiss items via [snackbarHostState] in Compose.
