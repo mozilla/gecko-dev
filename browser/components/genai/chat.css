@@ -315,4 +315,9 @@ browser {
   @media (not -moz-pref("browser.ml.chat.page")) or -moz-pref("browser.ml.chat.provider", "") {
     display: none;
   }
+
+  /* Hide footer when onboarding exists */
+  #multi-stage-message-root ~ & {
+    display: none;
+  }
 }

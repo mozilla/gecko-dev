@@ -4508,6 +4508,9 @@ chatbot:
   owner: elee@mozilla.com
   hasExposure: false
   variables:
+    badgeSidebar:
+      type: boolean
+      description: Show badge on chatbot sidebar tool on enrollment
     minVersion:
       type: string
       description: Minimum Firefox version to apply prefs

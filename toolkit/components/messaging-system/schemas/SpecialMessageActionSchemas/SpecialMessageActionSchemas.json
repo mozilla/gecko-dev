@@ -747,6 +747,22 @@
           "required": ["type"],
           "additionalProperties": true,
           "description": "Sets search mode for a specific browser instance and focuses the urlbar."
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "description": "Optional entry location from which the action initiated."
+            },
+            "type": {
+              "type": "string",
+              "enum": ["SUMMARIZE_PAGE"]
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false,
+          "description": "Summarize current page content."
         }
       ]
     }
