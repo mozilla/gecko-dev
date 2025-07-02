@@ -20,7 +20,8 @@ TextDirectiveCreator::TextDirectiveCreator(Document* aDocument,
                                            AbstractRange* aRange,
                                            const TimeoutWatchdog* aWatchdog)
     : mDocument(WrapNotNull(aDocument)),
-      mRange(WrapNotNull(aRange)), mWatchdog(aWatchdog) {}
+      mRange(WrapNotNull(aRange)),
+      mWatchdog(aWatchdog) {}
 
 /* static */
 mozilla::Result<nsCString, ErrorResult>
