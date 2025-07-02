@@ -142,6 +142,16 @@ void main(void) {
 //           with a offset / weight uniform table and a constant
 //           loop iteration count!
 
+// GLSL implementation of GL_MIRRORED_REPEAT
+vec2 mirrored_repeat(vec2 uv) {
+    vec2 abs_uv = abs(uv);
+    vec2 uv_int = floor(abs_uv);
+    vec2 uv_frac = abs_uv - uv_int;
+    vec2 f = mod(uv_int, 2.0);
+
+    return mix(uv_frac, 1.0 - uv_frac, f);
+}
+
 void main(void) {
     vec2 uv = mix(vUvRect.xy, vUvRect.zw, vUv);
     SAMPLE_TYPE original_color = SAMPLE_TEXTURE(uv);
@@ -187,6 +197,11 @@ void main(void) {
 
         vec2 uv0 = vUv - offset;
         vec2 uv1 = vUv + offset;
+
+        if (vSupport.y == EDGE_MODE_MIRROR) {
+            uv0 = mirrored_repeat(uv0);
+            uv1 = mirrored_repeat(uv1);
+        }
 
         uv0 = mix(vUvRect.xy, vUvRect.zw, uv0);
         uv1 = mix(vUvRect.xy, vUvRect.zw, uv1);
