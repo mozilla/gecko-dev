@@ -189,7 +189,51 @@ data class SearchFragmentState(
     val pastedText: String? = null,
     val searchAccessPoint: MetricsUtils.Source,
     val clipboardHasUrl: Boolean = false,
-) : State
+) : State {
+    /**
+     * Static functionality of [SearchFragmentState].
+     */
+    companion object {
+        /**
+         * Default empty [SearchFragmentState].
+         */
+        val EMPTY = SearchFragmentState(
+            query = "",
+            url = "",
+            searchTerms = "",
+            searchEngineSource = SearchEngineSource.None,
+            defaultEngine = null,
+            searchSuggestionsProviders = emptyList(),
+            searchSuggestionsOrientedAtBottom = false,
+            shouldShowSearchSuggestions = false,
+            showSearchSuggestions = false,
+            showSearchSuggestionsHint = false,
+            showSearchShortcuts = false,
+            areShortcutsAvailable = false,
+            showSearchShortcutsSetting = false,
+            showClipboardSuggestions = false,
+            showSearchTermHistory = false,
+            showHistorySuggestionsForCurrentEngine = false,
+            showAllHistorySuggestions = false,
+            showBookmarksSuggestionsForCurrentEngine = false,
+            showAllBookmarkSuggestions = false,
+            showSyncedTabsSuggestionsForCurrentEngine = false,
+            showAllSyncedTabsSuggestions = false,
+            showSessionSuggestionsForCurrentEngine = false,
+            showAllSessionSuggestions = false,
+            showSponsoredSuggestions = false,
+            showNonSponsoredSuggestions = false,
+            showTrendingSearches = false,
+            showRecentSearches = false,
+            showShortcutsSuggestions = false,
+            showQrButton = false,
+            tabId = null,
+            pastedText = null,
+            searchAccessPoint = MetricsUtils.Source.NONE,
+            clipboardHasUrl = false,
+        )
+    }
+}
 
 /**
  * Creates the initial state for the search fragment.

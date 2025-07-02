@@ -110,6 +110,28 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `WHEN a user clicks on the search button THEN update the search state`() {
+        val state = BookmarksState.default.copy(
+            isSearching = false,
+        )
+
+        val result = bookmarksReducer(state, SearchClicked).isSearching
+
+        assertTrue(result)
+    }
+
+    @Test
+    fun `WHEN search ends THEN update the search state`() {
+        val state = BookmarksState.default.copy(
+            isSearching = true,
+        )
+
+        val result = bookmarksReducer(state, SearchDismissed).isSearching
+
+        assertFalse(result)
+    }
+
+    @Test
     fun `GIVEN a bookmark is not selected WHEN long clicking a bookmark THEN it is added to selected items`() {
         val items = listOf(generateBookmark())
         val state = BookmarksState.default.copy(bookmarkItems = items)

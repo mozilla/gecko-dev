@@ -79,6 +79,7 @@ internal data class FolderLongClicked(val item: BookmarkItem.Folder) : Bookmarks
 internal data class BookmarkClicked(val item: BookmarkItem.Bookmark) : BookmarksAction
 internal data class BookmarkLongClicked(val item: BookmarkItem.Bookmark) : BookmarksAction
 internal data object SearchClicked : BookmarksAction
+internal data object SearchDismissed : BookmarksAction
 internal data object AddFolderClicked : BookmarksAction
 internal data object CloseClicked : BookmarksAction
 internal data object BackClicked : BookmarksAction

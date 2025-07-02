@@ -19,6 +19,7 @@ import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
@@ -367,6 +368,24 @@ class BookmarksMiddlewareTest {
         store.dispatch(SearchClicked)
 
         assertTrue(navigated)
+    }
+
+    @Test
+    fun `GIVEN new search UX is used WHEN search button is clicked THEN don't navigate to search`() {
+        var navigated = false
+        navigateToSearch = { navigated = true }
+        val middleware = buildMiddleware(useNewSearchUX = true)
+        val captorMiddleware = CaptureActionsMiddleware<BookmarksState, BookmarksAction>()
+        val store = BookmarksStore(
+            initialState = BookmarksState.default,
+            middleware = listOf(middleware, captorMiddleware),
+        ).also {
+            it.waitUntilIdle()
+        }
+
+        store.dispatch(SearchClicked)
+
+        assertFalse(navigated)
     }
 
     @Test
@@ -1445,13 +1464,16 @@ class BookmarksMiddlewareTest {
         assertEquals(newFolderTitle, store.state.bookmarksEditBookmarkState?.folder?.title)
     }
 
-    private fun buildMiddleware() = BookmarksMiddleware(
+    private fun buildMiddleware(
+        useNewSearchUX: Boolean = false,
+    ) = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,
         addNewTabUseCase = addNewTabUseCase,
         getNavController = { navController },
         exitBookmarks = exitBookmarks,
         wasPreviousAppDestinationHome = wasPreviousAppDestinationHome,
+        useNewSearchUX = useNewSearchUX,
         navigateToSearch = navigateToSearch,
         navigateToSignIntoSync = navigateToSignIntoSync,
         shareBookmarks = shareBookmarks,

@@ -13,15 +13,19 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.layout.size
@@ -45,6 +49,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,6 +59,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CollectionInfo
@@ -66,6 +75,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.toColorInt
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -73,13 +83,23 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.annotation.FlexibleWindowLightDarkPreview
 import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.compose.base.textfield.TextFieldColors
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.browser.awesomebar.AwesomeBar
+import mozilla.components.compose.browser.awesomebar.AwesomeBarDefaults
+import mozilla.components.compose.browser.awesomebar.AwesomeBarOrientation
+import mozilla.components.compose.browser.toolbar.BrowserToolbar
+import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
@@ -95,23 +115,36 @@ import org.mozilla.fenix.compose.snackbar.SnackbarState
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.ADD_BOOKMARK_FOLDER_NAME_TEXT_FIELD
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_TITLE_TEXT_FIELD
 import org.mozilla.fenix.library.bookmarks.BookmarksTestTag.EDIT_BOOKMARK_ITEM_URL_TEXT_FIELD
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
+import org.mozilla.fenix.search.SearchFragmentState
+import org.mozilla.fenix.search.SearchFragmentStore
 import org.mozilla.fenix.theme.FirefoxTheme
 import mozilla.components.ui.icons.R as iconsR
 
 private val IconButtonHeight = 48.dp
+private const val MATERIAL_DESIGN_SCRIM = "#52000000"
 
 /**
  * The UI host for the Bookmarks list screen and related subscreens.
  *
  * @param buildStore A builder function to construct a [BookmarksStore] using the NavController that's local
  * to the nav graph for the Bookmarks view hierarchy.
- * @param appStore The [AppStore] to observe the state of the private browsing mode lock feature.
+ * @param appStore [AppStore] for syncing with other application features.
+ * @param toolbarStore [BrowserToolbarStore] controlling the search toolbar.
+ * @param searchStore [SearchFragmentStore] controlling how search results are displayed.
+ * @param bookmarksSearchEngine [SearchEngine] the default search engine to use when searching bookmarks.
+ * @param useNewSearchUX Whether to use the new integrated search UX or navigate to a separate search screen.
  * @param startDestination the screen on which to initialize [BookmarksScreen] with.
  */
 @Composable
 internal fun BookmarksScreen(
     buildStore: (NavHostController) -> BookmarksStore,
     appStore: AppStore = components.appStore,
+    toolbarStore: BrowserToolbarStore,
+    searchStore: SearchFragmentStore,
+    bookmarksSearchEngine: SearchEngine?,
+    useNewSearchUX: Boolean = false,
     startDestination: String = BookmarksDestinations.LIST,
 ) {
     val navController = rememberNavController()
@@ -139,7 +172,14 @@ internal fun BookmarksScreen(
     ) {
         composable(route = BookmarksDestinations.LIST) {
             BackHandler { store.dispatch(BackClicked) }
-            BookmarksList(store = store)
+            BookmarksList(
+                store = store,
+                appStore = appStore,
+                toolbarStore = toolbarStore,
+                searchStore = searchStore,
+                bookmarksSearchEngine = bookmarksSearchEngine,
+                useNewSearchUX = useNewSearchUX,
+            )
         }
         composable(route = BookmarksDestinations.ADD_FOLDER) {
             BackHandler { store.dispatch(BackClicked) }
@@ -171,14 +211,33 @@ internal object BookmarksDestinations {
 /**
  * The Bookmarks list screen.
  */
+@OptIn(ExperimentalLayoutApi::class) // for WindowInsets.isImeVisible
 @Suppress("LongMethod", "ComplexMethod")
 @Composable
 private fun BookmarksList(
     store: BookmarksStore,
+    appStore: AppStore,
+    toolbarStore: BrowserToolbarStore,
+    searchStore: SearchFragmentStore,
+    bookmarksSearchEngine: SearchEngine?,
+    useNewSearchUX: Boolean = false,
 ) {
     val state by store.observeAsState(store.state) { it }
+    val searchState = searchStore.observeAsComposableState { it }.value
+    val awesomebarBackground = AcornTheme.colors.layer1
+    val awesomebarScrim by remember(searchState.query) {
+        derivedStateOf {
+            when (searchState.query.isNotEmpty()) {
+                true -> awesomebarBackground
+                else -> Color(MATERIAL_DESIGN_SCRIM.toColorInt())
+            }
+        }
+    }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { AcornSnackbarHostState() }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val snackbarMessage = when (state.bookmarksSnackbarState) {
         BookmarksSnackbarState.CantEditDesktopFolders -> stringResource(R.string.bookmark_cannot_edit_root)
@@ -229,6 +288,27 @@ private fun BookmarksList(
         }
     }
 
+    LaunchedEffect(state.isSearching, useNewSearchUX) {
+        if (!useNewSearchUX) {
+            return@LaunchedEffect
+        }
+
+        when (state.isSearching) {
+            true -> {
+                bookmarksSearchEngine?.let {
+                    appStore.dispatch(AppAction.SearchEngineSelected(it, false))
+                }
+                appStore.dispatch(AppAction.UpdateSearchBeingActiveState(true))
+            }
+            false -> {
+                appStore.dispatch(AppAction.UpdateSearchBeingActiveState(false))
+                toolbarStore.dispatch(BrowserEditToolbarAction.SearchQueryUpdated(""))
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            }
+        }
+    }
+
     WarnDialog(store = store)
 
     val dialogState = state.bookmarksDeletionDialogState
@@ -256,7 +336,13 @@ private fun BookmarksList(
             )
         },
         topBar = {
-            BookmarksListTopBar(store = store)
+            Box {
+                BookmarksListTopBar(store = store)
+
+                if (useNewSearchUX && state.isSearching) {
+                    BrowserToolbar(toolbarStore)
+                }
+            }
         },
         containerColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
@@ -403,6 +489,45 @@ private fun BookmarksList(
                         )
                     }
                 }
+            }
+        }
+
+        if (useNewSearchUX && state.isSearching && searchState.searchSuggestionsProviders.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .background(awesomebarScrim)
+                    .fillMaxSize()
+                    .pointerInput(WindowInsets.isImeVisible) {
+                        detectTapGestures(
+                            // Hide the keyboard for any touches in the empty area of the awesomebar
+                            onPress = {
+                                keyboardController?.hide()
+                                store.dispatch(SearchDismissed)
+                            },
+                        )
+                    },
+            ) {
+                AwesomeBar(
+                    text = searchState.query,
+                    providers = searchState.searchSuggestionsProviders,
+                    orientation = AwesomeBarOrientation.TOP,
+                    colors = AwesomeBarDefaults.colors(
+                        background = Color.Transparent,
+                        title = FirefoxTheme.colors.textPrimary,
+                        description = FirefoxTheme.colors.textSecondary,
+                        autocompleteIcon = FirefoxTheme.colors.textSecondary,
+                        groupTitle = FirefoxTheme.colors.textSecondary,
+                    ),
+                    onSuggestionClicked = { suggestion ->
+                        searchStore.dispatch(SuggestionClicked(suggestion))
+                    },
+                    onAutoComplete = { suggestion ->
+                        searchStore.dispatch(SuggestionSelected(suggestion))
+                    },
+                    onVisibilityStateUpdated = {},
+                    onScroll = { keyboardController?.hide() },
+                    profiler = components.core.engine.profiler,
+                )
             }
         }
     }
@@ -1416,6 +1541,7 @@ private fun EditBookmarkScreenPreview() {
             bookmarksEditFolderState = null,
             bookmarksMultiselectMoveState = null,
             isLoading = false,
+            isSearching = false,
         ),
     )
 
@@ -1471,6 +1597,7 @@ private fun EditFolderScreenPreview() {
             ),
             bookmarksMultiselectMoveState = null,
             isLoading = false,
+            isSearching = false,
         ),
     )
 
@@ -1519,6 +1646,7 @@ private fun BookmarksScreenPreview() {
                 bookmarksEditFolderState = null,
                 bookmarksMultiselectMoveState = null,
                 isLoading = false,
+                isSearching = false,
             ),
         )
     }
@@ -1528,6 +1656,9 @@ private fun BookmarksScreenPreview() {
             BookmarksScreen(
                 buildStore = store,
                 appStore = AppStore(),
+                toolbarStore = BrowserToolbarStore(),
+                searchStore = SearchFragmentStore(SearchFragmentState.EMPTY),
+                bookmarksSearchEngine = null,
             )
         }
     }
@@ -1559,6 +1690,7 @@ private fun EmptyBookmarksScreenPreview() {
                 bookmarksEditFolderState = null,
                 bookmarksMultiselectMoveState = null,
                 isLoading = false,
+                isSearching = false,
             ),
         )
     }
@@ -1568,6 +1700,9 @@ private fun EmptyBookmarksScreenPreview() {
             BookmarksScreen(
                 buildStore = store,
                 appStore = AppStore(),
+                toolbarStore = BrowserToolbarStore(),
+                searchStore = SearchFragmentStore(SearchFragmentState.EMPTY),
+                bookmarksSearchEngine = null,
             )
         }
     }
@@ -1607,6 +1742,7 @@ private fun AddFolderPreview() {
             bookmarksEditFolderState = null,
             bookmarksMultiselectMoveState = null,
             isLoading = false,
+            isSearching = false,
         ),
     )
     FirefoxTheme {
@@ -1707,6 +1843,7 @@ private fun SelectFolderPreview() {
             ),
             bookmarksMultiselectMoveState = null,
             isLoading = false,
+            isSearching = false,
         ),
     )
     FirefoxTheme {

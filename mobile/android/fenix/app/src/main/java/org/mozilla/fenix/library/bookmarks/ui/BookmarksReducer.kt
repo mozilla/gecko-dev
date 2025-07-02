@@ -23,6 +23,8 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         bookmarkItems = action.bookmarkItems.sortedWith(state.sortOrder.comparator),
         isLoading = false,
     )
+    is SearchClicked -> state.copy(isSearching = true)
+    is SearchDismissed -> state.copy(isSearching = false)
     is RecursiveSelectionCountLoaded -> state.copy(recursiveSelectedCount = action.count)
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
     is FolderLongClicked -> state.toggleSelectionOf(action.item)
@@ -153,7 +155,6 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     FirstSyncCompleted,
     ViewDisposed,
     SelectFolderAction.ViewAppeared,
-    SearchClicked,
     SignIntoSyncClicked,
     is InitEdit,
     Init,

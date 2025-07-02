@@ -36,6 +36,9 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.uniffi.PlacesApiException
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.Mode
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
@@ -74,6 +77,8 @@ import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.library.bookmarks.ui.LifecycleHolder
+import org.mozilla.fenix.search.SearchFragmentState
+import org.mozilla.fenix.search.SearchFragmentStore
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.lastSavedFolderCache
 
@@ -131,6 +136,7 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                                     getNavController = { lifecycleHolder.composeNavController },
                                     exitBookmarks = { lifecycleHolder.navController.popBackStack() },
                                     wasPreviousAppDestinationHome = { false },
+                                    useNewSearchUX = settings().shouldUseComposableToolbar,
                                     navigateToSearch = { },
                                     shareBookmarks = { bookmarks ->
                                         lifecycleHolder.navController.nav(
@@ -184,6 +190,9 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                         BookmarksScreen(
                             buildStore = buildStore,
                             startDestination = BookmarksDestinations.EDIT_BOOKMARK,
+                            toolbarStore = BrowserToolbarStore(BrowserToolbarState(mode = Mode.EDIT)),
+                            searchStore = SearchFragmentStore(SearchFragmentState.EMPTY),
+                            bookmarksSearchEngine = null,
                         )
                     }
                 }

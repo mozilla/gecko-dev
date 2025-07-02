@@ -35,6 +35,7 @@ private const val WARN_OPEN_ALL_SIZE = 15
  * @param getNavController Fetch the NavController for navigating within the local Composable nav graph.
  * @param exitBookmarks Invoked when back is clicked while the navController's backstack is empty.
  * @param wasPreviousAppDestinationHome Check whether the previous destination before entering bookmarks was home.
+ * @param useNewSearchUX Whether to use the new integrated search UX or navigate to a separate search screen.
  * @param navigateToSearch Navigate to search.
  * @param navigateToSignIntoSync Invoked when handling [SignIntoSyncClicked].
  * @param shareBookmarks Invoked when the share option is selected from a menu. Allows sharing of
@@ -56,6 +57,7 @@ internal class BookmarksMiddleware(
     private val getNavController: () -> NavController,
     private val exitBookmarks: () -> Unit,
     private val wasPreviousAppDestinationHome: () -> Boolean,
+    private val useNewSearchUX: Boolean,
     private val navigateToSearch: () -> Unit,
     private val navigateToSignIntoSync: () -> Unit,
     private val shareBookmarks: (List<BookmarkItem.Bookmark>) -> Unit = {},
@@ -134,7 +136,9 @@ internal class BookmarksMiddleware(
             -> {
                 context.store.tryDispatchReceivedRecursiveCountUpdate()
             }
-            SearchClicked -> navigateToSearch()
+            SearchClicked -> if (!useNewSearchUX) {
+                navigateToSearch()
+            }
             AddFolderClicked -> getNavController().navigate(BookmarksDestinations.ADD_FOLDER)
             CloseClicked -> exitBookmarks()
             SignIntoSyncClicked -> navigateToSignIntoSync()
@@ -331,6 +335,7 @@ internal class BookmarksMiddleware(
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarksLoaded,
+            is SearchDismissed,
             is EditFolderAction.TitleChanged,
             is AddFolderAction.FolderCreated,
             is AddFolderAction.TitleChanged,
