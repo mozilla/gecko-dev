@@ -1265,6 +1265,354 @@ add_task(async function testDeprecation() {
   );
 });
 
+add_task(async function testDeprecatedChoicesOrder() {
+  let deprecatedChoicesJSON = [
+    {
+      namespace: "deprecatedChoices",
+
+      types: [
+        {
+          id: "ObjectTypeDeprecatedChoiceDefinedFirst",
+          choices: [
+            {
+              deprecated:
+                "Should not use an integer for the accountId property (nested deprecated choice defined first).",
+              type: "object",
+              properties: {
+                accountId: {
+                  type: "integer",
+                },
+              },
+            },
+            {
+              type: "object",
+              properties: {
+                accountId: {
+                  type: "string",
+                },
+              },
+            },
+          ],
+        },
+        {
+          id: "ObjectTypeDeprecatedChoiceDefinedLast",
+          choices: [
+            {
+              type: "object",
+              properties: {
+                accountId: {
+                  type: "string",
+                },
+              },
+            },
+            {
+              deprecated:
+                "Should not use an integer for the accountId property (nested deprecated choice defined last).",
+              type: "object",
+              properties: {
+                accountId: {
+                  type: "integer",
+                },
+              },
+            },
+          ],
+        },
+      ],
+
+      functions: [
+        {
+          name: "deprecatedRefChoiceDefinedFirst_NestedDeprecatedRefChoiceDefinedFirst",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  deprecated:
+                    "Should not use an object for the account parameter (deprecated choice defined first).",
+                  $ref: "ObjectTypeDeprecatedChoiceDefinedFirst",
+                },
+                {
+                  type: "string",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: "deprecatedRefChoiceDefinedLast_NestedDeprecatedRefChoiceDefinedFirst",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  type: "string",
+                },
+                {
+                  deprecated:
+                    "Should not use an object for the account parameter (deprecated choice defined last).",
+                  $ref: "ObjectTypeDeprecatedChoiceDefinedFirst",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: "deprecatedRefChoiceDefinedFirst_NestedDeprecatedRefChoiceDefinedLast",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  deprecated:
+                    "Should not use an object for the account parameter (deprecated choice defined first).",
+                  $ref: "ObjectTypeDeprecatedChoiceDefinedLast",
+                },
+                {
+                  type: "string",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: "deprecatedRefChoiceDefinedLast_NestedDeprecatedRefChoiceDefinedLast",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  type: "string",
+                },
+                {
+                  deprecated:
+                    "Should not use an object for the account parameter (deprecated choice defined last).",
+                  $ref: "ObjectTypeDeprecatedChoiceDefinedLast",
+                },
+              ],
+            },
+          ],
+        },
+
+        {
+          name: "deprecatedBooleanChoiceDefinedFirst",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  deprecated:
+                    "Should not use a boolean for the account parameter (deprecated choice defined first).",
+                  type: "boolean",
+                },
+                {
+                  type: "string",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: "deprecatedBooleanChoiceDefinedLast",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  type: "string",
+                },
+                {
+                  deprecated:
+                    "Should not use a boolean for the account parameter (deprecated choice defined last).",
+                  type: "boolean",
+                },
+              ],
+            },
+          ],
+        },
+
+        {
+          name: "deprecatedIntegerChoiceDefinedFirst",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  deprecated:
+                    "Should not use an integer for the account parameter (deprecated choice defined first).",
+                  type: "integer",
+                },
+                {
+                  type: "string",
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: "deprecatedIntegerChoiceDefinedLast",
+          type: "function",
+          parameters: [
+            {
+              name: "account",
+              choices: [
+                {
+                  type: "string",
+                },
+                {
+                  deprecated:
+                    "Should not use an integer for the account parameter (deprecated choice defined last).",
+                  type: "integer",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  let wrapper = getContextWrapper();
+  // This whole test expects deprecation warnings.
+  ExtensionTestUtils.failOnSchemaWarnings(false);
+
+  let url = "data:," + JSON.stringify(deprecatedChoicesJSON);
+  Schemas._rootSchema = null;
+  await Schemas.load(url);
+
+  let root = {};
+  Schemas.inject(root, wrapper);
+
+  function checkDeprecatedChoice({
+    func,
+    nonDeprecatedParam,
+    deprecatedParam,
+    deprecationMessages,
+  }) {
+    root.deprecatedChoices[func](nonDeprecatedParam);
+    wrapper.verify("call", "deprecatedChoices", func, [nonDeprecatedParam]);
+    wrapper.checkErrors([]);
+
+    root.deprecatedChoices[func](deprecatedParam);
+    wrapper.verify("call", "deprecatedChoices", func, [deprecatedParam]);
+    wrapper.checkErrors(deprecationMessages);
+  }
+
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedFirst_NestedDeprecatedRefChoiceDefinedFirst",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: "12" },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined first).`,
+    ],
+  });
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedLast_NestedDeprecatedRefChoiceDefinedFirst",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: "12" },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined last).`,
+    ],
+  });
+
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedFirst_NestedDeprecatedRefChoiceDefinedFirst",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: 12 },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined first).`,
+      `Should not use an integer for the accountId property (nested deprecated choice defined first).`,
+    ],
+  });
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedLast_NestedDeprecatedRefChoiceDefinedFirst",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: 12 },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined last).`,
+      `Should not use an integer for the accountId property (nested deprecated choice defined first).`,
+    ],
+  });
+
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedFirst_NestedDeprecatedRefChoiceDefinedLast",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: "12" },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined first).`,
+    ],
+  });
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedLast_NestedDeprecatedRefChoiceDefinedLast",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: "12" },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined last).`,
+    ],
+  });
+
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedFirst_NestedDeprecatedRefChoiceDefinedLast",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: 12 },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined first).`,
+      `Should not use an integer for the accountId property (nested deprecated choice defined last).`,
+    ],
+  });
+  checkDeprecatedChoice({
+    func: "deprecatedRefChoiceDefinedLast_NestedDeprecatedRefChoiceDefinedLast",
+    nonDeprecatedParam: "12",
+    deprecatedParam: { accountId: 12 },
+    deprecationMessages: [
+      `Should not use an object for the account parameter (deprecated choice defined last).`,
+      `Should not use an integer for the accountId property (nested deprecated choice defined last).`,
+    ],
+  });
+
+  checkDeprecatedChoice({
+    func: "deprecatedBooleanChoiceDefinedFirst",
+    nonDeprecatedParam: "12",
+    deprecatedParam: true,
+    deprecationMessages: [
+      "Should not use a boolean for the account parameter (deprecated choice defined first).",
+    ],
+  });
+  checkDeprecatedChoice({
+    func: "deprecatedBooleanChoiceDefinedLast",
+    nonDeprecatedParam: "12",
+    deprecatedParam: true,
+    deprecationMessages: [
+      "Should not use a boolean for the account parameter (deprecated choice defined last).",
+    ],
+  });
+
+  checkDeprecatedChoice({
+    func: "deprecatedIntegerChoiceDefinedFirst",
+    nonDeprecatedParam: "12",
+    deprecatedParam: 12,
+    deprecationMessages: [
+      "Should not use an integer for the account parameter (deprecated choice defined first).",
+    ],
+  });
+  checkDeprecatedChoice({
+    func: "deprecatedIntegerChoiceDefinedLast",
+    nonDeprecatedParam: "12",
+    deprecatedParam: 12,
+    deprecationMessages: [
+      "Should not use an integer for the account parameter (deprecated choice defined last).",
+    ],
+  });
+
+  ExtensionTestUtils.failOnSchemaWarnings(false);
+});
+
 let choicesJson = [
   {
     namespace: "choices",

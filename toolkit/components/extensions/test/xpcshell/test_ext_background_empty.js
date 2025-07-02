@@ -41,8 +41,8 @@ add_task(async function test_empty_background_object() {
 
   const requireAtLeastOneOfWarning =
     WebExtensionPolicy.backgroundServiceWorkerEnabled
-      ? 'Reading manifest: Warning processing background: Error processing background: background requires at least one of "service_worker", "scripts" or "page".'
-      : 'Reading manifest: Warning processing background: Error processing background: background requires at least one of "scripts" or "page".';
+      ? 'Reading manifest: Warning processing background: background requires at least one of "service_worker", "scripts" or "page".'
+      : 'Reading manifest: Warning processing background: background requires at least one of "scripts" or "page".';
 
   await testExtensionWithBackground({
     background: {},
