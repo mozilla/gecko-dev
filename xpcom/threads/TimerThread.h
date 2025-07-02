@@ -147,6 +147,16 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
     const TimeStamp& Timeout() const { return mTimeout; }
     const TimeDuration& Delay() const { return mDelay; }
 
+#ifdef DEBUG
+    // While the timer is stored in the thread's list, the timeout is
+    // immutable, so it should be OK to read without holding the mutex.
+    // We only allow this in debug builds.
+    bool IsTimerInThreadAndUnchanged() MOZ_NO_THREAD_SAFETY_ANALYSIS {
+      return (mTimerImpl && mTimerImpl->IsInTimerThread() &&
+              mTimerImpl->mTimeout == mTimeout);
+    }
+#endif
+
    private:
     // These values are simply cached from the timer. Keeping them here is good
     // for cache usage and allows us to avoid worrying about locking conflicts

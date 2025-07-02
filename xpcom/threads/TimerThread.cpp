@@ -771,6 +771,7 @@ uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
   // timer can result in timers getting added to/removed from the list.
   while (!mTimers.IsEmpty()) {
     Entry& frontEntry = mTimers[0];
+    MOZ_ASSERT(frontEntry.IsTimerInThreadAndUnchanged());
 
     if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
       // This timer is not ready to execute yet, and we need to preserve the
@@ -1134,8 +1135,7 @@ bool TimerThread::AddTimerInternal(nsTimerImpl& aTimer) {
 
   // TODO: Add is_sorted check after changing our book-keeping.
 
-  const TimeStamp& timeout = aTimer.mTimeout;
-  const size_t insertionIndex = ComputeTimerInsertionIndex(timeout);
+  const size_t insertionIndex = ComputeTimerInsertionIndex(aTimer.mTimeout);
 
   if (insertionIndex != 0 && !mTimers[insertionIndex - 1].Value()) {
     // Very common scenario in practice: The timer just before the insertion
