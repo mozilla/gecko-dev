@@ -193,9 +193,7 @@ export class UnitConverterSimple {
 
     const { group, inputUnit, outputUnit } = target;
     const inputNumber = Number(regexResult[1]);
-    const outputNumber = parseFloat(
-      (inputNumber / group[inputUnit]) * group[outputUnit]
-    );
+    const outputNumber = (inputNumber / group[inputUnit]) * group[outputUnit];
 
     let formattedUnit;
     try {
