@@ -68,4 +68,10 @@ interface nsIUrlClassifierExceptionListService : nsISupports
    *  This API is for testing only.
    */
   void clear();
+
+  /**
+   * Manually trigger the category prefs migration.
+   * This API is for testing only.
+   */
+  void testRunCategoryPrefsMigration();
 };
