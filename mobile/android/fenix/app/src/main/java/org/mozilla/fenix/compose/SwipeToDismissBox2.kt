@@ -241,8 +241,8 @@ fun SwipeToDismissBox2(
         }
     }
 
-    LaunchedEffect(state.anchoredDraggableState.currentValue) {
-        val value = state.anchoredDraggableState.currentValue
+    LaunchedEffect(state.anchoredDraggableState.settledValue) {
+        val value = state.anchoredDraggableState.settledValue
         when (value) {
             SwipeToDismissDirections.StartToEnd, SwipeToDismissDirections.EndToStart -> {
                 onItemDismiss()
