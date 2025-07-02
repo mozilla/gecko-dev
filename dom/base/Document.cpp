@@ -200,7 +200,6 @@
 #include "mozilla/dom/HTMLObjectElement.h"
 #include "mozilla/dom/HTMLSharedElement.h"
 #include "mozilla/dom/HTMLTextAreaElement.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/InspectorUtils.h"
 #include "mozilla/dom/InteractiveWidget.h"
 #include "mozilla/dom/Link.h"
@@ -1442,6 +1441,8 @@ Document::Document(const char* aContentType)
       mValidMinScale(false),
       mValidMaxScale(false),
       mWidthStrEmpty(false),
+      mLockingImages(false),
+      mAnimatingImages(true),
       mParserAborted(false),
       mReportedDocumentUseCounters(false),
       mHasReportedShadowDOMUsage(false),
@@ -2510,6 +2511,9 @@ Document::~Document() {
   if (mPermissionDelegateHandler) {
     mPermissionDelegateHandler->DropDocumentReference();
   }
+
+  SetLockingImages(false);
+  SetImageAnimationState(false);
 
   mHeaderData = nullptr;
 
@@ -7532,7 +7536,9 @@ void Document::DeletePresShell() {
   // When our shell goes away, request that all our images be immediately
   // discarded, so we don't carry around decoded image data for a document we
   // no longer intend to paint.
-  ImageTracker()->RequestDiscardAll();
+  for (imgIRequest* image : mTrackedImages.Keys()) {
+    image->RequestDiscard();
+  }
 
   // Now that we no longer have a shell, we need to forget about any FontFace
   // objects for @font-face rules that came from the style set. There's no need
@@ -12375,7 +12381,7 @@ void Document::OnPageShow(bool aPersisted, EventTarget* aDispatchStartTarget,
   // See Document
   if (!inFrameLoaderSwap) {
     if (aPersisted) {
-      ImageTracker()->SetAnimatingState(true);
+      SetImageAnimationState(true);
     }
 
     // Set mIsShowing before firing events, in case those event handlers
@@ -12454,7 +12460,7 @@ void Document::OnPageHide(bool aPersisted, EventTarget* aDispatchStartTarget,
     if (aPersisted) {
       // We do not stop the animations (bug 1024343) when the page is refreshing
       // while being dragged out.
-      ImageTracker()->SetAnimatingState(false);
+      SetImageAnimationState(false);
     }
 
     // Set mIsShowing before firing events, in case those event handlers
@@ -14300,11 +14306,123 @@ void Document::WarnOnceAbout(
                                   kDocumentWarnings[aWarning], aParams);
 }
 
-mozilla::dom::ImageTracker* Document::ImageTracker() {
-  if (!mImageTracker) {
-    mImageTracker = new mozilla::dom::ImageTracker;
+void Document::TrackImage(imgIRequest* aImage) {
+  MOZ_ASSERT(aImage);
+  mTrackedImages.WithEntryHandle(aImage, [&](auto&& entry) {
+    if (entry) {
+      // The image is already in the hashtable.  Increment its count.
+      uint32_t oldCount = entry.Data();
+      MOZ_ASSERT(oldCount > 0, "Entry in the image tracker with count 0!");
+      entry.Data() = oldCount + 1;
+    } else {
+      // A new entry was inserted - set the count to 1.
+      entry.Insert(1);
+
+      // If we're locking images, lock this image too.
+      if (mLockingImages) {
+        aImage->LockImage();
+      }
+
+      // If we're animating images, request that this image be animated too.
+      if (mAnimatingImages) {
+        aImage->IncrementAnimationConsumers();
+      }
+    }
+  });
+}
+
+void Document::UntrackImage(imgIRequest* aImage,
+                            RequestDiscard aRequestDiscard) {
+  MOZ_ASSERT(aImage);
+
+  // Get the old count. It should exist and be > 0.
+  auto entry = mTrackedImages.Lookup(aImage);
+  if (!entry) {
+    MOZ_ASSERT_UNREACHABLE("Removing image that wasn't in the tracker!");
+    return;
   }
-  return mImageTracker;
+  MOZ_ASSERT(entry.Data() > 0, "Entry in the image tracker with count 0!");
+  // If the count becomes zero, remove it from the tracker.
+  if (--entry.Data() == 0) {
+    entry.Remove();
+  } else {
+    return;
+  }
+
+  // Now that we're no longer tracking this image, unlock it if we'd
+  // previously locked it.
+  if (mLockingImages) {
+    aImage->UnlockImage();
+  }
+
+  // If we're animating images, remove our request to animate this one.
+  if (mAnimatingImages) {
+    aImage->DecrementAnimationConsumers();
+  }
+
+  if (aRequestDiscard == RequestDiscard::Yes) {
+    // Do this even if !mLocking, because even if we didn't just unlock
+    // this image, it might still be a candidate for discarding.
+    aImage->RequestDiscard();
+  }
+}
+
+void Document::PropagateMediaFeatureChangeToTrackedImages(
+    const MediaFeatureChange& aChange) {
+  // Inform every content image used in the document that media feature values
+  // have changed. Pull the images out into a set and iterate over them, in case
+  // the image notifications do something that ends up modifying the table.
+  nsTHashSet<nsRefPtrHashKey<imgIContainer>> images;
+  for (imgIRequest* req : mTrackedImages.Keys()) {
+    nsCOMPtr<imgIContainer> image;
+    req->GetImage(getter_AddRefs(image));
+    if (!image) {
+      continue;
+    }
+    image = image->Unwrap();
+    images.Insert(image);
+  }
+  for (imgIContainer* image : images) {
+    image->MediaFeatureValuesChangedAllDocuments(aChange);
+  }
+}
+
+void Document::SetLockingImages(bool aLocking) {
+  // If there's no change, there's nothing to do.
+  if (mLockingImages == aLocking) {
+    return;
+  }
+
+  // Otherwise, iterate over our images and perform the appropriate action.
+  for (imgIRequest* image : mTrackedImages.Keys()) {
+    if (aLocking) {
+      image->LockImage();
+    } else {
+      image->UnlockImage();
+    }
+  }
+
+  // Update state.
+  mLockingImages = aLocking;
+}
+
+void Document::SetImageAnimationState(bool aAnimating) {
+  // If there's no change, there's nothing to do.
+  if (mAnimatingImages == aAnimating) {
+    return;
+  }
+
+  // Otherwise, iterate over our images and perform the appropriate action.
+  for (imgIRequest* image : mTrackedImages.Keys()) {
+    if (aAnimating) {
+      image->IncrementAnimationConsumers();
+    } else {
+      image->DecrementAnimationConsumers();
+    }
+  }
+
+  // Update state.
+  mAnimatingImages = aAnimating;
 }
 
 void Document::ScheduleSVGUseElementShadowTreeUpdate(

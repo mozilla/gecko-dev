@@ -1910,7 +1910,7 @@ already_AddRefed<imgIContainer> nsTreeBodyFrame::GetImage(
 
   // NOTE(heycam): If it's an SVG image, and we need to want the image to
   // able to respond to media query changes, it needs to be added to the
-  // document's ImageTracker.  For now, assume we don't need this.
+  // document's tracked image set.  For now, assume we don't need this.
   // We don't want discarding/decode-on-draw for xul images
   imageRequest->StartDecoding(imgIContainer::FLAG_ASYNC_NOTIFY);
   imageRequest->LockImage();

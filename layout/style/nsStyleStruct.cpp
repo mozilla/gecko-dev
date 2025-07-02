@@ -33,7 +33,6 @@
 #include "mozilla/dom/AnimationEffectBinding.h"    // for PlaybackDirection
 #include "mozilla/dom/BaseKeyframeTypesBinding.h"  // for CompositeOperation
 #include "mozilla/dom/DocGroup.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/GeckoBindings.h"
@@ -133,9 +132,8 @@ void StyleComputedUrl::ResolveImage(Document& aDocument,
 }
 
 /**
- * Runnable to release the image request's mRequestProxy
- * and mImageTracker on the main thread, and to perform
- * any necessary unlocking and untracking of the image.
+ * Runnable to release the image request's mRequestProxy on the main thread, and
+ * to perform any necessary unlocking and untracking of the image.
  */
 class StyleImageRequestCleanupTask final : public mozilla::Runnable {
  public:

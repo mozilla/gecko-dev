@@ -52,7 +52,6 @@
 #include "mozilla/dom/PContent.h"  // For TextRecognitionResult
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ImageTextBinding.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/PageLoadEventUtils.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ResponsiveImageSelector.h"
@@ -1831,12 +1830,12 @@ void nsImageLoadingContent::TrackImage(imgIRequest* aImage,
   if (aImage == mCurrentRequest &&
       !(mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
     mCurrentRequestFlags |= REQUEST_IS_TRACKED;
-    doc->ImageTracker()->Add(mCurrentRequest);
+    doc->TrackImage(mCurrentRequest);
   }
   if (aImage == mPendingRequest &&
       !(mPendingRequestFlags & REQUEST_IS_TRACKED)) {
     mPendingRequestFlags |= REQUEST_IS_TRACKED;
-    doc->ImageTracker()->Add(mPendingRequest);
+    doc->TrackImage(mPendingRequest);
   }
 }
 
@@ -1856,11 +1855,10 @@ void nsImageLoadingContent::UntrackImage(
   if (aImage == mCurrentRequest) {
     if (doc && (mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
       mCurrentRequestFlags &= ~REQUEST_IS_TRACKED;
-      doc->ImageTracker()->Remove(
-          mCurrentRequest,
-          aNonvisibleAction == Some(OnNonvisible::DiscardImages)
-              ? ImageTracker::REQUEST_DISCARD
-              : 0);
+      doc->UntrackImage(mCurrentRequest,
+                        aNonvisibleAction == Some(OnNonvisible::DiscardImages)
+                            ? Document::RequestDiscard::Yes
+                            : Document::RequestDiscard::No);
     } else if (aNonvisibleAction == Some(OnNonvisible::DiscardImages)) {
       // If we're not in the document we may still need to be discarded.
       aImage->RequestDiscard();
@@ -1869,11 +1867,10 @@ void nsImageLoadingContent::UntrackImage(
   if (aImage == mPendingRequest) {
     if (doc && (mPendingRequestFlags & REQUEST_IS_TRACKED)) {
       mPendingRequestFlags &= ~REQUEST_IS_TRACKED;
-      doc->ImageTracker()->Remove(
-          mPendingRequest,
-          aNonvisibleAction == Some(OnNonvisible::DiscardImages)
-              ? ImageTracker::REQUEST_DISCARD
-              : 0);
+      doc->UntrackImage(mPendingRequest,
+                        aNonvisibleAction == Some(OnNonvisible::DiscardImages)
+                            ? Document::RequestDiscard::Yes
+                            : Document::RequestDiscard::No);
     } else if (aNonvisibleAction == Some(OnNonvisible::DiscardImages)) {
       // If we're not in the document we may still need to be discarded.
       aImage->RequestDiscard();

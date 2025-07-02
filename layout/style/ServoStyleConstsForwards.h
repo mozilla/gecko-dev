@@ -130,7 +130,6 @@ enum class CallerType : uint32_t;
 
 class Element;
 class Document;
-class ImageTracker;
 
 }  // namespace dom
 
@@ -188,7 +187,6 @@ struct StyleBox {
 // Work-around weird cbindgen renaming / avoiding moving stuff outside its
 // namespace.
 
-using StyleImageTracker = dom::ImageTracker;
 using StyleLoader = css::Loader;
 using StyleLoaderReusableStyleSheets = css::LoaderReusableStyleSheets;
 using StyleCallerType = dom::CallerType;

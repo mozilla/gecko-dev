@@ -258,7 +258,6 @@ class HTMLDialogElement;
 class HTMLSharedElement;
 class HTMLVideoElement;
 class HTMLImageElement;
-class ImageTracker;
 class IntegrityPolicy;
 enum class InteractiveWidget : uint8_t;
 struct LifecycleCallbackArgs;
@@ -3169,7 +3168,20 @@ class Document : public nsINode,
   // This returns true when the document tree is being teared down.
   bool InUnlinkOrDeletion() { return mInUnlinkOrDeletion; }
 
-  dom::ImageTracker* ImageTracker();
+  void TrackImage(imgIRequest*);
+  enum class RequestDiscard : bool { No = false, Yes };
+  void UntrackImage(imgIRequest*, RequestDiscard = RequestDiscard::No);
+
+  // Makes the images on this document locked/unlocked. By default, the locking
+  // state is unlocked/false.
+  bool GetLockingImages() const { return mLockingImages; }
+  void SetLockingImages(bool);
+
+  // Makes the images on this document capable of having their animation
+  // active or suspended. An Image will animate as long as at least one of its
+  // owning Documents needs it to animate; otherwise it can suspend.
+  void SetImageAnimationState(bool);
+  void PropagateMediaFeatureChangeToTrackedImages(const MediaFeatureChange&);
 
   // Adds an element to mResponsiveContent when the element is
   // added to the tree.
@@ -4697,7 +4709,7 @@ class Document : public nsINode,
   RefPtr<AttributeStyles> mAttributeStyles;
 
   // Tracking for images in the document.
-  RefPtr<dom::ImageTracker> mImageTracker;
+  nsTHashMap<nsPtrHashKey<imgIRequest>, uint32_t> mTrackedImages;
 
   // A hashtable of ShadowRoots belonging to the composed doc.
   //
@@ -4973,6 +4985,9 @@ class Document : public nsINode,
   bool mValidMinScale : 1;
   bool mValidMaxScale : 1;
   bool mWidthStrEmpty : 1;
+
+  bool mLockingImages : 1;
+  bool mAnimatingImages : 1;
 
   // Parser aborted. True if the parser of this document was forcibly
   // terminated instead of letting it finish at its own pace.

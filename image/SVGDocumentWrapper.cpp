@@ -12,7 +12,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentTimeline.h"
 #include "mozilla/dom/Element.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/SVGDocument.h"
 #include "mozilla/dom/SVGSVGElement.h"
 #include "nsICategoryManager.h"
@@ -138,7 +137,7 @@ void SVGDocumentWrapper::StartAnimation() {
     if (controller) {
       controller->Resume(SMILTimeContainer::PAUSE_IMAGE);
     }
-    doc->ImageTracker()->SetAnimatingState(true);
+    doc->SetImageAnimationState(true);
   }
 }
 
@@ -149,13 +148,12 @@ void SVGDocumentWrapper::StopAnimation() {
     return;
   }
 
-  Document* doc = mViewer->GetDocument();
-  if (doc) {
+  if (Document* doc = mViewer->GetDocument()) {
     SMILAnimationController* controller = doc->GetAnimationController();
     if (controller) {
       controller->Pause(SMILTimeContainer::PAUSE_IMAGE);
     }
-    doc->ImageTracker()->SetAnimatingState(false);
+    doc->SetImageAnimationState(false);
   }
 }
 

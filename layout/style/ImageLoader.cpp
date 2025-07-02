@@ -13,7 +13,6 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/LargestContentfulPaint.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "nsContentUtils.h"
 #include "nsIReflowCallback.h"
 #include "nsLayoutUtils.h"
@@ -184,7 +183,7 @@ void ImageLoader::AssociateRequestToFrame(imgIRequest* aRequest,
           .LookupOrInsertWith(
               aRequest,
               [&] {
-                mDocument->ImageTracker()->Add(aRequest);
+                mDocument->TrackImage(aRequest);
 
                 if (auto entry = sImages->Lookup(aRequest)) {
                   DebugOnly<bool> inserted =
@@ -307,7 +306,7 @@ void ImageLoader::RemoveRequestToFrameMapping(imgIRequest* aRequest,
 
 void ImageLoader::DeregisterImageRequest(imgIRequest* aRequest,
                                          nsPresContext* aPresContext) {
-  mDocument->ImageTracker()->Remove(aRequest);
+  mDocument->UntrackImage(aRequest);
 
   if (auto entry = sImages->Lookup(aRequest)) {
     entry.Data()->mImageLoaders.EnsureRemoved(this);

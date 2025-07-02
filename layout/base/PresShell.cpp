@@ -46,7 +46,6 @@
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/FragmentDirective.h"
 #include "mozilla/dom/HTMLAreaElement.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/dom/LargestContentfulPaint.h"
 #include "mozilla/dom/MouseEventBinding.h"
 #include "mozilla/dom/Performance.h"
@@ -12255,12 +12254,10 @@ bool PresShell::UsesMobileViewportSizing() const {
 void PresShell::UpdateImageLockingState() {
   // We're locked if we're both thawed and active.
   const bool locked = !mFrozen && mIsActive;
-  auto* tracker = mDocument->ImageTracker();
-  if (locked == tracker->GetLockingState()) {
+  if (locked == mDocument->GetLockingImages()) {
     return;
   }
-
-  tracker->SetLockingState(locked);
+  mDocument->SetLockingImages(locked);
   if (locked) {
     // Request decodes for visible image frames; we want to start decoding as
     // quickly as possible when we get foregrounded to minimize flashing.

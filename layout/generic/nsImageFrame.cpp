@@ -19,7 +19,6 @@
 #include "mozilla/Encoding.h"
 #include "mozilla/HTMLEditor.h"
 #include "mozilla/dom/FetchPriority.h"
-#include "mozilla/dom/ImageTracker.h"
 #include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Helpers.h"
 #include "mozilla/gfx/PathHelpers.h"
@@ -565,7 +564,7 @@ void nsImageFrame::DeinitOwnedRequest() {
   if (!mOwnedRequest) {
     return;
   }
-  PresContext()->Document()->ImageTracker()->Remove(mOwnedRequest);
+  PresContext()->Document()->UntrackImage(mOwnedRequest);
   nsLayoutUtils::DeregisterImageRequest(PresContext(), mOwnedRequest,
                                         &mOwnedRequestRegistered);
   mOwnedRequest->CancelAndForgetObserver(NS_BINDING_ABORTED);
@@ -798,7 +797,7 @@ void nsImageFrame::SetupOwnedRequest() {
 
   // We're not using AssociateRequestToFrame for the content property, so we
   // need to add it to the image tracker manually.
-  PresContext()->Document()->ImageTracker()->Add(mOwnedRequest);
+  PresContext()->Document()->TrackImage(mOwnedRequest);
 
   uint32_t status = 0;
   nsresult rv = mOwnedRequest->GetImageStatus(&status);
