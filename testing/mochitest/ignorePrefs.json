@@ -24,6 +24,7 @@
   "media.gmp-manager.lastCheck",
   "media.gmp-manager.lastEmptyCheck",
   "places.frecency.accelerateRecalculation",
+  "privacy.trackingprotection.allow_list.hasMigratedCategoryPrefs",
   "security.webauthn.show_ms_settings_link",
   "toolkit.startup.last_success",
   "toolkit.telemetry.cachedClientID",
