@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
@@ -35,7 +36,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon
@@ -61,8 +62,13 @@ import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlin.isContentUrl
+import mozilla.components.support.ktx.kotlin.isUrl
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.support.utils.ClipboardHandler
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.AddressToolbar
+import org.mozilla.fenix.GleanMetrics.Events
+import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator.Companion.getToolbarNavOptions
@@ -74,16 +80,19 @@ import org.mozilla.fenix.browser.store.BrowserScreenAction
 import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.NimbusComponents
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDismissed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
 import org.mozilla.fenix.components.menu.MenuAccessPoint
+import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackLongClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
-import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateSessionLongClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardLongClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.RefreshClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.StopRefreshClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
@@ -93,6 +102,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterLongClicked
 import org.mozilla.fenix.components.toolbar.URLDomainHighlight.getRegistrableDomainOrHostIndexRange
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.isLargeWindow
@@ -109,8 +119,9 @@ import mozilla.components.ui.icons.R as iconsR
 internal sealed class DisplayActions : BrowserToolbarEvent {
     data object MenuClicked : DisplayActions()
     data object NavigateBackClicked : DisplayActions()
+    data object NavigateBackLongClicked : DisplayActions()
     data object NavigateForwardClicked : DisplayActions()
-    data object NavigateSessionLongClicked : DisplayActions()
+    data object NavigateForwardLongClicked : DisplayActions()
     data class RefreshClicked(
         val bypassCache: Boolean,
     ) : DisplayActions()
@@ -125,6 +136,7 @@ internal sealed class StartPageActions : BrowserToolbarEvent {
 @VisibleForTesting
 internal sealed class TabCounterInteractions : BrowserToolbarEvent {
     data object TabCounterClicked : TabCounterInteractions()
+    data object TabCounterLongClicked : TabCounterInteractions()
     data object AddNewTab : TabCounterInteractions()
     data object AddNewPrivateTab : TabCounterInteractions()
     data object CloseCurrentTab : TabCounterInteractions()
@@ -155,6 +167,7 @@ internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
  * @param trackingProtectionUseCases [TrackingProtectionUseCases] allowing to query
  * tracking protection data of the current tab.
  * @param useCases [UseCases] helping this integrate with other features of the applications.
+ * @param nimbusComponents [NimbusComponents] used for accessing Nimbus events to use in telemetry.
  * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
  * @param publicSuffixList [PublicSuffixList] used to obtain the base domain of the current site.
  * @param settings [Settings] for accessing user preferences.
@@ -169,6 +182,7 @@ class BrowserToolbarMiddleware(
     private val cookieBannersStorage: CookieBannersStorage,
     private val trackingProtectionUseCases: TrackingProtectionUseCases,
     private val useCases: UseCases,
+    private val nimbusComponents: NimbusComponents,
     private val clipboard: ClipboardHandler,
     private val publicSuffixList: PublicSuffixList,
     private val settings: Settings,
@@ -233,6 +247,7 @@ class BrowserToolbarMiddleware(
             }
 
             is TabCounterClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("tabs_tray"))
                 runWithinEnvironment {
                     thumbnailsFeature?.requestScreenshot()
 
@@ -247,6 +262,9 @@ class BrowserToolbarMiddleware(
                     )
                 }
             }
+            is TabCounterLongClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("tabs_tray_long_press"))
+            }
             is AddNewTab -> {
                 openNewTab(Normal)
             }
@@ -255,14 +273,10 @@ class BrowserToolbarMiddleware(
             }
             is CloseCurrentTab -> {
                 browserStore.state.selectedTab?.let { selectedTab ->
-                    val isLastTab =
-                        browserStore.state.getNormalOrPrivateTabs(selectedTab.content.private).size == 1
+                    val isLastTab = browserStore.state.getNormalOrPrivateTabs(selectedTab.content.private).size == 1
 
                     if (!isLastTab) {
-                        useCases.tabsUseCases.removeTab(
-                            selectedTab.id,
-                            selectParentIfExists = true,
-                        )
+                        useCases.tabsUseCases.removeTab(selectedTab.id, selectParentIfExists = true)
                         appStore.dispatch(CurrentTabClosed(selectedTab.content.private))
                         return@let
                     }
@@ -301,6 +315,11 @@ class BrowserToolbarMiddleware(
             }
 
             is OriginClicked -> {
+                when (environment?.navController?.currentDestination?.id) {
+                    R.id.browserFragment -> Events.searchBarTapped.record(Events.SearchBarTappedExtra("BROWSER"))
+                    R.id.homeFragment -> Events.searchBarTapped.record(Events.SearchBarTappedExtra("HOME"))
+                }
+
                 val selectedTab = browserStore.state.selectedTab ?: return
                 if (selectedTab.content.searchTerms.isBlank()) {
                     runWithinEnvironment {
@@ -314,6 +333,8 @@ class BrowserToolbarMiddleware(
                 }
             }
             is CopyToClipboardClicked -> {
+                Events.copyUrlTapped.record(NoExtras())
+
                 val selectedTab = browserStore.state.selectedTab
                 val url = selectedTab?.readerState?.activeUrl ?: selectedTab?.content?.url
                 clipboard.text = url
@@ -338,6 +359,19 @@ class BrowserToolbarMiddleware(
             }
             is LoadFromClipboardClicked -> {
                 clipboard.extractURL()?.let {
+                    val searchEngine = browserStore.state.search.selectedOrDefaultSearchEngine
+                    if (it.isUrl() || searchEngine == null) {
+                        Events.enteredUrl.record(Events.EnteredUrlExtra(autocomplete = false))
+                    } else {
+                        val searchAccessPoint = MetricsUtils.Source.ACTION
+                        MetricsUtils.recordSearchMetrics(
+                            engine = searchEngine,
+                            isDefault = true,
+                            searchAccessPoint = searchAccessPoint,
+                            nimbusEventStore = nimbusComponents.events,
+                        )
+                    }
+
                     useCases.fenixBrowserUseCases.loadUrlOrSearch(
                         searchTermOrURL = it,
                         newTab = false,
@@ -347,34 +381,43 @@ class BrowserToolbarMiddleware(
                     Logger("BrowserOriginContextMenu").error("Clipboard contains URL but unable to read text")
                 }
             }
-            is NavigateSessionLongClicked -> runWithinEnvironment {
-                navController.nav(
-                    R.id.browserFragment,
-                    BrowserFragmentDirections.actionGlobalTabHistoryDialogFragment(
-                        activeSessionId = null,
-                    ),
-                )
-            }
             is NavigateBackClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("back"))
                 browserStore.state.selectedTab?.let {
                     browserStore.dispatch(EngineAction.GoBackAction(it.id))
                 }
             }
+            is NavigateBackLongClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("back_long_press"))
+                showTabHistory()
+            }
             is NavigateForwardClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("forward"))
                 browserStore.state.selectedTab?.let {
                     browserStore.dispatch(EngineAction.GoForwardAction(it.id))
                 }
             }
+            is NavigateForwardLongClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("forward_long_press"))
+                showTabHistory()
+            }
 
             is ReaderModeClicked -> runWithinEnvironment {
                 when (action.isActive) {
-                    true -> readerModeController.hideReaderView()
-                    false -> readerModeController.showReaderView()
+                    true -> {
+                        ReaderMode.closed.record(NoExtras())
+                        readerModeController.hideReaderView()
+                    }
+                    false -> {
+                        ReaderMode.opened.record(NoExtras())
+                        readerModeController.showReaderView()
+                    }
                 }
             }
 
             is TranslateClicked -> {
                 Translations.action.record(Translations.ActionExtra("main_flow_toolbar"))
+
                 appStore.dispatch(SnackbarDismissed)
                 runWithinEnvironment {
                     navController.navigateSafe(
@@ -385,6 +428,8 @@ class BrowserToolbarMiddleware(
             }
 
             is RefreshClicked -> {
+                AddressToolbar.reloadTapped.record((NoExtras()))
+
                 val tabId = browserStore.state.selectedTabId
                 if (action.bypassCache) {
                     sessionUseCases.reload.invoke(
@@ -404,6 +449,15 @@ class BrowserToolbarMiddleware(
 
             else -> next(action)
         }
+    }
+
+    private fun showTabHistory() = runWithinEnvironment {
+        navController.nav(
+            R.id.browserFragment,
+            BrowserFragmentDirections.actionGlobalTabHistoryDialogFragment(
+                activeSessionId = null,
+            ),
+        )
     }
 
     private fun onSiteInfoClicked() {
@@ -543,7 +597,7 @@ class BrowserToolbarMiddleware(
         }
     }
 
-    private fun buildTabCounterMenu() = BrowserToolbarMenu {
+    private fun buildTabCounterMenu() = CombinedEventAndMenu(TabCounterLongClicked) {
         listOf(
             BrowserToolbarMenuButton(
                 icon = DrawableResIcon(iconsR.drawable.mozac_ic_plus_24),
@@ -776,7 +830,7 @@ class BrowserToolbarMiddleware(
                 ActionButton.State.DISABLED
             },
             onClick = NavigateBackClicked,
-            onLongClick = NavigateSessionLongClicked,
+            onLongClick = NavigateBackLongClicked,
         )
 
         ToolbarAction.Forward -> ActionButtonRes(
@@ -788,7 +842,7 @@ class BrowserToolbarMiddleware(
                 ActionButton.State.DISABLED
             },
             onClick = NavigateForwardClicked,
-            onLongClick = NavigateSessionLongClicked,
+            onLongClick = NavigateForwardLongClicked,
         )
 
         ToolbarAction.RefreshOrStop -> {

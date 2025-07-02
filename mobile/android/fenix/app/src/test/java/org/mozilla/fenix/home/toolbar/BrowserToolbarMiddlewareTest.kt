@@ -61,6 +61,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
@@ -80,12 +81,14 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.HomeToolbarAction
 import org.mozilla.fenix.home.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.home.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewPrivateTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterLongClicked
 import org.mozilla.fenix.search.fixtures.assertSearchSelectorEquals
 import org.mozilla.fenix.search.fixtures.buildExpectedSearchSelector
 import org.mozilla.fenix.tabstray.Page
@@ -96,6 +99,9 @@ import mozilla.components.ui.icons.R as iconsR
 class BrowserToolbarMiddlewareTest {
     @get:Rule
     val coroutinesTestRule = MainCoroutineRule()
+
+    @get:Rule
+    val gleanRule = FenixGleanTestRule(testContext)
 
     private val appStore = AppStore()
     private val browserStore = BrowserStore()
@@ -344,6 +350,7 @@ class BrowserToolbarMiddlewareTest {
                 NavGraphDirections.actionGlobalTabsTrayFragment(page = Page.NormalTabs),
             )
         }
+        assertEquals("tabs_tray", Events.browserToolbarAction.testGetValue()?.last()?.extra?.get("item"))
     }
 
     @Test
@@ -366,6 +373,18 @@ class BrowserToolbarMiddlewareTest {
                 NavGraphDirections.actionGlobalTabsTrayFragment(page = Page.PrivateTabs),
             )
         }
+        assertEquals("tabs_tray", Events.browserToolbarAction.testGetValue()?.last()?.extra?.get("item"))
+    }
+
+    @Test
+    fun `WHEN long clicking the tab counter button THEN record telemetry`() {
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk(), mockk())
+        val toolbarStore = buildStore(middleware)
+        val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
+
+        toolbarStore.dispatch((tabCounterButton.onLongClick as CombinedEventAndMenu).event)
+
+        assertEquals("tabs_tray_long_press", Events.browserToolbarAction.testGetValue()?.last()?.extra?.get("item"))
     }
 
     @Test
@@ -380,7 +399,7 @@ class BrowserToolbarMiddlewareTest {
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
         assertEqualsToolbarButton(expectedToolbarButton(0, false), tabCounterButton)
-        val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
+        val tabCounterMenuItems = (tabCounterButton.onLongClick as CombinedEventAndMenu).menu.items()
 
         mockkStatic(Context::settings) {
             mockkStatic(NavController::nav) {
@@ -415,7 +434,7 @@ class BrowserToolbarMiddlewareTest {
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
         assertEqualsToolbarButton(expectedToolbarButton(0, true), tabCounterButton)
-        val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
+        val tabCounterMenuItems = (tabCounterButton.onLongClick as CombinedEventAndMenu).menu.items()
 
         mockkStatic(Context::settings) {
             mockkStatic(NavController::nav) {
@@ -682,7 +701,7 @@ class BrowserToolbarMiddlewareTest {
         },
         showPrivacyMask = isPrivate,
         onClick = TabCounterClicked,
-        onLongClick = BrowserToolbarMenu {
+        onLongClick = CombinedEventAndMenu(TabCounterLongClicked) {
             when (isPrivate) {
                 true -> listOf(
                     BrowserToolbarMenuButton(

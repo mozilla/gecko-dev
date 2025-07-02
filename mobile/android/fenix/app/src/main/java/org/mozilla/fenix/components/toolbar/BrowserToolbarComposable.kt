@@ -208,6 +208,7 @@ class BrowserToolbarComposable(
                         cookieBannersStorage = components.core.cookieBannersStorage,
                         trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
                         useCases = components.useCases,
+                        nimbusComponents = components.nimbus,
                         clipboard = activity.components.clipboardHandler,
                         publicSuffixList = components.publicSuffixList,
                         settings = settings,

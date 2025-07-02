@@ -31,7 +31,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.CombinedEventAndMenu
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.ContentDescription.StringResContentDescription
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon
@@ -47,6 +47,7 @@ import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.ClipboardHandler
+import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator
@@ -64,6 +65,7 @@ import org.mozilla.fenix.home.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewPrivateTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterLongClicked
 import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware
 import org.mozilla.fenix.search.ext.searchEngineShortcuts
 import org.mozilla.fenix.tabstray.Page
@@ -78,6 +80,7 @@ internal sealed class DisplayActions : BrowserToolbarEvent {
 @VisibleForTesting
 internal sealed class TabCounterInteractions : BrowserToolbarEvent {
     data object TabCounterClicked : TabCounterInteractions()
+    data object TabCounterLongClicked : TabCounterInteractions()
     data object AddNewTab : TabCounterInteractions()
     data object AddNewPrivateTab : TabCounterInteractions()
 }
@@ -158,6 +161,8 @@ class BrowserToolbarMiddleware(
             }
 
             is TabCounterClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("tabs_tray"))
+
                 runWithinEnvironment {
                     navController.nav(
                         R.id.homeFragment,
@@ -169,6 +174,9 @@ class BrowserToolbarMiddleware(
                         ),
                     )
                 }
+            }
+            is TabCounterLongClicked -> {
+                Events.browserToolbarAction.record(Events.BrowserToolbarActionExtra("tabs_tray_long_press"))
             }
             is AddNewTab -> {
                 openNewTab(Normal)
@@ -299,10 +307,10 @@ class BrowserToolbarMiddleware(
         }
     }
 
-    private fun buildTabCounterMenu(): BrowserToolbarMenu? {
+    private fun buildTabCounterMenu(): CombinedEventAndMenu? {
         val environment = environment ?: return null
 
-        return BrowserToolbarMenu {
+        return CombinedEventAndMenu(TabCounterLongClicked) {
             when (environment.browsingModeManager.mode) {
                 Normal -> listOf(
                     BrowserToolbarMenuButton(
