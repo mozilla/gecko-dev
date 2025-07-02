@@ -3410,6 +3410,7 @@ class PresShell final : public nsStubDocumentObserver,
   bool mDocumentLoading : 1;
   bool mNoDelayedMouseEvents : 1;
   bool mNoDelayedKeyEvents : 1;
+  bool mNoDelayedSingleTap : 1;
 
   bool mApproximateFrameVisibilityVisited : 1;
 

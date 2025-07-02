@@ -830,6 +830,7 @@ PresShell::PresShell(Document* aDocument)
       mDocumentLoading(false),
       mNoDelayedMouseEvents(false),
       mNoDelayedKeyEvents(false),
+      mNoDelayedSingleTap(false),
       mApproximateFrameVisibilityVisited(false),
       mIsLastChromeOnlyEscapeKeyConsumed(false),
       mHasReceivedPaintMessage(false),
@@ -8722,7 +8723,8 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayMouseEvent(
     return false;
   }
 
-  if (!aGUIEvent->IsMouseEventClassOrHasClickRelatedPointerEvent()) {
+  if (!aGUIEvent->IsMouseEventClassOrHasClickRelatedPointerEvent() &&
+      aGUIEvent->mMessage != eTouchStart) {
     return false;
   }
 
@@ -8738,22 +8740,57 @@ bool PresShell::EventHandler::MaybeDiscardOrDelayMouseEvent(
 
   RefPtr<PresShell> ps = aFrameToHandleEvent->PresShell();
 
-  if (aGUIEvent->mMessage == eMouseDown) {
-    ps->mNoDelayedMouseEvents = true;
-  } else if (!ps->mNoDelayedMouseEvents) {
-    if (aGUIEvent->mMessage == eMouseUp ||
-        aGUIEvent->mMessage == eMouseExitFromWidget) {
+  switch (aGUIEvent->mMessage) {
+    case eTouchStart: {
+      // If we receive a single touch start during the suppression, its
+      // compatibility mouse events should not be fired later because the single
+      // tap sequence has not been sent to the web app.
+      const WidgetTouchEvent* const touchEvent = aGUIEvent->AsTouchEvent();
+      if (touchEvent->mTouches.Length() == 1) {
+        ps->mNoDelayedSingleTap = true;
+      }
+      // We won't dispatch eTouchStart as a delayed event later so that return
+      // false.
+      return false;
+    }
+    case eMouseDown: {
+      // If we receive a click sequence start during the suppression, we should
+      // not fire `click` event later because its sequence has not been send to
+      // the web app.  Note that if the eMouseDown is caused by a touch, we may
+      // have already sent the touch sequence to the web app.  In such case,
+      // the eMouseDown is NOT start of the click sequence.
+      const WidgetMouseEvent* const mouseEvent = aGUIEvent->AsMouseEvent();
+      if (ps->mNoDelayedSingleTap ||
+          mouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_TOUCH) {
+        ps->mNoDelayedMouseEvents = true;
+        break;
+      }
+      // Otherwise, put the event into the queue.
+      [[fallthrough]];
+    }
+    case eMouseUp:
+    case eMouseExitFromWidget: {
+      if (ps->mNoDelayedMouseEvents) {
+        break;
+      }
       UniquePtr<DelayedMouseEvent> delayedMouseEvent =
           MakeUnique<DelayedMouseEvent>(aGUIEvent->AsMouseEvent());
       ps->mDelayedEvents.AppendElement(std::move(delayedMouseEvent));
+      break;
     }
-    // contextmenu is triggered after right mouseup on Windows and right
-    // mousedown on other platforms.
-    else if (aGUIEvent->mMessage == eContextMenu) {
+    case eContextMenu: {
+      if (ps->mNoDelayedMouseEvents) {
+        break;
+      }
+      // contextmenu is triggered after right mouseup on Windows and right
+      // mousedown on other platforms.
       UniquePtr<DelayedPointerEvent> delayedPointerEvent =
           MakeUnique<DelayedPointerEvent>(aGUIEvent->AsPointerEvent());
       ps->mDelayedEvents.AppendElement(std::move(delayedPointerEvent));
+      break;
     }
+    default:
+      break;
   }
 
   // If there is a suppressed event listener associated with the document,
@@ -10500,6 +10537,7 @@ void PresShell::Freeze(bool aIncludeSubDocuments) {
 void PresShell::FireOrClearDelayedEvents(bool aFireEvents) {
   mNoDelayedMouseEvents = false;
   mNoDelayedKeyEvents = false;
+  mNoDelayedSingleTap = false;
   if (!aFireEvents) {
     mDelayedEvents.Clear();
     return;
