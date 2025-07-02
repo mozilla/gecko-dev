@@ -70,6 +70,7 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
       MOZ_REQUIRES(mMonitor, aTimer.mMutex);
   void RemoveLeadingCanceledTimersInternal() MOZ_REQUIRES(mMonitor);
   nsresult Init() MOZ_REQUIRES(mMonitor);
+  void AssertTimersSortedAndUnique() MOZ_REQUIRES(mMonitor);
 
   // Using atomic because this value is written to in one place, and read from
   // in another, and those two locations are likely to be executed from separate
@@ -91,11 +92,37 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   bool mNotified MOZ_GUARDED_BY(mMonitor);
   bool mSleeping MOZ_GUARDED_BY(mMonitor);
 
-  struct Entry final {
+  struct EntryKey {
+    explicit EntryKey(nsTimerImpl& aTimerImpl)
+        : mTimeout(aTimerImpl.mTimeout), mTimerSeq(aTimerImpl.mTimerSeq) {}
+
+    // The comparison operators must ensure to detect equality only for
+    // equal mTimerImpl except for canceled timers.
+    // This is achieved through the sequence number.
+    // Currently we maintain a FIFO order for timers with equal timeout.
+    // Note that it might make sense to flip the sequence order to favor
+    // timeouts with smaller delay as they are most likely more sensitive
+    // to jitter. But we strictly test for FIFO order in our gtests.
+
+    bool operator==(const EntryKey& aRhs) const {
+      return (mTimeout == aRhs.mTimeout && mTimerSeq == aRhs.mTimerSeq);
+    }
+
+    bool operator<(const EntryKey& aRhs) const {
+      if (mTimeout == aRhs.mTimeout) {
+        return mTimerSeq < aRhs.mTimerSeq;
+      }
+      return mTimeout < aRhs.mTimeout;
+    }
+
+    TimeStamp mTimeout;
+    uint64_t mTimerSeq;
+  };
+
+  struct Entry final : EntryKey {
     explicit Entry(nsTimerImpl& aTimerImpl)
-        : mTimeout(aTimerImpl.mTimeout),
+        : EntryKey(aTimerImpl),
           mDelay(aTimerImpl.mDelay),
-          mTimerSeq(aTimerImpl.mTimerSeq),
           mTimerImpl(&aTimerImpl) {}
 
     // No copies to not fiddle with mTimerImpl's ref-count.
@@ -114,22 +141,11 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
     }
 #endif
 
-    // These values are simply cached from the timer. Keeping them here is good
-    // for cache usage and allows us to avoid worrying about locking conflicts
-    // with the timer.
-    TimeStamp mTimeout;
     TimeDuration mDelay;
-    uint64_t mTimerSeq;
-
     RefPtr<nsTimerImpl> mTimerImpl;
   };
 
   void PostTimerEvent(Entry& aPostMe) MOZ_REQUIRES(mMonitor);
-
-  // Computes and returns the index in mTimers at which a new timer with the
-  // specified timeout should be inserted in order to maintain "sorted" order.
-  size_t ComputeTimerInsertionIndex(const TimeStamp& timeout) const
-      MOZ_REQUIRES(mMonitor);
 
   // Computes and returns when we should next try to wake up in order to handle
   // the triggering of the timers in mTimers.
@@ -160,10 +176,9 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   // clears a few flags before and after.
   void Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor);
 
-  // mTimers is maintained in a "pseudo-sorted" order wrt the timeouts.
-  // Specifcally, mTimers is sorted according to the timeouts *if you ignore the
-  // canceled entries* (those whose mTimerImpl is nullptr). Notably this means
-  // that you cannot use a binary search on this list.
+  // mTimers is sorted by timeout, followed by a unique sequence number.
+  // Some entries are for cancelled entries, but remain in sorted order based
+  // on the timeout and sequence number they were originally created with.
   nsTArray<Entry> mTimers MOZ_GUARDED_BY(mMonitor);
 
   // The last used sequence number for an added timer.
