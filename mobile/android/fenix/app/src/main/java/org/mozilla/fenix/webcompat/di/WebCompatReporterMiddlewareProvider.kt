@@ -11,6 +11,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.service.nimbus.NimbusApi
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.webcompat.WebCompatState
+import org.mozilla.fenix.webcompat.DefaultWebCompatReporterMoreInfoSender
 import org.mozilla.fenix.webcompat.middleware.DefaultNimbusExperimentsProvider
 import org.mozilla.fenix.webcompat.middleware.DefaultWebCompatReporterRetrievalService
 import org.mozilla.fenix.webcompat.middleware.WebCompatInfoDeserializer
@@ -62,16 +63,23 @@ object WebCompatReporterMiddlewareProvider {
         webCompatInfoDeserializer: WebCompatInfoDeserializer,
         scope: CoroutineScope,
         nimbusApi: NimbusApi,
-    ) = WebCompatReporterSubmissionMiddleware(
-        appStore = appStore,
-        browserStore = browserStore,
-        webCompatReporterRetrievalService = DefaultWebCompatReporterRetrievalService(
+    ): WebCompatReporterSubmissionMiddleware {
+        val webCompatReporterRetrievalService = DefaultWebCompatReporterRetrievalService(
             browserStore = browserStore,
             webCompatInfoDeserializer = webCompatInfoDeserializer,
             nimbusExperimentsProvider = DefaultNimbusExperimentsProvider(nimbusApi),
-        ),
-        scope = scope,
-    )
+        )
+
+        return WebCompatReporterSubmissionMiddleware(
+            appStore = appStore,
+            browserStore = browserStore,
+            webCompatReporterRetrievalService = webCompatReporterRetrievalService,
+            webCompatReporterMoreInfoSender = DefaultWebCompatReporterMoreInfoSender(
+                webCompatReporterRetrievalService = webCompatReporterRetrievalService,
+            ),
+            scope = scope,
+        )
+    }
 
     private fun provideNavigationMiddleware() =
         WebCompatReporterNavigationMiddleware()

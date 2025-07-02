@@ -16,6 +16,7 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.EngineSession
+import mozilla.components.support.test.middleware.CaptureActionsMiddleware
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -23,6 +24,7 @@ import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,6 +40,8 @@ import org.mozilla.fenix.GleanMetrics.BrokenSiteReportTabInfoFrameworks
 import org.mozilla.fenix.GleanMetrics.Pings
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.webcompat.WebCompatReporterMoreInfoSender
+import org.mozilla.fenix.webcompat.fake.FakeWebCompatReporterMoreInfoSender
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
 import org.mozilla.fenix.webcompat.store.WebCompatReporterStore
@@ -54,10 +58,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
 
     @Test
     fun `GIVEN the URL is not changed WHEN WebCompatInfo is retrieved successfully THEN all report broken site pings are submitted`() = runTest {
-        val webCompatReporterRetrievalService: WebCompatReporterRetrievalService =
-            FakeWebCompatReporterRetrievalService()
-
-        val store = createStore(service = webCompatReporterRetrievalService)
+        val store = createStore()
 
         Pings.brokenSiteReport.testBeforeNextSubmit {
             assertEquals(
@@ -205,9 +206,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
     }
 
     fun `WHEN the report is sent successfully THEN appState is updated`() {
-        val webCompatReporterRetrievalService: WebCompatReporterRetrievalService = FakeWebCompatReporterRetrievalService()
-
-        val store = createStore(service = webCompatReporterRetrievalService)
+        val store = createStore()
 
         store.dispatch(WebCompatReporterAction.SendReportClicked)
 
@@ -216,9 +215,7 @@ class WebCompatReporterSubmissionMiddlewareTest {
 
     @Test
     fun `GIVEN the URL is changed WHEN WebCompatInfo is retrieved successfully THEN only non tab related report broken site pings are submitted`() = runTest {
-        val webCompatReporterRetrievalService: WebCompatReporterRetrievalService = FakeWebCompatReporterRetrievalService()
-
-        val store = createStore(service = webCompatReporterRetrievalService)
+        val store = createStore()
 
         Pings.brokenSiteReport.testBeforeNextSubmit {
             assertNull(BrokenSiteReportTabInfoAntitracking.blockList.testGetValue())
@@ -408,7 +405,63 @@ class WebCompatReporterSubmissionMiddlewareTest {
         store.dispatch(WebCompatReporterAction.SendReportClicked)
     }
 
-    private fun createStore(service: WebCompatReporterRetrievalService): WebCompatReporterStore {
+    @Test
+    fun `WHEN send more info is clicked THEN more WebCompat info is sent`() = runTest {
+        var moreWebCompatInfoSent = false
+        val webCompatReporterMoreInfoSender = object : WebCompatReporterMoreInfoSender {
+            override suspend fun sendMoreWebCompatInfo(
+                reason: WebCompatReporterState.BrokenSiteReason?,
+                problemDescription: String?,
+                enteredUrl: String?,
+                tabUrl: String?,
+                engineSession: EngineSession?,
+            ) {
+                moreWebCompatInfoSent = true
+            }
+        }
+
+        val tab = createTab(
+            url = "https://www.mozilla.org",
+            id = "test-tab",
+            engineSession = mock(),
+        )
+        val browserStore = BrowserStore(
+            initialState = BrowserState(
+                tabs = listOf(tab),
+                selectedTabId = tab.id,
+            ),
+        )
+
+        val captureActionsMiddleware =
+            CaptureActionsMiddleware<WebCompatReporterState, WebCompatReporterAction>()
+
+        val store = WebCompatReporterStore(
+            initialState = WebCompatReporterState(
+                tabUrl = "https://www.mozilla.org",
+                enteredUrl = "https://www.mozilla.org/en-US/firefox/new/",
+                reason = WebCompatReporterState.BrokenSiteReason.Slow,
+                problemDescription = "",
+            ),
+            middleware = listOf(
+                captureActionsMiddleware,
+                createMiddleware(
+                    browserStore = browserStore,
+                    service = FakeWebCompatReporterRetrievalService(),
+                    webCompatReporterMoreInfoSender = webCompatReporterMoreInfoSender,
+                ),
+            ),
+        )
+
+        store.dispatch(WebCompatReporterAction.SendMoreInfoClicked)
+
+        assertTrue(moreWebCompatInfoSent)
+        captureActionsMiddleware.assertFirstAction(WebCompatReporterAction.SendMoreInfoSubmitted::class)
+    }
+
+    private fun createStore(
+        service: WebCompatReporterRetrievalService = FakeWebCompatReporterRetrievalService(),
+        webCompatReporterMoreInfoSender: WebCompatReporterMoreInfoSender = FakeWebCompatReporterMoreInfoSender(),
+    ): WebCompatReporterStore {
         val engineSession: EngineSession = mock()
         val tab = createTab(
             url = "https://www.mozilla.org",
@@ -430,15 +483,26 @@ class WebCompatReporterSubmissionMiddlewareTest {
                 problemDescription = "",
             ),
             middleware = listOf(
-                WebCompatReporterSubmissionMiddleware(
-                    appStore = appStore,
+                createMiddleware(
                     browserStore = browserStore,
-                    webCompatReporterRetrievalService = service,
-                    scope = coroutinesTestRule.scope,
+                    service = service,
+                    webCompatReporterMoreInfoSender = webCompatReporterMoreInfoSender,
                 ),
             ),
         )
     }
+
+    private fun createMiddleware(
+        browserStore: BrowserStore,
+        service: WebCompatReporterRetrievalService,
+        webCompatReporterMoreInfoSender: WebCompatReporterMoreInfoSender,
+    ) = WebCompatReporterSubmissionMiddleware(
+        appStore = appStore,
+        browserStore = browserStore,
+        webCompatReporterRetrievalService = service,
+        webCompatReporterMoreInfoSender = webCompatReporterMoreInfoSender,
+        scope = coroutinesTestRule.scope,
+    )
 
     private class FakeWebCompatReporterRetrievalService : WebCompatReporterRetrievalService {
 
