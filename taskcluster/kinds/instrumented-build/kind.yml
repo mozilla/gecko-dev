@@ -50,7 +50,7 @@ tasks:
         shipping-product: firefox
         treeherder:
             platform: linux32-shippable/opt
-        worker-type: b-linux-gcp
+        worker-type: b-linux-amd
         run:
             config:
                 - builds/releng_base_firefox.py
@@ -80,7 +80,7 @@ tasks:
         shipping-product: firefox
         treeherder:
             platform: linux64-shippable/opt
-        worker-type: b-linux-gcp
+        worker-type: b-linux-amd
         run:
             config:
                 - builds/releng_base_firefox.py
@@ -109,7 +109,7 @@ tasks:
         shipping-product: firefox
         treeherder:
             platform: linux64-aarch64-shippable/opt
-        worker-type: b-linux-gcp
+        worker-type: b-linux-amd
         run:
             config:
                 - builds/releng_base_firefox.py
