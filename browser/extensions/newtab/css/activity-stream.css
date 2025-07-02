@@ -31,13 +31,13 @@ input {
 :root {
   color-scheme: light;
   --newtab-background-color: #F9F9FB;
-  --newtab-background-color-secondary: #FFF;
-  --newtab-text-primary-color: #15141a;
-  --newtab-background-card: rgba(255, 255, 255, 0.8);
-  --newtab-text-topic-label-color: #45278D;
-  --newtab-text-secondary-text: #15141AB0;
-  --newtab-contextual-text-primary-color: light-dark(var(--newtab-text-primary-color), #fbfbfe);
-  --newtab-primary-action-background: light-dark(#0061e0, #00ddff);
+  --newtab-background-color-secondary: var(--color-white);
+  --newtab-text-primary-color: var(--text-color);
+  --newtab-background-card: color-mix(in srgb, var(--color-white) 80%, transparent);
+  --newtab-text-topic-label-color: var(--color-violet-70);
+  --newtab-text-secondary-text: var(--text-color-deemphasized);
+  --newtab-contextual-text-primary-color: light-dark(var(--newtab-text-primary-color), var(--text-color));
+  --newtab-primary-action-background: light-dark(var(--color-accent-primary), var(--color-accent-primary));
   --newtab-primary-action-background-pocket: #008078;
   --newtab-text-secondary-color: color-mix(in srgb, var(--newtab-text-primary-color) 70%, transparent);
   --newtab-contextual-text-secondary-color: color-mix(in srgb, var(--newtab-contextual-text-primary-color) 70%, transparent);
@@ -60,13 +60,13 @@ input {
   --newtab-primary-element-hover-color: color-mix(in srgb, var(--newtab-primary-action-background) 90%, #000);
   --newtab-primary-element-hover-pocket-color: color-mix(in srgb, var(--newtab-primary-action-background-pocket) 90%, #000);
   --newtab-primary-element-active-color: color-mix(in srgb, var(--newtab-primary-action-background) 80%, #000);
-  --newtab-primary-element-text-color: #FFF;
+  --newtab-primary-element-text-color: var(--color-white);
   --newtab-primary-action-background-dimmed: color-mix(in srgb, var(--newtab-primary-action-background) 25%, transparent);
   --newtab-primary-action-background-pocket-dimmed: color-mix(in srgb, var(--newtab-primary-action-background-pocket) 25%, transparent);
   --newtab-border-color: color-mix(in srgb, var(--newtab-background-color) 75%, #000);
   --newtab-wordmark-color: light-dark(#20123A, #fbfbfe);
-  --newtab-status-success: #058B00;
-  --newtab-status-error: #D70022;
+  --newtab-status-success: var(--color-green-50);
+  --newtab-status-error: var(--color-red-60);
   --newtab-inner-box-shadow-color: rgba(0, 0, 0, 0.1);
   --newtab-section-card-box-shadow-color: rgba(58, 57, 68, 20%);
   --newtab-overlay-color: color-mix(in srgb, var(--newtab-background-color) 85%, transparent);
@@ -80,30 +80,30 @@ input {
   color-scheme: dark;
   --newtab-background-color: #2B2A33;
   --newtab-background-color-secondary: #42414d;
-  --newtab-text-primary-color: #fbfbfe;
+  --newtab-text-primary-color: var(--text-color);
   --newtab-background-card: rgba(66, 65, 77, 0.8);
-  --newtab-text-topic-label-color: #CB9EFF;
+  --newtab-text-topic-label-color: var(--color-violet-30);
   --newtab-text-secondary-text: #FBFBFEB0;
-  --newtab-contextual-text-primary-color: light-dark(#15141a, var(--newtab-text-primary-color));
-  --newtab-primary-action-background-pocket: #00ddff;
+  --newtab-contextual-text-primary-color: light-dark(var(--text-color), var(--newtab-text-primary-color));
+  --newtab-primary-action-background-pocket: var(--color-accent-primary);
   --newtab-primary-action-background-pocket-dimmed: color-mix(in srgb, var(--newtab-primary-action-background) 25%, transparent);
-  --newtab-primary-element-hover-color: color-mix(in srgb, var(--newtab-primary-action-background) 55%, #FFF);
-  --newtab-primary-element-hover-pocket-color: color-mix(in srgb, var(--newtab-primary-action-background-pocket) 55%, #FFF);
-  --newtab-element-hover-color: color-mix(in srgb, var(--newtab-background-color) 80%, #FFF);
-  --newtab-element-active-color: color-mix(in srgb, var(--newtab-background-color) 60%, #FFF);
+  --newtab-primary-element-hover-color: color-mix(in srgb, var(--newtab-primary-action-background) 55%, var(--color-white));
+  --newtab-primary-element-hover-pocket-color: color-mix(in srgb, var(--newtab-primary-action-background-pocket) 55%, var(--color-white));
+  --newtab-element-hover-color: color-mix(in srgb, var(--newtab-background-color) 80%, var(--color-white));
+  --newtab-element-active-color: color-mix(in srgb, var(--newtab-background-color) 60%, var(--color-white));
   --newtab-section-card-box-shadow-color: rgba(0, 0, 0, 80%);
   --newtab-element-secondary-color: color-mix(in srgb, currentColor 10%, transparent);
   --newtab-element-secondary-hover-color: color-mix(in srgb, currentColor 17%, transparent);
   --newtab-element-secondary-active-color: color-mix(in srgb, currentColor 30%, transparent);
-  --newtab-border-color: color-mix(in srgb, var(--newtab-background-color) 75%, #FFF);
+  --newtab-border-color: color-mix(in srgb, var(--newtab-background-color) 75%, var(--color-white));
   --newtab-primary-element-text-color: #2b2a33;
-  --newtab-status-success: #7C6;
+  --newtab-status-success: var(--color-green-30);
 }
 
 @media (prefers-contrast) {
   :root {
     --newtab-text-secondary-color: var(--newtab-text-primary-color);
-    --newtab-text-topic-label-color: #CB9EFF;
+    --newtab-text-topic-label-color: var(--color-violet-30);
     color-scheme: light;
     --newtab-text-secondary-text: #000;
   }
@@ -929,7 +929,7 @@ main section {
   transform: rotate(-10deg);
   inset-block-start: var(--space-xsmall);
   position: relative;
-  color: #FFF;
+  color: var(--color-white);
 }
 .top-site-outer .top-site-icon {
   background-color: var(--newtab-background-color-secondary);
@@ -1009,7 +1009,7 @@ main section {
   display: none;
 }
 .top-site-outer.search-shortcut .rich-icon {
-  background-color: #FFF;
+  background-color: var(--color-white);
 }
 .top-site-outer .edit-button {
   background-image: url("chrome://global/skin/icons/edit.svg");
@@ -1267,7 +1267,7 @@ main section {
   animation: fade-up-tt 450ms;
   background: var(--newtab-status-error);
   border-radius: var(--border-radius-small);
-  color: #FFF;
+  color: var(--color-white);
   inset-inline-start: var(--space-xxsmall);
   padding: var(--space-xsmall) var(--space-medium);
   position: absolute;
@@ -3756,10 +3756,10 @@ main section {
   width: 16px;
 }
 .compact-cards .card-outer .card-context .card-context-icon.icon-bookmark-added {
-  fill: #0A84FF;
+  fill: var(--color-blue-40);
 }
 .compact-cards .card-outer .card-context .card-context-icon.icon-download {
-  fill: #12BC00;
+  fill: var(--color-green-40);
 }
 .compact-cards .card-outer .card-context .card-context-icon.icon-pocket {
   fill: #EF4056;
@@ -4037,7 +4037,7 @@ main section {
   border-radius: var(--border-radius-small);
 }
 .discoverystream-admin .sourceLabel.isDisabled {
-  background: rgba(215, 0, 34, 0.3);
+  background: var(--color-red-10);
   color: var(--newtab-status-error);
 }
 .discoverystream-admin .message-item:first-child td {
@@ -4190,7 +4190,7 @@ main section {
   white-space: nowrap;
   background: var(--newtab-primary-action-background);
   letter-spacing: -0.34px;
-  color: #FFF;
+  color: var(--color-white);
   border-radius: var(--border-radius-small);
   cursor: pointer;
   max-width: 130px;
@@ -4403,7 +4403,7 @@ main section {
   position: absolute;
   inset-block-end: 0;
   text-align: center;
-  background-color: #FFF;
+  background-color: var(--color-white);
 }
 @media (width <= 850px) and (height <= 730px) {
   .modalOverlayInner .footer {
@@ -7486,13 +7486,13 @@ main section {
   transition: background 0.2s ease, color 0.2s ease;
 }
 .section-empty-state .try-again-button:not(.waiting):focus {
-  box-shadow: 0 0 0 5px rgba(10, 132, 255, 0.3);
+  box-shadow: 0 0 0 5px oklch(from var(--color-blue-50)/lch 30%);
   transition: box-shadow 150ms;
   border-radius: var(--border-radius-small);
   outline: none;
 }
 [lwt-newtab-brighttext] .section-empty-state .try-again-button:not(.waiting):focus {
-  box-shadow: 0 0 0 5px rgba(69, 161, 255, 0.4);
+  box-shadow: 0 0 0 5px oklch(from var(--color-blue-40)/lch 40%);
   transition: box-shadow 150ms;
   border-radius: var(--border-radius-small);
   outline: none;

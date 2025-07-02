@@ -1,26 +1,21 @@
 @use 'sass:math';
 
-$primary-blue: rgb(0, 97, 224);
-$primary-green: rgb(0, 128, 120);
-$primary-blue-dark: rgb(0, 221, 255);
+$primary-blue: var(--color-accent-primary);
+$primary-blue-dark: var(--color-accent-primary);
 $primary-text-color-dark: rgb(43, 42, 51);
 
 // -------------------------------------------------------------------------- //
-// Photon colors from http://design.firefox.com/photon/visuals/color.html
+// Grays from http://design.firefox.com/photon/visuals/color.html
 
-$blue-40: #45A1FF;
-$blue-50: #0A84FF;
 $grey-30: #D7D7DB;
 $grey-60: #4A4A4F;
 $grey-90: #0C0C0D;
-$red-60: #D70022;
-$yellow-50: #FFE900;
 
 $grey-90-10: rgba($grey-90, 0.1);
 $grey-90-20: rgba($grey-90, 0.2);
 
-$blue-40-40: rgba($blue-40, 0.4);
-$blue-50-30: rgba($blue-50, 0.3);
+$blue-40-40: oklch(from var(--color-blue-40) / lch 40%);
+$blue-50-30: oklch(from var(--color-blue-50) / lch 30%);
 
 $black: #000;
 $black-10: rgba($black, 0.1);
@@ -33,19 +28,19 @@ $black-40: rgba($black, 0.4);
 // -------------------------------------------------------------------------- //
 // Other colors
 
-$white: #FFF;
-$status-green: #058B00;
-$status-dark-green: #7C6;
-$bookmark-icon-fill: #0A84FF;
-$download-icon-fill: #12BC00;
+$white: var(--color-white);
+$status-green: var(--color-green-50);
+$status-dark-green: var(--color-green-30);
+$bookmark-icon-fill: var(--color-blue-40);
+$download-icon-fill: var(--color-green-40);
 $pocket-icon-fill: #EF4056;
-$email-input-invalid: rgba($red-60, 0.3);
+$email-input-invalid: var(--color-red-10);
 
 $newtab-wordmark-default-color: #20123A;
 $newtab-wordmark-darktheme-color: rgb(251, 251, 254);
 
-$in-content-page-color: rgb(21, 20, 26);
-$in-content-page-color-dark: rgb(251, 251, 254);
+$in-content-page-color: var(--text-color);
+$in-content-page-color-dark: var(--text-color);
 
 // -------------------------------------------------------------------------- //
 // These colors should match the colors in the default themes
@@ -55,12 +50,11 @@ $in-content-page-color-dark: rgb(251, 251, 254);
 
 $in-content-page-background: #F9F9FB;
 $in-content-page-background-dark: #2B2A33;
-
-$newtab-background-secondary: #FFF;
+$newtab-background-secondary: var(--color-white);
 $newtab-background-secondary-dark: rgb(66, 65, 77);
 
 // Mirrors $newtab-background-secondary with 20% opacity
-$newtab-background-card: rgba(255, 255, 255, 80%);
+$newtab-background-card: color-mix(in srgb, var(--color-white) 80%, transparent);
 $newtab-background-card-dark: rgb(66, 65, 77, 80%);
 
 // Photon transitions from http://design.firefox.com/photon/motion/duration-and-easing.html

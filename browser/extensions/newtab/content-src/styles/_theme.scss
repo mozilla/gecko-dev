@@ -31,8 +31,8 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   --newtab-text-primary-color: #{$in-content-page-color};
   // Card Background includes 20% transparency
   --newtab-background-card: #{$newtab-background-card};
-  --newtab-text-topic-label-color: #45278D;
-  --newtab-text-secondary-text: #15141AB0;
+  --newtab-text-topic-label-color: var(--color-violet-70);
+  --newtab-text-secondary-text: var(--text-color-deemphasized);
   // We need to be careful about the contrast of text over newtab wallpapers, which might not match the theme.
   // --newtab-text-primary-color is set in contextTheme.js and reacts to possible installed addon themes.
   // If we use that variable here, with light-dark, we can retain that addon theme text color,
@@ -40,7 +40,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   --newtab-contextual-text-primary-color: light-dark(var(--newtab-text-primary-color), #{$in-content-page-color-dark});
   --newtab-primary-action-background: light-dark(#{$primary-blue}, #{$primary-blue-dark});
   // A button colour closer to the Pocket brand for usage in the Pocket section.
-  --newtab-primary-action-background-pocket: #{$primary-green};
+  --newtab-primary-action-background-pocket: #008078;
   --newtab-text-secondary-color: color-mix(in srgb, var(--newtab-text-primary-color) 70%, transparent);
   --newtab-contextual-text-secondary-color: color-mix(in srgb, var(--newtab-contextual-text-primary-color) 70%, transparent);
 
@@ -83,7 +83,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
   --newtab-border-color: color-mix(in srgb, var(--newtab-background-color) 75%, #{$black});
   --newtab-wordmark-color: light-dark(#{$newtab-wordmark-default-color}, #{$newtab-wordmark-darktheme-color});
   --newtab-status-success: #{$status-green};
-  --newtab-status-error: #{$red-60};
+  --newtab-status-error: var(--color-red-60);
   --newtab-inner-box-shadow-color: #{$black-10};
   --newtab-section-card-box-shadow-color: rgba(58, 57, 68, 20%);
   --newtab-overlay-color: color-mix(in srgb, var(--newtab-background-color) 85%, transparent);
@@ -109,7 +109,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
     --newtab-text-primary-color: #{$in-content-page-color-dark};
     // Card Background includes 20% transparency
     --newtab-background-card: #{$newtab-background-card-dark};
-    --newtab-text-topic-label-color: #CB9EFF;
+    --newtab-text-topic-label-color: var(--color-violet-30);
     --newtab-text-secondary-text: #FBFBFEB0;
 
     --newtab-contextual-text-primary-color: light-dark(#{$in-content-page-color}, var(--newtab-text-primary-color));
@@ -135,7 +135,7 @@ $shadow-image-inset: inset 0 0 0 0.5px $black-15;
 @media (prefers-contrast) {
   :root {
     --newtab-text-secondary-color: var(--newtab-text-primary-color);
-    --newtab-text-topic-label-color: #CB9EFF;
+    --newtab-text-topic-label-color: var(--color-violet-30);
 
     color-scheme: light;
     --newtab-text-secondary-text: #000;

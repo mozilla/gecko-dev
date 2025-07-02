@@ -21,7 +21,8 @@ let meta = {
 };
 
 let colorTokenRegex = /var\((?<token>--color-[a-zA-Z]+-\d+)\)/g;
-let isCustomPropertyDefinition = decl => decl.prop.startsWith("--");
+let isCustomPropertyDefinition = decl =>
+  decl.prop.startsWith("--") || decl.prop.startsWith("$");
 
 let ruleFunction = primaryOption => {
   return (root, result) => {
