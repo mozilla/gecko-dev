@@ -286,22 +286,9 @@
       this._invalidateCachedVisibleTabs();
     }
 
-    on_TabGroupCollapse(event) {
+    on_TabGroupCollapse() {
       this._invalidateCachedVisibleTabs();
       this._unlockTabSizing();
-
-      // If the user's selected tab is in the collapsing group, kick them off
-      // the tab. If no tabs exist outside the group, create a new one and
-      // select it.
-      const group = event.target;
-      if (gBrowser.selectedTab.group === group && !this.#isMovingTab()) {
-        gBrowser.selectedTab =
-          gBrowser._findTabToBlurTo(
-            gBrowser.selectedTab,
-            gBrowser.tabsInCollapsedTabGroups
-          ) ||
-          gBrowser.addTrustedTab(BROWSER_NEW_TAB_URL, { skipAnimation: true });
-      }
     }
 
     on_TabGroupCreate() {
@@ -1771,13 +1758,12 @@
         } else if (isTabGroup(child)) {
           child.labelElement.elementIndex = elementIndex++;
           focusableItems.push(child.labelElement);
-          if (!child.collapsed) {
-            let visibleTabsInGroup = child.tabs.filter(tab => tab.visible);
-            visibleTabsInGroup.forEach(tab => {
-              tab.elementIndex = elementIndex++;
-            });
-            focusableItems.push(...visibleTabsInGroup);
-          }
+
+          let visibleTabsInGroup = child.tabs.filter(tab => tab.visible);
+          visibleTabsInGroup.forEach(tab => {
+            tab.elementIndex = elementIndex++;
+          });
+          focusableItems.push(...visibleTabsInGroup);
         }
       }
 

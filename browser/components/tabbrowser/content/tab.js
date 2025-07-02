@@ -224,7 +224,9 @@
     }
 
     get visible() {
-      return this.isOpen && !this.hidden && !this.group?.collapsed;
+      return (
+        this.isOpen && !this.hidden && (!this.group?.collapsed || this.selected)
+      );
     }
 
     get hidden() {

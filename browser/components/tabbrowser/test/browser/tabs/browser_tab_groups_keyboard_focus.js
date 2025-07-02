@@ -125,11 +125,6 @@ add_task(async function test_TabGroupKeyboardFocus() {
     tabGroup.labelElement,
     "keyboard focus should remain on tab group label after collapse"
   );
-  is(
-    gBrowser.selectedTab,
-    tab4,
-    "active tab should automatically change to the next visible tab if the active tab is in a tab group that gets collapsed"
-  );
 
   await EventUtils.synthesizeKey("KEY_Enter");
   Assert.ok(!tabGroup.collapsed, "Tab group should be expanded");
@@ -162,12 +157,24 @@ add_task(async function test_TabGroupKeyboardFocus() {
     "Keyboard focus should remain on tab group label after closing the group menu context menu"
   );
 
-  info("Validate that keyboard focus skips over tabs in collapsed tab groups");
+  info(
+    "Verify that keyboard focus continues to the collapsed group's active tab"
+  );
+  await synthesizeKeyToChangeKeyboardFocus(tab2, "KEY_ArrowRight");
+  is(
+    gBrowser.tabContainer.ariaFocusedItem,
+    tab2,
+    "Keyboard focus moves from collapsed tab group label to the group's active tab"
+  );
+
+  info(
+    "Validate that keyboard focus skips over the collapsed group's remaining tabs"
+  );
   await synthesizeKeyToChangeKeyboardFocus(tab4, "KEY_ArrowRight");
   is(
     gBrowser.tabContainer.ariaFocusedItem,
     tab4,
-    "keyboard focus should move right collapsed tab group label to the first tab to the right of the tab group"
+    "Keyboard focus skips the collapsed group's hidden tab and continues to the first ungrouped tab"
   );
 
   await removeTabGroup(tabGroup);

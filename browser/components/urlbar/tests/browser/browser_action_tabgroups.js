@@ -122,6 +122,7 @@ add_task(async function test_active_group() {
 
 add_task(async function test_last_accessed_order() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
+  let blankTab = BrowserTestUtils.addTab(win.gBrowser, "about:blank");
   let aboutRobotsTab = BrowserTestUtils.addTab(win.gBrowser, "about:robots");
   let aboutMozillaTab = BrowserTestUtils.addTab(win.gBrowser, "about:mozilla");
   let tabGroup1 = win.gBrowser.addTabGroup([aboutRobotsTab], {
@@ -158,6 +159,7 @@ add_task(async function test_last_accessed_order() {
   await new Promise(resolve => win.setTimeout(resolve, 10));
   win.gBrowser.selectedTab = tabGroup1.tabs[0];
   tabGroup1.collapsed = true;
+  win.gBrowser.selectedTab = blankTab;
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window: win,

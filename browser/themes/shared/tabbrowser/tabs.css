@@ -948,21 +948,32 @@
 /*
  * .tab-group-line needs to span the drop shadows + space between tabs in the
  * same tab group so that the whole tab group appears to be underlined by an
- * unbroken line. However, the last tab in a tab group should have its group
- * underline stop at the end edge of the tab itself, otherwise it looks
- * like the tab group extends too far past the edge of the tab.
+ * unbroken line.
+ *
+ * The last tab in a tab group should have its group underline stop
+ * at the end edge of the tab itself, otherwise it looks like the tab group
+ * extends too far past the edge of the tab.
+ *
+ * When a tab group with the currently selected tab is collapsed, the selected
+ * tab remains visible along with its underline. If there are other tabs in
+ * the group that have been hidden by the collapse, a counter indicating the
+ * number of hidden tabs appears at the end of the group, which continues
+ * the underline, so in this case the line should not terminate underneath
+ * the tab.
+ *
  */
 .tab-group-line {
   display: none;
   position: absolute;
-  background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+  background-color: var(--tab-group-line-color);
 
   #tabbrowser-tabs[orient="horizontal"] & {
     height: var(--tab-group-line-thickness);
     inset-inline: calc(-1 * var(--tab-overflow-clip-margin));
     inset-block-end: var(--tab-group-line-toolbar-border-distance);
 
-    .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
+    tab-group:not([collapsed]) > .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > &,
+    tab-group[collapsed]:not([hasmultipletabs]) & {
       inset-inline-end: 0;
       border-start-end-radius: calc(var(--tab-group-line-thickness) / 2);
       border-end-end-radius: calc(var(--tab-group-line-thickness) / 2);
@@ -978,7 +989,8 @@
       inset-inline-start: 0;
     }
 
-    .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
+    tab-group:not([collapsed]) > .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > &,
+    tab-group[collapsed]:not([hasmultipletabs]) & {
       inset-block-end: 0;
       border-end-start-radius: calc(var(--tab-group-line-thickness) / 2);
       border-end-end-radius: calc(var(--tab-group-line-thickness) / 2);
@@ -1008,15 +1020,21 @@ tab-group {
    */
   display: contents;
 
-  #tabbrowser-tabs[orient="horizontal"] &[collapsed] > .tabbrowser-tab {
+  --tab-group-line-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+
+  #tabbrowser-tabs[orient="horizontal"] &[collapsed] > .tabbrowser-tab:not([visuallyselected]) {
     min-width: 0 !important;
     max-width: 0 !important;
     padding: 0;
     overflow-clip-margin: 0;
   }
 
-  #tabbrowser-tabs[orient="vertical"] &[collapsed] > .tabbrowser-tab {
+  #tabbrowser-tabs[orient="vertical"] &[collapsed] > .tabbrowser-tab:not([visuallyselected]) {
     display: none;
+  }
+
+  &[collapsed] {
+    --tab-group-line-color: light-dark(var(--tab-group-color), var(--tab-group-color-pale));
   }
 }
 
@@ -1027,19 +1045,40 @@ tab-group {
   }
 }
 
+/**
+* Tab group label and overflow counter should appear to be underlined
+* with the same continuous line as the group's tabs. This is achieved
+* by positioning pseudoelement of the appropriate size and color.
+*/
+.tab-group-label-container,
+.tab-group-overflow-count-container {
+  position: relative;
+
+  #tabbrowser-tabs:is([orient="horizontal"], [orient="vertical"]:not([expanded])) tab-group:not([collapsed]) > &::after,
+  #tabbrowser-tabs:is([orient="horizontal"], [orient="vertical"]:not([expanded])) tab-group[hasactivetab] > &::after,
+  #tabbrowser-tabs[orient="vertical"] tab-group[hasactivetab][hasmultipletabs] > &.tab-group-overflow-count-container::after {
+    content: "";
+    background-color: var(--tab-group-line-color);
+    position: absolute;
+  }
+
+  #tabbrowser-tabs[orient="vertical"][expanded] & {
+    contain: inline-size;
+  }
+}
+
 .tab-group-label-container {
   &[dragtarget] {
     z-index: 3;
     position: absolute;
     pointer-events: none; /* avoid blocking dragover events on scroll buttons */
   }
+
   @media (prefers-reduced-motion: no-preference) {
     #tabbrowser-tabs[movingtab] &:not(:active) {
       transition: var(--tab-dragover-transition);
     }
   }
-
-  position: relative;
 
   /*
    * Provide some empty space to either side of the tab group label.
@@ -1055,35 +1094,76 @@ tab-group {
   #tabbrowser-tabs[orient="vertical"] & {
     margin-block-start: var(--space-small);
 
-    tab-group:not([collapsed]) > & {
+    tab-group:not([collapsed]) > &,
+    tab-group[collapsed][hasactivetab] > & {
       padding-block-end: var(--space-small);
     }
   }
 
-  #tabbrowser-tabs[orient="vertical"][expanded] & {
-    contain: inline-size;
-  }
-
-  #tabbrowser-tabs:is([orient="horizontal"], [orient="vertical"]:not([expanded])) tab-group:not([collapsed]) > &::after {
-    content: "";
-    background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-    position: absolute;
-  }
-
-  #tabbrowser-tabs[orient="horizontal"] tab-group:not([collapsed]) > &::after {
+  #tabbrowser-tabs[orient="horizontal"] tab-group:is(:not([collapsed]), [hasactivetab]) > &::after {
     height: var(--tab-group-line-thickness);
     inset: auto 0 var(--tab-group-line-toolbar-border-distance);
     border-start-start-radius: 1px;
     border-end-start-radius: 1px;
   }
 
-  #tabbrowser-tabs[orient="vertical"] tab-group:not([collapsed]) > &::after {
+  #tabbrowser-tabs[orient="vertical"] tab-group:is(:not([collapsed]), [hasactivetab]) > &::after {
     width: var(--tab-group-line-thickness);
     inset-block: 0;
     inset-inline: 2px auto;
     border-start-start-radius: 1px;
     border-start-end-radius: 1px;
   }
+}
+
+.tab-group-overflow-count-container {
+  display: none;
+
+  #tabbrowser-tabs:not([movingtab]) tab-group[collapsed][hasmultipletabs][hasactivetab] > & {
+    display: flex;
+  }
+
+  /*
+   * Similar to .tab-group-label, use padding/margin to space the indicator
+   * correctly relative to the group line.
+   */
+  #tabbrowser-tabs[orient="horizontal"] & {
+    padding-inline-end: 3px;
+    margin-inline-end: 3px;
+  }
+  #tabbrowser-tabs[orient="vertical"] & {
+    padding-block-start: var(--space-small);
+
+    #tabbrowser-tabs[expanded] & {
+      margin-inline-start: var(--space-medium);
+    }
+
+    tab-group:not([collapsed]) > & {
+      margin-block-end: var(--space-small);
+    }
+  }
+
+  #tabbrowser-tabs[orient="horizontal"] tab-group[hasactivetab][hasmultipletabs] > &::after {
+    height: var(--tab-group-line-thickness);
+    inset: auto 0 var(--tab-group-line-toolbar-border-distance);
+    border-start-end-radius: 1px;
+    border-end-end-radius: 1px;
+  }
+
+  #tabbrowser-tabs[orient="vertical"] tab-group[hasactivetab][hasmultipletabs] > &::after {
+    width: var(--tab-group-line-thickness);
+    inset-block: 0;
+    border-end-start-radius: 1px;
+    border-end-end-radius: 1px;
+  }
+
+  #tabbrowser-tabs:not([expanded]) &::after {
+    inset-inline: 2px auto;
+  }
+}
+
+.tab-group-overflow-count {
+  color: var(--tab-group-line-color);
 }
 
 .tab-group-label {
