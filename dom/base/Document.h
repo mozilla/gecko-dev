@@ -4098,6 +4098,10 @@ class Document : public nsINode,
  private:
   bool IsErrorPage() const;
 
+  // Notifies the pres context that an image we track may have started or
+  // stopped animating.
+  void AnimatedImageStateMaybeChanged(bool aAnimating);
+
   // Takes the bits from mStyleUseCounters if appropriate, and sets them in
   // mUseCounters.
   void SetCssUseCounterBits();

@@ -1,0 +1,69 @@
+<!doctype html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<title>Test that a visibility: hidden image doesn't keep the refresh driver running</title>
+<body>
+<script>
+const wu = SpecialPowers.wrap(window).windowUtils;
+async function assertVsyncDisabled(msg) {
+  await new Promise(resolve => {
+    function check() {
+      if (wu.refreshDriverHasPendingTick) {
+        requestIdleCallback(check, {timeout:300});
+      } else {
+        resolve();
+      }
+    }
+    check();
+  });
+  assert_false(wu.refreshDriverHasPendingTick, msg);
+}
+
+async function assertVsyncEnabled(t, msg) {
+  // Should be enough to guarantee there's a paint some of the time at least... We can't quite just await rAF since that trivially triggers the refresh driver machinery.
+  await new Promise(r => t.step_timeout(r, 100));
+  assert_true(wu.refreshDriverHasPendingTick, msg);
+}
+
+async function addImage() {
+  let image = new Image();
+  // Make extra sure that we've painted and decoded the image.
+  await new Promise(r => {
+    image.addEventListener("load", r, { once: true });
+    image.src = "animated.gif";
+    document.body.appendChild(image);
+  });
+  await image.decode();
+  await new Promise(r => {
+    requestAnimationFrame(() => requestAnimationFrame(r));
+    assert_true(wu.refreshDriverHasPendingTick, "Should have a pending tick after rAF");
+  });
+  return image;
+}
+
+promise_test(async function(t) {
+  let image = await addImage();
+  await assertVsyncEnabled(t, "Vsync should be enabled when an animated image is visible");
+
+  image.style.visibility = "hidden";
+  await assertVsyncDisabled("Vsync should be disabled when image is hidden");
+
+  image.style.visibility = "";
+  await assertVsyncEnabled(t, "Vsync should be enabled when image becomes visible again");
+
+  image.style.visibility = "hidden";
+  await assertVsyncDisabled("Vsync should be enabled when image becomes hidden again");
+
+  let secondImage = await addImage();
+  await assertVsyncEnabled(t, "Vsync should be enabled when another image with the same request becomes visible");
+
+  secondImage.style.visibility = "hidden";
+  await assertVsyncDisabled("Vsync should be enabled when second image becomes hidden");
+
+  secondImage.style.visibility = "";
+  await assertVsyncEnabled(t, "Vsync should be enabled when the second image is dynamically shown");
+
+  secondImage.remove();
+  await assertVsyncDisabled("Vsync should be disabled when visible image is removed");
+});
+</script>

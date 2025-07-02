@@ -14308,6 +14308,7 @@ void Document::WarnOnceAbout(
 
 void Document::TrackImage(imgIRequest* aImage) {
   MOZ_ASSERT(aImage);
+  bool newAnimation = false;
   mTrackedImages.WithEntryHandle(aImage, [&](auto&& entry) {
     if (entry) {
       // The image is already in the hashtable.  Increment its count.
@@ -14326,9 +14327,13 @@ void Document::TrackImage(imgIRequest* aImage) {
       // If we're animating images, request that this image be animated too.
       if (mAnimatingImages) {
         aImage->IncrementAnimationConsumers();
+        newAnimation = true;
       }
     }
   });
+  if (newAnimation) {
+    AnimatedImageStateMaybeChanged(true);
+  }
 }
 
 void Document::UntrackImage(imgIRequest* aImage,
@@ -14358,6 +14363,7 @@ void Document::UntrackImage(imgIRequest* aImage,
   // If we're animating images, remove our request to animate this one.
   if (mAnimatingImages) {
     aImage->DecrementAnimationConsumers();
+    AnimatedImageStateMaybeChanged(false);
   }
 
   if (aRequestDiscard == RequestDiscard::Yes) {
@@ -14421,8 +14427,27 @@ void Document::SetImageAnimationState(bool aAnimating) {
     }
   }
 
+  AnimatedImageStateMaybeChanged(aAnimating);
+
   // Update state.
   mAnimatingImages = aAnimating;
+}
+
+void Document::AnimatedImageStateMaybeChanged(bool aAnimating) {
+  auto* ps = GetPresShell();
+  if (!ps) {
+    return;
+  }
+  auto* pc = ps->GetPresContext();
+  if (!pc) {
+    return;
+  }
+  auto* rd = pc->RefreshDriver();
+  if (aAnimating) {
+    rd->StartTimerForAnimatedImagesIfNeeded();
+  } else {
+    rd->StopTimerForAnimatedImagesIfNeeded();
+  }
 }
 
 void Document::ScheduleSVGUseElementShadowTreeUpdate(

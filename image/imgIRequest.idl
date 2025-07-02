@@ -251,6 +251,9 @@ interface imgIRequest : nsIRequest
    */
   void decrementAnimationConsumers();
 
+  /** Returns whether this image is actively animating. */
+  [infallible] readonly attribute boolean hasAnimationConsumers;
+
   /**
    * Request loading priority boost to requested category, each category
    * of request increases priority only one time.

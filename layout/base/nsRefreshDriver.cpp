@@ -1435,6 +1435,7 @@ nsRefreshDriver::nsRefreshDriver(nsPresContext* aPresContext)
       mInNormalTick(false),
       mAttemptedExtraTickSinceLastVsync(false),
       mHasExceededAfterLoadTickPeriod(false),
+      mHasImageAnimations(false),
       mHasStartedTimerAtLeastOnce(false) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(mPresContext,
@@ -1558,6 +1559,24 @@ void nsRefreshDriver::RemovePostRefreshObserver(
   Unused << removed;
 }
 
+void nsRefreshDriver::StartTimerForAnimatedImagesIfNeeded() {
+  if (mHasImageAnimations) {
+    return;
+  }
+  mHasImageAnimations = ComputeHasImageAnimations();
+  if (!mHasImageAnimations || mThrottled) {
+    return;
+  }
+  EnsureTimerStarted();
+}
+
+void nsRefreshDriver::StopTimerForAnimatedImagesIfNeeded() {
+  if (!mHasImageAnimations) {
+    return;
+  }
+  mHasImageAnimations = ComputeHasImageAnimations();
+}
+
 void nsRefreshDriver::AddImageRequest(imgIRequest* aRequest) {
   uint32_t delay = GetFirstFrameDelay(aRequest);
   if (delay == 0) {
@@ -1567,8 +1586,7 @@ void nsRefreshDriver::AddImageRequest(imgIRequest* aRequest) {
     start->mEntries.Insert(aRequest);
   }
 
-  EnsureTimerStarted();
-
+  StartTimerForAnimatedImagesIfNeeded();
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsCOMPtr<nsIURI> uri = aRequest->GetURI();
 
@@ -1587,13 +1605,17 @@ void nsRefreshDriver::RemoveImageRequest(imgIRequest* aRequest) {
   if (delay != 0) {
     ImageStartData* start = mStartTable.Get(delay);
     if (start) {
-      removed = removed | start->mEntries.EnsureRemoved(aRequest);
+      removed |= start->mEntries.EnsureRemoved(aRequest);
     }
   }
 
-  if (removed && profiler_thread_is_being_profiled_for_markers()) {
-    nsCOMPtr<nsIURI> uri = aRequest->GetURI();
+  if (!removed) {
+    return;
+  }
 
+  StopTimerForAnimatedImagesIfNeeded();
+  if (profiler_thread_is_being_profiled_for_markers()) {
+    nsCOMPtr<nsIURI> uri = aRequest->GetURI();
     PROFILER_MARKER_TEXT("Image Animation", GRAPHICS,
                          MarkerOptions(MarkerTiming::IntervalEnd(),
                                        MarkerInnerWindowIdFromDocShell(
@@ -1850,14 +1872,20 @@ void nsRefreshDriver::AppendObserverDescriptionsToString(
   aStr.Truncate(aStr.Length() - 2);
 }
 
-bool nsRefreshDriver::HasImageRequests() const {
+bool nsRefreshDriver::ComputeHasImageAnimations() const {
   for (const auto& data : mStartTable.Values()) {
     if (!data->mEntries.IsEmpty()) {
       return true;
     }
   }
 
-  return !mRequests.IsEmpty();
+  for (const auto& entry : mRequests) {
+    if (entry->GetHasAnimationConsumers()) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 auto nsRefreshDriver::GetReasonsToTick() const -> TickReasons {
@@ -1865,8 +1893,8 @@ auto nsRefreshDriver::GetReasonsToTick() const -> TickReasons {
   if (HasObservers()) {
     reasons |= TickReasons::HasObservers;
   }
-  if (HasImageRequests() && !mThrottled) {
-    reasons |= TickReasons::HasImageRequests;
+  if (mHasImageAnimations && !mThrottled) {
+    reasons |= TickReasons::HasImageAnimations;
   }
   if (!mRenderingPhasesNeeded.isEmpty()) {
     reasons |= TickReasons::HasPendingRenderingSteps;
@@ -1890,7 +1918,7 @@ void nsRefreshDriver::AppendTickReasonsToString(TickReasons aReasons,
     AppendObserverDescriptionsToString(aStr);
     aStr.AppendLiteral(")");
   }
-  if (aReasons & TickReasons::HasImageRequests) {
+  if (aReasons & TickReasons::HasImageAnimations) {
     aStr.AppendLiteral(" HasImageAnimations");
   }
   if (aReasons & TickReasons::HasPendingRenderingSteps) {
@@ -2611,7 +2639,7 @@ bool nsRefreshDriver::PaintIfNeeded() {
 
 void nsRefreshDriver::UpdateAnimatedImages(TimeStamp aPreviousRefresh,
                                            TimeStamp aNowTime) {
-  if (mThrottled) {
+  if (!mHasImageAnimations || mThrottled) {
     // Don't do this when throttled, as the compositor might be paused and we
     // don't want to queue a lot of paints, see bug 1828587.
     return;

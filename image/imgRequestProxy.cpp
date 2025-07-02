@@ -523,6 +523,12 @@ imgIContainer::DecodeResult imgRequestProxy::RequestDecodeWithResult(
 }
 
 NS_IMETHODIMP
+imgRequestProxy::GetHasAnimationConsumers(bool* aIsLocked) {
+  *aIsLocked = !!mAnimationConsumers;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 imgRequestProxy::LockImage() {
   mLockCount++;
   RefPtr<Image> image =

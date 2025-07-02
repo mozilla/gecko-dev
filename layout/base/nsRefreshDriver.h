@@ -131,6 +131,8 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
    */
   void AddImageRequest(imgIRequest* aRequest);
   void RemoveImageRequest(imgIRequest* aRequest);
+  void StartTimerForAnimatedImagesIfNeeded();
+  void StopTimerForAnimatedImagesIfNeeded();
 
   /**
    * Marks that we're currently in the middle of processing user input.
@@ -347,7 +349,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   enum class TickReasons : uint32_t {
     None = 0,
     HasObservers = 1 << 0,
-    HasImageRequests = 1 << 1,
+    HasImageAnimations = 1 << 1,
     HasPendingRenderingSteps = 1 << 2,
     RootNeedsMoreTicksForUserInput = 1 << 3,
   };
@@ -433,7 +435,7 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   void AppendObserverDescriptionsToString(nsACString& aStr) const;
   // Note: This should only be called in the dtor of nsRefreshDriver.
   uint32_t ObserverCount() const;
-  bool HasImageRequests() const;
+  bool ComputeHasImageAnimations() const;
   bool ShouldKeepTimerRunningWhileWaitingForFirstContentfulPaint();
   bool ShouldKeepTimerRunningAfterPageLoad();
   ObserverArray& ArrayFor(mozilla::FlushType aFlushType);
@@ -536,6 +538,8 @@ class nsRefreshDriver final : public mozilla::layers::TransactionIdAllocator,
   bool mAttemptedExtraTickSinceLastVsync : 1;
 
   bool mHasExceededAfterLoadTickPeriod : 1;
+
+  bool mHasImageAnimations : 1;
 
   bool mHasStartedTimerAtLeastOnce : 1;
 
