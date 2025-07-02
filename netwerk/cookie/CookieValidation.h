@@ -78,6 +78,9 @@ class CookieValidation final : public nsICookieValidation {
   static bool CheckPrefixes(const CookieStruct& aCookieData,
                             bool aSecureRequest);
 
+  static bool HasSecurePrefix(const nsACString& aString);
+  static bool HasHostPrefix(const nsACString& aString);
+
   CookieStruct mCookieData;
 
   nsICookieValidation::ValidationError mResult = eOK;
