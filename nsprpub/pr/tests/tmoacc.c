@@ -220,7 +220,6 @@ PRIntn Tmoacc(PRIntn argc, char** argv) {
     timeout = DEFAULT_TIMEOUT;
   }
 
-  PR_STDIO_INIT();
   memset(&listenAddr, 0, sizeof(listenAddr));
   rv = PR_InitializeNetAddr(PR_IpAddrAny, BASE_PORT, &listenAddr);
   PR_ASSERT(PR_SUCCESS == rv);

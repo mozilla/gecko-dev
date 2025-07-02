@@ -139,7 +139,6 @@ int main(int argc, char** argv) {
     }
   }
   PL_DestroyOptState(opt);
-  PR_STDIO_INIT();
 
   if (duration == 0) {
     duration = DEFAULT_DURATION;

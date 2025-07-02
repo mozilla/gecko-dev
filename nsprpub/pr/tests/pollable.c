@@ -107,7 +107,6 @@ int main(int argc, char** argv) {
   PLOptStatus os;
   PLOptState* opt;
 
-  PR_STDIO_INIT();
 
   opt = PL_CreateOptState(argc, argv, "hdvc:t:C:GD:");
   while (PL_OPT_EOL != (os = PL_GetNextOpt(opt))) {

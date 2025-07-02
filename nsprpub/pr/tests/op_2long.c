@@ -49,7 +49,6 @@ int main(int argc, char** argv) {
   }
   nameTooLong[TOO_LONG - 1] = 0;
 
-  PR_STDIO_INIT();
   t1 = PR_Open(nameTooLong, PR_RDWR, 0666);
   if (t1 == NULL) {
     if (PR_GetError() == PR_NAME_TOO_LONG_ERROR) {

@@ -773,7 +773,6 @@ This test is run with %d, %d, %d, and %d threads of each type.\n\n",
 int main(int argc, char** argv) {
   PRIntn rv;
 
-  PR_STDIO_INIT();
   rv = PR_Initialize(RealMain, argc, argv, 0);
   return rv;
 } /* main */

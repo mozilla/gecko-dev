@@ -113,7 +113,6 @@ int main(int argc, char** argv) {
   PLOptState* opt = PL_CreateOptState(argc, argv, "dtvhs:");
 
   output = PR_GetSpecialFD(PR_StandardError);
-  PR_STDIO_INIT();
 
   while (PL_OPT_EOL != (os = PL_GetNextOpt(opt))) {
     if (PL_OPT_BAD == os) {

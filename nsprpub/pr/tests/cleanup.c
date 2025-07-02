@@ -38,7 +38,6 @@ int main(int argc, char** argv) {
   PLOptState* opt = PL_CreateOptState(argc, argv, "Ghs:S:t:cC:");
   PRIntn concurrency = 1, child_sleep = 10, main_sleep = 5, threads = 1;
 
-  PR_STDIO_INIT();
   while (PL_OPT_EOL != (os = PL_GetNextOpt(opt))) {
     if (PL_OPT_BAD == os) {
       continue;

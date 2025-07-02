@@ -75,7 +75,6 @@ int main(int argc, char** argv) {
   PRIntn i, j;
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   printf("This program tests PR_Poll with sockets.\n");
   printf("Timeout, error reporting, and normal operation are tested.\n\n");

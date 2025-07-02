@@ -315,7 +315,6 @@ int main(int argc, char** argv) {
     }
   }
   PL_DestroyOptState(opt);
-  PR_STDIO_INIT();
   intrupt = PR_CreateThread(PR_USER_THREAD, Intrupt, NULL, PR_PRIORITY_NORMAL,
                             thread_scope, PR_JOINABLE_THREAD, 0);
   if (intrupt == NULL) {

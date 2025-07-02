@@ -15,7 +15,7 @@ dnl ========================================================
 dnl = Defaults
 dnl ========================================================
 MOD_MAJOR_VERSION=4
-MOD_MINOR_VERSION=36
+MOD_MINOR_VERSION=37
 MOD_PATCH_VERSION=0
 NSPR_MODNAME=nspr20
 _HAVE_PTHREADS=
@@ -1805,7 +1805,7 @@ tools are selected during the Xcode/Developer Tools installation.])
     esac
 
     case "$target_cpu" in
-    i*86)
+    i*86|x86_64)
 	if test -n "$USE_64"; then
 	    AC_DEFINE(_AMD64_)
 	else
@@ -1817,10 +1817,6 @@ tools are selected during the Xcode/Developer Tools installation.])
             fi
 	fi
         ;;
-    x86_64)
-	    AC_DEFINE(_AMD64_)
-	    USE_64=1
-	    ;;
     aarch64)
 	    AC_DEFINE(_ARM64_)
 	    USE_64=1

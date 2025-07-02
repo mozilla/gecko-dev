@@ -89,7 +89,6 @@ int main(int argc, char** argv) {
   PL_DestroyOptState(opt);
 
   /* main test */
-  PR_STDIO_INIT();
 
   i16 = -1;
   n = -1;

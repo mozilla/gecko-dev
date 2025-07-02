@@ -846,7 +846,6 @@ int main(int argc, char** argv) {
   PLOptStatus os;
   PLOptState* opt;
 
-  PR_STDIO_INIT();
   opt = PL_CreateOptState(argc, argv, "d");
   while (PL_OPT_EOL != (os = PL_GetNextOpt(opt))) {
     if (PL_OPT_BAD == os) {

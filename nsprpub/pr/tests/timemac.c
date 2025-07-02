@@ -45,7 +45,6 @@ static void printExplodedTime(const PRExplodedTime* et) {
 }
 
 int main(int argc, char** argv) {
-  PR_STDIO_INIT();
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
 
   /*

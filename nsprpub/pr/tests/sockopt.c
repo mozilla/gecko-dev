@@ -61,7 +61,6 @@ int main(int argc, char** argv) {
       "PR_SockOpt_Last"};
 
   err = PR_GetSpecialFD(PR_StandardError);
-  PR_STDIO_INIT();
 
   if (NULL == udp) {
     Failed("PR_NewUDPSocket()", NULL);

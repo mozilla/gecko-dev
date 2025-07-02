@@ -260,7 +260,6 @@ int main(int argc, char** argv) {
     }
   }
   PL_DestroyOptState(opt);
-  PR_STDIO_INIT();
   return PR_Initialize(Tpd, argc, argv, 0);
 } /* main */
 

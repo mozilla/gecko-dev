@@ -35,7 +35,6 @@ int main(int argc, char** argv) {
   return (0);
 #endif
 
-  PR_STDIO_INIT();
   err01 = PR_Open("err01.tmp", PR_CREATE_FILE | PR_RDWR, 0);
   if (err01 == NULL) {
     int error = PR_GetError();

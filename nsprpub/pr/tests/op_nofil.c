@@ -32,7 +32,6 @@
 static PRFileDesc* t1;
 
 int main(int argc, char** argv) {
-  PR_STDIO_INIT();
   t1 = PR_Open(NO_SUCH_FILE, PR_RDONLY, 0666);
   if (t1 == NULL) {
     if (PR_GetError() == PR_FILE_NOT_FOUND_ERROR) {

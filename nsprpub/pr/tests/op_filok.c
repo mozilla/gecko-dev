@@ -26,7 +26,6 @@
 static PRFileDesc* t1;
 
 int main(int argc, char** argv) {
-  PR_STDIO_INIT();
 
   t1 = PR_Open(argv[0], PR_RDONLY, 0666);
 

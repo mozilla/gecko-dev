@@ -236,7 +236,6 @@ int main(int argc, char** argv) {
   }
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_LOW, 0);
-  PR_STDIO_INIT();
 
   printf("test with global bound thread\n");
   thread_test(PR_GLOBAL_BOUND_THREAD, num_threads);

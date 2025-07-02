@@ -413,7 +413,6 @@ static void TestS(void) {
 /************************************************************************/
 
 int main(int argc, char** argv) {
-  PR_STDIO_INIT();
   TestI();
   TestL();
   TestLL();

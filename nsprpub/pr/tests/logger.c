@@ -77,7 +77,6 @@ int main(int argc, char** argv) {
   PRThread* thread;
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   if (argc > 1) {
     if (!PR_SetLogFile(argv[1])) {

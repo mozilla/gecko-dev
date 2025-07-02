@@ -69,7 +69,6 @@ int main(int argc, char** argv) {
 
   /* main test */
 
-  PR_STDIO_INIT();
   i16 = -32;
   n = 30;
   i32 = 64;

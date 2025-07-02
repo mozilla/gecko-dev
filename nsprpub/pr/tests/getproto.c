@@ -27,7 +27,6 @@ int main(int argc, char** argv) {
   char buf[2048];
   PRStatus rv;
 
-  PR_STDIO_INIT();
   rv = PR_GetProtoByName("tcp", buf, sizeof(buf), &proto);
   if (PR_FAILURE == rv) {
     failed = PR_TRUE;

@@ -905,7 +905,6 @@ static PRIntn Initialize(PRIntn argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-  PR_STDIO_INIT();
   output = PR_GetSpecialFD(PR_StandardError);
 
   if (Initialize(argc, argv)) {

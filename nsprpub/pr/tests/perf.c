@@ -339,7 +339,6 @@ int main(int argc, char** argv) {
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
   PR_BlockClockInterrupts();
   PR_UnblockClockInterrupts();
-  PR_STDIO_INIT();
 
   lock = PR_NewLock();
   mon = PR_NewMonitor();

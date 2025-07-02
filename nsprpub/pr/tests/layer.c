@@ -305,7 +305,6 @@ int main(int argc, char** argv) {
     }
   }
   PL_DestroyOptState(opt);
-  PR_STDIO_INIT();
 
   logFile = PR_GetSpecialFD(PR_StandardError);
 

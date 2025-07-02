@@ -198,7 +198,6 @@ int main(int argc, char** argv) {
   /* main test */
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   if (argc > 1) {
     loops = atoi(argv[1]);

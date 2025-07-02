@@ -120,7 +120,6 @@ int main(int argc, char** argv) {
   /* main test */
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   if (debug_mode) {
     printf("This program tests PR_Select with sockets.  Timeout, error\n");

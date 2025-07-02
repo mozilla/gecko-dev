@@ -562,7 +562,8 @@ PR_IMPLEMENT(PRDescIdentity) PR_GetUniqueIdentity(const char* layer_name) {
     _PR_ImplicitInitialization();
   }
 
-  PR_ASSERT((PRDescIdentity)0x7fff > identity_cache.ident);
+  PR_ASSERT((PRDescIdentity)((1UL << ((sizeof(PRDescIdentity) * 8) - 1)) - 1)
+            > identity_cache.ident);
 
   if (NULL != layer_name) {
     name = (char*)PR_Malloc(strlen(layer_name) + 1);

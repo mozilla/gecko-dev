@@ -494,7 +494,6 @@ int prmain(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   PR_Initialize(prmain, argc, argv, 0);
-  PR_STDIO_INIT();
   if (failed_already) {
     return 1;
   } else {

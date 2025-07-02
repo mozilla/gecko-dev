@@ -109,7 +109,6 @@ static void Measure(void (*func)(void), const char* msg) {
 int main(int argc, char** argv) {
   int index;
 
-  PR_STDIO_INIT();
   PR_Init(PR_USER_THREAD, PR_PRIORITY_HIGH, 0);
 
   {

@@ -55,7 +55,6 @@ int PR_CALLBACK Writev(int argc, char** argv) {
   PLOptStatus os;
   PLOptState* opt = PL_CreateOptState(argc, argv, "dh:m:s:f:");
 
-  PR_STDIO_INIT();
   rv = PR_InitializeNetAddr(PR_IpAddrLoopback, BASE_PORT, &serverAddr);
   PR_ASSERT(PR_SUCCESS == rv);
 

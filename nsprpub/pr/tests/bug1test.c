@@ -208,7 +208,6 @@ static void padStack(int argc, char** argv) {
 
 int main(int argc, char** argv) {
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
   padStack(argc, argv);
 }
 

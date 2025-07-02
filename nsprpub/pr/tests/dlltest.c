@@ -56,7 +56,6 @@ int main(int argc, char** argv) {
   }
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   /*
    * Test 1: load the library, look up the symbols, call the functions,

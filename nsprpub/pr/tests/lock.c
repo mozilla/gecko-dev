@@ -406,7 +406,6 @@ int main(int argc, char** argv) {
   PRIntervalTime duration;
   PRUint32 cpu, cpus = 2, loops = 100;
 
-  PR_STDIO_INIT();
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
   {
     /* The command line argument: -d is used to determine if the test is being

@@ -2063,7 +2063,6 @@ int main(int argc, char** argv) {
   PL_DestroyOptState(opt);
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   PR_SetConcurrency(4);
 

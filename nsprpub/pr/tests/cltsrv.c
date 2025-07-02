@@ -975,7 +975,6 @@ int main(int argc, char** argv) {
     accepting = workersMin;
   }
 
-  PR_STDIO_INIT();
   TimeOfDayMessage("Client/Server started at", PR_GetCurrentThread());
 
   cltsrv_log_file = PR_NewLogModule("cltsrv_log");

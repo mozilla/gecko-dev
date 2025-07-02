@@ -3003,7 +3003,7 @@ test -n "$target_alias" &&
   program_prefix=${target_alias}-
 
 MOD_MAJOR_VERSION=4
-MOD_MINOR_VERSION=36
+MOD_MINOR_VERSION=37
 MOD_PATCH_VERSION=0
 NSPR_MODNAME=nspr20
 _HAVE_PTHREADS=
@@ -7771,7 +7771,7 @@ printf "%s\n" "$as_me: WARNING: Unknown version of the Microsoft (R) Manifest To
     esac
 
     case "$target_cpu" in
-    i*86)
+    i*86|x86_64)
 	if test -n "$USE_64"; then
 	    printf "%s\n" "#define _AMD64_ 1" >>confdefs.h
 
@@ -7783,11 +7783,6 @@ printf "%s\n" "$as_me: WARNING: Unknown version of the Microsoft (R) Manifest To
             fi
 	fi
         ;;
-    x86_64)
-	    printf "%s\n" "#define _AMD64_ 1" >>confdefs.h
-
-	    USE_64=1
-	    ;;
     aarch64)
 	    printf "%s\n" "#define _ARM64_ 1" >>confdefs.h
 

@@ -293,7 +293,6 @@ int Tmocon(int argc, char** argv) {
   shared->messages = DEFAULT_MESSAGES;
   shared->message_length = DEFAULT_MESSAGESIZE;
 
-  PR_STDIO_INIT();
   memset(&shared->serverAddress, 0, sizeof(shared->serverAddress));
   rv = PR_InitializeNetAddr(PR_IpAddrLoopback, BASE_PORT,
                             &shared->serverAddress);

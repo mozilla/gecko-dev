@@ -147,7 +147,6 @@ int main(int argc, char** argv) {
    * To force the implicit initialization of nspr20
    */
   PR_SetError(0, 0);
-  PR_STDIO_INIT();
 
   /*
    * Platform-specific code to create a native thread.  The native

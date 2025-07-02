@@ -149,7 +149,6 @@ static void writer(void) {
 int main(int argc, char** argv) {
   PRThread* r;
 
-  PR_STDIO_INIT();
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
 
   {

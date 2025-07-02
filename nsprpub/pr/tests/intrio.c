@@ -105,7 +105,6 @@ static void Test(PRThreadScope scope1, PRThreadScope scope2) {
 }
 
 int main(int argc, char** argv) {
-  PR_STDIO_INIT();
   lock = PR_NewLock();
   if (lock == NULL) {
     fprintf(stderr, "PR_NewLock failed\n");

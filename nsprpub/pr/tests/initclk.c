@@ -55,8 +55,8 @@ int main(int argc, char** argv) {
   PR_JoinThread(thread);
   end = PR_IntervalNow();
   elapsed_ms = PR_IntervalToMilliseconds((PRIntervalTime)(end - start));
-  /* Allow 100ms imprecision */
-  if (elapsed_ms < LONG_TIMEOUT - 100 || elapsed_ms > LONG_TIMEOUT + 100) {
+  /* Allow -100ms/+200ms imprecision */
+  if (elapsed_ms < LONG_TIMEOUT - 100 || elapsed_ms > LONG_TIMEOUT + 200) {
     printf("Elapsed time should be %u ms but is %u ms\n", LONG_TIMEOUT,
            elapsed_ms);
     printf("FAIL\n");

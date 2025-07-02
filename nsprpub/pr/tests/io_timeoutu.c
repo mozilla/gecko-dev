@@ -199,7 +199,6 @@ int main(int argc, char** argv) {
   }
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_LOW, 0);
-  PR_STDIO_INIT();
 
   if (debug_mode) {
     printf("user level test\n");

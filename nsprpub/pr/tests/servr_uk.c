@@ -558,7 +558,6 @@ int main(int argc, char** argv) {
            _client_data, _server_data);
   }
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   PR_SetThreadRecycleMode(64);
 

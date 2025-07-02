@@ -426,7 +426,6 @@ int main(int argc, char** argv) {
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
   output = PR_STDERR;
-  PR_STDIO_INIT();
 
   timeoutTime = PR_SecondsToInterval(TIMEOUTSECS);
   if (debug_mode) {

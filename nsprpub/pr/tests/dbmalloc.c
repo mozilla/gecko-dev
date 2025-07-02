@@ -206,7 +206,6 @@ int main(int argc, char** argv) {
   srand(time(0));
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   printf("[main]: We %s using the debugging malloc.\n",
          PR_IsDebuggingMalloc() ? "ARE" : "ARE NOT");

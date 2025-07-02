@@ -223,7 +223,6 @@ PRIntn PR_CALLBACK Switch(PRIntn argc, char** argv) {
 
 int main(int argc, char** argv) {
   PRIntn result;
-  PR_STDIO_INIT();
   result = PR_Initialize(Switch, argc, argv, 0);
   return result;
 } /* main */

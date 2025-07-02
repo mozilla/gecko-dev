@@ -156,7 +156,6 @@ int main(int argc, char** argv) {
   PRThread *r, *w;
 
   PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-  PR_STDIO_INIT();
 
   emptyBufs = PR_NewSem(2); /* two empty buffers */
 
