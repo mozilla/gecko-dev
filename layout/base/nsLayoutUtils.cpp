@@ -4908,12 +4908,8 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
           nscoord maxISize = ratio.ComputeRatioDependentSize(
               isInlineAxis ? LogicalAxis::Inline : LogicalAxis::Block, childWM,
               *maxBSize, *contentEdgeToBoxSizing);
-          if (maxISize < result) {
-            result = maxISize;
-          }
-          if (maxISize < minContentSize) {
-            minContentSize = maxISize;
-          }
+          result = std::min(result, maxISize);
+          minContentSize = std::min(minContentSize, maxISize);
         }
 
         if (Maybe<nscoord> minBSize = GetBSize(styleMinBSize)) {
@@ -4921,12 +4917,8 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
           nscoord minISize = ratio.ComputeRatioDependentSize(
               isInlineAxis ? LogicalAxis::Inline : LogicalAxis::Block, childWM,
               *minBSize, *contentEdgeToBoxSizing);
-          if (minISize > result) {
-            result = minISize;
-          }
-          if (minISize > minContentSize) {
-            minContentSize = minISize;
-          }
+          result = std::max(result, minISize);
+          minContentSize = std::max(minContentSize, minISize);
         }
 
         if (MOZ_UNLIKELY(aFlags & nsLayoutUtils::MIN_INTRINSIC_ISIZE) &&
