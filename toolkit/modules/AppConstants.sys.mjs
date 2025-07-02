@@ -267,5 +267,9 @@ export var AppConstants = Object.freeze({
     false,
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+  MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS: @MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS_BOOL@,
+#endif
+
   USE_LIBZ_RS: @USE_LIBZ_RS_BOOL@,
 });
