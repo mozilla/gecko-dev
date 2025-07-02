@@ -644,6 +644,14 @@ features:
         value:
           enabled: true
 
+  override-user-specified-homepage-sections:
+    description: Whether to ignore the user-specified homepage section visibility settings and hide the options in the settings.
+    variables:
+      enabled:
+        description: >
+          When true, ignore the user-specified homepage section visibility settings, and hide the toggle options in the settings.
+        type: Boolean
+        default: false
   microsurveys:
     description: Feature for microsurveys.
     variables:

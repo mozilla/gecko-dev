@@ -103,6 +103,12 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
+        requirePreference<SwitchPreference>(R.string.pref_key_override_user_specified_homepage_sections).apply {
+            isVisible = Config.channel.isNightlyOrDebug
+            isChecked = context.settings().overrideUserSpecifiedHomepageSections
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_enable_homepage_as_new_tab).apply {
             isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().enableHomepageAsNewTab

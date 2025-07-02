@@ -238,6 +238,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     private val homescreenSections: Map<HomeScreenSection, Boolean>
         get() = FxNimbus.features.homescreen.value().sectionsEnabled
 
+    val overrideUserSpecifiedHomepageSections by lazyFeatureFlagPreference(
+        appContext.getPreferenceKey(R.string.pref_key_override_user_specified_homepage_sections),
+        featureFlag = true,
+        default = { FxNimbus.features.overrideUserSpecifiedHomepageSections.value().enabled },
+    )
+
     var numberOfAppLaunches by intPreference(
         appContext.getPreferenceKey(R.string.pref_key_times_app_opened),
         default = 0,
