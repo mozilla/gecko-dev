@@ -331,10 +331,10 @@ class nsTimerEvent final : public CancelableRunnable {
 #endif
 
   explicit nsTimerEvent(already_AddRefed<nsTimerImpl> aTimer,
-                        uint64_t aTimerSeq, ProfilerThreadId aTimerThreadId)
+                        ProfilerThreadId aTimerThreadId)
       : mozilla::CancelableRunnable("nsTimerEvent"),
         mTimer(aTimer),
-        mTimerSeq(aTimerSeq),
+        mGeneration(mTimer->GetGeneration()),
         mTimerThreadId(aTimerThreadId) {
     // Note: We override operator new for this class, and the override is
     // fallible!
@@ -378,7 +378,7 @@ class nsTimerEvent final : public CancelableRunnable {
 
   TimeStamp mInitTime;
   RefPtr<nsTimerImpl> mTimer;
-  const uint64_t mTimerSeq;
+  const int32_t mGeneration;
   ProfilerThreadId mTimerThreadId;
 
   static TimerEventAllocator* sAllocator;
@@ -562,7 +562,7 @@ nsTimerEvent::Run() {
         MarkerThreadId::CurrentThread());
   }
 
-  mTimer->Fire(mTimerSeq);
+  mTimer->Fire(mGeneration);
 
   return NS_OK;
 }
@@ -608,7 +608,7 @@ nsresult TimerThread::Shutdown() {
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  nsTArray<Entry> timers;
+  nsTArray<RefPtr<nsTimerImpl>> timers;
   {
     // lock scope
     MonitorAutoLock lock(mMonitor);
@@ -621,29 +621,25 @@ nsresult TimerThread::Shutdown() {
       mMonitor.Notify();
     }
 
-    // Need to move the content of mTimers to a local array
+    // Need to copy content of mTimers array to a local array
     // because call to timers' Cancel() (and release its self)
     // must not be done under the lock. Destructor of a callback
     // might potentially call some code reentering the same lock
     // that leads to unexpected behavior or deadlock.
     // See bug 422472.
-    timers = std::move(mTimers);
-    MOZ_ASSERT(mTimers.IsEmpty());
-
-    // Clear IsInTimerThread while the lock is held, as these timers are no
-    // longer in mTimers.
-    for (auto& entry : timers) {
-      // We could find canceled timers that have not yet been removed.
-      if (entry.mTimerImpl) {
-        entry.mTimerImpl->SetIsInTimerThread(false);
+    timers.SetCapacity(mTimers.Length());
+    for (Entry& entry : mTimers) {
+      if (entry.Value()) {
+        timers.AppendElement(entry.Take());
       }
     }
+
+    mTimers.Clear();
   }
 
-  for (const auto& entry : timers) {
-    if (entry.mTimerImpl) {
-      entry.mTimerImpl->Cancel();
-    }
+  for (const RefPtr<nsTimerImpl>& timer : timers) {
+    MOZ_ASSERT(timer);
+    timer->Cancel();
   }
 
   mThread->Shutdown();  // wait for the thread to die
@@ -670,6 +666,53 @@ struct IntervalComparator {
 
 }  // namespace
 
+#ifdef DEBUG
+void TimerThread::VerifyTimerListConsistency() const {
+  mMonitor.AssertCurrentThreadOwns();
+
+  // Find the first non-canceled timer (and check its cached timeout if we find
+  // it).
+  const size_t timerCount = mTimers.Length();
+  size_t lastNonCanceledTimerIndex = 0;
+  while (lastNonCanceledTimerIndex < timerCount &&
+         !mTimers[lastNonCanceledTimerIndex].Value()) {
+    ++lastNonCanceledTimerIndex;
+  }
+  MOZ_ASSERT(lastNonCanceledTimerIndex == timerCount ||
+             mTimers[lastNonCanceledTimerIndex].Value());
+  MOZ_ASSERT(lastNonCanceledTimerIndex == timerCount ||
+             mTimers[lastNonCanceledTimerIndex].Value()->mTimeout ==
+                 mTimers[lastNonCanceledTimerIndex].Timeout());
+
+  // Verify that mTimers is sorted and the cached timeouts are consistent.
+  for (size_t timerIndex = lastNonCanceledTimerIndex + 1;
+       timerIndex < timerCount; ++timerIndex) {
+    if (mTimers[timerIndex].Value()) {
+      MOZ_ASSERT(mTimers[timerIndex].Timeout() ==
+                 mTimers[timerIndex].Value()->mTimeout);
+      MOZ_ASSERT(mTimers[timerIndex].Timeout() >=
+                 mTimers[lastNonCanceledTimerIndex].Timeout());
+      lastNonCanceledTimerIndex = timerIndex;
+    }
+  }
+}
+#endif
+
+size_t TimerThread::ComputeTimerInsertionIndex(const TimeStamp& timeout) const {
+  mMonitor.AssertCurrentThreadOwns();
+
+  const size_t timerCount = mTimers.Length();
+
+  size_t firstGtIndex = 0;
+  while (firstGtIndex < timerCount &&
+         (!mTimers[firstGtIndex].Value() ||
+          mTimers[firstGtIndex].Timeout() <= timeout)) {
+    ++firstGtIndex;
+  }
+
+  return firstGtIndex;
+}
+
 TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
   mMonitor.AssertCurrentThreadOwns();
 
@@ -678,7 +721,7 @@ TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
   }
 
   // The first timer should be non-canceled and we rely on that here.
-  MOZ_ASSERT(mTimers[0].mTimerImpl);
+  MOZ_ASSERT(mTimers[0].Value());
 
   // Overview: Find the last timer in the list that can be "bundled" together in
   // the same wake-up with mTimers[0] and use its timeout as our target wake-up
@@ -687,7 +730,7 @@ TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
   // bundleWakeup is when we should wake up in order to be able to fire all of
   // the timers in our selected bundle. It will always be the timeout of the
   // last timer in the bundle.
-  TimeStamp bundleWakeup = mTimers[0].mTimeout;
+  TimeStamp bundleWakeup = mTimers[0].Timeout();
 
   // cutoffTime is the latest that we can wake up for the timers currently
   // accepted into the bundle. These needs to be updated as we go through the
@@ -697,19 +740,19 @@ TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
   const TimeDuration maxTimerDelay = TimeDuration::FromMilliseconds(
       StaticPrefs::timer_maximum_firing_delay_tolerance_ms());
   TimeStamp cutoffTime =
-      bundleWakeup + ComputeAcceptableFiringDelay(mTimers[0].mDelay,
+      bundleWakeup + ComputeAcceptableFiringDelay(mTimers[0].Delay(),
                                                   minTimerDelay, maxTimerDelay);
 
   const size_t timerCount = mTimers.Length();
   for (size_t entryIndex = 1; entryIndex < timerCount; ++entryIndex) {
     const Entry& curEntry = mTimers[entryIndex];
-    const nsTimerImpl* curTimer = curEntry.mTimerImpl;
+    const nsTimerImpl* curTimer = curEntry.Value();
     if (!curTimer) {
       // Canceled timer - skip it
       continue;
     }
 
-    const TimeStamp curTimerDue = curEntry.mTimeout;
+    const TimeStamp curTimerDue = curEntry.Timeout();
     if (curTimerDue > cutoffTime) {
       // Can't include this timer in the bundle - it fires too late.
       break;
@@ -720,7 +763,7 @@ TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
     bundleWakeup = curTimerDue;
     cutoffTime = std::min(
         curTimerDue + ComputeAcceptableFiringDelay(
-                          curEntry.mDelay, minTimerDelay, maxTimerDelay),
+                          curEntry.Delay(), minTimerDelay, maxTimerDelay),
         cutoffTime);
     MOZ_ASSERT(bundleWakeup <= cutoffTime);
   }
@@ -728,8 +771,8 @@ TimeStamp TimerThread::ComputeWakeupTimeFromTimers() const {
 #if !defined(XP_WIN)
   // Due to the fact that, on Windows, each TimeStamp object holds two distinct
   // "values", this assert is not valid there. See bug 1829983 for the details.
-  MOZ_ASSERT(bundleWakeup - mTimers[0].mTimeout <=
-             ComputeAcceptableFiringDelay(mTimers[0].mDelay, minTimerDelay,
+  MOZ_ASSERT(bundleWakeup - mTimers[0].Timeout() <=
+             ComputeAcceptableFiringDelay(mTimers[0].Delay(), minTimerDelay,
                                           maxTimerDelay));
 #endif
 
@@ -759,29 +802,33 @@ uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
   // timer can result in timers getting added to/removed from the list.
   while (!mTimers.IsEmpty()) {
     Entry& frontEntry = mTimers[0];
-    MOZ_ASSERT(frontEntry.IsTimerInThreadAndUnchanged());
 
-    if (lastNow + aAllowedEarlyFiring < frontEntry.mTimeout) {
+    if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
       // This timer is not ready to execute yet, and we need to preserve the
       // order of timers, so we might have to stop here. First let's
       // re-evaluate 'now' though, because some time might have passed since
       // we last got it.
       lastNow = TimeStamp::Now();
-      if (lastNow + aAllowedEarlyFiring < frontEntry.mTimeout) {
+      if (lastNow + aAllowedEarlyFiring < frontEntry.Timeout()) {
         break;
       }
     }
+
+    // NB: AddRef before the Release under RemoveTimerInternal to avoid mRefCnt
+    // passing through zero, in case all other refs than the one from mTimers
+    // have gone away (the last non-mTimers[i]-ref's Release must be racing with
+    // us, blocked in gThread->RemoveTimer waiting for TimerThread::mMonitor,
+    // under nsTimerImpl::Release.
+    RefPtr<nsTimerImpl> timerRef(frontEntry.Take());
+    RemoveFirstTimerInternal();
 
     // We are going to let the call to PostTimerEvent here handle the release of
     // the timer so that we don't end up releasing the timer on the TimerThread
     // instead of on the thread it targets.
     {
       ++timersFired;
-      LogTimerEvent::Run run(frontEntry.mTimerImpl.get());
-      PostTimerEvent(frontEntry);
-      // Note that the call to PostTimerEvent moved mTimerImpl out of
-      // postMe before unlocking and locking mMonitor. The now canceled
-      // slot may be removed below if it was not re-used already.
+      LogTimerEvent::Run run(timerRef.get());
+      PostTimerEvent(timerRef.forget());
     }
 
     // PostTimerEvent releases mMonitor, which means that mShutdown could have
@@ -867,6 +914,10 @@ TimerThread::Run() {
     const bool chaosModeActive =
         ChaosMode::isActive(ChaosFeature::TimerScheduling);
 
+#ifdef DEBUG
+    VerifyTimerListConsistency();
+#endif
+
     TimeDuration waitFor;
     if (!mSleeping) {
       // Determine how early we are going to allow timers to fire. In chaos mode
@@ -948,10 +999,6 @@ nsresult TimerThread::AddTimer(nsTimerImpl* aTimer,
   MonitorAutoLock lock(mMonitor);
   AUTO_TIMERS_STATS(TimerThread_AddTimer);
 
-  if (mShutdown) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-
   if (!aTimer->mEventTarget) {
     return NS_ERROR_NOT_INITIALIZED;
   }
@@ -989,12 +1036,10 @@ nsresult TimerThread::AddTimer(nsTimerImpl* aTimer,
   ++mTotalTimersAdded;
 #endif
 
-  MOZ_ASSERT(!aTimer->IsInTimerThread());
-  aTimer->SetTimerSequence(++mLastTimerSeq);
-
   // Add the timer to our list.
-  AddTimerInternal(*aTimer);
-  aTimer->SetIsInTimerThread(true);
+  if (!AddTimerInternal(*aTimer)) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
 
   if (wakeUpTimerThread) {
     mNotified = true;
@@ -1026,12 +1071,8 @@ nsresult TimerThread::RemoveTimer(nsTimerImpl* aTimer,
 
   // Remove the timer from our array.  Tell callers that aTimer was not found
   // by returning NS_ERROR_NOT_AVAILABLE.
-  // Any subsequent fire without calling AddTimer again shall cause a mismatch.
 
-  bool wasInThread = RemoveTimerInternal(*aTimer);
-  aTimer->SetTimerSequence(0);
-  aTimer->SetIsInTimerThread(false);
-  if (!wasInThread) {
+  if (!RemoveTimerInternal(*aTimer)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -1082,9 +1123,9 @@ TimeStamp TimerThread::FindNextFireTimeForCurrentThread(TimeStamp aDefault,
   AUTO_TIMERS_STATS(TimerThread_FindNextFireTimeForCurrentThread);
 
   for (const Entry& entry : mTimers) {
-    const nsTimerImpl* timer = entry.mTimerImpl;
+    const nsTimerImpl* timer = entry.Value();
     if (timer) {
-      if (entry.mTimeout > aDefault) {
+      if (entry.Timeout() > aDefault) {
         return aDefault;
       }
 
@@ -1094,7 +1135,7 @@ TimeStamp TimerThread::FindNextFireTimeForCurrentThread(TimeStamp aDefault,
         nsresult rv =
             timer->mEventTarget->IsOnCurrentThread(&isOnCurrentThread);
         if (NS_SUCCEEDED(rv) && isOnCurrentThread) {
-          return entry.mTimeout;
+          return entry.Timeout();
         }
       }
 
@@ -1114,62 +1155,86 @@ TimeStamp TimerThread::FindNextFireTimeForCurrentThread(TimeStamp aDefault,
   return aDefault;
 }
 
-void TimerThread::AssertTimersSortedAndUnique() {
-  MOZ_ASSERT(std::is_sorted(mTimers.begin(), mTimers.end()),
-             "mTimers must be sorted.");
-  MOZ_ASSERT(
-      std::adjacent_find(mTimers.begin(), mTimers.end()) == mTimers.end(),
-      "mTimers must not contain duplicate entries.");
-}
-
 // This function must be called from within a lock
 // Also: we hold the mutex for the nsTimerImpl.
-void TimerThread::AddTimerInternal(nsTimerImpl& aTimer) {
+bool TimerThread::AddTimerInternal(nsTimerImpl& aTimer) {
   mMonitor.AssertCurrentThreadOwns();
   aTimer.mMutex.AssertCurrentThreadOwns();
   AUTO_TIMERS_STATS(TimerThread_AddTimerInternal);
-  LogTimerEvent::LogDispatch(&aTimer);
-
-  // Do the AddRef here.
-  Entry toBeAdded{aTimer};
-  size_t insertAt = mTimers.IndexOfFirstElementGt(toBeAdded);
-
-  if (insertAt > 0 && !mTimers[insertAt - 1].mTimerImpl) {
-    // Very common scenario in practice: The timer just before the insertion
-    // point is canceled, overwrite it.
-    // Note: This is most likely common because we often cancel and re-add the
-    // same timer even shortly after having it added before, such that we find
-    // our very own canceled slot here, given the order of the array.
-    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_ReuseBefore);
-    mTimers[insertAt - 1] = std::move(toBeAdded);
-    AssertTimersSortedAndUnique();
-    return;
+  if (mShutdown) {
+    return false;
   }
 
-  bool usedEmptySlot = false;
+  LogTimerEvent::LogDispatch(&aTimer);
 
-  if (insertAt < mTimers.Length()) {
-    // We shift the elements manually until we find an empty slot if any.
-    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_ShiftAndFindEmptySlot);
-    Span<Entry> tail = Span{mTimers}.From(insertAt);
-    for (Entry& e : tail) {
-      if (!e.mTimerImpl) {
-        e = std::move(toBeAdded);
-        usedEmptySlot = true;
-        break;
-      }
-      std::swap(e, toBeAdded);
+  const TimeStamp& timeout = aTimer.mTimeout;
+  const size_t insertionIndex = ComputeTimerInsertionIndex(timeout);
+
+  if (insertionIndex != 0 && !mTimers[insertionIndex - 1].Value()) {
+    // Very common scenario in practice: The timer just before the insertion
+    // point is canceled, overwrite it.
+    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_overwrite_before);
+    mTimers[insertionIndex - 1] = Entry{aTimer};
+    return true;
+  }
+
+  const size_t length = mTimers.Length();
+  if (insertionIndex == length) {
+    // We're at the end (including it's the very first insertion), add new timer
+    // at the end.
+    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_append);
+    return mTimers.AppendElement(Entry{aTimer}, mozilla::fallible);
+  }
+
+  if (!mTimers[insertionIndex].Value()) {
+    // The timer at the insertion point is canceled, overwrite it.
+    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_overwrite);
+    mTimers[insertionIndex] = Entry{aTimer};
+    return true;
+  }
+
+  // The new timer has to be inserted.
+  AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_insert);
+  // The capacity should be checked first, because if it needs to be increased
+  // and the memory allocation fails, only the new timer should be lost.
+  if (length == mTimers.Capacity() && mTimers[length - 1].Value()) {
+    // We have reached capacity, and the last entry is not canceled, so we
+    // really want to increase the capacity in case the extra slot is required.
+    // To force-expand the array, append a canceled-timer entry with a timestamp
+    // far in the future.
+    // This empty Entry may be used below to receive the moved-from previous
+    // entry. If not, it may be used in a later call if we need to append a new
+    // timer at the end.
+    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_insert_expand);
+    if (!mTimers.AppendElement(
+            Entry{mTimers[length - 1].Timeout() +
+                  TimeDuration::FromSeconds(365.0 * 24.0 * 60.0 * 60.0)},
+            mozilla::fallible)) {
+      return false;
     }
   }
 
-  if (!usedEmptySlot) {
-    // If we did not find an empty slot while shifting: append. Only this step
-    // may cause a re-alloc, if needed.
-    AUTO_TIMERS_STATS(TimerThread_AddTimerInternal_Expand);
-    mTimers.AppendElement(std::move(toBeAdded));
+  // Extract the timer at the insertion point, and put the new timer in its
+  // place.
+  Entry extractedEntry = std::exchange(mTimers[insertionIndex], Entry{aTimer});
+  // Following entries can be pushed until we hit a canceled timer or the end.
+  for (size_t i = insertionIndex + 1; i < length; ++i) {
+    Entry& entryRef = mTimers[i];
+    if (!entryRef.Value()) {
+      // Canceled entry, overwrite it with the extracted entry from before.
+      COUNT_TIMERS_STATS(TimerThread_AddTimerInternal_insert_overwrite);
+      entryRef = std::move(extractedEntry);
+      return true;
+    }
+    // Write extracted entry from before, and extract current entry.
+    COUNT_TIMERS_STATS(TimerThread_AddTimerInternal_insert_shifts);
+    std::swap(entryRef, extractedEntry);
   }
-
-  AssertTimersSortedAndUnique();
+  // We've reached the end of the list, with still one extracted entry to
+  // re-insert. We've checked the capacity above, this cannot fail.
+  COUNT_TIMERS_STATS(TimerThread_AddTimerInternal_insert_append);
+  mTimers.AppendElement(std::move(extractedEntry));
+  return true;
 }
 
 // This function must be called from within a lock
@@ -1182,17 +1247,15 @@ bool TimerThread::RemoveTimerInternal(nsTimerImpl& aTimer) {
     COUNT_TIMERS_STATS(TimerThread_RemoveTimerInternal_not_in_list);
     return false;
   }
-
-  size_t removeAt = mTimers.BinaryIndexOf(EntryKey{aTimer});
-  if (removeAt != nsTArray<Entry>::NoIndex) {
-    MOZ_ASSERT(mTimers[removeAt].mTimerImpl == &aTimer);
-    // Mark the timer as canceled, defer the removal to the timer thread.
-    mTimers[removeAt].mTimerImpl = nullptr;
-    AssertTimersSortedAndUnique();
-    return true;
+  AUTO_TIMERS_STATS(TimerThread_RemoveTimerInternal_in_list);
+  for (auto& entry : mTimers) {
+    if (entry.Value() == &aTimer) {
+      entry.Forget();
+      return true;
+    }
   }
-
-  MOZ_ASSERT_UNREACHABLE("Not found in the list but it should be!?");
+  MOZ_ASSERT(!aTimer.IsInTimerThread(),
+             "Not found in the list but it should be!?");
   return false;
 }
 
@@ -1200,22 +1263,25 @@ void TimerThread::RemoveLeadingCanceledTimersInternal() {
   mMonitor.AssertCurrentThreadOwns();
   AUTO_TIMERS_STATS(TimerThread_RemoveLeadingCanceledTimersInternal);
 
-  // Let's check if we are still sorted before removing the canceled timers.
-  AssertTimersSortedAndUnique();
-
   size_t toRemove = 0;
-  while (toRemove < mTimers.Length() && !mTimers[toRemove].mTimerImpl) {
+  while (toRemove < mTimers.Length() && !mTimers[toRemove].Value()) {
     ++toRemove;
   }
   mTimers.RemoveElementsAt(0, toRemove);
 }
 
-void TimerThread::PostTimerEvent(Entry& aPostMe) {
+void TimerThread::RemoveFirstTimerInternal() {
+  mMonitor.AssertCurrentThreadOwns();
+  AUTO_TIMERS_STATS(TimerThread_RemoveFirstTimerInternal);
+  MOZ_ASSERT(!mTimers.IsEmpty());
+  mTimers.RemoveElementAt(0);
+}
+
+void TimerThread::PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef) {
   mMonitor.AssertCurrentThreadOwns();
   AUTO_TIMERS_STATS(TimerThread_PostTimerEvent);
 
-  RefPtr<nsTimerImpl> timer(std::move(aPostMe.mTimerImpl));
-  timer->SetIsInTimerThread(false);
+  RefPtr<nsTimerImpl> timer(aTimerRef);
 
 #if TIMER_THREAD_STATISTICS
   const double actualFiringDelay =
@@ -1248,18 +1314,27 @@ void TimerThread::PostTimerEvent(Entry& aPostMe) {
   if (!p) {
     return;
   }
-  RefPtr<nsTimerEvent> event = ::new (KnownNotNull, p)
-      nsTimerEvent(timer.forget(), aPostMe.mTimerSeq, mProfilerThreadId);
+  RefPtr<nsTimerEvent> event =
+      ::new (KnownNotNull, p) nsTimerEvent(timer.forget(), mProfilerThreadId);
 
+  nsresult rv;
   {
     // We release mMonitor around the Dispatch because if the Dispatch interacts
     // with the timer API we'll deadlock.
     MonitorAutoUnlock unlock(mMonitor);
-    if (NS_WARN_IF(NS_FAILED(target->Dispatch(event, NS_DISPATCH_NORMAL)))) {
-      // Dispatch may fail for an already shut down target. In that case
-      // we can't do much about it but drop the timer. We already removed
-      // its reference from our book-keeping, anyways.
-      RefPtr<nsTimerImpl> dropMe = event->ForgetTimer();
+    rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
+    if (NS_FAILED(rv)) {
+      timer = event->ForgetTimer();
+      // We do this to avoid possible deadlock by taking the two locks in a
+      // different order than is used in RemoveTimer().  RemoveTimer() has
+      // aTimer->mMutex first.   We use timer.get() to keep static analysis
+      // happy
+      // NOTE: I'm not sure that any of the below is actually necessary. It
+      // seems to me that the timer that we're trying to fire will have already
+      // been removed prior to this.
+      MutexAutoLock lock1(timer.get()->mMutex);
+      MonitorAutoLock lock2(mMonitor);
+      RemoveTimerInternal(*timer);
     }
   }
 }
@@ -1495,7 +1570,7 @@ nsresult TimerThread::GetTimers(nsTArray<RefPtr<nsITimer>>& aRetVal) {
   {
     MonitorAutoLock lock(mMonitor);
     for (const auto& entry : mTimers) {
-      nsTimerImpl* timer = entry.mTimerImpl;
+      nsTimerImpl* timer = entry.Value();
       if (!timer) {
         continue;
       }

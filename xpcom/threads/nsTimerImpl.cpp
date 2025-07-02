@@ -376,7 +376,7 @@ nsTimerImpl::nsTimerImpl(nsITimer* aTimer, nsIEventTarget* aTarget)
     : mEventTarget(aTarget),
       mIsInTimerThread(false),
       mType(0),
-      mTimerSeq(0),
+      mGeneration(0),
       mITimer(aTimer),
       mMutex("nsTimerImpl::mMutex"),
       mCallback(UnknownCallback{}),
@@ -417,6 +417,7 @@ nsresult nsTimerImpl::InitCommon(const TimeDuration& aDelay, uint32_t aType,
   // If we have an existing callback, using `swap` ensures it's destroyed after
   // the mutex is unlocked in our caller.
   std::swap(mCallback, newCallback);
+  ++mGeneration;
 
   mType = (uint8_t)aType;
   mDelay = aDelay;
@@ -507,6 +508,7 @@ void nsTimerImpl::CancelImpl(bool aClearITimer) {
     // The swap ensures our callback isn't dropped until after the mutex is
     // unlocked.
     std::swap(cbTrash, mCallback);
+    ++mGeneration;
 
     // Don't clear this if we're firing; once Fire returns, we'll get this call
     // again.
@@ -610,7 +612,7 @@ nsresult nsTimerImpl::GetAllowedEarlyFiringMicroseconds(uint32_t* aValueOut) {
   return NS_OK;
 }
 
-void nsTimerImpl::Fire(uint64_t aTimerSeq) {
+void nsTimerImpl::Fire(int32_t aGeneration) {
   uint8_t oldType;
   uint32_t oldDelay;
   TimeStamp oldTimeout;
@@ -621,7 +623,7 @@ void nsTimerImpl::Fire(uint64_t aTimerSeq) {
     // Don't fire callbacks or fiddle with refcounts when the mutex is locked.
     // If some other thread Cancels/Inits after this, they're just too late.
     MutexAutoLock lock(mMutex);
-    if (aTimerSeq != mTimerSeq) {
+    if (aGeneration != mGeneration) {
       // This timer got rescheduled or cancelled before we fired, so ignore this
       // firing
       return;
@@ -682,8 +684,7 @@ void nsTimerImpl::Fire(uint64_t aTimerSeq) {
   TimeStamp now = TimeStamp::Now();
 
   MutexAutoLock lock(mMutex);
-  // Someone else could have re-initialized us while the callback ran.
-  if (aTimerSeq == mTimerSeq) {
+  if (aGeneration == mGeneration) {
     if (IsRepeating()) {
       // Repeating timer has not been re-init or canceled; reschedule
       if (IsSlack()) {

@@ -70,7 +70,9 @@ class nsTimerImpl {
   void SetDelayInternal(uint32_t aDelay, TimeStamp aBase = TimeStamp::Now());
   void CancelImpl(bool aClearITimer);
 
-  void Fire(uint64_t aTimerSeq);
+  void Fire(int32_t aGeneration);
+
+  int32_t GetGeneration() { return mGeneration; }
 
   struct UnknownCallback {};
 
@@ -132,17 +134,9 @@ class nsTimerImpl {
   void GetName(nsACString& aName, const mozilla::MutexAutoLock& aProofOfLock)
       MOZ_REQUIRES(mMutex);
 
-  // Caution: Only call this when you hold TimerThread's monitor!
   bool IsInTimerThread() const { return mIsInTimerThread; }
-
-  // Caution: Only call this when you hold TimerThread's monitor!
   void SetIsInTimerThread(bool aIsInTimerThread) {
     mIsInTimerThread = aIsInTimerThread;
-  }
-
-  void SetTimerSequence(uint64_t aTimerSeq) {
-    mMutex.AssertCurrentThreadOwns();
-    mTimerSeq = aTimerSeq;
   }
 
   nsCOMPtr<nsIEventTarget> mEventTarget;
@@ -153,26 +147,31 @@ class nsTimerImpl {
                                    const mozilla::TimeDuration& aDelay,
                                    uint32_t aType, const char* aNameString);
 
-  // Is this timer currently referenced from a TimerThread::Entry in the list?
-  // ALL accesses to mIsInTimerThread are under the TimerThread's Monitor lock,
-  // so consistency is guaranteed by that.
+  // Is this timer currently referenced from a TimerThread::Entry?
+  // Note: It is cleared before the Entry is destroyed.  Take() also sets it to
+  // false, to indicate it's no longer in the TimerThread's list. This Take()
+  // call is NOT made under the nsTimerImpl's mutex (all other
+  // SetIsInTimerThread calls are under the mutex).  However, ALL accesses to
+  // mIsInTimerThread are under the TimerThread's Monitor lock, so consistency
+  // is guaranteed by that.
   bool mIsInTimerThread;
 
   // These members are set by the initiating thread, when the timer's type is
   // changed and during the period where it fires on that thread.
   uint8_t mType;
 
-  // The global sequence number of this timer, updated each time the timer is
+  // The generation number of this timer, re-generated each time the timer is
   // initialized so one-shot timers can be canceled and re-initialized by the
   // arming thread without any bad race conditions.
   // Updated only after this timer has been removed from the timer thread.
-  uint64_t mTimerSeq MOZ_GUARDED_BY(mMutex);
+  int32_t mGeneration;
 
   mozilla::TimeDuration mDelay MOZ_GUARDED_BY(mMutex);
   // Never updated while in the TimerThread's timer list.  Only updated
   // before adding to that list or during nsTimerImpl::Fire(), when it has
-  // been removed from the TimerThread's list.
-  mozilla::TimeStamp mTimeout MOZ_GUARDED_BY(mMutex);
+  // been removed from the TimerThread's list.  TimerThread can access
+  // mTimeout of any timer in the list safely
+  mozilla::TimeStamp mTimeout;
 
   RefPtr<nsITimer> mITimer MOZ_GUARDED_BY(mMutex);
   mozilla::Mutex mMutex;
