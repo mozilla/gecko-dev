@@ -1639,10 +1639,7 @@ void SelectionRangeState::RemoveSelectionFromDocument() {
         pos.mNode, pos.mOffset, root, root->GetChildCount(), IgnoreErrors());
     SelectRange(range);
   }
-  for (uint32_t i = 0; i < mSelection->RangeCount(); i++) {
-    auto* range = mSelection->GetRangeAt(i);
-    range->SuppressContentsForPrintSelection(IgnoreErrors());
-  }
+  mSelection->DeleteFromDocument(IgnoreErrors());
 }
 
 /**
