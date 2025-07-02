@@ -176,6 +176,57 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         appContext.getSharedPreferences(FENIX_PREFERENCES, MODE_PRIVATE)
 
     /**
+     * Indicates if the recent saved bookmarks functionality should be visible.
+     */
+    var showBookmarksHomeFeature by lazyFeatureFlagPreference(
+        appContext.getPreferenceKey(R.string.pref_key_customization_bookmarks),
+        default = { homescreenSections[HomeScreenSection.BOOKMARKS] == true },
+        featureFlag = true,
+    )
+
+    /**
+     * Indicates if the recent tabs functionality should be visible.
+     */
+    var showRecentTabsFeature by lazyFeatureFlagPreference(
+        appContext.getPreferenceKey(R.string.pref_key_recent_tabs),
+        featureFlag = true,
+        default = { homescreenSections[HomeScreenSection.JUMP_BACK_IN] == true },
+    )
+
+    /**
+     * Indicates if the stories homescreen section should be shown.
+     */
+    var showPocketRecommendationsFeature by lazyFeatureFlagPreference(
+        appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
+        featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
+        default = { homescreenSections[HomeScreenSection.POCKET] == true },
+    )
+
+    /**
+     * Indicates if the Pocket recommendations homescreen section should also show sponsored stories.
+     */
+    val showPocketSponsoredStories by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_pocket_sponsored_stories),
+        default = { homescreenSections[HomeScreenSection.POCKET_SPONSORED_STORIES] == true },
+        featureFlag = ContentRecommendationsFeatureHelper.isPocketSponsoredStoriesFeatureEnabled(appContext),
+    )
+
+    /**
+     * Indicates whether or not the "Recently Visited" section should be shown on the home screen.
+     */
+    var historyMetadataUIFeature by lazyFeatureFlagPreference(
+        appContext.getPreferenceKey(R.string.pref_key_history_metadata_feature),
+        default = { homescreenSections[HomeScreenSection.RECENT_EXPLORATIONS] == true },
+        featureFlag = true,
+    )
+
+    /**
+     * Indicates whether or not the "Synced Tabs" section should be shown on the home screen.
+     */
+    val showSyncedTabs: Boolean
+        get() = FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.SYNCED_TABS] == true
+
+    /**
      * Indicates whether or not top sites should be shown on the home screen.
      */
     var showTopSitesFeature by lazyFeatureFlagPreference(
@@ -183,6 +234,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         featureFlag = true,
         default = { homescreenSections[HomeScreenSection.TOP_SITES] == true },
     )
+
+    private val homescreenSections: Map<HomeScreenSection, Boolean>
+        get() = FxNimbus.features.homescreen.value().sectionsEnabled
 
     var numberOfAppLaunches by intPreference(
         appContext.getPreferenceKey(R.string.pref_key_times_app_opened),
@@ -1693,34 +1747,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         get() =
             FxNimbus.features.queryParameterStripping.value().sectionsEnabled
 
-    private val homescreenSections: Map<HomeScreenSection, Boolean>
-        get() =
-            FxNimbus.features.homescreen.value().sectionsEnabled
-
-    var historyMetadataUIFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_history_metadata_feature),
-        default = { homescreenSections[HomeScreenSection.RECENT_EXPLORATIONS] == true },
-        featureFlag = true,
-    )
-
-    /**
-     * Indicates if the recent tabs functionality should be visible.
-     */
-    var showRecentTabsFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_recent_tabs),
-        featureFlag = true,
-        default = { homescreenSections[HomeScreenSection.JUMP_BACK_IN] == true },
-    )
-
-    /**
-     * Indicates if the recent saved bookmarks functionality should be visible.
-     */
-    var showBookmarksHomeFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_customization_bookmarks),
-        default = { homescreenSections[HomeScreenSection.BOOKMARKS] == true },
-        featureFlag = true,
-    )
-
     var signedInFxaAccount by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_fxa_signed_in),
         default = false,
@@ -1746,24 +1772,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var shouldAutofillAddressDetails by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_addresses_save_and_autofill_addresses),
         default = true,
-    )
-
-    /**
-     * Indicates if the stories homescreen section should be shown.
-     */
-    var showPocketRecommendationsFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_pocket_homescreen_recommendations),
-        featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
-        default = { homescreenSections[HomeScreenSection.POCKET] == true },
-    )
-
-    /**
-     * Indicates if the Pocket recommendations homescreen section should also show sponsored stories.
-     */
-    val showPocketSponsoredStories by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_pocket_sponsored_stories),
-        default = { homescreenSections[HomeScreenSection.POCKET_SPONSORED_STORIES] == true },
-        featureFlag = ContentRecommendationsFeatureHelper.isPocketSponsoredStoriesFeatureEnabled(appContext),
     )
 
     /**
