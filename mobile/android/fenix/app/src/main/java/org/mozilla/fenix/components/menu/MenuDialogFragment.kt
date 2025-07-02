@@ -260,6 +260,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 lastSavedFolderCache = context.settings().lastSavedFolderCache,
                             ),
                             MenuNavigationMiddleware(
+                                browserStore = browserStore,
                                 navController = findNavController(),
                                 openToBrowser = ::openToBrowser,
                                 sessionUseCases = components.useCases.sessionUseCases,
