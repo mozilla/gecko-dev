@@ -2898,6 +2898,20 @@ class AutoSaveRestoreContainsBlendMode {
   }
 };
 
+class AutoSaveRestoreContainsBackdropFilter {
+  nsDisplayListBuilder& mBuilder;
+  bool mSavedContainsBackdropFilter;
+
+ public:
+  explicit AutoSaveRestoreContainsBackdropFilter(nsDisplayListBuilder& aBuilder)
+      : mBuilder(aBuilder),
+        mSavedContainsBackdropFilter(aBuilder.ContainsBackdropFilter()) {}
+
+  ~AutoSaveRestoreContainsBackdropFilter() {
+    mBuilder.SetContainsBackdropFilter(mSavedContainsBackdropFilter);
+  }
+};
+
 static bool IsFrameOrAncestorApzAware(nsIFrame* aFrame) {
   nsIContent* node = aFrame->GetContent();
   if (!node) {
@@ -3276,6 +3290,13 @@ void nsIFrame::BuildDisplayListForStackingContext(
   bool usingBackdropFilter = effects->HasBackdropFilters() &&
                              IsVisibleForPainting() &&
                              !style.IsRootElementStyle();
+
+  if (usingBackdropFilter) {
+    aBuilder->SetContainsBackdropFilter(true);
+  }
+
+  AutoSaveRestoreContainsBackdropFilter autoRestoreBackdropFilter(*aBuilder);
+  aBuilder->SetContainsBackdropFilter(false);
 
   nsRect visibleRectOutsideTransform = visibleRect;
   nsDisplayTransform::PrerenderInfo prerenderInfo;
@@ -3692,7 +3713,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
         nsDisplayOpacity::NeedsActiveLayer(aBuilder, this);
     resultList.AppendNewToTop<nsDisplayOpacity>(
         aBuilder, this, &resultList, containerItemASR, opacityItemForEventsOnly,
-        needsActiveOpacityLayer, usingBackdropFilter, addBackdropRoot);
+        needsActiveOpacityLayer, usingBackdropFilter,
+        addBackdropRoot && aBuilder->ContainsBackdropFilter());
     createdContainer = true;
     addBackdropRoot = false;
   }
@@ -3912,7 +3934,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
     }
   }
 
-  if (addBackdropRoot) {
+  if (addBackdropRoot && aBuilder->ContainsBackdropFilter()) {
     resultList.AppendToTop(nsDisplayBlendContainer::Create(
         aBuilder, this, &resultList, containerItemASR));
     createdContainer = true;
