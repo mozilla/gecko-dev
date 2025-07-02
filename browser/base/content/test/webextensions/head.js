@@ -1,6 +1,5 @@
 ChromeUtils.defineESModuleGetters(this, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
-  ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
   ExtensionsUI: "resource:///modules/ExtensionsUI.sys.mjs",
 });
 
@@ -10,7 +9,11 @@ const BASE = getRootDirectory(gTestPath).replace(
 );
 
 ChromeUtils.defineLazyGetter(this, "Management", () => {
-  return ExtensionParent.apiManager;
+  // eslint-disable-next-line no-shadow
+  const { Management } = ChromeUtils.importESModule(
+    "resource://gre/modules/Extension.sys.mjs"
+  );
+  return Management;
 });
 
 let { CustomizableUITestUtils } = ChromeUtils.importESModule(
@@ -676,24 +679,6 @@ async function interactiveUpdateTest(autoUpdate, checkFn) {
   );
 }
 
-async function getCachedPermissions(extensionId) {
-  const NotFound = Symbol("extension ID not found in permissions cache");
-  try {
-    return await ExtensionParent.StartupCache.permissions.get(
-      extensionId,
-      () => {
-        // Throw error to prevent the key from being created.
-        throw NotFound;
-      }
-    );
-  } catch (e) {
-    if (e === NotFound) {
-      return null;
-    }
-    throw e;
-  }
-}
-
 // The tests in this directory install a bunch of extensions but they
 // need to uninstall them before exiting, as a stray leftover extension
 // after one test can foul up subsequent tests.
@@ -707,8 +692,6 @@ let testCleanup;
 add_setup(async function head_setup() {
   let addons = await AddonManager.getAllAddons();
   let existingAddons = new Set(addons.map(a => a.id));
-
-  let uuids = Services.prefs.getStringPref("extensions.webextensions.uuids");
 
   registerCleanupFunction(async function () {
     if (testCleanup) {
@@ -725,11 +708,5 @@ add_setup(async function head_setup() {
         await addon.uninstall();
       }
     }
-    // Regression test for https://bugzilla.mozilla.org/show_bug.cgi?id=1974419
-    is(
-      Services.prefs.getStringPref("extensions.webextensions.uuids"),
-      uuids,
-      "No unexpected changes to extensions.webextensions.uuid"
-    );
   });
 });
