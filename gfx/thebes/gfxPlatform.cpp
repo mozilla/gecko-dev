@@ -3073,11 +3073,6 @@ void gfxPlatform::InitHardwareVideoConfig() {
                            failureId)) {
     featureHWDRM.Disable(FeatureStatus::Blocklisted, message.get(), failureId);
   }
-  if (!featureDec.IsEnabled()) {
-    featureHWDRM.ForceDisable(FeatureStatus::Unavailable,
-                              "Force disabled by no hardware video decoding",
-                              "FEATURE_FAILURE_NO_HARDWARE_VIDEO_DECODING"_ns);
-  }
   gfxVars::SetUseWMFHWDWM(featureHWDRM.IsEnabled());
 #endif
 
