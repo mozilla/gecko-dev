@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_QUOTA_CLIENTUSAGEARAY_H_
-#define DOM_QUOTA_CLIENTUSAGEARAY_H_
+#ifndef DOM_QUOTA_CLIENTUSAGEARRAY_H_
+#define DOM_QUOTA_CLIENTUSAGEARRAY_H_
 
 #include <cstdint>
 #include "mozilla/Maybe.h"
@@ -38,4 +38,4 @@ class ClientUsageArray final : public Array<Maybe<uint64_t>, Client::TYPE_MAX> {
 
 }  // namespace mozilla::dom::quota
 
-#endif  // DOM_QUOTA_CLIENTUSAGEARAY_H_
+#endif  // DOM_QUOTA_CLIENTUSAGEARRAY_H_
