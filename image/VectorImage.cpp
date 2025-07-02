@@ -348,7 +348,7 @@ size_t VectorImage::SizeOfSourceWithComputedFallback(
     return 0;  // No document, so no memory used for the document.
   }
 
-  SVGDocument* doc = mSVGDocumentWrapper->GetDocument();
+  RefPtr<SVGDocument> doc = mSVGDocumentWrapper->GetDocument();
   if (!doc) {
     return 0;  // No document, so no memory used for the document.
   }
