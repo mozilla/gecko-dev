@@ -19,13 +19,10 @@ exclude: true
 - Added `setBounceTrackingProtectionMode`, `getBounceTrackingProtectionMode` to [`ContentBlocking.Settings`][142.2].
   ([bug 1963445]({{bugzilla}}1963445))
 - Added the list of data collection permission names to [`WebExtension`][142.3] ([bug 1972228]({{bugzilla}}1972228))
-- Added [`@ExperimentalGeckoViewApi`][142.4] to annotate APIs that need special care. Opt in via `@OptIn(markerClass = ExperimentalGeckoViewApi.class)` to accept the risks.
-- ⚠️ [`GeckoPreferenceController`][140.1] is now annotated with `@ExperimentalGeckoViewApi`.
 
 [142.1]: {{javadoc_uri}}/WebExtensionController.html#onOptionalPrompt
 [142.2]: {{javadoc_uri}}/ContentBlocking.html
 [142.3]: {{javadoc_uri}}/WebExtension.html
-[142.4]: {{javadoc_uri}}/ExperimentalGeckoViewApi.html
 
 ## v141
 - Changed the methods in [`ProfilerController`][141.1] to static.
@@ -1793,4 +1790,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 14401951480946651574f370aa7d3fc3990f3679
+[api-version]: b282e190de186cecdff8160ce6e5e4c2ddd230bb

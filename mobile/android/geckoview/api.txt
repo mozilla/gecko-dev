@@ -743,9 +743,6 @@ package org.mozilla.geckoview {
   @Retention(value=RetentionPolicy.SOURCE) public static interface ExperimentDelegate.ExperimentException.Codes {
   }
 
-  @Retention(value=RetentionPolicy.CLASS) @Target(value={ElementType.TYPE, ElementType.TYPE_USE, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.PACKAGE}) public interface ExperimentalGeckoViewApi {
-  }
-
   public class GeckoDisplay {
     ctor protected GeckoDisplay(GeckoSession);
     method @NonNull @UiThread public GeckoResult<Bitmap> capturePixels();

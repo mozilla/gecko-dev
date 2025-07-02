@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package mozilla.components.concept.engine.preferences
 
-import mozilla.components.ExperimentalAndroidComponentsApi
-
 private const val UNSUPPORTED_ERROR = "Browser preferences support is not available on this engine."
 
     /**
@@ -27,7 +25,6 @@ private const val UNSUPPORTED_ERROR = "Browser preferences support is not availa
          * obtained on it.
          * @param onError Callback invoked when an issue occurs.
          */
-        @ExperimentalAndroidComponentsApi
         fun getBrowserPref(
             pref: String,
             onSuccess: (BrowserPreference<*>) -> Unit,
@@ -45,7 +42,6 @@ private const val UNSUPPORTED_ERROR = "Browser preferences support is not availa
          * @param onSuccess Callback invoked when the preference sets.
          * @param onError Callback invoked when an issue occurs.
          */
-        @ExperimentalAndroidComponentsApi
         fun setBrowserPref(
             pref: String,
             value: String,
@@ -65,7 +61,6 @@ private const val UNSUPPORTED_ERROR = "Browser preferences support is not availa
          * @param onSuccess Callback invoked when the preference sets.
          * @param onError Callback invoked when an issue occurs.
          */
-        @ExperimentalAndroidComponentsApi
         fun setBrowserPref(
             pref: String,
             value: Boolean,
@@ -85,7 +80,6 @@ private const val UNSUPPORTED_ERROR = "Browser preferences support is not availa
          * @param onSuccess Callback invoked when the preference sets.
          * @param onError Callback invoked when an issue occurs.
          */
-        @ExperimentalAndroidComponentsApi
         fun setBrowserPref(
             pref: String,
             value: Int,
@@ -103,7 +97,6 @@ private const val UNSUPPORTED_ERROR = "Browser preferences support is not availa
          * @param onSuccess Callback invoked when the preference was successfully cleared.
          * @param onError Callback invoked when an issue occurs.
          */
-        @ExperimentalAndroidComponentsApi
         fun clearBrowserUserPref(
             pref: String,
             onSuccess: () -> Unit,

@@ -215,7 +215,6 @@ configurations {
 
 dependencies {
     implementation libs.androidx.annotation
-    implementation libs.androidx.annotation.experimental
     implementation libs.androidx.collection
     implementation libs.androidx.core
 

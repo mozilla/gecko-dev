@@ -29,7 +29,6 @@ import android.util.Log;
 import androidx.annotation.AnyThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.OptIn;
 import androidx.annotation.StringDef;
 import androidx.annotation.UiThread;
 import androidx.lifecycle.Lifecycle;
@@ -248,10 +247,7 @@ public final class GeckoRuntime implements Parcelable {
   private GeckoRuntimeSettings mSettings;
   private Delegate mDelegate;
   private ServiceWorkerDelegate mServiceWorkerDelegate;
-
-  @OptIn(markerClass = ExperimentalGeckoViewApi.class)
   private GeckoPreferenceController.Observer.Delegate mPreferencesObserverDelegate;
-
   private WebNotificationDelegate mNotificationDelegate;
   private ActivityDelegate mActivityDelegate;
   private OrientationController mOrientationController;
@@ -319,7 +315,6 @@ public final class GeckoRuntime implements Parcelable {
     }
   }
 
-  @OptIn(markerClass = ExperimentalGeckoViewApi.class)
   private final BundleEventListener mEventListener =
       new BundleEventListener() {
         @Override
@@ -782,7 +777,6 @@ public final class GeckoRuntime implements Parcelable {
    *
    * @param delegate The delegate to set on the runtime.
    */
-  @ExperimentalGeckoViewApi
   @AnyThread
   public void setPreferencesObserverDelegate(
       @Nullable final GeckoPreferenceController.Observer.Delegate delegate) {
@@ -795,7 +789,6 @@ public final class GeckoRuntime implements Parcelable {
    *
    * @return The {@link GeckoPreferenceController.Observer.Delegate} set on this runtime.
    */
-  @ExperimentalGeckoViewApi
   @AnyThread
   public @Nullable GeckoPreferenceController.Observer.Delegate getPreferencesObserverDelegate() {
     return mPreferencesObserverDelegate;
