@@ -51,13 +51,22 @@ class BookmarksRobot(private val composeTestRule: ComposeTestRule) {
 
     @OptIn(ExperimentalTestApi::class)
     fun verifyFolderTitle(title: String) {
+        Log.i(TAG, "verifyFolderTitle: Waiting for $waitingTime for bookmark folder with title: $title to exist.")
         composeTestRule.waitUntilAtLeastOneExists(hasText(title), waitingTime)
+        Log.i(TAG, "verifyFolderTitle: Waited for $waitingTime for bookmark folder with title: $title to exist.")
         Log.i(TAG, "verifyFolderTitle: Trying to verify bookmarks folder with title: $title is displayed")
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
         Log.i(TAG, "verifyFolderTitle: Verified bookmarks folder with title: $title is displayed")
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun verifyBookmarkTitle(title: String) {
+        Log.i(TAG, "verifyBookmarkTitle: Waiting for $waitingTime for bookmark with title: $title to exist.")
+        composeTestRule.waitUntilExactlyOneExists(
+            hasText(title), waitingTime,
+        )
+        Log.i(TAG, "verifyBookmarkTitle: Waited for $waitingTime for bookmark with title: $title to exist.")
+        Log.i(TAG, "verifyBookmarkTitle: Waited for bookmarks header to exist.")
         Log.i(TAG, "verifyBookmarkTitle: Trying to verify bookmark with title: $title is displayed")
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
         Log.i(TAG, "verifyBookmarkTitle: Verified bookmark with title: $title is displayed")
