@@ -279,6 +279,37 @@ add_task(function test_add() {
   });
   equal(".domain", cookie.manager.cookies[4].host);
 
+  const aDayInSec = 60 * 60 * 24;
+  const nowInSec = Math.round(Date.now() / 1000);
+  const tenDaysInTheFutureInSec = nowInSec + aDayInSec * 10;
+
+  cookie.add({
+    name: "name6",
+    value: "value",
+    domain: ".domain",
+    expiry: tenDaysInTheFutureInSec,
+  });
+  equal(tenDaysInTheFutureInSec * 1000, cookie.manager.cookies[5].expiry);
+
+  const two1000DaysInTheFutureInSec = nowInSec + aDayInSec * 2000;
+  cookie.add({
+    name: "name6",
+    value: "value",
+    domain: ".domain",
+    expiry: two1000DaysInTheFutureInSec,
+  });
+
+  const maxageCap = Services.prefs.getIntPref("network.cookie.maxageCap");
+  if (maxageCap) {
+    // To avoid timing race condition, let's compare the expiry value with maxageCap +/- a few seconds.
+    const maxageCapMin = nowInSec + maxageCap - 3; /* secs */
+    const maxageCapMax = nowInSec + maxageCap + 3; /* secs */
+
+    // Max allowed value: 400 days.
+    Assert.greater(maxageCapMax * 1000, cookie.manager.cookies[6].expiry);
+    Assert.greater(cookie.manager.cookies[6].expiry, maxageCapMin * 1000);
+  }
+
   const sameSiteMap = new Map([
     ["None", Ci.nsICookie.SAMESITE_NONE],
     ["Lax", Ci.nsICookie.SAMESITE_LAX],
@@ -292,7 +323,7 @@ add_task(function test_add() {
       domain: ".domain",
       sameSite: entry,
     });
-    equal(sameSiteMap.get(entry), cookie.manager.cookies[5 + index].sameSite);
+    equal(sameSiteMap.get(entry), cookie.manager.cookies[7 + index].sameSite);
   });
 
   Assert.throws(() => {
