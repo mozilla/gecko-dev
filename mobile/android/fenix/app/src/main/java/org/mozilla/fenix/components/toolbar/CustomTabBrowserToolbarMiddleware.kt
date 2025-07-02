@@ -53,6 +53,7 @@ import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlin.isContentUrl
+import mozilla.components.support.ktx.kotlin.isIpv4OrIpv6
 import mozilla.components.support.ktx.kotlin.trimmed
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import org.mozilla.fenix.NavGraphDirections
@@ -417,10 +418,12 @@ class CustomTabBrowserToolbarMiddleware(
 
     private suspend fun getUrlDomain(): String? {
         val url = customTab?.content?.url
-        return url?.toUri()?.host?.ifEmpty { null }
-            ?.let { publicSuffixList.getPublicSuffixPlusOne(it) }
-            ?.await()
-            ?: url
+        val host = url?.toUri()?.host
+        return when {
+            host.isNullOrEmpty() -> url
+            host.isIpv4OrIpv6() -> host
+            else -> publicSuffixList.getPublicSuffixPlusOne(host).await() ?: url
+        }
     }
 
     private fun getTitleToShown(customTab: CustomTabSessionState?): String? {

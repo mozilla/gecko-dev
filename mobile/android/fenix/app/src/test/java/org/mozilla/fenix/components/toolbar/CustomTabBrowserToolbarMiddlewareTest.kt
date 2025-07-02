@@ -400,6 +400,26 @@ class CustomTabBrowserToolbarMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN an url with an ip address for the domain WHEN showing displaying the page origin THEN correctly infer the ip address as the domain`() = runTestOnMain {
+        val customTab = createCustomTab(title = "Title", url = "http://127.0.0.1/test", id = customTabId)
+        val browserStore = BrowserStore(
+            BrowserState(customTabs = listOf(customTab)),
+        )
+        val middleware = buildMiddleware(browserStore)
+        val expectedPageOrigin = PageOrigin(
+            hint = R.string.search_hint,
+            title = "Title",
+            url = "127.0.0.1",
+            onClick = null,
+        )
+
+        val toolbarStore = buildStore(middleware)
+        testScheduler.advanceUntilIdle()
+        val pageOrigin = toolbarStore.state.displayState.pageOrigin
+        assertEquals(expectedPageOrigin, pageOrigin)
+    }
+
+    @Test
     fun `GIVEN the custom tab is not configured to show a share button WHEN initializing the toolbar THEN show just a menu button`() {
         every { customTab.config.showShareMenuItem } returns false
         val expectedMenuButton = ActionButtonRes(
