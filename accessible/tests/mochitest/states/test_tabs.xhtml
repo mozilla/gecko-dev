@@ -22,9 +22,9 @@
 
     function doTest()
     {
-      testStates("tab1", 0, EXT_STATE_PINNED);
-      testStates("tab2", 0, EXT_STATE_PINNED);
-      testStates("tab3", 0, 0, 0, EXT_STATE_PINNED);
+      testStates("tab1", STATE_FOCUSABLE, EXT_STATE_PINNED);
+      testStates("tab2", STATE_FOCUSABLE, EXT_STATE_PINNED);
+      testStates("tab3", STATE_FOCUSABLE, 0, 0, EXT_STATE_PINNED);
 
       SimpleTest.finish()
     }
