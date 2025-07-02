@@ -181,6 +181,9 @@ TextPropertyEditor.prototype = {
    * Create the property editor's DOM.
    */
   _create() {
+    const win = this.doc.defaultView;
+    this.abortController = new win.AbortController();
+
     this.element = this.doc.createElementNS(HTML_NS, "div");
     this.element.setAttribute("role", "listitem");
     this.element.classList.add("ruleview-property");
@@ -225,7 +228,10 @@ TextPropertyEditor.prototype = {
       class: "ruleview-expander theme-twisty",
       title: SHORTHAND_EXPANDER_TOOLTIP,
     });
-    this.expander.addEventListener("click", this._onExpandClicked, true);
+    this.expander.addEventListener("click", this._onExpandClicked, {
+      capture: true,
+      signal: this.abortController.signal,
+    });
 
     // Create a span that will hold the property and semicolon.
     // Use this span to create a slightly larger click target
@@ -282,10 +288,14 @@ TextPropertyEditor.prototype = {
       title: l10n("rule.filterProperty.title"),
     });
 
-    this.filterProperty.addEventListener("click", event => {
-      this.ruleEditor.ruleView.setFilterStyles("`" + this.prop.name + "`");
-      event.stopPropagation();
-    });
+    this.filterProperty.addEventListener(
+      "click",
+      event => {
+        this.ruleEditor.ruleView.setFilterStyles("`" + this.prop.name + "`");
+        event.stopPropagation();
+      },
+      { signal: this.abortController.signal }
+    );
 
     // Holds the viewers for the computed properties.
     // will be populated in |_updateComputed|.
@@ -301,18 +311,28 @@ TextPropertyEditor.prototype = {
 
     // Only bind event handlers if the rule is editable.
     if (this.ruleEditor.isEditable) {
-      this.enable.addEventListener("click", this._onEnableClicked, true);
-      this.enable.addEventListener("change", this._onEnableChanged, true);
-
-      this.nameContainer.addEventListener("click", event => {
-        // Clicks within the name shouldn't propagate any further.
-        event.stopPropagation();
-
-        // Forward clicks on nameContainer to the editable nameSpan
-        if (event.target === this.nameContainer) {
-          this.nameSpan.click();
-        }
+      this.enable.addEventListener("click", this._onEnableClicked, {
+        signal: this.abortController.signal,
+        capture: true,
       });
+      this.enable.addEventListener("change", this._onEnableChanged, {
+        signal: this.abortController.signal,
+        capture: true,
+      });
+
+      this.nameContainer.addEventListener(
+        "click",
+        event => {
+          // Clicks within the name shouldn't propagate any further.
+          event.stopPropagation();
+
+          // Forward clicks on nameContainer to the editable nameSpan
+          if (event.target === this.nameContainer) {
+            this.nameSpan.click();
+          }
+        },
+        { signal: this.abortController.signal }
+      );
 
       const getCssVariables = () =>
         this.rule.elementStyle.getAllCustomProperties(this.rule.pseudoElement);
@@ -342,18 +362,23 @@ TextPropertyEditor.prototype = {
       // Auto blur name field on multiple CSS rules get pasted in.
       this.nameContainer.addEventListener(
         "paste",
-        blurOnMultipleProperties(this.cssProperties)
+        blurOnMultipleProperties(this.cssProperties),
+        { signal: this.abortController.signal }
       );
 
-      this.valueContainer.addEventListener("click", event => {
-        // Clicks within the value shouldn't propagate any further.
-        event.stopPropagation();
+      this.valueContainer.addEventListener(
+        "click",
+        event => {
+          // Clicks within the value shouldn't propagate any further.
+          event.stopPropagation();
 
-        // Forward clicks on valueContainer to the editable valueSpan
-        if (event.target === this.valueContainer) {
-          this.valueSpan.click();
-        }
-      });
+          // Forward clicks on valueContainer to the editable valueSpan
+          if (event.target === this.valueContainer) {
+            this.valueSpan.click();
+          }
+        },
+        { signal: this.abortController.signal }
+      );
 
       // The mousedown event could trigger a blur event on nameContainer, which
       // will trigger a call to the update function. The update function clears
@@ -363,57 +388,84 @@ TextPropertyEditor.prototype = {
       // after the valueSpan's markup is re-populated. We only need to track this for
       // valueSpan's child elements, because direct click on valueSpan will always
       // trigger a click event.
-      this.valueSpan.addEventListener("mousedown", event => {
-        const clickedEl = event.target;
-        if (clickedEl === this.valueSpan) {
-          return;
-        }
-        this._hasPendingClick = true;
+      this.valueSpan.addEventListener(
+        "mousedown",
+        event => {
+          const clickedEl = event.target;
+          if (clickedEl === this.valueSpan) {
+            return;
+          }
+          this._hasPendingClick = true;
 
-        const matchedSelector = ACTIONABLE_ELEMENTS_SELECTORS.find(selector =>
-          clickedEl.matches(selector)
-        );
-        if (matchedSelector) {
-          const similarElements = [
-            ...this.valueSpan.querySelectorAll(matchedSelector),
-          ];
-          this._clickedElementOptions = {
-            selector: matchedSelector,
-            index: similarElements.indexOf(clickedEl),
-          };
-        }
-      });
+          const matchedSelector = ACTIONABLE_ELEMENTS_SELECTORS.find(selector =>
+            clickedEl.matches(selector)
+          );
+          if (matchedSelector) {
+            const similarElements = [
+              ...this.valueSpan.querySelectorAll(matchedSelector),
+            ];
+            this._clickedElementOptions = {
+              selector: matchedSelector,
+              index: similarElements.indexOf(clickedEl),
+            };
+          }
+        },
+        { signal: this.abortController.signal }
+      );
 
-      this.valueSpan.addEventListener("pointerup", () => {
-        // if we have dragged, we will handle the pending click in _draggingOnPointerUp instead
-        if (this._hasDragged) {
-          return;
-        }
-        this._clickedElementOptions = null;
-        this._hasPendingClick = false;
-      });
+      this.valueSpan.addEventListener(
+        "pointerup",
+        () => {
+          // if we have dragged, we will handle the pending click in _draggingOnPointerUp instead
+          if (this._hasDragged) {
+            return;
+          }
+          this._clickedElementOptions = null;
+          this._hasPendingClick = false;
+        },
+        { signal: this.abortController.signal }
+      );
 
-      this.valueSpan.addEventListener("click", event => {
-        if (this._hasPendingClick) {
-          // When we start handling a drag in the valueSpan, we make the valueSpan capture the
-          // pointer. Then, `click` event target is always the valueSpan with the latest spec of
-          // Pointer Events. Therefore, we should stop immediate propagation of the `click` event
-          // if we've handled a drag to prevent moving focus to the inplace editor.
-          event.stopImmediatePropagation();
-          return;
-        }
-        const target = event.target;
+      // We need to add the event listener on the global to consume middle/mousewheel click
+      // events for some reason
+      win.addEventListener(
+        "click",
+        event => {
+          // Only handle events on the value span
+          if (!this.valueSpan.contains(event.target)) {
+            return;
+          }
 
-        if (target.nodeName === "a") {
-          event.stopPropagation();
-          event.preventDefault();
-          openContentLink(target.href);
-        }
-      });
+          if (this._hasPendingClick) {
+            // When we start handling a drag in the valueSpan, we make the valueSpan capture the
+            // pointer. Then, `click` event target is always the valueSpan with the latest spec of
+            // Pointer Events. Therefore, we should stop immediate propagation of the `click` event
+            // if we've handled a drag to prevent moving focus to the inplace editor.
+            event.stopImmediatePropagation();
+            return;
+          }
+
+          const target = event.target;
+          if (target.nodeName === "a") {
+            event.stopPropagation();
+            event.preventDefault();
+            openContentLink(target.href, {
+              relatedToCurrent: true,
+              inBackground:
+                event.button === 1 ||
+                (lazy.AppConstants.platform === "macosx"
+                  ? event.metaKey
+                  : event.ctrlKey),
+            });
+          }
+        },
+        { signal: this.abortController.signal, capture: true }
+      );
 
       this.ruleView.on(
         "draggable-preference-updated",
-        this._onDraggablePreferenceChanged
+        this._onDraggablePreferenceChanged,
+        { signal: this.abortController.signal }
       );
       if (this._isDraggableProperty(this.prop)) {
         this._addDraggingCapability();
@@ -1246,10 +1298,10 @@ TextPropertyEditor.prototype = {
       }
     }
 
-    this.ruleView.off(
-      "draggable-preference-updated",
-      this._onDraggablePreferenceChanged
-    );
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
+    }
 
     this.element.remove();
     this.ruleEditor.rule.editClosestTextProperty(this.prop, direction);
