@@ -265,6 +265,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         get() = FxNimbus.features.homescreen.value().sectionsEnabled
 
     /**
+     * Indicates if the homepage section settings should be visible.
+     */
+    val showHomepageSectionToggleSettings: Boolean
+        get() = !overrideUserSpecifiedHomepageSections
+
+    /**
      * Indicates if the user specified homepage section visibility should be ignored.
      */
     val overrideUserSpecifiedHomepageSections by lazyFeatureFlagPreference(
