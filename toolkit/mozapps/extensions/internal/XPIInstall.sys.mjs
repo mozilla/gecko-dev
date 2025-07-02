@@ -1800,7 +1800,6 @@ class AddonInstall {
             // to install/uninstall/enable/disable addons.  We may need to
             // do that here in the future.
             this._callInstallListeners("onInstallFailed");
-            this.removeTemporaryFile();
           } else {
             logger.info(`Install of ${this.addon.id} cancelled by user`);
             this.state = AddonManager.STATE_CANCELLED;
@@ -1810,6 +1809,7 @@ class AddonInstall {
               /* aCancelledByUser */ true
             );
           }
+          this.removeTemporaryFile();
           return;
         }
       }

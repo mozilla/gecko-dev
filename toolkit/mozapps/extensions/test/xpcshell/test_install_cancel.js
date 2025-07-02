@@ -90,3 +90,22 @@ add_task(async function test_install_cancelled() {
       ok(!!e, "cancel threw an exception");
     });
 });
+
+add_task(async function test_install_user_cancelled() {
+  let url = "http://example.com/addons/test.xpi";
+  let install = await AddonManager.getInstallForURL(url, {
+    name: "Test",
+    version: "1.0",
+  });
+
+  install.promptHandler = () => {
+    return Promise.reject();
+  };
+
+  await promiseCompleteInstall(install);
+
+  await TestUtils.waitForCondition(
+    () => !install.file.exists(),
+    "wait for temp file to be removed"
+  );
+});
