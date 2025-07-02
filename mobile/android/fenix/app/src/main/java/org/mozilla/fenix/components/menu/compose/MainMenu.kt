@@ -216,7 +216,7 @@ fun MainMenu(
         }
 
         if (accessPoint == MenuAccessPoint.Home && showBanner) {
-            DefaultBrowserBanner(
+            MenuBanner(
                 onDismiss = {
                     onBannerDismiss()
                 },

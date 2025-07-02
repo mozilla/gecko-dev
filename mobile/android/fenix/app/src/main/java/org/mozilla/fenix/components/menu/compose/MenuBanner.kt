@@ -45,7 +45,7 @@ import org.mozilla.fenix.theme.Theme
  * @param onClick Invoked when the user taps anywhere else on the banner.
  */
 @Composable
-fun DefaultBrowserBanner(
+fun MenuBanner(
     onDismiss: () -> Unit,
     onClick: () -> Unit,
 ) {
@@ -117,13 +117,13 @@ fun DefaultBrowserBanner(
 
 @PreviewLightDark
 @Composable
-private fun DefaultBrowserBannerPreview() {
+private fun MenuBannerPreview() {
     FirefoxTheme {
         Column(
             modifier = Modifier
                 .padding(16.dp),
         ) {
-            DefaultBrowserBanner(
+            MenuBanner(
                 onDismiss = {},
                 onClick = {},
             )
@@ -133,13 +133,13 @@ private fun DefaultBrowserBannerPreview() {
 
 @Preview
 @Composable
-private fun DefaultBrowserBannerPrivatePreview() {
+private fun MenuBannerPrivatePreview() {
     FirefoxTheme(theme = Theme.Private) {
         Column(
             modifier = Modifier
                 .padding(16.dp),
         ) {
-            DefaultBrowserBanner(
+            MenuBanner(
                 onDismiss = {},
                 onClick = {},
             )

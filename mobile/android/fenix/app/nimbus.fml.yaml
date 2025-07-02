@@ -607,6 +607,10 @@ features:
         description: If true, report site issue menu item and preview is available.
         type: Boolean
         default: true
+      menu-banner:
+        description: If true, the menu banner is visible.
+        type: Boolean
+        default: true
     defaults:
       - channel: release
         value:

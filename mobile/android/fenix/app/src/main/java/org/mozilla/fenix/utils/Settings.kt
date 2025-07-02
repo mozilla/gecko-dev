@@ -350,9 +350,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         false,
     )
 
-    var shouldShowDefaultBrowserBanner by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_show_default_browser_banner),
-        default = true,
+    var shouldShowMenuBanner by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_show_menu_banner),
+        default = { FxNimbus.features.menuRedesign.value().menuBanner },
+        featureFlag = true,
     )
 
     var defaultSearchEngineName by stringPreference(
