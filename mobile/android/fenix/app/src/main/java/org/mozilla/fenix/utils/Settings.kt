@@ -38,7 +38,6 @@ import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.browser.tabstrip.isTabStripEligible
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.settings.counterPreference
 import org.mozilla.fenix.components.settings.featureFlagPreference
@@ -1642,12 +1641,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     var isPullToRefreshEnabledInBrowser by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_website_pull_to_refresh),
         default = true,
-    )
-
-    var isTabStripEnabled by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tab_strip_show),
-        default = FxNimbus.features.tabStrip.value().enabled &&
-                (appContext.isTabStripEligible() || FxNimbus.features.tabStrip.value().allowOnAllDevices),
     )
 
     var isDynamicToolbarEnabled by booleanPreference(

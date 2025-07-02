@@ -26,7 +26,6 @@ import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.TestHelper.hasCousin
 import org.mozilla.fenix.helpers.TestHelper.mDevice
-import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.click
 
 /**
@@ -94,8 +93,6 @@ class SettingsSubMenuCustomizeRobot {
 
     fun verifySwipeToolbarGesturePrefState(isEnabled: Boolean) {
         Log.i(TAG, "verifySwipeToolbarGesturePrefState: Trying to verify that the \"Swipe toolbar sideways to switch tabs\" toggle is checked: $isEnabled")
-
-        scrollToElementByText("Swipe toolbar sideways to switch tabs")
         swipeToolbarToggle()
             .check(
                 matches(

@@ -6,19 +6,24 @@ package org.mozilla.fenix.browser.tabstrip
 
 import android.content.Context
 import mozilla.components.support.ktx.android.content.doesDeviceHaveHinge
-import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.utils.isLargeScreenSize
 
 /**
- * Returns true if the tab strip user preference is enabled.
+ * Returns true if the tab strip is enabled.
  */
 fun Context.isTabStripEnabled(): Boolean =
-    settings().isTabStripEnabled
+    tabStripExperimentEnabled() && (isTabStripEligible() || tabStripExperimentForceEnabled())
+
+private fun tabStripExperimentEnabled(): Boolean = FxNimbus.features.tabStrip.value().enabled
+
+private fun tabStripExperimentForceEnabled(): Boolean =
+    FxNimbus.features.tabStrip.value().allowOnAllDevices
 
 /**
  * Returns true if the the device has the prerequisites to enable the tab strip.
  */
-fun Context.isTabStripEligible(): Boolean =
+private fun Context.isTabStripEligible(): Boolean =
     // Tab Strip is currently disabled on foldable devices, while we work on improving the
     // Homescreen / Toolbar / Browser screen to better support the feature. There is also
     // an emulator bug that causes the doesDeviceHaveHinge check to return true on emulators,

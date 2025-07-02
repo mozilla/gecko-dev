@@ -9,7 +9,9 @@ import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.PreferenceScreen
 import androidx.preference.SwitchPreference
 import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.AppTheme
@@ -53,31 +55,23 @@ class CustomizationFragment : PreferenceFragmentCompat() {
         bindAutoBatteryTheme()
         setupRadioGroups()
         val tabletAndTabStripEnabled = requireContext().isTabStripEnabled()
-        updateToolbarCategoryBasedOnTabStrip(tabletAndTabStripEnabled)
-        setupTabStripCategory()
+        if (tabletAndTabStripEnabled) {
+            val preferenceScreen: PreferenceScreen =
+                requirePreference(R.string.pref_key_customization_preference_screen)
+            val toolbarPrefCategory: PreferenceCategory =
+                requirePreference(R.string.pref_key_customization_category_toolbar)
+            preferenceScreen.removePreference(toolbarPrefCategory)
+        } else {
+            setupToolbarCategory()
+        }
+
+        (requirePreference(R.string.pref_key_customization_category_toolbar_layout) as PreferenceCategory).apply {
+            isVisible = requireContext().settings().toolbarRedesignEnabled && !tabletAndTabStripEnabled
+        }
 
         // if tab strip is enabled, swipe toolbar to switch tabs should not be enabled so the
         // preference is not shown
         setupGesturesCategory(isSwipeToolbarToSwitchTabsVisible = !tabletAndTabStripEnabled)
-    }
-
-    private fun updateToolbarCategoryBasedOnTabStrip(
-        tabStripEnabled: Boolean,
-    ) {
-        val topPreference = requirePreference<RadioButtonPreference>(R.string.pref_key_toolbar_top)
-        val bottomPreference = requirePreference<RadioButtonPreference>(R.string.pref_key_toolbar_bottom)
-        val tabStripMessagePref = findPreference<Preference>(getString(R.string.pref_key_tab_strip_message))
-
-        topPreference.isEnabled = !tabStripEnabled
-        bottomPreference.isEnabled = !tabStripEnabled
-        tabStripMessagePref?.isVisible = tabStripEnabled
-
-        if (tabStripEnabled && !topPreference.isChecked) {
-            topPreference.setCheckedWithoutClickListener(true)
-            bottomPreference.setCheckedWithoutClickListener(false)
-        } else {
-            setupToolbarCategory()
-        }
     }
 
     private fun setupRadioGroups() {
@@ -161,20 +155,6 @@ class CustomizationFragment : PreferenceFragmentCompat() {
         bottomPreference.setCheckedWithoutClickListener(toolbarPosition == ToolbarPosition.BOTTOM)
 
         addToRadioGroup(topPreference, bottomPreference)
-    }
-
-    private fun setupTabStripCategory() {
-        val tabStripSwitch = requirePreference<SwitchPreference>(R.string.pref_key_tab_strip_show)
-        val context = requireContext()
-
-        tabStripSwitch.isChecked = context.settings().isTabStripEnabled
-
-        tabStripSwitch.setOnPreferenceChangeListener { _, newValue ->
-            val enabled = newValue as Boolean
-            context.settings().isTabStripEnabled = enabled
-            updateToolbarCategoryBasedOnTabStrip(enabled)
-            true
-        }
     }
 
     private fun setupGesturesCategory(isSwipeToolbarToSwitchTabsVisible: Boolean) {

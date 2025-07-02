@@ -778,8 +778,6 @@
     <string name="preferences_theme">Theme</string>
     <!-- Preference for customizing the home screen -->
     <string name="preferences_home_2">Homepage</string>
-    <!-- Preference for showing the tab strip -->
-    <string name="preferences_tab_strip">Tab bar display</string>
     <!-- Preference for gestures based actions -->
     <string name="preferences_gestures">Gestures</string>
     <!-- Preference for settings related to visual options -->
@@ -1180,8 +1178,6 @@
     <string name="preference_simple_toolbar">Simple</string>
     <!-- Preference for using expanded toolbar -->
     <string name="preference_expanded_toolbar">Expanded</string>
-    <!-- Preference description indicating the toolbar location preference is disabled when the tab strip is enabled -->
-    <string name="preference_toolbar_pref_disabled_explanation">Address bar must be on top when tab bar is shown.</string>
 
     <!-- Theme Preferences -->
     <!-- Preference for using light theme -->
@@ -1192,10 +1188,6 @@
     <string name="preference_auto_battery_theme">Set by Battery Saver</string>
     <!-- Preference for using following device theme -->
     <string name="preference_follow_device_theme">Follow device theme</string>
-
-    <!-- Tab Strip Preferences-->
-    <!-- Preferences for showing tab strip -->
-    <string name="preference_tab_strip_show">Show tab bar</string>
 
     <!-- Gestures Preferences-->
     <!-- Preferences for using pull to refresh in a webpage -->

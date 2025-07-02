@@ -43,21 +43,6 @@
         <org.mozilla.fenix.settings.RadioButtonPreference
             android:key="@string/pref_key_toolbar_bottom"
             android:title="@string/preference_bottom_toolbar" />
-        <androidx.preference.Preference
-            android:key="@string/pref_key_tab_strip_message"
-            android:title=""
-            android:summary="@string/preference_toolbar_pref_disabled_explanation"
-            android:enabled="false"
-            android:selectable="false" />
-    </androidx.preference.PreferenceCategory>
-
-    <androidx.preference.PreferenceCategory
-        android:layout="@layout/preference_cat_style"
-        android:title="@string/preferences_tab_strip"
-        app:iconSpaceReserved="false">
-        <androidx.preference.SwitchPreference
-            android:key="@string/pref_key_tab_strip_show"
-            android:title="@string/preference_tab_strip_show" />
     </androidx.preference.PreferenceCategory>
 
     <androidx.preference.PreferenceCategory
