@@ -33,9 +33,9 @@
   --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
   --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
   --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-light, #FFF);
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-light, color-mix(in srgb, currentColor 14%, #FFF));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-light, #FFF);
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-light, color-mix(in srgb, currentColor 14%, #FFF));
 }
 
 @mixin dark-theme {
@@ -65,9 +65,9 @@
   --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
   --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
   --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-dark, rgb(66, 65, 77));
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-dark, rgb(66, 65, 77));
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
 
 }
 
@@ -99,7 +99,7 @@
   --fc-link-color-hover: var(--fc-link-color-hover-hcm, LinkText);
   --fc-link-color-active: var(--fc-link-color-active-hcm, ActiveText);
   --fc-icon-success-color: var(--fc-icon-success-color-hcm, LinkText);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-hcm, -moz-dialog);
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-hcm, color-mix(in srgb, currentColor 14%, -moz-dialog));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-hcm, color-mix(in srgb, currentColor 14%, -moz-dialog));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-hcm, -moz-dialog);
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-hcm, color-mix(in srgb, currentColor 14%, SelectedItem));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-hcm, color-mix(in srgb, currentColor 14%, SelectedItem));
 }

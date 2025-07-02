@@ -30,9 +30,9 @@
   --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
   --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
   --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-light, #FFF);
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-light, color-mix(in srgb, currentColor 14%, #FFF));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-light, #FFF);
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-light, color-mix(in srgb, currentColor 14%, #FFF));
   position: absolute;
   z-index: 2147483647;
   outline: none;
@@ -80,9 +80,9 @@
     --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
     --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
     --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
-    --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-dark, rgb(66, 65, 77));
-    --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
-    --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+    --fc-dismiss-button-background: var(--fc-dismiss-button-background-dark, rgb(66, 65, 77));
+    --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+    --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
   }
 }
 :root[lwt-popup=light] #feature-callout:not(.simulateContent) {
@@ -114,9 +114,9 @@
   --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
   --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
   --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-light, #FFF);
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-light, color-mix(in srgb, currentColor 14%, #FFF));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-light, #FFF);
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-light, color-mix(in srgb, currentColor 14%, #FFF));
 }
 
 :root[lwt-popup=dark] #feature-callout:not(.simulateContent) {
@@ -147,9 +147,9 @@
   --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
   --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
   --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-dark, rgb(66, 65, 77));
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-dark, rgb(66, 65, 77));
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
 }
 
 @media (prefers-contrast) {
@@ -181,9 +181,9 @@
     --fc-link-color-hover: var(--fc-link-color-hover-hcm, LinkText);
     --fc-link-color-active: var(--fc-link-color-active-hcm, ActiveText);
     --fc-icon-success-color: var(--fc-icon-success-color-hcm, LinkText);
-    --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-hcm, -moz-dialog);
-    --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-hcm, color-mix(in srgb, currentColor 14%, -moz-dialog));
-    --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-hcm, color-mix(in srgb, currentColor 14%, -moz-dialog));
+    --fc-dismiss-button-background: var(--fc-dismiss-button-background-hcm, -moz-dialog);
+    --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-hcm, color-mix(in srgb, currentColor 14%, SelectedItem));
+    --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-hcm, color-mix(in srgb, currentColor 14%, SelectedItem));
   }
 }
 #feature-callout.simulateContent {
@@ -218,9 +218,9 @@
     --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
     --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
     --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
-    --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-light, #FFF);
-    --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
-    --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-light, color-mix(in srgb, currentColor 14%, #FFF));
+    --fc-dismiss-button-background: var(--fc-dismiss-button-background-light, #FFF);
+    --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-light, color-mix(in srgb, currentColor 14%, #FFF));
+    --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-light, color-mix(in srgb, currentColor 14%, #FFF));
   }
 }
 @media (-moz-content-prefers-color-scheme: dark) {
@@ -251,9 +251,9 @@
     --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
     --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
     --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
-    --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-dark, rgb(66, 65, 77));
-    --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
-    --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+    --fc-dismiss-button-background: var(--fc-dismiss-button-background-dark, rgb(66, 65, 77));
+    --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+    --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
   }
 }
 :root[lwt-newtab-brighttext] #feature-callout.simulateContent.lwtNewtab {
@@ -284,9 +284,9 @@
   --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
   --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
   --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
-  --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-dark, rgb(66, 65, 77));
-  --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
-  --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+  --fc-dismiss-button-background: var(--fc-dismiss-button-background-dark, rgb(66, 65, 77));
+  --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
+  --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-dark, color-mix(in srgb, currentColor 14%, rgb(66, 65, 77)));
 }
 
 @media (prefers-contrast) {
@@ -318,9 +318,9 @@
     --fc-link-color-hover: var(--fc-link-color-hover-hcm, LinkText);
     --fc-link-color-active: var(--fc-link-color-active-hcm, ActiveText);
     --fc-icon-success-color: var(--fc-icon-success-color-hcm, LinkText);
-    --fc-dismiss-button-bg: var(--fc-dismiss-button-bg-hcm, -moz-dialog);
-    --fc-dismiss-button-bg-hover: var(--fc-dismiss-button-bg-hover-hcm, color-mix(in srgb, currentColor 14%, -moz-dialog));
-    --fc-dismiss-button-bg-active: var(--fc-dismiss-button-bg-active-hcm, color-mix(in srgb, currentColor 14%, -moz-dialog));
+    --fc-dismiss-button-background: var(--fc-dismiss-button-background-hcm, -moz-dialog);
+    --fc-dismiss-button-background-hover: var(--fc-dismiss-button-background-hover-hcm, color-mix(in srgb, currentColor 14%, SelectedItem));
+    --fc-dismiss-button-background-active: var(--fc-dismiss-button-background-active-hcm, color-mix(in srgb, currentColor 14%, SelectedItem));
   }
 }
 panel#feature-callout {
@@ -536,13 +536,31 @@ div#feature-callout.hidden {
   min-width: 24px;
 }
 #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-bg);
+  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background);
 }
 #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background:hover {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-bg-hover);
+  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background-hover);
+  color: var(--fc-button-color-hover);
 }
 #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background:hover:active {
-  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-bg-active);
+  background: url("chrome://global/skin/icons/close.svg") no-repeat center/16px, var(--fc-dismiss-button-background-active);
+}
+@media (prefers-contrast) {
+  #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background {
+    background-color: var(--fc-button-background);
+    border: 1px solid var(--fc-button-border);
+    color: var(--fc-button-color);
+  }
+  #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background:hover:not(:disabled), #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background[open] {
+    background-color: var(--fc-button-background-hover);
+    color: var(--fc-button-color-hover);
+    border: 1px solid var(--fc-button-border-hover);
+  }
+  #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background:hover:not(:disabled):active, #feature-callout .screen[pos=callout] .section-main .dismiss-button.with-background[open]:active {
+    background-color: var(--fc-button-background-active);
+    color: var(--fc-button-color-active);
+    border: 1px solid var(--fc-button-border-active);
+  }
 }
 #feature-callout .screen[pos=callout] .action-buttons {
   display: flex;

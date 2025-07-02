@@ -382,13 +382,33 @@
           }
 
           &.with-background {
-            background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-bg);
+            background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background);
 
             &:hover {
-              background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-bg-hover);
+              background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background-hover);
+              color: var(--fc-button-color-hover);
 
               &:active {
-                background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-bg-active);
+                background: url('chrome://global/skin/icons/close.svg') no-repeat center / 16px, var(--fc-dismiss-button-background-active);
+              }
+            }
+
+            @media (prefers-contrast) {
+              background-color: var(--fc-button-background);
+              border: 1px solid var(--fc-button-border);
+              color: var(--fc-button-color);
+
+              &:hover:not(:disabled),
+              &[open] {
+                background-color: var(--fc-button-background-hover);
+                color: var(--fc-button-color-hover);
+                border: 1px solid var(--fc-button-border-hover);
+
+                &:active {
+                  background-color: var(--fc-button-background-active);
+                  color: var(--fc-button-color-active);
+                  border: 1px solid var(--fc-button-border-active);
+                }
               }
             }
           }
