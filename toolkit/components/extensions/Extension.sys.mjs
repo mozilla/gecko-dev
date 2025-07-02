@@ -2113,7 +2113,9 @@ export class ExtensionData {
         }
       }
 
-      if (this.id) {
+      // ExtensionData consumers do not rely on persisted optional permissions,
+      // see https://bugzilla.mozilla.org/show_bug.cgi?id=1974419#c1
+      if (this.id && this.constructor !== ExtensionData) {
         // An extension always gets permission to its own url.
         let matcher = new MatchPattern(this.getURL(), { ignorePath: true });
         originPermissions.add(matcher.pattern);
