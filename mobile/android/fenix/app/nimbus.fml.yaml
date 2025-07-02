@@ -50,6 +50,7 @@ features:
             "pocket": true,
             "pocket-sponsored-stories": true,
             "synced-tabs": true,
+            "collections": true,
           }
     defaults:
       - channel: nightly
@@ -61,6 +62,7 @@ features:
             "recent-explorations": true,
             "pocket": true,
             "synced-tabs": true,
+            "collections": true,
           }
         }
   nimbus-validation:
@@ -935,6 +937,8 @@ types:
           description: Subsection of the Pocket homescreen section which shows sponsored stories.
         synced-tabs:
           description: The synced tabs section of the homepage.
+        collections:
+          description: The collections section of the homepage.
 
     MR2022Section:
       description: The identifiers for the sections of the MR 2022.

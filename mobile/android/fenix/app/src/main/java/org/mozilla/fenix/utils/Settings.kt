@@ -249,6 +249,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         get() = FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.SYNCED_TABS] == true
 
     /**
+     * Indicates whether or not the "Collections" section should be shown on the home screen.
+     */
+    val collections: Boolean
+        get() = FxNimbus.features.homescreen.value().sectionsEnabled[HomeScreenSection.COLLECTIONS] == true
+
+    /**
      * Indicates whether or not top sites should be shown on the home screen.
      */
     val showTopSitesFeature: Boolean

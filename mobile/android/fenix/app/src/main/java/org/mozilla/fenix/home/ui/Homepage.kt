@@ -214,10 +214,12 @@ internal fun Homepage(
                             )
                         }
 
-                        CollectionsSection(
-                            collectionsState = collectionsState,
-                            interactor = interactor,
-                        )
+                        if (showCollections) {
+                            CollectionsSection(
+                                collectionsState = collectionsState,
+                                interactor = interactor,
+                            )
+                        }
 
                         if (showPocketStories) {
                             PocketSection(
@@ -455,6 +457,7 @@ private fun HomepagePreview() {
                     showBookmarks = true,
                     showRecentlyVisited = true,
                     showPocketStories = true,
+                    showCollections = true,
                     showPrivateBrowsingButton = true,
                     searchBarEnabled = false,
                     firstFrameDrawn = true,
@@ -495,6 +498,7 @@ private fun HomepagePreviewCollections() {
                 showBookmarks = false,
                 showRecentlyVisited = true,
                 showPocketStories = true,
+                showCollections = true,
                 showPrivateBrowsingButton = true,
                 showSearchBar = true,
                 searchBarEnabled = false,

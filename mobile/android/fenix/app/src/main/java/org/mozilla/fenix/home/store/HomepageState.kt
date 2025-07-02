@@ -89,6 +89,7 @@ internal sealed class HomepageState {
      * @property showBookmarks Whether to show bookmarks.
      * @property showRecentlyVisited Whether to show recent history section.
      * @property showPocketStories Whether to show the pocket stories section.
+     * @property showCollections Whether to show the collections section.
      * @property showPrivateBrowsingButton Whether to show the private browsing button.
      * @property showSearchBar Whether to show the middle search bar.
      * @property searchBarEnabled Whether the middle search bar is enabled or not.
@@ -117,6 +118,7 @@ internal sealed class HomepageState {
         val showBookmarks: Boolean,
         val showRecentlyVisited: Boolean,
         val showPocketStories: Boolean,
+        val showCollections: Boolean,
         override val showPrivateBrowsingButton: Boolean,
         val showSearchBar: Boolean,
         val searchBarEnabled: Boolean,
@@ -186,6 +188,7 @@ internal sealed class HomepageState {
                         showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
                         showPocketStories = settings.showPocketRecommendationsFeature &&
                             recommendationState.pocketStories.isNotEmpty(),
+                        showCollections = settings.collections,
                         showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
                         showSearchBar = shouldShowSearchBar(appState = appState),
                         searchBarEnabled = settings.enableHomepageSearchBar &&
