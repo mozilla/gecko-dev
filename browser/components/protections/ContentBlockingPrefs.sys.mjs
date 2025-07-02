@@ -25,11 +25,6 @@ const PREFS_CHANGING_CATEGORY = new Set([
 export let ContentBlockingPrefs = {
   PREF_CB_CATEGORY: "browser.contentblocking.category",
   PREF_STRICT_DEF: "browser.contentblocking.features.strict",
-  PREF_ALLOW_LIST_BASELINE:
-    "privacy.trackingprotection.allow_list.baseline.enabled",
-  PREF_ALLOW_LIST_CONVENIENCE:
-    "privacy.trackingprotection.allow_list.convenience.enabled",
-
   switchingCategory: false,
 
   setPrefExpectations() {
@@ -62,8 +57,6 @@ export let ContentBlockingPrefs = {
         "privacy.fingerprintingProtection.pbmode": null,
         "network.cookie.cookieBehavior.optInPartitioning": null,
         "privacy.bounceTrackingProtection.mode": null,
-        [this.PREF_ALLOW_LIST_BASELINE]: true,
-        [this.PREF_ALLOW_LIST_CONVENIENCE]: false,
       },
       standard: {
         "network.cookie.cookieBehavior": null,
@@ -88,8 +81,6 @@ export let ContentBlockingPrefs = {
         "privacy.fingerprintingProtection.pbmode": null,
         "network.cookie.cookieBehavior.optInPartitioning": null,
         "privacy.bounceTrackingProtection.mode": null,
-        [this.PREF_ALLOW_LIST_BASELINE]: true,
-        [this.PREF_ALLOW_LIST_CONVENIENCE]: true,
       },
     };
     let type = "strict";
@@ -343,13 +334,6 @@ export let ContentBlockingPrefs = {
     }
     for (let pref in this.CATEGORY_PREFS[category]) {
       let value = this.CATEGORY_PREFS[category][pref];
-      // Ignore allow list prefs, since user is allowed to change them in strict mode.
-      if (
-        pref == this.PREF_ALLOW_LIST_BASELINE ||
-        pref == this.PREF_ALLOW_LIST_CONVENIENCE
-      ) {
-        continue;
-      }
       if (value == null) {
         if (Services.prefs.prefHasUserValue(pref)) {
           return false;
