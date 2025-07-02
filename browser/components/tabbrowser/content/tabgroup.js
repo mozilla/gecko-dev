@@ -18,7 +18,7 @@
       </vbox>
       <html:slot/>
       <vbox class="tab-group-overflow-count-container" pack="center">
-        <label class="tab-group-overflow-count"></label>
+        <label class="tab-group-overflow-count" role="button" />
       </vbox>
       `;
 
@@ -27,6 +27,9 @@
 
     /** @type {MozTextLabel} */
     #labelElement;
+
+    /** @type {MozTextLabel} */
+    #overflowCountLabel;
 
     /** @type {MozXULElement} */
     #overflowContainer;
@@ -69,12 +72,13 @@
       this.appendChild(this.constructor.fragment);
       this.initializeAttributeInheritance();
 
+      this.addEventListener("click", this);
+
       this.#labelElement = this.querySelector(".tab-group-label");
       // Mirroring MozTabbrowserTab
       this.#labelElement.container = gBrowser.tabContainer;
       this.#labelElement.group = this;
 
-      this.#labelElement.addEventListener("click", this);
       this.#labelElement.addEventListener("contextmenu", e => {
         e.preventDefault();
         gBrowser.tabGroupMenu.openEditModal(this);
@@ -86,6 +90,9 @@
 
       this.#overflowContainer = this.querySelector(
         ".tab-group-overflow-count-container"
+      );
+      this.#overflowCountLabel = this.#overflowContainer.querySelector(
+        ".tab-group-overflow-count"
       );
 
       this.ownerGlobal.addEventListener("TabSelect", this);
@@ -374,7 +381,10 @@
      * @param {PointerEvent} event
      */
     on_click(event) {
-      if (event.target === this.#labelElement && event.button === 0) {
+      let isToggleElement =
+        event.target === this.#labelElement ||
+        event.target === this.#overflowCountLabel;
+      if (isToggleElement && event.button === 0) {
         event.preventDefault();
         this.collapsed = !this.collapsed;
         gBrowser.tabGroupMenu.close();

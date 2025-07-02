@@ -1164,6 +1164,8 @@ tab-group {
 
 .tab-group-overflow-count {
   color: var(--tab-group-line-color);
+  margin: 0;
+  padding: var(--space-small);
 }
 
 .tab-group-label {

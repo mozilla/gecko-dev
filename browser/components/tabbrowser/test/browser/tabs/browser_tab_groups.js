@@ -160,6 +160,15 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   gBrowser.moveTabToGroup(tab2, group);
   Assert.ok(!group.collapsed, "group is expanded after moving tab into group");
 
+  group.collapsed = true;
+  Assert.ok(group.collapsed, "group is collapsed via API");
+
+  group.querySelector(".tab-group-overflow-count").click();
+  Assert.ok(
+    !group.collapsed,
+    "group is expanded after clicking the overflow counter"
+  );
+
   await removeTabGroup(group);
 });
 
