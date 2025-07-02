@@ -250,6 +250,7 @@ void RenderPassEncoder::SetBindGroup(uint32_t aSlot,
   RawId bindGroup = 0;
   if (aBindGroup) {
     mUsedBindGroups.AppendElement(aBindGroup);
+    mUsedCanvasContexts.AppendElements(aBindGroup->GetCanvasContexts());
     bindGroup = aBindGroup->mId;
   }
   ffi::wgpu_recorded_render_pass_set_bind_group(
@@ -420,6 +421,7 @@ void RenderPassEncoder::ExecuteBundles(
   nsTArray<ffi::WGPURenderBundleId> renderBundles(aBundles.Length());
   for (const auto& bundle : aBundles) {
     mUsedRenderBundles.AppendElement(bundle);
+    mUsedCanvasContexts.AppendElements(bundle->GetCanvasContexts());
     renderBundles.AppendElement(bundle->mId);
   }
   ffi::wgpu_recorded_render_pass_execute_bundles(
@@ -458,7 +460,7 @@ void RenderPassEncoder::End() {
     return;
   }
   MOZ_ASSERT(!!mPass);
-  mParent->EndRenderPass(*mPass);
+  mParent->EndRenderPass(*mPass, mUsedCanvasContexts);
   Cleanup();
 }
 

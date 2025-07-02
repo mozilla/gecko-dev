@@ -22,7 +22,7 @@ TextureView::TextureView(Texture* const aParent, RawId aId)
 
 TextureView::~TextureView() { Cleanup(); }
 
-CanvasContext* TextureView::GetTargetContext() const {
+WeakPtr<CanvasContext> TextureView::GetTargetContext() const {
   return mParent->mTargetContext;
 }  // namespace webgpu
 

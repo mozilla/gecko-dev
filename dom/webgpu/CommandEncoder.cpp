@@ -99,7 +99,8 @@ void CommandEncoder::Cleanup() {
 
 RefPtr<WebGPUChild> CommandEncoder::GetBridge() { return mBridge; }
 
-void CommandEncoder::TrackPresentationContext(CanvasContext* aTargetContext) {
+void CommandEncoder::TrackPresentationContext(
+    WeakPtr<CanvasContext> aTargetContext) {
   if (aTargetContext) {
     mPresentationContexts.AppendElement(aTargetContext);
   }
@@ -256,7 +257,8 @@ void CommandEncoder::ResolveQuerySet(QuerySet& aQuerySet, uint32_t aFirstQuery,
       aQueryCount, aDestination.mId, aDestinationOffset);
 }
 
-void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
+void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass,
+                                    CanvasContextArray& aCanvasContexts) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.
   if (!mBridge) {
@@ -270,12 +272,17 @@ void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
     return;
   }
   mState = CommandEncoderState::Open;
+
+  for (const auto& context : aCanvasContexts) {
+    TrackPresentationContext(context);
+  }
 
   ffi::wgpu_compute_pass_finish(mBridge->GetClient(), mParent->mId, mId,
                                 &aPass);
 }
 
-void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
+void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass,
+                                   CanvasContextArray& aCanvasContexts) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.
   if (!mBridge) {
@@ -289,6 +296,10 @@ void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
     return;
   }
   mState = CommandEncoderState::Open;
+
+  for (const auto& context : aCanvasContexts) {
+    TrackPresentationContext(context);
+  }
 
   ffi::wgpu_render_pass_finish(mBridge->GetClient(), mParent->mId, mId, &aPass);
 }

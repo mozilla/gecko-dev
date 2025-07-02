@@ -50,6 +50,10 @@ class ComputePassEncoder final : public ObjectBase,
   nsTArray<RefPtr<const Buffer>> mUsedBuffers;
   nsTArray<RefPtr<const ComputePipeline>> mUsedPipelines;
 
+  // The canvas contexts of any canvas textures used in bind groups of this
+  // compute pass.
+  CanvasContextArray mUsedCanvasContexts;
+
   // programmable pass encoder
  private:
   void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
@@ -79,6 +83,11 @@ class ComputePassEncoder final : public ObjectBase,
   void InsertDebugMarker(const nsAString& aString);
 
   void End();
+
+  // helpers not defined by WebGPU
+  mozilla::Span<const WeakPtr<CanvasContext>> GetCanvasContexts() const {
+    return mUsedCanvasContexts;
+  }
 };
 
 }  // namespace webgpu

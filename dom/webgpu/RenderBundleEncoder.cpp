@@ -84,6 +84,7 @@ void RenderBundleEncoder::SetBindGroup(uint32_t aSlot,
   RawId bindGroup = 0;
   if (aBindGroup) {
     mUsedBindGroups.AppendElement(aBindGroup);
+    mUsedCanvasContexts.AppendElements(aBindGroup->GetCanvasContexts());
     bindGroup = aBindGroup->mId;
   }
   ffi::wgpu_render_bundle_set_bind_group(
@@ -237,7 +238,9 @@ already_AddRefed<RenderBundle> RenderBundleEncoder::Finish(
 
   Cleanup();
 
-  RefPtr<RenderBundle> bundle = new RenderBundle(mParent, id);
+  auto canvasContexts = mUsedCanvasContexts.Clone();
+  RefPtr<RenderBundle> bundle =
+      new RenderBundle(mParent, id, std::move(canvasContexts));
   return bundle.forget();
 }
 

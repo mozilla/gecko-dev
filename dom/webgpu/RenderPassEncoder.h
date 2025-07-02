@@ -7,6 +7,7 @@
 #define GPU_RenderPassEncoder_H_
 
 #include "mozilla/dom/TypedArray.h"
+#include "CanvasContext.h"
 #include "ObjectModel.h"
 
 namespace mozilla {
@@ -59,6 +60,10 @@ class RenderPassEncoder final : public ObjectBase,
   nsTArray<RefPtr<const TextureView>> mUsedTextureViews;
   nsTArray<RefPtr<const RenderBundle>> mUsedRenderBundles;
 
+  // The canvas contexts of any canvas textures used in bind groups of this
+  // render pass.
+  CanvasContextArray mUsedCanvasContexts;
+
   // programmable pass encoder
  private:
   void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
@@ -108,6 +113,11 @@ class RenderPassEncoder final : public ObjectBase,
       const dom::Sequence<OwningNonNull<RenderBundle>>& aBundles);
 
   void End();
+
+  // helpers not defined by WebGPU
+  mozilla::Span<const WeakPtr<CanvasContext>> GetCanvasContexts() const {
+    return mUsedCanvasContexts;
+  }
 };
 
 }  // namespace webgpu

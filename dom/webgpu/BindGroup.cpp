@@ -14,8 +14,11 @@ namespace mozilla::webgpu {
 GPU_IMPL_CYCLE_COLLECTION(BindGroup, mParent)
 GPU_IMPL_JS_WRAP(BindGroup)
 
-BindGroup::BindGroup(Device* const aParent, RawId aId)
-    : ChildOf(aParent), mId(aId) {
+BindGroup::BindGroup(Device* const aParent, RawId aId,
+                     CanvasContextArray&& aCanvasContexts)
+    : ChildOf(aParent),
+      mId(aId),
+      mUsedCanvasContexts(std::move(aCanvasContexts)) {
   MOZ_RELEASE_ASSERT(aId);
 }
 

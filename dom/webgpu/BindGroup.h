@@ -7,6 +7,7 @@
 #define GPU_BindGroup_H_
 
 #include "nsWrapperCache.h"
+#include "CanvasContext.h"
 #include "ObjectModel.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 
@@ -19,13 +20,21 @@ class BindGroup final : public ObjectBase, public ChildOf<Device> {
   GPU_DECL_CYCLE_COLLECTION(BindGroup)
   GPU_DECL_JS_WRAP(BindGroup)
 
-  BindGroup(Device* const aParent, RawId aId);
+  BindGroup(Device* const aParent, RawId aId,
+            CanvasContextArray&& aCanvasContexts);
 
   const RawId mId;
+
+  mozilla::Span<const WeakPtr<CanvasContext>> GetCanvasContexts() const {
+    return mUsedCanvasContexts;
+  }
 
  private:
   ~BindGroup();
   void Cleanup();
+
+  // The canvas contexts of any canvas textures used in this bind group.
+  CanvasContextArray mUsedCanvasContexts;
 };
 
 }  // namespace mozilla::webgpu
