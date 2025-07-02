@@ -59,12 +59,9 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.compose.base.Divider
 import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.ui.colors.PhotonColors
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.HorizontalFadingEdgeBox
-import org.mozilla.fenix.compose.SwipeToDismissBox
 import org.mozilla.fenix.compose.SwipeToDismissBox2
-import org.mozilla.fenix.compose.SwipeToDismissState
 import org.mozilla.fenix.compose.SwipeToDismissState2
 import org.mozilla.fenix.compose.TabThumbnail
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
@@ -84,7 +81,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * option.
  * @param shouldClickListen Whether or not the item should stop listening to click events.
  * @param swipeState The swipe state of the item.
- * @param swipeState2 The swipe state of the item.
  * @param onCloseClick Callback to handle the click event of the close button.
  * @param onMediaClick Callback to handle when the media item is clicked.
  * @param onClick Callback to handle when item is clicked.
@@ -98,55 +94,31 @@ fun TabGridItem(
     multiSelectionEnabled: Boolean = false,
     multiSelectionSelected: Boolean = false,
     shouldClickListen: Boolean = true,
-    swipeState: SwipeToDismissState,
-    swipeState2: SwipeToDismissState2,
+    swipeState: SwipeToDismissState2,
     onCloseClick: (tab: TabSessionState) -> Unit,
     onMediaClick: (tab: TabSessionState) -> Unit,
     onClick: (tab: TabSessionState) -> Unit,
     onLongClick: ((tab: TabSessionState) -> Unit)? = null,
 ) {
-    if (FeatureFlags.SWIPE_TO_DISMISS_2) {
-        SwipeToDismissBox2(
-            state = swipeState2,
-            backgroundContent = {},
-            onItemDismiss = {
-                onCloseClick(tab)
-            },
-        ) {
-            TabContent(
-                tab = tab,
-                thumbnailSize = thumbnailSize,
-                isSelected = isSelected,
-                multiSelectionEnabled = multiSelectionEnabled,
-                multiSelectionSelected = multiSelectionSelected,
-                shouldClickListen = shouldClickListen,
-                onCloseClick = onCloseClick,
-                onMediaClick = onMediaClick,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-        }
-    } else {
-        SwipeToDismissBox(
-            state = swipeState,
-            backgroundContent = {},
-            onItemDismiss = {
-                onCloseClick(tab)
-            },
-        ) {
-            TabContent(
-                tab = tab,
-                thumbnailSize = thumbnailSize,
-                isSelected = isSelected,
-                multiSelectionEnabled = multiSelectionEnabled,
-                multiSelectionSelected = multiSelectionSelected,
-                shouldClickListen = shouldClickListen,
-                onCloseClick = onCloseClick,
-                onMediaClick = onMediaClick,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-        }
+    SwipeToDismissBox2(
+        state = swipeState,
+        backgroundContent = {},
+        onItemDismiss = {
+            onCloseClick(tab)
+        },
+    ) {
+        TabContent(
+            tab = tab,
+            thumbnailSize = thumbnailSize,
+            isSelected = isSelected,
+            multiSelectionEnabled = multiSelectionEnabled,
+            multiSelectionSelected = multiSelectionSelected,
+            shouldClickListen = shouldClickListen,
+            onCloseClick = onCloseClick,
+            onMediaClick = onMediaClick,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
     }
 }
 

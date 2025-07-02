@@ -49,11 +49,6 @@ object FeatureFlags {
     const val UNIFIED_TRUST_PANEL = false
 
     /**
-     * Enables the tab swipe to dismiss rewrite.
-     */
-    const val SWIPE_TO_DISMISS_2 = true
-
-    /**
      * Disables the Onboarding feature for debug builds by default. Set this to `true` if you need
      * to access the Onboarding feature for development purposes.
      *

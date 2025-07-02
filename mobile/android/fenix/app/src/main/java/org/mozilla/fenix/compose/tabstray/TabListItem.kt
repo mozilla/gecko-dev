@@ -48,12 +48,9 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.support.base.utils.MAX_URI_LENGTH
 import mozilla.components.ui.colors.PhotonColors
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.DismissibleItemBackground
-import org.mozilla.fenix.compose.SwipeToDismissBox
 import org.mozilla.fenix.compose.SwipeToDismissBox2
-import org.mozilla.fenix.compose.SwipeToDismissState
 import org.mozilla.fenix.compose.SwipeToDismissState2
 import org.mozilla.fenix.compose.TabThumbnail
 import org.mozilla.fenix.ext.toShortUrl
@@ -98,75 +95,39 @@ fun TabListItem(
     val density = LocalDensity.current
     val isRtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
-    if (FeatureFlags.SWIPE_TO_DISMISS_2) {
-        val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
-            SwipeToDismissState2(
-                density = density,
-                enabled = !multiSelectionEnabled && swipingEnabled,
-                decayAnimationSpec = decayAnimationSpec,
-                isRtl = isRtl,
-            )
-        }
+    val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
+        SwipeToDismissState2(
+            density = density,
+            enabled = !multiSelectionEnabled && swipingEnabled,
+            decayAnimationSpec = decayAnimationSpec,
+            isRtl = isRtl,
+        )
+    }
 
-        SwipeToDismissBox2(
-            state = swipeState,
-            onItemDismiss = {
-                onCloseClick(tab)
-            },
-            backgroundContent = {
-                DismissibleItemBackground(
-                    isSwipeActive = swipeState.swipingActive,
-                    isSwipingToStart = swipeState.isSwipingToStart,
-                )
-            },
-        ) {
-            TabContent(
-                tab = tab,
-                thumbnailSize = thumbnailSize,
-                isSelected = isSelected,
-                multiSelectionEnabled = multiSelectionEnabled,
-                multiSelectionSelected = multiSelectionSelected,
-                shouldClickListen = shouldClickListen,
-                onCloseClick = onCloseClick,
-                onMediaClick = onMediaClick,
-                onClick = onClick,
-                onLongClick = onLongClick,
+    SwipeToDismissBox2(
+        state = swipeState,
+        onItemDismiss = {
+            onCloseClick(tab)
+        },
+        backgroundContent = {
+            DismissibleItemBackground(
+                isSwipeActive = swipeState.swipingActive,
+                isSwipingToStart = swipeState.isSwipingToStart,
             )
-        }
-    } else {
-        val swipeState = remember(multiSelectionEnabled, swipingEnabled) {
-            SwipeToDismissState(
-                density = density,
-                enabled = !multiSelectionEnabled && swipingEnabled,
-                decayAnimationSpec = decayAnimationSpec,
-            )
-        }
-
-        SwipeToDismissBox(
-            state = swipeState,
-            onItemDismiss = {
-                onCloseClick(tab)
-            },
-            backgroundContent = {
-                DismissibleItemBackground(
-                    isSwipeActive = swipeState.swipingActive,
-                    isSwipingToStart = swipeState.isSwipingToStart,
-                )
-            },
-        ) {
-            TabContent(
-                tab = tab,
-                thumbnailSize = thumbnailSize,
-                isSelected = isSelected,
-                multiSelectionEnabled = multiSelectionEnabled,
-                multiSelectionSelected = multiSelectionSelected,
-                shouldClickListen = shouldClickListen,
-                onCloseClick = onCloseClick,
-                onMediaClick = onMediaClick,
-                onClick = onClick,
-                onLongClick = onLongClick,
-            )
-        }
+        },
+    ) {
+        TabContent(
+            tab = tab,
+            thumbnailSize = thumbnailSize,
+            isSelected = isSelected,
+            multiSelectionEnabled = multiSelectionEnabled,
+            multiSelectionSelected = multiSelectionSelected,
+            shouldClickListen = shouldClickListen,
+            onCloseClick = onCloseClick,
+            onMediaClick = onMediaClick,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
     }
 }
 
