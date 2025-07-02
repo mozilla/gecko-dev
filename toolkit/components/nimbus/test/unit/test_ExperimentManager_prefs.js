@@ -254,9 +254,9 @@ add_task(async function test_enroll_setPref_rolloutsAndExperiments() {
    * @param {(string|null)[]} options.expectedValues
    *        The expected values of the preft on the given branch at each point:
    *
-   *        * before enrollment;
-   *        * one entry each each after enrolling in `options.enrollOrder[i]`; and
-   *        * one entry each each after unenrolling in `options.unenrollOrder[i]`.
+   *        before enrollment;
+   *        one entry each each after enrolling in `options.enrollOrder[i]`; and
+   *        one entry each each after unenrolling in `options.unenrollOrder[i]`.
    *
    *        A value of null indicates that the pref should not be set on that
    *        branch.
@@ -1219,6 +1219,8 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
    * ExperimentManager to restore the saved enrollments.
    *
    * @param {object} options
+   * @param {string} options.featureId
+   *        The featureId that will be enrolling.
    * @param {string} options.pref
    *        The name of the pref.
    *
@@ -1243,9 +1245,9 @@ add_task(async function test_restorePrefs_experimentAndRollout() {
    * @param {(string|null)[]} options.expectedValues
    *        The expected values of the preft on the given branch at each point:
    *
-   *        * before enrollment;
-   *        * one entry each each after enrolling in `options.enrollOrder[i]`; and
-   *        * one entry each each after unenrolling in `options.unenrollOrder[i]`.
+   *        before enrollment;
+   *        one entry each each after enrolling in `options.enrollOrder[i]`; and
+   *        one entry each each after unenrolling in `options.unenrollOrder[i]`.
    *
    *        A value of null indicates that the pref should not be set on that
    *        branch.
@@ -1703,6 +1705,14 @@ add_task(async function test_prefChange() {
     Services.telemetry.snapshotEvents(
       Ci.nsITelemetry.DATASET_PRERELEASE_CHANNELS,
       /* clear = */ true
+    );
+
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
     );
 
     const { manager, cleanup } = await setupTest();
@@ -3549,15 +3559,15 @@ add_task(async function testDb() {
     }
   );
 
-  const setPrefs = JSON.parse(result.getResultByName("setPrefs"));
+  const enrollmentPrefs = JSON.parse(result.getResultByName("setPrefs"));
   const enrollment = manager.store.get("slug");
 
   Assert.deepEqual(
-    setPrefs,
+    enrollmentPrefs,
     enrollment.prefs,
     "setPrefs stored in the database"
   );
-  Assert.deepEqual(setPrefs, [
+  Assert.deepEqual(enrollmentPrefs, [
     {
       name: "nimbus.qa.pref-1",
       branch: "default",

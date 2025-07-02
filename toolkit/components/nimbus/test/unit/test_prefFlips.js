@@ -2028,6 +2028,14 @@ add_task(async function test_prefFlip_setPref_restore() {
   for (const [i, { name, ...testCase }] of TEST_CASES.entries()) {
     info(`Running test case ${i}: ${name}`);
 
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
+    );
+
     const { setPrefsBefore = {}, enrollmentOrder, expectedPrefs } = testCase;
 
     info("Setting prefs before enrollment...");
