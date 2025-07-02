@@ -44,6 +44,7 @@
 #include "mozIDOMWindow.h"
 #include "moz_external_vr.h"
 #include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/AppShutdown.h"
 #include "mozilla/ArrayIterator.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Attributes.h"
@@ -5060,10 +5061,12 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
       RefPtr<nsGlobalWindowOuter> outer = GetOuterWindowInternal();
       outer->EnterModalState();
       SpinEventLoopUntil("nsGlobalWindowInner::ShowSlowScriptDialog"_ns, [&]() {
-        return monitor->IsDebuggerStartupComplete();
+        return monitor->IsDebuggerStartupComplete() ||
+               AppShutdown::IsShutdownImpending();
       });
       outer->LeaveModalState();
-      return ContinueSlowScript;
+      return (AppShutdown::IsShutdownImpending()) ? KillSlowScript
+                                                  : ContinueSlowScript;
     }
 
     return ContinueSlowScriptAndKeepNotifying;
