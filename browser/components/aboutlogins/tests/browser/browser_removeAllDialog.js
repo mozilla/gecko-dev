@@ -90,7 +90,7 @@ add_setup(async function () {
   registerCleanupFunction(async () => {
     BrowserTestUtils.removeTab(gBrowser.selectedTab);
     Services.logins.removeAllUserFacingLogins();
-    LoginHelper.setOSAuthEnabled(PASSWORDS_OS_REAUTH_PREF, oldPrefValue);
+    LoginHelper.setOSAuthEnabled(oldPrefValue);
   });
   TEST_LOGIN1 = await addLogin(TEST_LOGIN1);
 });

@@ -886,15 +886,8 @@ export let ProfileDataUpgrader = {
           ""
         );
 
-        lazy.LoginHelper.setOSAuthEnabled(
-          lazy.LoginHelper.OS_AUTH_FOR_PASSWORDS_BOOL_PREF,
-          prevOsAuthForPw
-        );
-
-        lazy.FormAutofillUtils.setOSAuthEnabled(
-          lazy.FormAutofillUtils.AUTOFILL_CREDITCARDS_OS_AUTH_LOCKED_PREF,
-          prevOsAuthForCc
-        );
+        lazy.LoginHelper.setOSAuthEnabled(prevOsAuthForPw);
+        lazy.FormAutofillUtils.setOSAuthEnabled(prevOsAuthForCc);
 
         Services.prefs.clearUserPref(
           "extensions.formautofill.creditCards.reauth.optout"
@@ -902,6 +895,16 @@ export let ProfileDataUpgrader = {
         Services.prefs.clearUserPref("signon.management.page.os-auth.optout");
       }
     }
+
+    // Nightly users who have run the migration for 157 will have had OS auth
+    // set to true for everyone who has migrated and there's no way to retrieve
+    // the old OS auth pref value because it was cleared in the previous
+    // migration. So we force the pref to false. See bug 1974217.
+    if (AppConstants.NIGHTLY_BUILD && existingDataVersion === 158) {
+      lazy.LoginHelper.setOSAuthEnabled(false);
+      lazy.FormAutofillUtils.setOSAuthEnabled(false);
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", newVersion);
   },
