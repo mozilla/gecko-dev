@@ -273,8 +273,11 @@
           range.toString(), testCase.content,
           `${testCase.name}: Precondition - Range has expected value`
         );
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
 
-        const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+        const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
         is(
           textDirective, testCase.textDirective,
           `${testCase.name}: text directive has expected value '${testCase.textDirective}'`
@@ -313,30 +316,30 @@
      * return an empty string, not an error.
      */
     async function testEmptyRange() {
-      const createDirectiveTimeStart = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
 
-      const range = document.createRange();
-      let textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      let textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
       is(
         textDirective, null,
         "Empty input range: Produces empty text directive"
       );
+      const range = document.createRange();
       range.selectNode(abc);
       range.collapse(true);
-      textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      selection.addRange(range);
+      textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
       is(
         textDirective, null,
         "Collapsed input range: Produces empty text directive"
       );
       range.selectNode(image);
-      textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
       is(
         textDirective, null,
         "Input range contains image only: Produces empty text directive"
       );
 
-      const createDirectiveTime = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
-      is(createDirectiveTime.count, createDirectiveTimeStart.count + 1, "testEmptyRange: Glean should have recorded the time it took to create the text directive");
     }
 
     async function testExpandRangeToWordBoundaries() {
@@ -423,8 +426,10 @@
           range.toString().trim(), testCase.content,
           `${testCase.name}: Precondition - Range has expected value`
         );
-
-        const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
         is(
           textDirective, testCase.textDirective,
           `${testCase.name}: text directive has expected value '${textDirective}'`
@@ -466,7 +471,10 @@
       range.setStart(surroundedByBlockBoundaries.firstChild, 4);
       range.setEnd(surroundedByBlockBoundaries.firstChild, 7);
       is(range.toString(), "def", `${testCase}: Range has expected value`);
-      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
       is(textDirective, null, `${testCase}: It's not possible to create a unique text directive`);
 
       const createDirectiveTime = await GleanTest.domTextfragment.createDirective.testGetValue() ?? {count: 0};
@@ -481,7 +489,10 @@
       const content = "AfterEmptyBlock\n  BeforeEmptyBlock";
       const textDirectiveString = "text=AfterEmptyBlock,BeforeEmptyBlock";
       is(range.toString(), content, `${testCase}: Range has expected value`);
-      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
       is(textDirective, textDirectiveString, `${testCase}: text directive has expected value '${textDirectiveString}'`);
       location.hash = `:~:${textDirective}`;
       await rAF();
@@ -494,8 +505,27 @@
       const range = document.createRange();
       range.setStart(longWord.firstChild, 0);
       range.setEnd(longWord.firstChild, longWord.firstChild.length);
-      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
       is(textDirective, null, `${testCase}: This test case should not produce a text directive`);
+    }
+
+    async function testMultipleRanges() {
+      let testCase = "Two single-word text directives";
+      const range1 = document.createRange();
+      range1.setStart(abc.firstChild, 0);
+      range1.setEnd(abc.firstChild, 3);
+      const range2 = document.createRange();
+      range2.setStart(foo.firstChild, 0);
+      range2.setEnd(foo.firstChild, 3);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range1);
+      selection.addRange(range2);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirectiveForSelection();
+      is(textDirective, "text=abc&text=foo", `${testCase}: The text fragment has the expected value`);
     }
 
     async function runTests() {
@@ -511,6 +541,7 @@
         await testNonUniqueTestSurroundedByBlockBoundaries();
         await testRangeBasedWithEmptySurroundingBlocks();
         await testRangeBasedWithNonBreakableWord();
+        await testMultipleRanges();
 
     }
     finally {

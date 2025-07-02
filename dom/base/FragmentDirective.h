@@ -138,14 +138,12 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
    */
   MOZ_CAN_RUN_SCRIPT void RemoveAllTextDirectives(ErrorResult& aRv);
 
-  /** Creates a text directive string from a given range.
-   *
-   * @param aRange  The input range.
+  /** Creates a text directive string for the current selection.
    *
    * @return Returns the created text directive as resolved promise, or a
    *         rejected promise in case of an error.
    */
-  already_AddRefed<Promise> CreateTextDirective(nsRange& aRange);
+  already_AddRefed<Promise> CreateTextDirectiveForSelection();
 
  private:
   RefPtr<Document> mDocument;
