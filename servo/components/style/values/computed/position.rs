@@ -46,7 +46,7 @@ impl AnchorSide {
             Self::Keyword(k) => if matches!(k, AnchorSideKeyword::Center) {
                 (AnchorSideKeyword::Start, Percentage(0.5))
             } else {
-                (*k, Percentage::hundred())
+                (*k, Percentage::zero())
             },
         }
     }

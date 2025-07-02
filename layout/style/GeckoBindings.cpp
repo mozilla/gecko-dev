@@ -2015,14 +2015,16 @@ bool Gecko_GetAnchorPosOffset(
                           : logicalAnchorRect.End(propAxis, wm);
   const auto side = opposite ? size - offset : offset;
   nscoord result = side;
-  if (aPercentage != 1.0f) {
-    // Apply the percentage value, with the percentage basis as the anchor
-    // element's size in the relevant axis.
-    const LogicalSize anchorSize{wm, rect.Size()};
+
+  // Apply the percentage value, with the percentage basis as the anchor
+  // element's size in the relevant axis.
+  if (aPercentage != 0.f) {
+    const nscoord anchorSize = LogicalSize{wm, rect.Size()}.Size(propAxis, wm);
     result = side + (opposite ? -1 : 1) *
-                        NSToCoordRoundWithClamp(
-                            aPercentage *
-                            static_cast<float>(anchorSize.Size(propAxis, wm)));
+                        ((aPercentage != 1.f)
+                             ? NSToCoordRoundWithClamp(
+                                   aPercentage * static_cast<float>(anchorSize))
+                             : anchorSize);
   }
   *aOut = Length::FromPixels(CSSPixel::FromAppUnits(result));
   return true;
