@@ -149,8 +149,6 @@ Result<Ok, ErrorResult> ExactMatchTextDirectiveCreator::CollectContextTerms() {
   MOZ_TRY(CollectPrefixContextTerm());
   MOZ_TRY(CollectSuffixContextTerm());
   mStartContent = MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange));
-  mStartFoldCaseContent = mStartContent;
-  ToFoldedCase(mStartFoldCaseContent);
   TEXT_FRAGMENT_LOG("Start term:\n{}", NS_ConvertUTF16toUTF8(mStartContent));
   TEXT_FRAGMENT_LOG("No end term present (exact match).");
   return Ok();
@@ -285,18 +283,37 @@ bool RangeBasedTextDirectiveCreator::CollectContextTermWordBoundaryDistances() {
   mStartWordEndDistances =
       TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
           mStartContent);
-  TEXT_FRAGMENT_LOG("Word end distances for start term: {}",
-                    mStartWordEndDistances);
+  mFirstWordOfStartContent = Substring(mStartContent, 0, mStartWordEndDistances[0]);
+  TEXT_FRAGMENT_LOG("First word of start term: {}",
+                    NS_ConvertUTF16toUTF8(mFirstWordOfStartContent));
+  if (mStartWordEndDistances[0] == mStartContent.Length()) {
+    mStartFirstWordLengthIncludingWhitespace = mStartContent.Length();
+    mStartWordEndDistances.Clear();
+    TEXT_FRAGMENT_LOG("Start term cannot be extended.");
+  } else {
+    // Find the start position for the second word, which is used as the base
+    // for the word end distance.
+    auto [firstWordEndPos, secondWordBeginPos] =
+        intl::WordBreaker::FindWord(mStartContent, mStartWordEndDistances[0]);
+    MOZ_DIAGNOSTIC_ASSERT(firstWordEndPos == mStartWordEndDistances[0]);
+    mStartFirstWordLengthIncludingWhitespace = secondWordBeginPos;
+    mStartFoldCaseContent = Substring(mStartFoldCaseContent,
+                                      mStartFirstWordLengthIncludingWhitespace);
+    mStartWordEndDistances.RemoveElementAt(0);
+    for (auto& distance : mStartWordEndDistances) {
+      MOZ_DIAGNOSTIC_ASSERT(distance >=
+                            mStartFirstWordLengthIncludingWhitespace);
+      distance = distance - mStartFirstWordLengthIncludingWhitespace;
+    }
+    TEXT_FRAGMENT_LOG(
+        "Word end distances for start term, starting at the beginning of the "
+        "second word: {}",
+        mStartWordEndDistances);
+  }
+
   mEndWordBeginDistances =
       TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Left>(
           mEndContent);
-  TEXT_FRAGMENT_LOG("Word begin distances for end term: {}",
-                    mEndWordBeginDistances);
-  mSuffixWordEndDistances =
-      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
-          mSuffixContent);
-  TEXT_FRAGMENT_LOG("Word end distances for suffix term: {}",
-                    mSuffixWordEndDistances);
   if (mEndWordBeginDistances.IsEmpty()) {
     TEXT_FRAGMENT_LOG(
         "No word begin distances for end term. This is likely because the "
@@ -306,6 +323,42 @@ bool RangeBasedTextDirectiveCreator::CollectContextTermWordBoundaryDistances() {
         "a too-long text directive. Therefore, the operation is aborted.");
     return false;
   }
+  mLastWordOfEndContent =
+      Substring(mEndContent, mEndContent.Length() - mEndWordBeginDistances[0]);
+  TEXT_FRAGMENT_LOG("Last word of end term: {}",
+                    NS_ConvertUTF16toUTF8(mLastWordOfEndContent));
+  if (mEndWordBeginDistances[0] == mEndContent.Length()) {
+    mEndLastWordLengthIncludingWhitespace = mEndContent.Length();
+    mEndWordBeginDistances.Clear();
+    TEXT_FRAGMENT_LOG("End term cannot be extended.");
+  } else {
+    // Find the end position of the second to last word, which is used as the
+    // base for the word begin distances.
+    auto [secondLastWordEndPos, lastWordBeginPos] = intl::WordBreaker::FindWord(
+        mEndContent, mEndContent.Length() - mEndWordBeginDistances[0] - 1);
+    MOZ_DIAGNOSTIC_ASSERT(lastWordBeginPos ==
+                          mEndContent.Length() - mEndWordBeginDistances[0]);
+    mEndLastWordLengthIncludingWhitespace =
+        mEndContent.Length() - secondLastWordEndPos;
+
+    mEndFoldCaseContent =
+        Substring(mEndFoldCaseContent, 0, secondLastWordEndPos);
+    mEndWordBeginDistances.RemoveElementAt(0);
+    for (auto& distance : mEndWordBeginDistances) {
+      MOZ_DIAGNOSTIC_ASSERT(distance >= mEndLastWordLengthIncludingWhitespace);
+      distance = distance - mEndLastWordLengthIncludingWhitespace;
+    }
+    TEXT_FRAGMENT_LOG(
+        "Word begin distances for end term, starting at the end of the second "
+        "last word: {}",
+        mEndWordBeginDistances);
+  }
+
+  mSuffixWordEndDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
+          mSuffixContent);
+  TEXT_FRAGMENT_LOG("Word end distances for suffix term: {}",
+                    mSuffixWordEndDistances);
   return true;
 }
 
@@ -405,20 +458,17 @@ void ExactMatchTextDirectiveCreator::FindCommonSubstringLengths(
 
 Result<Ok, ErrorResult>
 RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
-  MOZ_DIAGNOSTIC_ASSERT(!mStartWordEndDistances.IsEmpty() &&
-                        !mEndWordBeginDistances.IsEmpty());
-  const nsString firstWordOfStartContent(
-      Substring(mStartContent, 0, mStartWordEndDistances[0]));
-  const nsString lastWordOfEndContent(
-      Substring(mEndContent, mEndContent.Length() - mEndWordBeginDistances[0]));
+  MOZ_DIAGNOSTIC_ASSERT(
+      !mFirstWordOfStartContent.IsEmpty() && !mLastWordOfEndContent.IsEmpty(),
+      "Minimal start and end content must not be empty.");
 
   TEXT_FRAGMENT_LOG(
       "Searching all occurrences of first word of start content ({}) in the "
       "partial document from document begin to begin of the target range.",
-      NS_ConvertUTF16toUTF8(firstWordOfStartContent));
+      NS_ConvertUTF16toUTF8(mFirstWordOfStartContent));
 
   const nsTArray<RefPtr<AbstractRange>> startContentRanges =
-      MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {mDocument, 0u},
+      MOZ_TRY(FindAllMatchingRanges(mFirstWordOfStartContent, {mDocument, 0u},
                                     mRange->StartRef()));
   FindStartMatchCommonSubstringLengths(startContentRanges);
 
@@ -429,7 +479,7 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
       "Searching all occurrences of last word of end content ({}) in the "
       "partial document from beginning of the target range to the end of the "
       "target range, excluding the last word.",
-      NS_ConvertUTF16toUTF8(lastWordOfEndContent));
+      NS_ConvertUTF16toUTF8(mLastWordOfEndContent));
 
   auto searchEnd =
       TextDirectiveUtil::FindNextNonWhitespacePosition<TextScanDirection::Left>(
@@ -437,9 +487,8 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
   searchEnd =
       TextDirectiveUtil::FindWordBoundary<TextScanDirection::Left>(searchEnd);
 
-  const nsTArray<RefPtr<AbstractRange>> endContentRanges =
-      MOZ_TRY(FindAllMatchingRanges(lastWordOfEndContent, mRange->StartRef(),
-                                    searchEnd));
+  const nsTArray<RefPtr<AbstractRange>> endContentRanges = MOZ_TRY(
+      FindAllMatchingRanges(mLastWordOfEndContent, mRange->StartRef(), searchEnd));
   FindEndMatchCommonSubstringLengths(endContentRanges);
   return Ok();
 }
@@ -464,15 +513,11 @@ void RangeBasedTextDirectiveCreator::FindStartMatchCommonSubstringLengths(
         loopCounter);
     const uint32_t commonStartLength =
         TextDirectiveUtil::ComputeCommonSubstringLength<
-            TextScanDirection::Right>(mStartFoldCaseContent, range->StartRef());
-    const uint32_t commonStartLengthWithoutFirstWord =
-        std::max(0, int(commonStartLength - mStartWordEndDistances[0]));
-    TEXT_FRAGMENT_LOG("Ignoring first word ({}). Remaining common length: {}",
-                      NS_ConvertUTF16toUTF8(Substring(
-                          mStartContent, 0, mStartWordEndDistances[0])),
-                      commonStartLengthWithoutFirstWord);
-    mStartMatchCommonSubstringLengths.EmplaceBack(
-        commonPrefixLength, commonStartLengthWithoutFirstWord);
+            TextScanDirection::Right>(mStartFoldCaseContent, range->EndRef());
+
+    TEXT_FRAGMENT_LOG("Common length: {}", commonStartLength);
+    mStartMatchCommonSubstringLengths.EmplaceBack(commonPrefixLength,
+                                                  commonStartLength);
   }
 }
 
@@ -485,14 +530,8 @@ void RangeBasedTextDirectiveCreator::FindEndMatchCommonSubstringLengths(
                       loopCounter);
     const uint32_t commonEndLength =
         TextDirectiveUtil::ComputeCommonSubstringLength<
-            TextScanDirection::Left>(mEndFoldCaseContent, range->EndRef());
-    const uint32_t commonEndLengthWithoutLastWord =
-        std::max(0, int(commonEndLength - mEndWordBeginDistances[0]));
-    TEXT_FRAGMENT_LOG(
-        "Ignoring last word ({}). Remaining common length: {}",
-        NS_ConvertUTF16toUTF8(Substring(
-            mEndContent, mEndContent.Length() - mEndWordBeginDistances[0])),
-        commonEndLengthWithoutLastWord);
+            TextScanDirection::Left>(mEndFoldCaseContent, range->StartRef());
+    TEXT_FRAGMENT_LOG("Common end term length: {}", commonEndLength);
     TEXT_FRAGMENT_LOG(
         "Computing common suffix substring length for end match {}.",
         loopCounter);
@@ -503,7 +542,7 @@ void RangeBasedTextDirectiveCreator::FindEndMatchCommonSubstringLengths(
             TextDirectiveUtil::FindNextNonWhitespacePosition<
                 TextScanDirection::Right>(range->EndRef()));
 
-    mEndMatchCommonSubstringLengths.EmplaceBack(commonEndLengthWithoutLastWord,
+    mEndMatchCommonSubstringLengths.EmplaceBack(commonEndLength,
                                                 commonSuffixLength);
   }
 }
@@ -675,7 +714,7 @@ Maybe<TextDirective> RangeBasedTextDirectiveCreator::FindShortestCombination()
   // algorithm to minimize to 0.
   auto [prefixLengths, startLengths] = ExtendSubstringLengthsToWordBoundaries(
       mStartMatchCommonSubstringLengths, mPrefixWordBeginDistances,
-      Span(mStartWordEndDistances).From(1));
+      mStartWordEndDistances);
 
   TEXT_FRAGMENT_LOG(
       "Find shortest combination for start match based on prefix and start");
@@ -697,7 +736,7 @@ Maybe<TextDirective> RangeBasedTextDirectiveCreator::FindShortestCombination()
     return Nothing{};
   }
   auto [endLengths, suffixLengths] = ExtendSubstringLengthsToWordBoundaries(
-      mEndMatchCommonSubstringLengths, Span(mEndWordBeginDistances).From(1),
+      mEndMatchCommonSubstringLengths, mEndWordBeginDistances,
       mSuffixWordEndDistances);
 
   TEXT_FRAGMENT_LOG(
@@ -725,21 +764,27 @@ Maybe<TextDirective> RangeBasedTextDirectiveCreator::FindShortestCombination()
     td.prefix =
         Substring(mPrefixContent, mPrefixContent.Length() - prefixLength);
   }
-  const uint32_t startLengthIncludingFirstWord =
-      std::max(mStartWordEndDistances[0], startLength);
-  TEXT_FRAGMENT_LOG(
-      "Removeme: start content: {}, start length: {}, calculated: {}",
-      NS_ConvertUTF16toUTF8(mStartContent), mStartContent.Length(),
-      startLengthIncludingFirstWord);
-  MOZ_DIAGNOSTIC_ASSERT(startLengthIncludingFirstWord <=
-                        mStartContent.Length());
-  td.start = Substring(mStartContent, 0, startLengthIncludingFirstWord);
-  const uint32_t endLengthIncludingLastWord =
-      std::max(mEndWordBeginDistances[0], endLength);
 
-  MOZ_DIAGNOSTIC_ASSERT(endLengthIncludingLastWord <= mEndContent.Length());
-  td.end =
-      Substring(mEndContent, mEndContent.Length() - endLengthIncludingLastWord);
+  if (startLength) {
+    const uint32_t startLengthIncludingFirstWord =
+        mStartFirstWordLengthIncludingWhitespace + startLength;
+    MOZ_DIAGNOSTIC_ASSERT(startLengthIncludingFirstWord <=
+                          mStartContent.Length());
+    td.start = Substring(mStartContent, 0, startLengthIncludingFirstWord);
+  } else {
+    td.start = mFirstWordOfStartContent;
+  }
+  if (endLength) {
+    const uint32_t endLengthIncludingLastWord =
+        mEndLastWordLengthIncludingWhitespace + endLength;
+
+    MOZ_DIAGNOSTIC_ASSERT(endLengthIncludingLastWord <= mEndContent.Length());
+    td.end = Substring(mEndContent,
+                       mEndContent.Length() - endLengthIncludingLastWord);
+  } else {
+    td.end = mLastWordOfEndContent;
+  }
+
   if (suffixLength) {
     td.suffix = Substring(mSuffixContent, 0, suffixLength);
   }

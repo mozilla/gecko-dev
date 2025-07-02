@@ -209,7 +209,6 @@ class TextDirectiveCreator {
   nsTArray<uint32_t> mPrefixWordBeginDistances;
 
   nsString mStartContent;
-  nsString mStartFoldCaseContent;
 
   nsString mSuffixContent;
   nsString mSuffixFoldCaseContent;
@@ -253,8 +252,26 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
   Maybe<TextDirective> FindShortestCombination() const override;
 
   nsString mEndContent;
+  // The fold case contents for start and end terms don't include the first/last
+  // word of the start and end terms, because they are only used for finding the
+  // common lengths for other matches.
+  nsString mStartFoldCaseContent;
   nsString mEndFoldCaseContent;
 
+  // These values are only passed into nsFind, therefore fold case is not
+  // required.
+  nsString mFirstWordOfStartContent;
+  nsString mLastWordOfEndContent;
+
+  // The lengths of the first/last word of the start and end terms, including
+  // whitespace to the next word.
+  // Therefore, these values are equal to
+  // `m[Start|End]Content.Length() - m[Start|End]FoldCaseContent.Length()`.
+  uint32_t mStartFirstWordLengthIncludingWhitespace = 0;
+  uint32_t mEndLastWordLengthIncludingWhitespace = 0;
+
+  // The distances are bound to the Fold Case Content strings, which do not
+  // include the first/last word of the start and end terms.
   nsTArray<uint32_t> mStartWordEndDistances;
   nsTArray<uint32_t> mEndWordBeginDistances;
 
