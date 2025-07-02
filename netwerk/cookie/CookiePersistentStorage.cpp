@@ -28,10 +28,6 @@
 #include "nsVariant.h"
 #include "prprf.h"
 
-// XXX_hack. See bug 178993.
-// This is a hack to hide HttpOnly cookies from older browsers
-#define HTTP_ONLY_PREFIX "#HttpOnly_"
-
 constexpr auto COOKIES_SCHEMA_VERSION = 16;
 
 // parameter indexes; see |Read|
