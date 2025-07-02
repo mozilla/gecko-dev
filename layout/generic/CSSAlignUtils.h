@@ -35,6 +35,10 @@ class CSSAlignUtils {
     // We're aligning a margin box - the margin is already included in the
     // size. Implies `IgnoreAutoMargins`.
     AligningMarginBox = 1 << 3,
+    // If the item is baseline-aligned, this flag indicates that the item is in
+    // the last baseline sharing group of the container, otherwise the item is
+    // in the container's first baseline sharing group.
+    LastBaselineSharingGroup = 1 << 4,
   };
 
   /**
