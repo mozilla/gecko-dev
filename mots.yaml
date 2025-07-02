@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-06-27T16:47:27.695787+00:00'
+updated_at: '2025-07-02T18:13:07.658559+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2890,8 +2890,7 @@ modules:
       - netwerk/protocol/http/**/*
     meta:
       group: dev-platform
-      url:
-        https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent/Firefox
+      url: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/User-Agent/Firefox
       components:
         - 'Core::Networking: HTTP'
     owners:
@@ -4597,5 +4596,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: b82815c501d9c31048631d65c5335b91909705b7
+  config: 2875fdddd5f23f5a1692e982858d29ffec6dc01a
   export: 4d4cf8a0d842107995cb25f5657e843a5348134e
