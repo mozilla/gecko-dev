@@ -169,6 +169,8 @@ sealed class HistoryFragmentAction : Action {
     object ExitDeletionMode : HistoryFragmentAction()
     object StartSync : HistoryFragmentAction()
     object FinishSync : HistoryFragmentAction()
+    data object SearchClicked : HistoryFragmentAction()
+    data object SearchDismissed : HistoryFragmentAction()
 }
 
 /**
@@ -180,6 +182,7 @@ sealed class HistoryFragmentAction : Action {
  * @property isEmpty Whether or not the screen is empty.
  * @property isDeletingItems Whether or not the history items are currently in the process of being
  * deleted.
+ * @property isSearching Whether or not the history items are currently being searched.
  */
 data class HistoryFragmentState(
     val items: List<History>,
@@ -187,6 +190,7 @@ data class HistoryFragmentState(
     val pendingDeletionItems: Set<PendingDeletionHistory>,
     val isEmpty: Boolean,
     val isDeletingItems: Boolean,
+    val isSearching: Boolean,
 ) : State {
     sealed class Mode {
         open val selectedItems = emptySet<History>()
@@ -203,6 +207,7 @@ data class HistoryFragmentState(
             pendingDeletionItems = emptySet(),
             isEmpty = false,
             isDeletingItems = false,
+            isSearching = false,
         )
     }
 }
@@ -276,6 +281,10 @@ private fun historyStateReducer(
                 state
             }
         }
+
+        is HistoryFragmentAction.SearchClicked -> state.copy(isSearching = true)
+        is HistoryFragmentAction.SearchDismissed -> state.copy(isSearching = false)
+
         // For deletion actions: the item list is handled through storage.
         // Updates from storage are dispatched directly to the view.
         is HistoryFragmentAction.DeleteItems,

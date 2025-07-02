@@ -68,6 +68,7 @@ class HistoryFragmentStoreTest {
             pendingDeletionItems = emptySet(),
             isEmpty = false,
             isDeletingItems = false,
+            isSearching = false,
         )
         val store = HistoryFragmentStore(initialState)
 
@@ -209,12 +210,31 @@ class HistoryFragmentStoreTest {
         assertEquals(HistoryFragmentState.Mode.Syncing, store.state.mode)
     }
 
+    @Test
+    fun `WHEN search is clicked THEN update state`() {
+        val store = HistoryFragmentStore(emptyDefaultState().copy(isSearching = true))
+
+        store.dispatch(HistoryFragmentAction.SearchClicked).joinBlocking()
+
+        assertTrue(store.state.isSearching)
+    }
+
+    @Test
+    fun `WHEN search is dismissed THEN update state`() {
+        val store = HistoryFragmentStore(emptyDefaultState().copy(isSearching = false))
+
+        store.dispatch(HistoryFragmentAction.SearchDismissed).joinBlocking()
+
+        assertFalse(store.state.isSearching)
+    }
+
     private fun emptyDefaultState(): HistoryFragmentState = HistoryFragmentState(
         items = listOf(),
         mode = HistoryFragmentState.Mode.Normal,
         pendingDeletionItems = emptySet(),
         isEmpty = false,
         isDeletingItems = false,
+        isSearching = false,
     )
 
     private fun oneItemEditState(): HistoryFragmentState = HistoryFragmentState(
@@ -223,6 +243,7 @@ class HistoryFragmentStoreTest {
         pendingDeletionItems = emptySet(),
         isEmpty = false,
         isDeletingItems = false,
+        isSearching = false,
     )
 
     private fun twoItemEditState(): HistoryFragmentState = HistoryFragmentState(
@@ -231,5 +252,6 @@ class HistoryFragmentStoreTest {
         pendingDeletionItems = emptySet(),
         isEmpty = false,
         isDeletingItems = false,
+        isSearching = false,
     )
 }

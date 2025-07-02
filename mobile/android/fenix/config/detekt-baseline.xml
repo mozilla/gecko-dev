@@ -219,6 +219,8 @@
     <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentAction$ExitEditMode : HistoryFragmentAction</ID>
     <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentAction$FinishSync : HistoryFragmentAction</ID>
     <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentAction$RemoveItemForRemoval : HistoryFragmentAction</ID>
+    <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentAction$SearchClicked : HistoryFragmentAction</ID>
+    <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentAction$SearchDismissed : HistoryFragmentAction</ID>
     <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentAction$StartSync : HistoryFragmentAction</ID>
     <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentState$Companion</ID>
     <ID>UndocumentedPublicClass:HistoryFragmentStore.kt$HistoryFragmentState$Mode</ID>

@@ -18,10 +18,35 @@ import android.view.ViewGroup
 import android.widget.RadioGroup
 import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.core.view.MenuProvider
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDirections
 import androidx.navigation.NavOptions
@@ -39,11 +64,23 @@ import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.HistoryMetadataAction
 import mozilla.components.browser.state.action.RecentlyClosedAction
+import mozilla.components.browser.state.state.searchEngines
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.browser.awesomebar.AwesomeBar
+import mozilla.components.compose.browser.awesomebar.AwesomeBarDefaults
+import mozilla.components.compose.browser.awesomebar.AwesomeBarOrientation
+import mozilla.components.compose.browser.toolbar.BrowserToolbar
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.EnvironmentCleared
+import mozilla.components.compose.browser.toolbar.store.EnvironmentRehydrated
+import mozilla.components.compose.browser.toolbar.store.Mode
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.lib.state.ext.consumeFrom
 import mozilla.components.lib.state.ext.flowScoped
+import mozilla.components.lib.state.ext.observeAsComposableState
 import mozilla.components.support.base.feature.UserInteractionHandler
 import mozilla.components.support.ktx.kotlin.toShortUrl
 import mozilla.components.ui.widgets.withCenterAlignedButtons
@@ -58,6 +95,8 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.history.DefaultPagedHistoryProvider
+import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
 import org.mozilla.fenix.databinding.FragmentHistoryBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getRootView
@@ -65,19 +104,38 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.setTextColor
+import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.home.toolbar.HomeToolbarEnvironment
 import org.mozilla.fenix.library.LibraryPageFragment
+import org.mozilla.fenix.library.history.HistoryFragmentAction.SearchClicked
+import org.mozilla.fenix.library.history.HistoryFragmentAction.SearchDismissed
 import org.mozilla.fenix.library.history.state.HistoryTelemetryMiddleware
 import org.mozilla.fenix.library.history.state.bindings.MenuBinding
 import org.mozilla.fenix.library.history.state.bindings.PendingDeletionBinding
 import org.mozilla.fenix.lifecycle.registerForVerification
 import org.mozilla.fenix.lifecycle.verifyUser
+import org.mozilla.fenix.search.BrowserStoreToFenixSearchMapperMiddleware
+import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware
+import org.mozilla.fenix.search.BrowserToolbarToFenixSearchMapperMiddleware
+import org.mozilla.fenix.search.FenixSearchMiddleware
+import org.mozilla.fenix.search.SearchFragmentAction
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
+import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
+import org.mozilla.fenix.search.SearchFragmentStore
+import org.mozilla.fenix.search.createInitialSearchFragmentState
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.allowUndo
 import org.mozilla.fenix.GleanMetrics.History as GleanHistory
+
+private const val MATERIAL_DESIGN_SCRIM = "#52000000"
 
 @SuppressWarnings("TooManyFunctions", "LargeClass")
 class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, MenuProvider {
     private lateinit var historyStore: HistoryFragmentStore
+    private val toolbarStore by lazy { buildToolbarStore() }
+    private val searchStore by lazy { buildSearchStore(toolbarStore) }
+
     private lateinit var historyProvider: DefaultPagedHistoryProvider
 
     private var deleteHistory: MenuItem? = null
@@ -96,6 +154,7 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         get() = _historyView!!
     private var _binding: FragmentHistoryBinding? = null
     private val binding get() = _binding!!
+    private var searchLayout: ComposeView? = null
 
     private val pendingDeletionBinding by lazy {
         PendingDeletionBinding(requireContext().components.appStore, historyView)
@@ -320,10 +379,15 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
             true
         }
         R.id.history_search -> {
-            findNavController().nav(
-                R.id.historyFragment,
-                HistoryFragmentDirections.actionGlobalSearchDialog(null),
-            )
+            if (context?.settings()?.shouldUseComposableToolbar == true) {
+                historyStore.dispatch(SearchClicked)
+                handleShowingSearchUX()
+            } else {
+                findNavController().nav(
+                    R.id.historyFragment,
+                    HistoryFragmentDirections.actionGlobalSearchDialog(null),
+                )
+            }
             true
         }
         R.id.history_delete -> {
@@ -334,6 +398,103 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         }
         // other options are not handled by this menu provider
         else -> false
+    }
+
+    @Suppress("LongMethod")
+    @OptIn(ExperimentalLayoutApi::class) // for WindowInsets.isImeVisible
+    private fun handleShowingSearchUX() {
+        if (searchLayout == null) {
+            searchLayout = (binding.composeViewStub.inflate() as? ComposeView)?.apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+
+                setContent {
+                    FirefoxTheme {
+                        val historyState = historyStore.observeAsComposableState { it }.value
+                        val searchState = searchStore.observeAsComposableState { it }.value
+                        val awesomebarBackground = AcornTheme.colors.layer1
+                        val awesomebarScrim by remember(searchState.query.isEmpty()) {
+                            derivedStateOf {
+                                when (searchState.query.isNotEmpty()) {
+                                    true -> awesomebarBackground
+                                    else -> Color(MATERIAL_DESIGN_SCRIM.toColorInt())
+                                }
+                            }
+                        }
+
+                        val focusManager = LocalFocusManager.current
+                        val keyboardController = LocalSoftwareKeyboardController.current
+
+                        LaunchedEffect(historyState.isSearching) {
+                            if (!historyState.isSearching) {
+                                (activity as? AppCompatActivity)?.supportActionBar?.show()
+                                binding.historyLayout.updateLayoutParams {
+                                    (this as? ViewGroup.MarginLayoutParams)?.topMargin = 0
+                                }
+                                searchLayout?.isVisible = false
+                            }
+                        }
+
+                        Column {
+                            BrowserToolbar(toolbarStore)
+                            Box(
+                                modifier = Modifier
+                                    .background(awesomebarScrim)
+                                    .fillMaxSize()
+                                    .pointerInput(WindowInsets.isImeVisible) {
+                                        detectTapGestures(
+                                            // Hide the keyboard for any touches in the empty area of the awesomebar
+                                            onPress = {
+                                                keyboardController?.hide()
+                                                focusManager.clearFocus()
+                                                if (searchState.query.isEmpty()) {
+                                                    historyStore.dispatch(SearchDismissed)
+                                                }
+                                            },
+                                        )
+                                    },
+                            ) {
+                                AwesomeBar(
+                                    text = searchState.query,
+                                    providers = searchState.searchSuggestionsProviders,
+                                    orientation = AwesomeBarOrientation.TOP,
+                                    colors = AwesomeBarDefaults.colors(
+                                        background = Color.Transparent,
+                                        title = FirefoxTheme.colors.textPrimary,
+                                        description = FirefoxTheme.colors.textSecondary,
+                                        autocompleteIcon = FirefoxTheme.colors.textSecondary,
+                                        groupTitle = FirefoxTheme.colors.textSecondary,
+                                    ),
+                                    onSuggestionClicked = { suggestion ->
+                                        searchStore.dispatch(SuggestionClicked(suggestion))
+                                    },
+                                    onAutoComplete = { suggestion ->
+                                        searchStore.dispatch(SuggestionSelected(suggestion))
+                                    },
+                                    onVisibilityStateUpdated = {},
+                                    onScroll = { keyboardController?.hide() },
+                                    profiler = requireComponents.core.engine.profiler,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        (activity as? AppCompatActivity)?.supportActionBar?.hide()
+        binding.historyLayout.updateLayoutParams {
+            (this as? ViewGroup.MarginLayoutParams)?.topMargin =
+                requireContext().resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
+        }
+        searchLayout?.isVisible = true
+
+        val appStore = requireComponents.appStore
+        val historySearchEngine = requireComponents.core.store.state.search.searchEngines.firstOrNull {
+            it.id == HISTORY_SEARCH_ENGINE_ID
+        }
+        historySearchEngine?.let {
+            appStore.dispatch(AppAction.SearchEngineSelected(it, false))
+        }
+        appStore.dispatch(AppAction.UpdateSearchBeingActiveState(true))
     }
 
     private fun handleOpenHistoryInPrivateTabsMultiSelectMenuItem() {
@@ -546,6 +707,85 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
 
                 GleanHistory.removePromptOpened.record(NoExtras())
             }.create().withCenterAlignedButtons()
+    }
+
+    private fun buildToolbarStore() = StoreProvider.get(this) {
+        BrowserToolbarStore(
+            initialState = BrowserToolbarState(mode = Mode.EDIT),
+            middleware = listOf(
+                BrowserToolbarSearchMiddleware(
+                    appStore = requireComponents.appStore,
+                    browserStore = requireComponents.core.store,
+                    components = requireComponents,
+                    settings = requireComponents.settings,
+                ),
+            ),
+        )
+    }.also {
+        it.dispatch(
+            EnvironmentRehydrated(
+                HomeToolbarEnvironment(
+                    context = requireContext(),
+                    viewLifecycleOwner = viewLifecycleOwner,
+                    navController = findNavController(),
+                    browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager,
+                ),
+            ),
+        )
+
+        viewLifecycleOwner.lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    it.dispatch(EnvironmentCleared)
+                }
+            },
+        )
+    }
+
+    private fun buildSearchStore(
+        toolbarStore: BrowserToolbarStore,
+    ) = StoreProvider.get(this) {
+        SearchFragmentStore(
+            initialState = createInitialSearchFragmentState(
+                activity = requireActivity() as HomeActivity,
+                components = requireComponents,
+                tabId = null,
+                pastedText = null,
+                searchAccessPoint = MetricsUtils.Source.NONE,
+            ),
+            middleware = listOf(
+                BrowserToolbarToFenixSearchMapperMiddleware(toolbarStore),
+                BrowserStoreToFenixSearchMapperMiddleware(requireComponents.core.store),
+                FenixSearchMiddleware(
+                    engine = requireComponents.core.engine,
+                    useCases = requireComponents.useCases,
+                    nimbusComponents = requireComponents.nimbus,
+                    settings = requireComponents.settings,
+                    appStore = requireComponents.appStore,
+                    browserStore = requireComponents.core.store,
+                    toolbarStore = toolbarStore,
+                ),
+            ),
+        )
+    }.also {
+        it.dispatch(
+            SearchFragmentAction.EnvironmentRehydrated(
+                SearchFragmentStore.Environment(
+                    context = requireContext(),
+                    viewLifecycleOwner = viewLifecycleOwner,
+                    browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager,
+                    navController = findNavController(),
+                ),
+            ),
+        )
+
+        viewLifecycleOwner.lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    it.dispatch(SearchFragmentAction.EnvironmentCleared)
+                }
+            },
+        )
     }
 
     companion object {
