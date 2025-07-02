@@ -65,16 +65,11 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   bool mInitialized;
 
   // These internal helper methods must be called while mMonitor is held.
-  // AddTimerInternal returns false if the insertion failed.
-  bool AddTimerInternal(nsTimerImpl& aTimer) MOZ_REQUIRES(mMonitor);
+  void AddTimerInternal(nsTimerImpl& aTimer) MOZ_REQUIRES(mMonitor);
   bool RemoveTimerInternal(nsTimerImpl& aTimer)
       MOZ_REQUIRES(mMonitor, aTimer.mMutex);
   void RemoveLeadingCanceledTimersInternal() MOZ_REQUIRES(mMonitor);
-  void RemoveFirstTimerInternal() MOZ_REQUIRES(mMonitor);
   nsresult Init() MOZ_REQUIRES(mMonitor);
-
-  void PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef,
-                      uint64_t aTimerSeq) MOZ_REQUIRES(mMonitor);
 
   // Using atomic because this value is written to in one place, and read from
   // in another, and those two locations are likely to be executed from separate
@@ -96,60 +91,18 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   bool mNotified MOZ_GUARDED_BY(mMonitor);
   bool mSleeping MOZ_GUARDED_BY(mMonitor);
 
-  class Entry final {
-   public:
+  struct Entry final {
     explicit Entry(nsTimerImpl& aTimerImpl)
         : mTimeout(aTimerImpl.mTimeout),
           mDelay(aTimerImpl.mDelay),
           mTimerSeq(aTimerImpl.mTimerSeq),
-          mTimerImpl(&aTimerImpl) {
-      aTimerImpl.SetIsInTimerThread(true);
-    }
+          mTimerImpl(&aTimerImpl) {}
 
-    // Create an already-canceled entry with the given timeout.
-    // This is only used to add a far-future cancelled timer when adding a
-    // timer to the timer array.
-    explicit Entry(TimeStamp aTimeout)
-        : mTimeout(std::move(aTimeout)), mTimerSeq(0), mTimerImpl(nullptr) {}
-
-    // Don't allow copies, otherwise which one would manage `IsInTimerThread`?
+    // No copies to not fiddle with mTimerImpl's ref-count.
     Entry(const Entry&) = delete;
     Entry& operator=(const Entry&) = delete;
-
-    // Move-only.
     Entry(Entry&&) = default;
     Entry& operator=(Entry&&) = default;
-
-    ~Entry() {
-      if (mTimerImpl) {
-        mTimerImpl->mMutex.AssertCurrentThreadOwns();
-        mTimerImpl->SetIsInTimerThread(false);
-      }
-    }
-
-    nsTimerImpl* Value() const { return mTimerImpl; }
-
-    void Forget() {
-      if (MOZ_UNLIKELY(!mTimerImpl)) {
-        return;
-      }
-      mTimerImpl->mMutex.AssertCurrentThreadOwns();
-      mTimerImpl->SetIsInTimerThread(false);
-      mTimerImpl = nullptr;
-    }
-
-    // Called with the Monitor held, but not the TimerImpl's mutex
-    already_AddRefed<nsTimerImpl> Take() {
-      if (MOZ_LIKELY(mTimerImpl)) {
-        MOZ_ASSERT(mTimerImpl->IsInTimerThread());
-        mTimerImpl->SetIsInTimerThread(false);
-      }
-      return mTimerImpl.forget();
-    }
-
-    const TimeStamp& Timeout() const { return mTimeout; }
-    const TimeDuration& Delay() const { return mDelay; }
-    uint64_t Sequence() const { return mTimerSeq; }
 
 #ifdef DEBUG
     // While the timer is stored in the thread's list, the timeout is
@@ -161,7 +114,6 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
     }
 #endif
 
-   private:
     // These values are simply cached from the timer. Keeping them here is good
     // for cache usage and allows us to avoid worrying about locking conflicts
     // with the timer.
@@ -171,6 +123,8 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
 
     RefPtr<nsTimerImpl> mTimerImpl;
   };
+
+  void PostTimerEvent(Entry& aPostMe) MOZ_REQUIRES(mMonitor);
 
   // Computes and returns the index in mTimers at which a new timer with the
   // specified timeout should be inserted in order to maintain "sorted" order.
