@@ -181,6 +181,8 @@
     <!-- Customization Settings -->
     <string name="pref_key_customization_preference_screen" translatable="false">pref_key_customization_preference_screen</string>
     <string name="pref_key_website_pull_to_refresh" translatable="false">pref_key_website_pull_to_refresh</string>
+    <string name="pref_key_tab_strip_show" translatable="false">pref_key_tab_strip_show</string>
+    <string name="pref_key_tab_strip_message" translatable="false">pref_key_tab_strip_message</string>
     <string name="pref_key_dynamic_toolbar" translatable="false">pref_key_dynamic_toolbar</string>
     <string name="pref_key_swipe_toolbar_switch_tabs" translatable="false">pref_key_swipe_toolbar_switch_tabs</string>
     <string name="pref_key_swipe_toolbar_show_tabs" translatable="false">pref_key_swipe_toolbar_show_tabs</string>

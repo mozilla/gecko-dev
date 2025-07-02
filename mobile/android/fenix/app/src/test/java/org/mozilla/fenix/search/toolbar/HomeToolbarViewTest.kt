@@ -129,6 +129,7 @@ class HomeToolbarViewTest {
         every { context.settings().shouldShowHistorySuggestions } returns true
         every { context.settings().shouldShowBookmarkSuggestions } returns true
         every { context.settings().shouldAutocompleteInAwesomebar } returns false
+        every { context.settings().isTabStripEnabled } returns false
         val view = buildToolbarView(false)
 
         view.update(defaultState.copy(searchTerms = "search terms"))
@@ -143,6 +144,7 @@ class HomeToolbarViewTest {
         every { context.settings().showUnifiedSearchFeature } returns true
         every { context.settings().shouldShowHistorySuggestions } returns true
         every { context.settings().shouldShowBookmarkSuggestions } returns true
+        every { context.settings().isTabStripEnabled } returns false
         val view = buildToolbarView(false)
 
         view.update(defaultState)
