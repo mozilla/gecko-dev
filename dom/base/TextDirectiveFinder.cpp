@@ -9,6 +9,7 @@
 #include "mozilla/glean/DomMetrics.h"
 #include "nsRange.h"
 #include "fragmentdirectives_ffi_generated.h"
+#include "mozilla/CycleCollectedUniquePtr.h"
 #include "mozilla/ResultVariant.h"
 
 namespace mozilla::dom {
@@ -29,6 +30,12 @@ TextDirectiveFinder::~TextDirectiveFinder() {
   if (HasUninvokedDirectives()) {
     mDocument->SetUseCounter(eUseCounter_custom_InvalidTextDirectives);
   }
+}
+
+void TextDirectiveFinder::Traverse(
+    nsCycleCollectionTraversalCallback& aCallback) {
+  CycleCollectionNoteChild(aCallback, mDocument.get().get(),
+                           "TextDirectiveFinder::mDocument", aCallback.Flags());
 }
 
 bool TextDirectiveFinder::HasUninvokedDirectives() const {

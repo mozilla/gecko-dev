@@ -33,7 +33,8 @@
 
 namespace mozilla::dom {
 
-NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(FragmentDirective, mDocument)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(FragmentDirective, mDocument, mFinder)
+
 NS_IMPL_CYCLE_COLLECTING_ADDREF(FragmentDirective)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(FragmentDirective)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FragmentDirective)
