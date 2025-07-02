@@ -126,7 +126,6 @@ var gProfiles = {
       let { themeBg, themeFg } = profile.theme;
       menuitem.setAttribute("profileid", profile.id);
       menuitem.setAttribute("command", "Profiles:LaunchProfile");
-      menuitem.setAttribute("label", profile.name);
       menuitem.style.setProperty("--menu-profiles-theme-bg", themeBg);
       menuitem.style.setProperty("--menu-profiles-theme-fg", themeFg);
       menuitem.style.listStyleImage = `url(${await profile.getAvatarURL(48)})`;
@@ -134,8 +133,13 @@ var gProfiles = {
 
       if (profile.id === currentProfile.id) {
         menuitem.classList.add("current");
-        menuitem.setAttribute("type", "checkbox");
-        menuitem.setAttribute("checked", "true");
+        menuitem.setAttribute("data-l10n-id", "menu-profiles-current");
+        menuitem.setAttribute(
+          "data-l10n-args",
+          JSON.stringify({ profileName: profile.name })
+        );
+      } else {
+        menuitem.setAttribute("label", profile.name);
       }
 
       menuPopup.appendChild(menuitem);
