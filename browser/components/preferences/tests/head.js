@@ -551,3 +551,29 @@ function enrollByClick(el, wantedActive) {
   EventUtils.synthesizeMouseAtCenter(el.inputEl, {}, gBrowser.contentWindow);
   return promise;
 }
+
+/**
+ * Clicks a checkbox and waits for the associated preference to change to the expected value.
+ * @param {Document} doc - The content document.
+ * @param {string} checkboxId - The checkbox element id.
+ * @param {string} prefName - The preference name.
+ * @param {boolean} expectedValue - The expected value after click.
+ * @returns {Promise<HTMLInputElement>}
+ */
+async function clickCheckboxAndWaitForPrefChange(
+  doc,
+  checkboxId,
+  prefName,
+  expectedValue
+) {
+  let checkbox = doc.getElementById(checkboxId);
+  let prefChange = waitForAndAssertPrefState(prefName, expectedValue);
+  checkbox.click();
+  await prefChange;
+  is(
+    checkbox.checked,
+    expectedValue,
+    `The checkbox #${checkboxId} should be in the expected state after being clicked.`
+  );
+  return checkbox;
+}

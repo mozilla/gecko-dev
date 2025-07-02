@@ -5281,6 +5281,8 @@ interface GleanImpl {
     storageAccessRemainingDays: GleanCustomDistribution;
     stripOnShareLengthDecrease: GleanCustomDistribution;
     stripOnShareParamsRemoved: GleanCustomDistribution;
+    tpAllowlistBaselineEnabled: GleanBoolean;
+    tpAllowlistConvenienceEnabled: GleanBoolean;
     trackersBlockedCount: GleanCounter;
     trackingProtectionEnabled: Record<"false"|"true", GleanCounter>;
     trackingProtectionPbmDisabled: Record<"false"|"true", GleanCounter>;
