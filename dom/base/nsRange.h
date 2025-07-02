@@ -349,8 +349,7 @@ class nsRange final : public mozilla::dom::AbstractRange,
    * @param aRv The error if any.
    */
   void CutContents(mozilla::dom::DocumentFragment** aFragment,
-                   ElementHandler aElementHandler,
-                   ErrorResult& aRv);
+                   ElementHandler aElementHandler, ErrorResult& aRv);
 
   static nsresult CloneParentsBetween(nsINode* aAncestor, nsINode* aNode,
                                       nsINode** aClosestAncestor,
