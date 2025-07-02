@@ -1795,7 +1795,15 @@ static bool ValidateCurrentNode(nsRange* aRange, RangeSubtreeIterator& aIter) {
   return !before && !after;
 }
 
-void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
+void nsRange::CutContents(DocumentFragment** aFragment,
+                          ElementHandler aElementHandler, ErrorResult& aRv) {
+  if (aFragment && aElementHandler) {
+    // Theoretically no reason it can't be handled, but not plumbed in enough to
+    // test.
+    MOZ_ASSERT_UNREACHABLE("Not handling both aFragment and aElementHandler");
+    aRv.Throw(NS_ERROR_UNEXPECTED);
+    return;
+  }
   if (aFragment) {
     *aFragment = nullptr;
   }
@@ -2042,9 +2050,25 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
     }
 
     if (!handled) {
-      // node was not handled above, so it must be completely contained
-      // within the range. Just remove it from the tree!
-      nodeToResult = node;
+      // Node was not handled above, so it must be completely contained
+      // within the range.
+      if (aElementHandler && node->IsElement()) {
+        // This is an element, and the caller specified a handler for it, so use it.
+        MOZ_ASSERT(!aFragment, "Fragment requested when ElementHandler given?");
+        nsMutationGuard guard;
+        auto* element = node->AsElement();
+        aElementHandler(element);
+        // No need to validate - we know this node is an element, so any case that
+        // may cause the node to fail to validate is covered by the mutation guard.
+        if (guard.Mutated(0)) {
+          aRv.Throw(NS_ERROR_UNEXPECTED);
+          return;
+        }
+        handled = true;
+      } else {
+        // Otherwise, just remove it from the tree.
+        nodeToResult = node;
+      }
     }
 
     uint32_t parentCount = 0;
@@ -2144,11 +2168,13 @@ void nsRange::CutContents(DocumentFragment** aFragment, ErrorResult& aRv) {
   }
 }
 
-void nsRange::DeleteContents(ErrorResult& aRv) { CutContents(nullptr, aRv); }
+void nsRange::DeleteContents(ErrorResult& aRv) {
+  CutContents(nullptr, nullptr, aRv);
+}
 
 already_AddRefed<DocumentFragment> nsRange::ExtractContents(ErrorResult& rv) {
   RefPtr<DocumentFragment> fragment;
-  CutContents(getter_AddRefs(fragment), rv);
+  CutContents(getter_AddRefs(fragment), nullptr, rv);
   return fragment.forget();
 }
 
@@ -3188,6 +3214,19 @@ nsINode* nsRange::GetRegisteredClosestCommonInclusiveAncestor() {
              "in selection");
   MOZ_ASSERT(mRegisteredClosestCommonInclusiveAncestor);
   return mRegisteredClosestCommonInclusiveAncestor;
+}
+
+void nsRange::SuppressContentsForPrintSelection(ErrorResult& aRv) {
+  CutContents(
+      nullptr,
+      [](Element* aElement) {
+        // Elements need to be left as-is when we're deleting nodes for printing,
+        // to preserve the style matches containing tree-structural pseudo-classes,
+        // such as :first-child. Partial texts are still deleted since we don't have
+        // a good way to suppress partial texts, but that'd preserve e.g. ::first-letter.
+        aElement->AddStates(ElementState::SUPPRESS_FOR_PRINT_SELECTION);
+      },
+      aRv);
 }
 
 /* static */

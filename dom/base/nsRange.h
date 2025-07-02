@@ -334,15 +334,22 @@ class nsRange final : public mozilla::dom::AbstractRange,
       const mozilla::RangeBoundaryBase<EPT, ERT>& aEndBoundary,
       const nsINode* aRootNode, bool aNotInsertedYet = false);
 
+  using ElementHandler = void (*)(mozilla::dom::Element*);
   /**
    * Cut or delete the range's contents.
    *
    * @param aFragment DocumentFragment containing the nodes.
    *                  May be null to indicate the caller doesn't want a
    *                  fragment.
+   * @param aElementHandler If this handler is provided, any element node
+   *                        subtree root fully contained in this range is
+   *                        passed to it, instead of being deleted. Any
+   *                        mutation that trips nsMutationGuard is disallowed.
+   *                        Currently incompatible with non-null aFragment.
    * @param aRv The error if any.
    */
   void CutContents(mozilla::dom::DocumentFragment** aFragment,
+                   ElementHandler aElementHandler,
                    ErrorResult& aRv);
 
   static nsresult CloneParentsBetween(nsINode* aAncestor, nsINode* aNode,
@@ -506,6 +513,20 @@ class nsRange final : public mozilla::dom::AbstractRange,
     return mCrossShadowBoundaryRange ? mCrossShadowBoundaryRange->EndRef()
                                      : EndRef();
   }
+
+  /**
+   * Suppress rendering of selected nodes for print selection, assuming that
+   * this range represents a part of nodes that are outside of the selection.
+   * For all non-Element nodes, this behaves identically to DeleteContents().
+   * Elements that are wholly contained by this range is instead marked with
+   * state that matches :-moz-suppress-for-print-selection.
+   * This is required to preserve matched style rules using tree-structural
+   * pseudo-classes, as well as any feature that depends on the location of
+   * the style node in the DOM tree (e.g. @scope with implicit scope).
+   *
+   * @param aRv The error, if any.
+   */
+  void SuppressContentsForPrintSelection(ErrorResult& aRv);
 
  protected:
   /**
