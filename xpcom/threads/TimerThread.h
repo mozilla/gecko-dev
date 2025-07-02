@@ -191,13 +191,6 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   // clears a few flags before and after.
   void Wait(TimeDuration aWaitFor) MOZ_REQUIRES(mMonitor);
 
-#ifdef DEBUG
-  // Checks mTimers to see if any entries are out of order or any cached
-  // timeouts are incorrect and will assert if any inconsistency is found. Has
-  // no side effects other than asserting so has no use in non-DEBUG builds.
-  void VerifyTimerListConsistency() const MOZ_REQUIRES(mMonitor);
-#endif
-
   // mTimers is maintained in a "pseudo-sorted" order wrt the timeouts.
   // Specifcally, mTimers is sorted according to the timeouts *if you ignore the
   // canceled entries* (those whose mTimerImpl is nullptr). Notably this means

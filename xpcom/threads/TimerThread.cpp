@@ -666,37 +666,6 @@ struct IntervalComparator {
 
 }  // namespace
 
-#ifdef DEBUG
-void TimerThread::VerifyTimerListConsistency() const {
-  mMonitor.AssertCurrentThreadOwns();
-
-  // Find the first non-canceled timer (and check its cached timeout if we find
-  // it).
-  const size_t timerCount = mTimers.Length();
-  size_t lastNonCanceledTimerIndex = 0;
-  while (lastNonCanceledTimerIndex < timerCount &&
-         !mTimers[lastNonCanceledTimerIndex].Value()) {
-    ++lastNonCanceledTimerIndex;
-  }
-  MOZ_ASSERT(lastNonCanceledTimerIndex == timerCount ||
-             mTimers[lastNonCanceledTimerIndex].Value());
-  MOZ_ASSERT(lastNonCanceledTimerIndex == timerCount ||
-             mTimers[lastNonCanceledTimerIndex].Value()->mTimeout ==
-                 mTimers[lastNonCanceledTimerIndex].Timeout());
-
-  // Verify that mTimers is sorted and the cached timeouts are consistent.
-  for (size_t timerIndex = lastNonCanceledTimerIndex + 1;
-       timerIndex < timerCount; ++timerIndex) {
-    if (mTimers[timerIndex].Value()) {
-      MOZ_ASSERT(mTimers[timerIndex].Timeout() ==
-                 mTimers[timerIndex].Value()->mTimeout);
-      MOZ_ASSERT(mTimers[timerIndex].Timeout() >=
-                 mTimers[lastNonCanceledTimerIndex].Timeout());
-      lastNonCanceledTimerIndex = timerIndex;
-    }
-  }
-}
-#endif
 
 size_t TimerThread::ComputeTimerInsertionIndex(const TimeStamp& timeout) const {
   mMonitor.AssertCurrentThreadOwns();
@@ -913,10 +882,6 @@ TimerThread::Run() {
   while (!mShutdown) {
     const bool chaosModeActive =
         ChaosMode::isActive(ChaosFeature::TimerScheduling);
-
-#ifdef DEBUG
-    VerifyTimerListConsistency();
-#endif
 
     TimeDuration waitFor;
     if (!mSleeping) {
@@ -1167,6 +1132,8 @@ bool TimerThread::AddTimerInternal(nsTimerImpl& aTimer) {
 
   LogTimerEvent::LogDispatch(&aTimer);
 
+  // TODO: Add is_sorted check after changing our book-keeping.
+
   const TimeStamp& timeout = aTimer.mTimeout;
   const size_t insertionIndex = ComputeTimerInsertionIndex(timeout);
 
@@ -1247,6 +1214,9 @@ bool TimerThread::RemoveTimerInternal(nsTimerImpl& aTimer) {
     COUNT_TIMERS_STATS(TimerThread_RemoveTimerInternal_not_in_list);
     return false;
   }
+
+  // TODO: Add is_sorted check after changing our book-keeping.
+
   AUTO_TIMERS_STATS(TimerThread_RemoveTimerInternal_in_list);
   for (auto& entry : mTimers) {
     if (entry.Value() == &aTimer) {
