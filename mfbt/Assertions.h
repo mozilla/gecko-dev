@@ -415,6 +415,37 @@ MFBT_API MOZ_COLD MOZ_NEVER_INLINE MOZ_FORMAT_PRINTF(1, 2) const
 MOZ_END_EXTERN_C
 
 /*
+ * MOZ_CRASH_UNSAFE_FMT(format, arg1 [, args]) can be used when more
+ * information is desired than a string literal can supply. The caller provides
+ * a {fmt}-style format string and arguments. A regular MOZ_CRASH() is preferred
+ * wherever possible, as passing arbitrary strings to format from a potentially
+ * compromised process is not without risk.
+ *
+ * @note This macro causes data collection because crash strings are annotated
+ * to crash-stats and are publicly visible. Firefox data stewards must do data
+ * review on usages of this macro.
+ */
+#ifdef __cplusplus
+
+namespace mozilla::detail {
+template <typename... Args>
+const char* CrashFmtImpl(const char* format, Args&&... args);
+}
+
+#  define MOZ_CRASH_UNSAFE_FMT(format, ...)                              \
+    do {                                                                 \
+      static_assert(MOZ_ARG_COUNT(__VA_ARGS__) > 0,                      \
+                    "Did you forget arguments to MOZ_CRASH_UNSAFE_FMT? " \
+                    "Or maybe you want MOZ_CRASH instead?");             \
+      MOZ_Crash(__FILE__, __LINE__,                                      \
+                mozilla::detail::CrashFmtImpl("" format, __VA_ARGS__));  \
+    } while (false)
+#else
+#  define MOZ_CRASH_UNSAFE_FMT(...) \
+    static_assert(false, "MOZ_CRASH_UNSAFE_FMT requires C++")
+#endif
+
+/*
  * MOZ_ASSERT(expr [, explanation-string]) asserts that |expr| must be truthy in
  * debug builds.  If it is, execution continues.  Otherwise, an error message
  * including the expression and the explanation-string (if provided) is printed,
