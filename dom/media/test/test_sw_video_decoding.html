@@ -1,0 +1,183 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Test video software decoding</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+<script type="application/javascript">
+
+/**
+ * This test verifies that software video decoding is correctly executed on the
+ * appropriate process and utilizes the correct decoder across various platforms.
+ */
+// TODO : as on Android we still don't have RDD process, add Android test cases
+// later in bug 1974849.
+const gTestCases = [
+  {
+    codec : "H264",
+    files: ["gizmo.mp4"],
+    platforms : {
+      WINNT : {
+        decoder : "wmf H264 codec software video decoder",
+        process : "RDD",
+      },
+      Darwin : {
+        decoder: "apple software VT decoder",
+        process : "RDD",
+      },
+      Linux : {
+        decoder: "ffmpeg video decoder",
+        process : "RDD",
+      },
+    }
+  },
+  {
+    codec : "VP8",
+    files: ["bipbop_short_vp8.webm"],
+    platforms : {
+      WINNT : {
+        decoder : "ffvpx video decoder",
+        process : "RDD",
+      },
+      Darwin : {
+        decoder: "ffvpx video decoder",
+        process : "RDD",
+      },
+      Linux : {
+        decoder: "ffvpx video decoder",
+        process : "RDD",
+      },
+    }
+  },
+  {
+    codec : "VP9",
+    files: ["gizmo.webm"],
+    platforms : {
+      WINNT : {
+        decoder : "ffvpx video decoder",
+        process : "RDD",
+      },
+      Darwin : {
+        decoder: "ffvpx video decoder",
+        process : "RDD",
+      },
+      Linux : {
+        decoder: "ffvpx video decoder",
+        process : "RDD",
+      },
+    }
+  },
+  {
+    codec : "AV1",
+    files: [
+      "av1.mp4",
+      "gizmo_av1_8bit_420.webm",
+      "gizmo_av1_10bit_420.webm",
+    ],
+    platforms : {
+      WINNT : {
+        decoder : "ffvpx video decoder",
+        process : "RDD",
+      },
+      Darwin : {
+        decoder: "ffvpx video decoder",
+        process : "RDD",
+      },
+      Linux : {
+        decoder: "ffvpx video decoder",
+        process : "RDD",
+      },
+    }
+  },
+  {
+    // HEVC SW decoder is added since MacOS 10.13, and since ffmpeg 2.0.2.
+    codec : "HEVC",
+    files: [
+      "gizmo_hevc_8bit_420.mp4",
+      "gizmo_hevc_10bit_420.mp4",
+    ],
+    platforms : {
+      // Our MacOS 10.15 workers on the try server somehow do not support
+      // HEVC SW, but MacOS 15 does. We may consider enabling this when
+      // all workers have HEVC SW support in the future.
+      // Darwin : {
+      //   decoder: "apple software VT decoder",
+      //   process : "RDD",
+      // },
+      Linux : {
+        decoder: "ffmpeg video decoder",
+        process : "RDD",
+      },
+    }
+  },
+];
+
+add_task(async function testSoftwareVideoDecoding() {
+  const platformName = SpecialPowers.Services.appinfo.OS;
+  for (let {codec, files, platforms} of gTestCases) {
+    let platformData = platforms[platformName];
+    if (platformData === undefined) {
+      ok(true, `skip ${codec} test on ${platformName}`);
+      continue;
+    }
+    info(`run ${codec} SW test on ${platformName}`);
+    for (let file of files) {
+      await createAndPlayVideo(file);
+      await assertRunningProcessAndDecoderName({
+        expectedProcess: platformData.process,
+        expectedDecoder: platformData.decoder,
+      });
+    }
+  }
+});
+
+// Following are helper functions
+async function createAndPlayVideo(fileUrl) {
+  let video = document.querySelector("video");
+  if (!video) {
+    video = document.createElement("video");
+    document.body.appendChild(video);
+  }
+  video.src = fileUrl;
+  video.loop = true;
+  ok(
+    await video.play().then(
+      () => true,
+      () => false
+    ),
+    "video started playing"
+  );
+}
+
+async function assertRunningProcessAndDecoderName(
+  { expectedProcess, expectedDecoder } = {}
+) {
+  const video = document.querySelector("video");
+  ok(!video.paused, "checking a playing video that should be sw decoding");
+
+  const debugInfo = await SpecialPowers.wrap(video).mozRequestDebugInfo();
+  const videoDecoderName = debugInfo.decoder.reader.videoDecoderName;
+
+  is(debugInfo.decoder.reader.videoHardwareAccelerated, false,
+     `decoder should not be hardware accelerated`);
+
+  const isExpectedDecoder =
+    videoDecoderName.indexOf(`${expectedDecoder}`) == 0;
+  ok(
+    isExpectedDecoder,
+    `Playback running by decoder '${videoDecoderName}', expected '${expectedDecoder}'`
+  );
+
+  const isExpectedProcess =
+    videoDecoderName.indexOf(`(${expectedProcess} remote)`) > 0;
+  ok(
+    isExpectedProcess,
+    `Playback running in process '${videoDecoderName}', expected '${expectedProcess}'`
+  );
+}
+
+</script>
+</head>
+<body>
+</body>
+</html>
