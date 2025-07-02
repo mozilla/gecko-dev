@@ -76,6 +76,9 @@ add_setup(async function () {
       ["urlclassifier.trackingSkipURLs", ""],
       // Make sure we're in "standard" mode.
       ["browser.contentblocking.category", "standard"],
+      // Enable both allow-list categories.
+      ["privacy.trackingprotection.allow_list.baseline.enabled", true],
+      ["privacy.trackingprotection.allow_list.convenience.enabled", true],
     ],
   });
 
