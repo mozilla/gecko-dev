@@ -70,9 +70,7 @@ class nsTimerImpl {
   void SetDelayInternal(uint32_t aDelay, TimeStamp aBase = TimeStamp::Now());
   void CancelImpl(bool aClearITimer);
 
-  void Fire(int32_t aGeneration);
-
-  int32_t GetGeneration() { return mGeneration; }
+  void Fire(uint64_t aTimerSeq);
 
   struct UnknownCallback {};
 
@@ -139,6 +137,11 @@ class nsTimerImpl {
     mIsInTimerThread = aIsInTimerThread;
   }
 
+  void SetTimerSequence(uint64_t aTimerSeq) {
+    mMutex.AssertCurrentThreadOwns();
+    mTimerSeq = aTimerSeq;
+  }
+
   nsCOMPtr<nsIEventTarget> mEventTarget;
 
   void LogFiring(const Callback& aCallback, uint8_t aType, uint32_t aDelay);
@@ -160,11 +163,11 @@ class nsTimerImpl {
   // changed and during the period where it fires on that thread.
   uint8_t mType;
 
-  // The generation number of this timer, re-generated each time the timer is
+  // The global sequence number of this timer, updated each time the timer is
   // initialized so one-shot timers can be canceled and re-initialized by the
   // arming thread without any bad race conditions.
   // Updated only after this timer has been removed from the timer thread.
-  int32_t mGeneration;
+  uint64_t mTimerSeq MOZ_GUARDED_BY(mMutex);
 
   mozilla::TimeDuration mDelay MOZ_GUARDED_BY(mMutex);
   // Never updated while in the TimerThread's timer list.  Only updated

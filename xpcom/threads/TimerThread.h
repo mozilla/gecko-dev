@@ -73,8 +73,8 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   void RemoveFirstTimerInternal() MOZ_REQUIRES(mMonitor);
   nsresult Init() MOZ_REQUIRES(mMonitor);
 
-  void PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef)
-      MOZ_REQUIRES(mMonitor);
+  void PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef,
+                      uint64_t aTimerSeq) MOZ_REQUIRES(mMonitor);
 
   // Using atomic because this value is written to in one place, and read from
   // in another, and those two locations are likely to be executed from separate
@@ -101,13 +101,16 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
     explicit Entry(nsTimerImpl& aTimerImpl)
         : mTimeout(aTimerImpl.mTimeout),
           mDelay(aTimerImpl.mDelay),
+          mTimerSeq(aTimerImpl.mTimerSeq),
           mTimerImpl(&aTimerImpl) {
       aTimerImpl.SetIsInTimerThread(true);
     }
 
     // Create an already-canceled entry with the given timeout.
+    // This is only used to add a far-future cancelled timer when adding a
+    // timer to the timer array.
     explicit Entry(TimeStamp aTimeout)
-        : mTimeout(std::move(aTimeout)), mTimerImpl(nullptr) {}
+        : mTimeout(std::move(aTimeout)), mTimerSeq(0), mTimerImpl(nullptr) {}
 
     // Don't allow copies, otherwise which one would manage `IsInTimerThread`?
     Entry(const Entry&) = delete;
@@ -146,6 +149,7 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
 
     const TimeStamp& Timeout() const { return mTimeout; }
     const TimeDuration& Delay() const { return mDelay; }
+    uint64_t Sequence() const { return mTimerSeq; }
 
 #ifdef DEBUG
     // While the timer is stored in the thread's list, the timeout is
@@ -163,6 +167,7 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
     // with the timer.
     TimeStamp mTimeout;
     TimeDuration mDelay;
+    uint64_t mTimerSeq;
 
     RefPtr<nsTimerImpl> mTimerImpl;
   };
@@ -206,6 +211,12 @@ class TimerThread final : public mozilla::Runnable, public nsIObserver {
   // canceled entries* (those whose mTimerImpl is nullptr). Notably this means
   // that you cannot use a binary search on this list.
   nsTArray<Entry> mTimers MOZ_GUARDED_BY(mMonitor);
+
+  // The last used sequence number for an added timer.
+  // This is used:
+  // - to determine the order if the timeout values are equal.
+  // - to distinguish generations of the same timer
+  uint64_t mLastTimerSeq MOZ_GUARDED_BY(mMonitor) = 0;
 
   // Set only at the start of the thread's Run():
   uint32_t mAllowedEarlyFiringMicroseconds MOZ_GUARDED_BY(mMonitor);
