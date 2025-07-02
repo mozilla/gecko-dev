@@ -2280,6 +2280,9 @@ nsresult WhiteSpaceVisibilityKeeper::
     whitespaceOptions += nsTextFragment::WhitespaceOption::NewLineIsSignificant;
   }
   const uint32_t firstOffset = [&]() {
+    if (!*whiteSpaceOffset) {
+      return 0u;
+    }
     const uint32_t offset = textNode.TextFragment().RFindNonWhitespaceChar(
         whitespaceOptions, *whiteSpaceOffset - 1);
     return offset == nsTextFragment::kNotFound ? 0u : offset + 1u;
@@ -2290,6 +2293,7 @@ nsresult WhiteSpaceVisibilityKeeper::
     return offset == nsTextFragment::kNotFound ? textNode.TextDataLength()
                                                : offset;
   }();
+  MOZ_DIAGNOSTIC_ASSERT(firstOffset <= endOffset);
   nsAutoString normalizedString;
   const char16_t precedingChar =
       !firstOffset ? static_cast<char16_t>(0)
