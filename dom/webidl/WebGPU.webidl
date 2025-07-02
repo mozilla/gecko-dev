@@ -1284,14 +1284,13 @@ dictionary GPUCanvasConfiguration {
 };
 
 enum GPUDeviceLostReason {
-    "unknown",
     "destroyed",
 };
 
 [Func="mozilla::webgpu::Instance::PrefEnabled",
  Exposed=(Window, Worker), SecureContext]
 interface GPUDeviceLostInfo {
-    readonly attribute GPUDeviceLostReason reason;
+    readonly attribute any reason; // GPUDeviceLostReason or undefined
     readonly attribute DOMString message;
 };
 

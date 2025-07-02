@@ -134,7 +134,8 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   void GetLabel(nsAString& aValue) const;
   void SetLabel(const nsAString& aLabel);
   dom::Promise* GetLost(ErrorResult& aRv);
-  void ResolveLost(dom::GPUDeviceLostReason aReason, const nsAString& aMessage);
+  void ResolveLost(Maybe<dom::GPUDeviceLostReason> aReason,
+                   const nsAString& aMessage);
 
   const RefPtr<SupportedFeatures>& Features() const { return mFeatures; }
   const RefPtr<SupportedLimits>& Limits() const { return mLimits; }
