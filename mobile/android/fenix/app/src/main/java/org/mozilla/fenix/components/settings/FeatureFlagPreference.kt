@@ -17,6 +17,10 @@ private class DummyProperty : ReadWriteProperty<PreferencesHolder, Boolean> {
 
 /**
  * Property delegate for getting and setting a boolean shared preference gated by a feature flag.
+ *
+ * @param key Key for the shared preference.
+ * @param default Default value to return.
+ * @param featureFlag If true, returns the shared preference value. If false, returns false.
  */
 fun featureFlagPreference(key: String, default: Boolean, featureFlag: Boolean) =
     if (featureFlag) {
@@ -37,6 +41,10 @@ private class LazyPreference(val key: String, val default: () -> Boolean) :
 
 /**
  * Property delegate for getting and setting lazily a boolean shared preference gated by a feature flag.
+ *
+ * @param key Key for the shared preference.
+ * @param featureFlag If true, returns the shared preference value. If false, returns false.
+ * @param default Default value to return.
  */
 fun lazyFeatureFlagPreference(key: String, featureFlag: Boolean, default: () -> Boolean) =
     if (featureFlag) {
