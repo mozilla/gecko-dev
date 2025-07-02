@@ -12897,6 +12897,12 @@ void PresShell::EventHandler::EventTargetData::
     MOZ_ASSERT(mContent == mFrame->GetContentForEvent(aGUIEvent));
     return;
   }
+  // If clicking an image map, mFrame should be the image frame, but mContent
+  // should be the area element which handles the event at the position.
+  if (mContent->IsHTMLElement(nsGkAtoms::area)) {
+    MOZ_ASSERT(mContent->GetPrimaryFrame() == mFrame);
+    return;
+  }
 
   // Otherwise, we can check only whether mContent is an inclusive ancestor
   // element or not.
