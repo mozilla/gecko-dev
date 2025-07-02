@@ -4,11 +4,8 @@
 
 package org.mozilla.fenix.search
 
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.Lifecycle.State.RESUMED
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.Factory
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.Job
@@ -22,8 +19,10 @@ import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
-import org.mozilla.fenix.search.SearchFragmentAction.Init
+import org.mozilla.fenix.search.SearchFragmentAction.EnvironmentCleared
+import org.mozilla.fenix.search.SearchFragmentAction.EnvironmentRehydrated
 import org.mozilla.fenix.search.SearchFragmentAction.UpdateSearchState
+import org.mozilla.fenix.search.SearchFragmentStore.Environment
 import mozilla.components.lib.state.Action as MVIAction
 
 /**
@@ -33,44 +32,35 @@ import mozilla.components.lib.state.Action as MVIAction
  */
 class BrowserStoreToFenixSearchMapperMiddleware(
     private val browserStore: BrowserStore,
-) : Middleware<SearchFragmentState, SearchFragmentAction>, ViewModel() {
-    private lateinit var dependencies: LifecycleDependencies
-    private var searchStore: SearchFragmentStore? = null
+) : Middleware<SearchFragmentState, SearchFragmentAction> {
+    @VisibleForTesting
+    internal var environment: Environment? = null
     private var observeBrowserSearchStateJob: Job? = null
-
-    /**
-     * Updates the [LifecycleDependencies] of this middleware.
-     *
-     * @param dependencies The new [LifecycleDependencies].
-     */
-    fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
-        this.dependencies = dependencies
-        if (searchStore != null) {
-            observeBrowserSearchState()
-        }
-    }
 
     override fun invoke(
         context: MiddlewareContext<SearchFragmentState, SearchFragmentAction>,
         next: (SearchFragmentAction) -> Unit,
         action: SearchFragmentAction,
     ) {
-        if (action is Init) {
-            searchStore = context.store as SearchFragmentStore
-
-            observeBrowserSearchState()
-        }
-
         next(action)
+
+        if (action is EnvironmentRehydrated) {
+            environment = action.environment
+
+            val searchStore = context.store as? SearchFragmentStore ?: return
+            observeBrowserSearchState(searchStore)
+        } else if (action is EnvironmentCleared) {
+            environment = null
+        }
     }
 
-    private fun observeBrowserSearchState() {
+    private fun observeBrowserSearchState(store: SearchFragmentStore) {
         observeBrowserSearchStateJob?.cancel()
-        observeBrowserSearchStateJob = browserStore.observeWhileActive(dependencies.lifecycleOwner) {
+        observeBrowserSearchStateJob = browserStore.observeWhileActive {
             map { it.search }
                 .distinctUntilChanged()
                 .collect { searchState ->
-                    searchStore?.dispatch(
+                    store.dispatch(
                         UpdateSearchState(searchState, true),
                     )
                 }
@@ -78,41 +68,12 @@ class BrowserStoreToFenixSearchMapperMiddleware(
     }
 
     private inline fun <S : State, A : MVIAction> Store<S, A>.observeWhileActive(
-        lifecycleOwner: LifecycleOwner,
         crossinline observe: suspend (Flow<S>.() -> Unit),
-    ): Job = with(lifecycleOwner) {
+    ): Job? = environment?.viewLifecycleOwner?.run {
         lifecycleScope.launch {
             repeatOnLifecycle(RESUMED) {
                 flow().observe()
             }
-        }
-    }
-
-    /**
-     * Lifecycle dependencies for the [BrowserStoreToFenixSearchMapperMiddleware].
-     *
-     * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
-     */
-    data class LifecycleDependencies(
-        val lifecycleOwner: LifecycleOwner,
-    )
-
-    /**
-     * Static functionalities of the [BrowserStoreToFenixSearchMapperMiddleware].
-     */
-    companion object {
-        /**
-         * [ViewModelProvider.Factory] for creating a [BrowserStoreToFenixSearchMapperMiddleware].
-         *
-         * @param browserStore The [BrowserStore] to sync from.
-         */
-        fun viewModelFactory(
-            browserStore: BrowserStore,
-        ) = object : Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                (BrowserStoreToFenixSearchMapperMiddleware(browserStore) as? T)
-                    ?: throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
 }

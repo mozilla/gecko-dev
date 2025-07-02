@@ -4,22 +4,16 @@
 
 package org.mozilla.fenix.home.toolbar
 
-import android.content.Context
 import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.Lifecycle.State.RESUMED
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.NavController
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.search.SearchEngine
-import mozilla.components.browser.state.selector.normalTabs
-import mozilla.components.browser.state.selector.privateTabs
+import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.browser.toolbar.concept.Action
@@ -43,7 +37,8 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.B
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Icon.DrawableResIcon
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarMenuItem.BrowserToolbarMenuButton.Text.StringResText
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.EnvironmentCleared
+import mozilla.components.compose.browser.toolbar.store.EnvironmentRehydrated
 import mozilla.components.compose.browser.toolbar.store.Mode
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
@@ -58,7 +53,6 @@ import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
-import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.UseCases
@@ -95,37 +89,23 @@ internal sealed class PageOriginInteractions : BrowserToolbarEvent {
 /**
  * [Middleware] responsible for configuring and handling interactions with the composable toolbar.
  *
- * This is also a [ViewModel] allowing to be easily persisted between activity restarts.
- *
  * @param appStore [AppStore] to sync from.
  * @param browserStore [BrowserStore] to sync from.
  * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
+ * @param useCases [UseCases] helping this integrate with other features of the applications.
  */
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
     private val browserStore: BrowserStore,
     private val clipboard: ClipboardHandler,
-) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
-    private lateinit var dependencies: LifecycleDependencies
-    private var store: BrowserToolbarStore? = null
+    private val useCases: UseCases,
+) : Middleware<BrowserToolbarState, BrowserToolbarAction> {
+    @VisibleForTesting
+    internal var environment: HomeToolbarEnvironment? = null
     private var syncCurrentSearchEngineJob: Job? = null
     private var observeBrowserSearchStateJob: Job? = null
 
-    /**
-     * Updates the [LifecycleDependencies] of this middleware.
-     *
-     * @param dependencies The new [LifecycleDependencies].
-     */
-    fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
-        this.dependencies = dependencies
-
-        if (store?.state?.mode == Mode.DISPLAY) {
-            observeSearchStateUpdates()
-        }
-        updateToolbarActionsBasedOnOrientation()
-        updateTabsCount()
-    }
-
+    @Suppress("LongMethod")
     override fun invoke(
         context: MiddlewareContext<BrowserToolbarState, BrowserToolbarAction>,
         next: (BrowserToolbarAction) -> Unit,
@@ -133,44 +113,62 @@ class BrowserToolbarMiddleware(
     ) {
         when (action) {
             is Init -> {
-                store = context.store as BrowserToolbarStore
-                if (action.mode == Mode.DISPLAY) {
-                    observeSearchStateUpdates()
-                }
-                updateEndBrowserActions()
-                updatePageOrigin()
-
                 next(action)
+
+                updatePageOrigin(context.store)
+            }
+
+            is EnvironmentRehydrated -> {
+                next(action)
+
+                environment = action.environment as? HomeToolbarEnvironment
+
+                if (context.store.state.mode == Mode.DISPLAY) {
+                    observeSearchStateUpdates(context.store)
+                }
+                updateEndBrowserActions(context.store)
+                updateToolbarActionsBasedOnOrientation(context.store)
+                updateTabsCount(context.store)
+            }
+
+            is EnvironmentCleared -> {
+                next(action)
+
+                environment = null
             }
 
             is ToggleEditMode -> {
                 when (action.editMode) {
                     true -> stopSearchStateUpdates()
-                    false -> observeSearchStateUpdates()
+                    false -> observeSearchStateUpdates(context.store)
                 }
 
                 next(action)
             }
 
             is MenuClicked -> {
-                dependencies.navController.nav(
-                    R.id.homeFragment,
-                    HomeFragmentDirections.actionGlobalMenuDialogFragment(
-                        accesspoint = MenuAccessPoint.Home,
-                    ),
-                )
+                runWithinEnvironment {
+                    navController.nav(
+                        R.id.homeFragment,
+                        HomeFragmentDirections.actionGlobalMenuDialogFragment(
+                            accesspoint = MenuAccessPoint.Home,
+                        ),
+                    )
+                }
             }
 
             is TabCounterClicked -> {
-                dependencies.navController.nav(
-                    R.id.homeFragment,
-                    NavGraphDirections.actionGlobalTabsTrayFragment(
-                        page = when (dependencies.browsingModeManager.mode) {
-                            Normal -> Page.NormalTabs
-                            Private -> Page.PrivateTabs
-                        },
-                    ),
-                )
+                runWithinEnvironment {
+                    navController.nav(
+                        R.id.homeFragment,
+                        NavGraphDirections.actionGlobalTabsTrayFragment(
+                            page = when (browsingModeManager.mode) {
+                                Normal -> Page.NormalTabs
+                                Private -> Page.PrivateTabs
+                            },
+                        ),
+                    )
+                }
             }
             is AddNewTab -> {
                 openNewTab(Normal)
@@ -180,21 +178,23 @@ class BrowserToolbarMiddleware(
             }
 
             is OriginClicked -> {
-                store?.dispatch(ToggleEditMode(true))
+                context.store.dispatch(ToggleEditMode(true))
             }
             is PasteFromClipboardClicked -> {
                 openNewTab(searchTerms = clipboard.text)
             }
             is LoadFromClipboardClicked -> {
-                clipboard.extractURL()?.let {
-                    dependencies.useCases.fenixBrowserUseCases.loadUrlOrSearch(
-                        searchTermOrURL = it,
-                        newTab = true,
-                        private = dependencies.browsingModeManager.mode == Private,
-                    )
-                    dependencies.navController.navigate(R.id.browserFragment)
-                } ?: run {
-                    Logger("HomeOriginContextMenu").error("Clipboard contains URL but unable to read text")
+                runWithinEnvironment {
+                    clipboard.extractURL()?.let {
+                        useCases.fenixBrowserUseCases.loadUrlOrSearch(
+                            searchTermOrURL = it,
+                            newTab = true,
+                            private = browsingModeManager.mode == Private,
+                        )
+                        navController.navigate(R.id.browserFragment)
+                    } ?: run {
+                        Logger("HomeOriginContextMenu").error("Clipboard contains URL but unable to read text")
+                    }
                 }
             }
 
@@ -206,29 +206,26 @@ class BrowserToolbarMiddleware(
         browsingMode: BrowsingMode? = null,
         searchTerms: String? = null,
     ) {
-        browsingMode?.let { dependencies.browsingModeManager.mode = it }
-        dependencies.navController.nav(
-            R.id.homeFragment,
-            NavGraphDirections.actionGlobalSearchDialog(
-                sessionId = null,
-                pastedText = searchTerms,
-            ),
-            BrowserAnimator.getToolbarNavOptions(dependencies.context),
-        )
+        runWithinEnvironment {
+            browsingMode?.let { browsingModeManager.mode = it }
+            navController.nav(
+                R.id.homeFragment,
+                NavGraphDirections.actionGlobalSearchDialog(
+                    sessionId = null,
+                    pastedText = searchTerms,
+                ),
+                BrowserAnimator.getToolbarNavOptions(context),
+            )
+        }
     }
 
-    private fun getCurrentNumberOfOpenedTabs() = when (dependencies.browsingModeManager.mode) {
-        Normal -> browserStore.state.normalTabs.size
-        Private -> browserStore.state.privateTabs.size
-    }
-
-    private fun observeSearchStateUpdates() {
+    private fun observeSearchStateUpdates(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
         syncCurrentSearchEngineJob?.cancel()
         syncCurrentSearchEngineJob = appStore.observeWhileActive {
             distinctUntilChangedBy { it.shortcutSearchEngine }
                 .collect {
                     it.shortcutSearchEngine?.let {
-                        updateStartPageActions(it)
+                        updateStartPageActions(store, it)
                     }
                 }
         }
@@ -237,7 +234,7 @@ class BrowserToolbarMiddleware(
         observeBrowserSearchStateJob = browserStore.observeWhileActive {
             distinctUntilChangedBy { it.search.searchEngineShortcuts }
                 .collect {
-                    updateStartPageActions(it.search.selectedOrDefaultSearchEngine)
+                    updateStartPageActions(store, it.search.selectedOrDefaultSearchEngine)
                 }
         }
     }
@@ -247,16 +244,17 @@ class BrowserToolbarMiddleware(
         observeBrowserSearchStateJob?.cancel()
     }
 
-    private fun updateStartPageActions(selectedSearchEngine: SearchEngine?) {
-        store?.dispatch(
-            PageActionsStartUpdated(
-                buildStartPageActions(selectedSearchEngine),
-            ),
-        )
-    }
+    private fun updateStartPageActions(
+        store: Store<BrowserToolbarState, BrowserToolbarAction>,
+        selectedSearchEngine: SearchEngine?,
+    ) = store.dispatch(
+        PageActionsStartUpdated(
+            buildStartPageActions(selectedSearchEngine),
+        ),
+    )
 
-    private fun updatePageOrigin() {
-        store?.dispatch(
+    private fun updatePageOrigin(store: Store<BrowserToolbarState, BrowserToolbarAction>) =
+        store.dispatch(
             PageOriginUpdated(
                 PageOrigin(
                     hint = R.string.search_hint,
@@ -267,25 +265,32 @@ class BrowserToolbarMiddleware(
                 ),
             ),
         )
+
+    private fun updateEndBrowserActions(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        store.dispatch(
+            BrowserActionsEndUpdated(
+                buildEndBrowserActions(),
+            ),
+        )
     }
 
-    private fun updateEndBrowserActions() = store?.dispatch(
-        BrowserActionsEndUpdated(
-            buildEndBrowserActions(),
-        ),
-    )
+    private fun buildStartPageActions(selectedSearchEngine: SearchEngine?): List<Action> {
+        val environment = environment ?: return emptyList()
 
-    private fun buildStartPageActions(selectedSearchEngine: SearchEngine?) = listOfNotNull(
-        BrowserToolbarSearchMiddleware.buildSearchSelector(
-            selectedSearchEngine = selectedSearchEngine,
-            searchEngineShortcuts = browserStore.state.search.searchEngineShortcuts,
-            resources = dependencies.context.resources,
-        ),
-    )
+        return listOfNotNull(
+            BrowserToolbarSearchMiddleware.buildSearchSelector(
+                selectedSearchEngine = selectedSearchEngine,
+                searchEngineShortcuts = browserStore.state.search.searchEngineShortcuts,
+                resources = environment.context.resources,
+            ),
+        )
+    }
 
     private fun buildEndBrowserActions(): List<Action> {
+        val environment = environment ?: return emptyList()
+
         return listOf(
-            HomeToolbarActionConfig(HomeToolbarAction.TabCounter) { !dependencies.context.isTabStripEnabled() },
+            HomeToolbarActionConfig(HomeToolbarAction.TabCounter) { !environment.context.isTabStripEnabled() },
             HomeToolbarActionConfig(HomeToolbarAction.Menu),
         ).filter { config ->
             config.isVisible()
@@ -294,59 +299,53 @@ class BrowserToolbarMiddleware(
         }
     }
 
-    private fun buildTabCounterMenu() = BrowserToolbarMenu {
-        when (dependencies.browsingModeManager.mode) {
-            Normal -> listOf(
-                BrowserToolbarMenuButton(
-                    icon = DrawableResIcon(iconsR.drawable.mozac_ic_private_mode_24),
-                    text = StringResText(R.string.mozac_browser_menu_new_private_tab),
-                    contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_private_tab),
-                    onClick = AddNewPrivateTab,
-                ),
-            )
+    private fun buildTabCounterMenu(): BrowserToolbarMenu? {
+        val environment = environment ?: return null
 
-            Private -> listOf(
-                BrowserToolbarMenuButton(
-                    icon = DrawableResIcon(iconsR.drawable.mozac_ic_plus_24),
-                    text = StringResText(R.string.mozac_browser_menu_new_tab),
-                    contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_tab),
-                    onClick = AddNewTab,
-                ),
-            )
-        }
-    }
+        return BrowserToolbarMenu {
+            when (environment.browsingModeManager.mode) {
+                Normal -> listOf(
+                    BrowserToolbarMenuButton(
+                        icon = DrawableResIcon(iconsR.drawable.mozac_ic_private_mode_24),
+                        text = StringResText(R.string.mozac_browser_menu_new_private_tab),
+                        contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_private_tab),
+                        onClick = AddNewPrivateTab,
+                    ),
+                )
 
-    private fun updateToolbarActionsBasedOnOrientation() {
-        with(dependencies.lifecycleOwner) {
-            lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    appStore.flow()
-                        .distinctUntilChangedBy { it.orientation }
-                        .collect {
-                            updateEndBrowserActions()
-                        }
-                }
+                Private -> listOf(
+                    BrowserToolbarMenuButton(
+                        icon = DrawableResIcon(iconsR.drawable.mozac_ic_plus_24),
+                        text = StringResText(R.string.mozac_browser_menu_new_tab),
+                        contentDescription = StringResContentDescription(R.string.mozac_browser_menu_new_tab),
+                        onClick = AddNewTab,
+                    ),
+                )
             }
         }
     }
 
-    private fun updateTabsCount() {
-        with(dependencies.lifecycleOwner) {
-            this.lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    browserStore.flow()
-                        .distinctUntilChangedBy { it.tabs.size }
-                        .collect {
-                            updateEndBrowserActions()
-                        }
+    private fun updateToolbarActionsBasedOnOrientation(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        appStore.observeWhileActive {
+            distinctUntilChangedBy { it.orientation }
+                .collect {
+                    updateEndBrowserActions(store)
                 }
-            }
+        }
+    }
+
+    private fun updateTabsCount(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        browserStore.observeWhileActive {
+            distinctUntilChangedBy { it.tabs.size }
+                .collect {
+                    updateEndBrowserActions(store)
+                }
         }
     }
 
     private inline fun <S : State, A : MVIAction> Store<S, A>.observeWhileActive(
         crossinline observe: suspend (Flow<S>.() -> Unit),
-    ): Job = with(dependencies.lifecycleOwner) {
+    ): Job? = environment?.viewLifecycleOwner?.run {
         lifecycleScope.launch {
             repeatOnLifecycle(RESUMED) {
                 flow().observe()
@@ -354,22 +353,7 @@ class BrowserToolbarMiddleware(
         }
     }
 
-    /**
-     * Lifecycle dependencies for the [BrowserToolbarMiddleware].
-     *
-     * @property context [Context] used for various system interactions.
-     * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
-     * @property navController [NavController] to use for navigating to other in-app destinations.
-     * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
-     * @property useCases [UseCases] helping this integrate with other features of the applications.
-     */
-    data class LifecycleDependencies(
-        val context: Context,
-        val lifecycleOwner: LifecycleOwner,
-        val navController: NavController,
-        val browsingModeManager: BrowsingModeManager,
-        val useCases: UseCases,
-    )
+    private inline fun runWithinEnvironment(block: HomeToolbarEnvironment.() -> Unit) = environment?.let { block(it) }
 
     @VisibleForTesting
     internal enum class HomeToolbarAction {
@@ -387,17 +371,17 @@ class BrowserToolbarMiddleware(
         action: HomeToolbarAction,
     ): Action = when (action) {
         HomeToolbarAction.TabCounter -> {
-            val tabsCount = getCurrentNumberOfOpenedTabs()
-            val isPrivateMode = dependencies.browsingModeManager.mode.isPrivate
-            val context = dependencies.context
+            val environment = requireNotNull(environment)
+            val isInPrivateMode = environment.browsingModeManager.mode.isPrivate
+            val tabsCount = browserStore.state.getNormalOrPrivateTabs(isInPrivateMode).size
 
-            val tabCounterDescription = if (isPrivateMode) {
-                context.getString(
+            val tabCounterDescription = if (isInPrivateMode) {
+                environment.context.getString(
                     R.string.mozac_tab_counter_private,
                     tabsCount.toString(),
                 )
             } else {
-                context.getString(
+                environment.context.getString(
                     R.string.mozac_tab_counter_open_tab_tray,
                     tabsCount.toString(),
                 )
@@ -406,7 +390,7 @@ class BrowserToolbarMiddleware(
             TabCounterAction(
                 count = tabsCount,
                 contentDescription = tabCounterDescription,
-                showPrivacyMask = isPrivateMode,
+                showPrivacyMask = isInPrivateMode,
                 onClick = TabCounterClicked,
                 onLongClick = buildTabCounterMenu(),
             )
@@ -417,31 +401,5 @@ class BrowserToolbarMiddleware(
             contentDescription = R.string.content_description_menu,
             onClick = MenuClicked,
         )
-    }
-
-    /**
-     * Static functionalities of the [BrowserToolbarMiddleware].
-     */
-    companion object {
-        /**
-         * [ViewModelProvider.Factory] for creating a [BrowserToolbarMiddleware].
-         *
-         * @param appStore [AppStore] to sync from.
-         * @param browserStore [BrowserStore] to sync from.
-         * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
-         */
-        fun viewModelFactory(
-            appStore: AppStore,
-            browserStore: BrowserStore,
-            clipboard: ClipboardHandler,
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(BrowserToolbarMiddleware::class.java)) {
-                    return BrowserToolbarMiddleware(appStore, browserStore, clipboard) as T
-                }
-                throw IllegalArgumentException("Unknown ViewModel class")
-            }
-        }
     }
 }

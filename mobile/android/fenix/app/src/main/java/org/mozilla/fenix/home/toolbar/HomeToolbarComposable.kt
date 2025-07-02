@@ -20,8 +20,8 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.updateLayoutParams
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import mozilla.components.browser.state.ext.getUrl
 import mozilla.components.browser.state.selector.findTab
@@ -34,6 +34,8 @@ import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.EnvironmentCleared
+import mozilla.components.compose.browser.toolbar.store.EnvironmentRehydrated
 import mozilla.components.support.ktx.android.view.ImeInsetsSynchronizer
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -44,7 +46,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware
 import org.mozilla.fenix.search.BrowserToolbarSearchStatusSyncMiddleware
 import org.mozilla.fenix.utils.Settings
@@ -82,15 +83,7 @@ internal class HomeToolbarComposable(
 ) : FenixHomeToolbar {
     private var showDivider by mutableStateOf(true)
 
-    private val displayMiddleware = getOrCreate<BrowserToolbarMiddleware>()
-    private val searchMiddleware = getOrCreate<BrowserToolbarSearchMiddleware>()
-    private val searchSyncMiddleware = getOrCreate<BrowserToolbarSearchStatusSyncMiddleware>()
-    private val store = StoreProvider.get(lifecycleOwner) {
-        BrowserToolbarStore(
-            initialState = BrowserToolbarState(),
-            middleware = listOf(displayMiddleware, searchMiddleware, searchSyncMiddleware),
-        )
-    }
+    private val store = initializeToolbarStore()
 
     override val layout = ComposeView(context).apply {
         id = R.id.composable_toolbar
@@ -200,61 +193,44 @@ internal class HomeToolbarComposable(
         }
     }
 
-    private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
-        BrowserToolbarMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarMiddleware.viewModelFactory(
+    private fun initializeToolbarStore() = StoreProvider.get(lifecycleOwner) {
+        BrowserToolbarStore(
+            initialState = BrowserToolbarState(),
+            middleware = listOf(
+                BrowserToolbarSearchStatusSyncMiddleware(appStore),
+                BrowserToolbarMiddleware(
                     appStore = appStore,
                     browserStore = browserStore,
                     clipboard = context.components.clipboardHandler,
+                    useCases = context.components.useCases,
                 ),
-            ).get(BrowserToolbarMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    LifecycleDependencies(
-                        context = context,
-                        lifecycleOwner = lifecycleOwner,
-                        navController = navController,
-                        browsingModeManager = browsingModeManager,
-                        useCases = context.components.useCases,
-                    ),
-                )
-            } as T
-
-        BrowserToolbarSearchStatusSyncMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarSearchStatusSyncMiddleware.viewModelFactory(
-                    appStore = appStore,
-                ),
-            ).get(BrowserToolbarSearchStatusSyncMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    BrowserToolbarSearchStatusSyncMiddleware.LifecycleDependencies(
-                        lifecycleOwner = lifecycleOwner,
-                    ),
-                )
-            } as T
-
-        BrowserToolbarSearchMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarSearchMiddleware.viewModelFactory(
+                BrowserToolbarSearchMiddleware(
                     appStore = appStore,
                     browserStore = browserStore,
                     components = context.components,
                     settings = context.components.settings,
                 ),
-            ).get(BrowserToolbarSearchMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    BrowserToolbarSearchMiddleware.LifecycleDependencies(
-                        lifecycleOwner = lifecycleOwner,
-                        navController = navController,
-                        resources = context.resources,
-                    ),
-                )
-            } as T
+            ),
+        )
+    }.also {
+        it.dispatch(
+            EnvironmentRehydrated(
+                HomeToolbarEnvironment(
+                    context = context,
+                    viewLifecycleOwner = lifecycleOwner.viewLifecycleOwner,
+                    navController = navController,
+                    browsingModeManager = browsingModeManager,
+                ),
+            ),
+        )
 
-        else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
+        lifecycleOwner.viewLifecycleOwner.lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    it.dispatch(EnvironmentCleared)
+                }
+            },
+        )
     }
 
     /**

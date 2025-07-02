@@ -4,20 +4,17 @@
 
 package org.mozilla.fenix.components.toolbar
 
-import android.content.Context
 import android.content.Intent
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle.State.RESUMED
-import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.NavController
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.mapNotNull
@@ -35,9 +32,11 @@ import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAct
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.Init
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.EnvironmentCleared
+import mozilla.components.compose.browser.toolbar.store.EnvironmentRehydrated
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity
 import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
@@ -100,23 +99,11 @@ class CustomTabBrowserToolbarMiddleware(
     private val publicSuffixList: PublicSuffixList,
     private val settings: Settings,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
-    private lateinit var dependencies: LifecycleDependencies
-    private var store: BrowserToolbarStore? = null
+    @VisibleForTesting
+    internal var environment: CustomTabToolbarEnvironment? = null
     private val customTab
         get() = browserStore.state.findCustomTab(customTabId)
     private var wasTitleShown = false
-
-    /**
-     * Updates the [LifecycleDependencies] of this middleware.
-     *
-     * @param dependencies The new [LifecycleDependencies].
-     */
-    fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
-        this.dependencies = dependencies
-        observePageLoadUpdates()
-        observePageOriginUpdates()
-        observePageSecurityUpdates()
-    }
 
     @Suppress("LongMethod")
     override fun invoke(
@@ -125,32 +112,50 @@ class CustomTabBrowserToolbarMiddleware(
         action: BrowserToolbarAction,
     ) {
         when (action) {
-            is BrowserToolbarAction.Init -> {
-                store = context.store as BrowserToolbarStore
-                val customTab = customTab
+            is Init -> {
+                next(action)
 
-                updateStartBrowserActions(customTab)
-                updateStartPageActions(customTab)
-                updateCurrentPageOrigin(customTab)
-                updateEndPageActions(customTab)
-                updateEndBrowserActions(customTab)
+                val customTab = customTab
+                updateStartPageActions(context.store, customTab)
+                updateEndBrowserActions(context.store, customTab)
+            }
+
+            is EnvironmentRehydrated -> {
+                next(action)
+
+                environment = action.environment as? CustomTabToolbarEnvironment
+
+                updateStartBrowserActions(context.store, customTab)
+                updateCurrentPageOrigin(context.store, customTab)
+                updateEndPageActions(context.store, customTab)
+
+                observePageLoadUpdates(context.store)
+                observePageOriginUpdates(context.store)
+                observePageSecurityUpdates(context.store)
+            }
+
+            is EnvironmentCleared -> {
+                next(action)
+
+                environment = null
             }
 
             is CloseClicked -> {
                 useCases.remove(customTabId)
-                dependencies.closeTabDelegate()
+                environment?.closeTabDelegate()
             }
 
             is SiteInfoClicked -> {
+                val environment = environment ?: return
                 val customTab = requireNotNull(customTab)
-                dependencies.lifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                environment.viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
                     val sitePermissions: SitePermissions? = customTab.content.url.getOrigin()?.let { origin ->
                         permissionsStorage.findSitePermissionsBy(origin, private = customTab.content.private)
                     }
 
-                    dependencies.lifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
+                    environment.viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Main) {
                         trackingProtectionUseCases.containsException(customTabId) { isExcepted ->
-                            dependencies.lifecycleOwner.lifecycleScope.launch {
+                            environment.viewLifecycleOwner.lifecycleScope.launch {
                                 val cookieBannerUIMode = cookieBannersStorage.getCookieBannerUIMode(
                                     tab = customTab,
                                     isFeatureEnabledInPrivateMode = settings.shouldUseCookieBannerPrivateMode,
@@ -172,7 +177,7 @@ class CustomTabBrowserToolbarMiddleware(
                                             customTab.trackingProtection.enabled && !isExcepted,
                                         cookieBannerUIMode = cookieBannerUIMode,
                                     )
-                                dependencies.navController.nav(
+                                environment.navController.nav(
                                     R.id.externalAppBrowserFragment,
                                     directions,
                                 )
@@ -183,9 +188,10 @@ class CustomTabBrowserToolbarMiddleware(
             }
 
             is CustomButtonClicked -> {
+                val environment = environment ?: return
                 val customTab = customTab
                 customTab?.config?.actionButtonConfig?.pendingIntent?.send(
-                    dependencies.context,
+                    environment.context,
                     CUSTOM_BUTTON_CLICK_RETURN_CODE,
                     Intent(null, customTab.content.url.toUri()),
                 )
@@ -193,7 +199,7 @@ class CustomTabBrowserToolbarMiddleware(
 
             is ShareClicked -> {
                 val customTab = customTab
-                dependencies.navController.navigate(
+                environment?.navController?.navigate(
                     NavGraphDirections.actionGlobalShareFragment(
                         sessionId = customTabId,
                         data = arrayOf(
@@ -208,35 +214,37 @@ class CustomTabBrowserToolbarMiddleware(
             }
 
             is MenuClicked -> {
-                dependencies.navController.nav(
-                    R.id.externalAppBrowserFragment,
-                    BrowserFragmentDirections.actionGlobalMenuDialogFragment(
-                        accesspoint = MenuAccessPoint.External,
-                        customTabSessionId = customTabId,
-                    ),
-                )
+                runWithinEnvironment {
+                    navController.nav(
+                        R.id.externalAppBrowserFragment,
+                        BrowserFragmentDirections.actionGlobalMenuDialogFragment(
+                            accesspoint = MenuAccessPoint.External,
+                            customTabSessionId = customTabId,
+                        ),
+                    )
+                }
             }
 
             else -> next(action)
         }
     }
 
-    private fun observePageOriginUpdates() {
-        observeWhileActive(browserStore) {
+    private fun observePageOriginUpdates(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        browserStore.observeWhileActive {
             mapNotNull { state -> state.findCustomTab(customTabId) }
                 .ifAnyChanged { tab -> arrayOf(tab.content.title, tab.content.url) }
                 .collect {
-                    updateCurrentPageOrigin(it)
+                    updateCurrentPageOrigin(store, it)
                 }
         }
     }
 
-    private fun observePageLoadUpdates() {
-        observeWhileActive(browserStore) {
+    private fun observePageLoadUpdates(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        browserStore.observeWhileActive {
             mapNotNull { state -> state.findCustomTab(customTabId) }
                 .distinctUntilChangedBy { it.content.progress }
                 .collect {
-                    store?.dispatch(
+                    store.dispatch(
                         UpdateProgressBarConfig(
                             buildProgressBar(it.content.progress),
                         ),
@@ -245,31 +253,40 @@ class CustomTabBrowserToolbarMiddleware(
         }
     }
 
-    private fun observePageSecurityUpdates() {
-        observeWhileActive(browserStore) {
+    private fun observePageSecurityUpdates(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        browserStore.observeWhileActive {
             mapNotNull { state -> state.findCustomTab(customTabId) }
                 .distinctUntilChangedBy { tab -> tab.content.securityInfo }
                 .collect {
-                    updateStartPageActions(it)
+                    updateStartPageActions(store, it)
                 }
         }
     }
 
-    private fun updateStartBrowserActions(customTab: CustomTabSessionState?) = store?.dispatch(
+    private fun updateStartBrowserActions(
+        store: Store<BrowserToolbarState, BrowserToolbarAction>,
+        customTab: CustomTabSessionState?,
+    ) = store.dispatch(
         BrowserActionsStartUpdated(
             buildStartBrowserActions(customTab),
         ),
     )
 
-    private fun updateStartPageActions(customTab: CustomTabSessionState?) = store?.dispatch(
+    private fun updateStartPageActions(
+        store: Store<BrowserToolbarState, BrowserToolbarAction>,
+        customTab: CustomTabSessionState?,
+    ) = store.dispatch(
         PageActionsStartUpdated(
             buildStartPageActions(customTab),
         ),
     )
 
-    private fun updateCurrentPageOrigin(customTab: CustomTabSessionState?) {
-        dependencies.lifecycleOwner.lifecycleScope.launch {
-            store?.dispatch(
+    private fun updateCurrentPageOrigin(
+        store: Store<BrowserToolbarState, BrowserToolbarAction>,
+        customTab: CustomTabSessionState?,
+    ) {
+        environment?.viewLifecycleOwner?.lifecycleScope?.launch {
+            store.dispatch(
                 BrowserDisplayToolbarAction.PageOriginUpdated(
                     PageOrigin(
                         hint = R.string.search_hint,
@@ -282,19 +299,26 @@ class CustomTabBrowserToolbarMiddleware(
         }
     }
 
-    private fun updateEndPageActions(customTab: CustomTabSessionState?) = store?.dispatch(
+    private fun updateEndPageActions(
+        store: Store<BrowserToolbarState, BrowserToolbarAction>,
+        customTab: CustomTabSessionState?,
+    ) = store.dispatch(
         BrowserDisplayToolbarAction.PageActionsEndUpdated(
             buildEndPageActions(customTab),
         ),
     )
 
-    private fun updateEndBrowserActions(customTab: CustomTabSessionState?) = store?.dispatch(
+    private fun updateEndBrowserActions(
+        store: Store<BrowserToolbarState, BrowserToolbarAction>,
+        customTab: CustomTabSessionState?,
+    ) = store.dispatch(
         BrowserActionsEndUpdated(
             buildEndBrowserActions(customTab),
         ),
     )
 
     private fun buildStartBrowserActions(customTab: CustomTabSessionState?): List<Action> {
+        val environment = environment ?: return emptyList()
         val customTabConfig = customTab?.config
         val customIconBitmap = customTabConfig?.closeButtonIcon
 
@@ -303,12 +327,12 @@ class CustomTabBrowserToolbarMiddleware(
                 ActionButton(
                     drawable = when (customIconBitmap) {
                         null -> AppCompatResources.getDrawable(
-                            dependencies.context, R.drawable.mozac_ic_cross_24,
+                            environment.context, R.drawable.mozac_ic_cross_24,
                         )
 
-                        else -> customIconBitmap.toDrawable(dependencies.context.resources)
+                        else -> customIconBitmap.toDrawable(environment.context.resources)
                     },
-                    contentDescription = dependencies.context.getString(R.string.mozac_feature_customtabs_exit_button),
+                    contentDescription = environment.context.getString(R.string.mozac_feature_customtabs_exit_button),
                     onClick = CloseClicked,
                 ),
             )
@@ -346,6 +370,7 @@ class CustomTabBrowserToolbarMiddleware(
     }
 
     private fun buildEndPageActions(customTab: CustomTabSessionState?): List<ActionButton> {
+        val environment = environment ?: return emptyList()
         val customButtonConfig = customTab?.config?.actionButtonConfig
         val customButtonIcon = customButtonConfig?.icon
 
@@ -353,7 +378,7 @@ class CustomTabBrowserToolbarMiddleware(
             null -> emptyList()
             else -> listOf(
                 ActionButton(
-                    drawable = customButtonIcon.toDrawable(dependencies.context.resources),
+                    drawable = customButtonIcon.toDrawable(environment.context.resources),
                     shouldTint = customTab.content.private || customButtonConfig.tint,
                     contentDescription = customButtonConfig.description,
                     onClick = CustomButtonClicked,
@@ -413,79 +438,24 @@ class CustomTabBrowserToolbarMiddleware(
         }
     }
 
-    private inline fun <S : State, A : MVIAction> observeWhileActive(
-        store: Store<S, A>,
+    private inline fun <S : State, A : MVIAction> Store<S, A>.observeWhileActive(
         crossinline observe: suspend (Flow<S>.() -> Unit),
-    ) {
-        with(dependencies.lifecycleOwner) {
-            lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    store.flow().observe()
-                }
+    ): Job? = environment?.viewLifecycleOwner?.run {
+        lifecycleScope.launch {
+            repeatOnLifecycle(RESUMED) {
+                flow().observe()
             }
         }
     }
 
-    /**
-     * Lifecycle dependencies for the [BrowserToolbarMiddleware].
-     *
-     * @property context [Context] to access application resources and interact with other system functionalities.
-     * @property lifecycleOwner [LifecycleOwner] depending on which lifecycle related operations will be scheduled.
-     * @property navController [NavController] to use for navigating to other in-app destinations.
-     * @property closeTabDelegate Callback for when the current custom tab needs to be closed.
-     */
-    data class LifecycleDependencies(
-        val context: Context,
-        val lifecycleOwner: LifecycleOwner,
-        val navController: NavController,
-        val closeTabDelegate: () -> Unit,
-    )
+    private inline fun runWithinEnvironment(
+        block: CustomTabToolbarEnvironment.() -> Unit,
+    ) = environment?.let { block(it) }
 
     /**
      * Static functionalities of the [BrowserToolbarMiddleware].
      */
     companion object {
-        /**
-         * [ViewModelProvider.Factory] for creating a [BrowserToolbarMiddleware].
-         *
-         * @param customTabId [String] of the custom tab in which the toolbar is shown.
-         * @param browserStore [BrowserStore] to sync from.
-         * @param permissionsStorage [SitePermissionsStorage] to sync from.
-         * @param cookieBannersStorage [CookieBannersStorage] to sync from.
-         * @param useCases [CustomTabsUseCases] used for cleanup when closing the custom tab.
-         * @param trackingProtectionUseCases [TrackingProtectionUseCases] allowing to query
-         * tracking protection data of the current tab.
-         * @param publicSuffixList [PublicSuffixList] used to obtain the base domain of the current site.
-         * @param settings [Settings] for accessing user preferences.
-         */
-        fun viewModelFactory(
-            customTabId: String,
-            browserStore: BrowserStore,
-            permissionsStorage: SitePermissionsStorage,
-            cookieBannersStorage: CookieBannersStorage,
-            useCases: CustomTabsUseCases,
-            trackingProtectionUseCases: TrackingProtectionUseCases,
-            publicSuffixList: PublicSuffixList,
-            settings: Settings,
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(CustomTabBrowserToolbarMiddleware::class.java)) {
-                    return CustomTabBrowserToolbarMiddleware(
-                        customTabId = customTabId,
-                        browserStore = browserStore,
-                        permissionsStorage = permissionsStorage,
-                        useCases = useCases,
-                        trackingProtectionUseCases = trackingProtectionUseCases,
-                        cookieBannersStorage = cookieBannersStorage,
-                        publicSuffixList = publicSuffixList,
-                        settings = settings,
-                    ) as T
-                }
-                throw IllegalArgumentException("Unknown ViewModel class")
-            }
-        }
-
         @VisibleForTesting
         internal sealed class StartBrowserActions : BrowserToolbarEvent {
             data object CloseClicked : StartBrowserActions()

@@ -17,7 +17,7 @@ import mozilla.components.lib.state.UiStore
 /**
  * [UiStore] for maintaining the state of the browser toolbar.
  */
-class BrowserToolbarStore(
+open class BrowserToolbarStore(
     initialState: BrowserToolbarState = BrowserToolbarState(),
     middleware: List<Middleware<BrowserToolbarState, BrowserToolbarAction>> = emptyList(),
 ) : UiStore<BrowserToolbarState, BrowserToolbarAction>(
@@ -115,6 +115,8 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
+        is EnvironmentRehydrated,
+        is EnvironmentCleared,
         is UrlSuggestionAutocompleted,
         is BrowserToolbarEvent,
             -> {

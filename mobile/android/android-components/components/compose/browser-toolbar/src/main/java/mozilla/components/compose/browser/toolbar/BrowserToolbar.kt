@@ -74,7 +74,7 @@ private fun BrowserToolbarPreview_EditMode() {
         mode = Mode.EDIT,
         editState = editState,
     )
-    val store = BrowserToolbarStore(initialState = toolbarState)
+    val store = BrowserToolbarStore(toolbarState)
 
     AcornTheme {
         BrowserToolbar(
@@ -105,7 +105,7 @@ private fun BrowserToolbarPreview_DisplayMode() {
         mode = Mode.DISPLAY,
         displayState = displayState,
     )
-    val store = BrowserToolbarStore(initialState = toolbarState)
+    val store = BrowserToolbarStore(toolbarState)
 
     AcornTheme {
         BrowserToolbar(

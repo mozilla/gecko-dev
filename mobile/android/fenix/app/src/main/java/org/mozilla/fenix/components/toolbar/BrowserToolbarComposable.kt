@@ -23,8 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.coordinatorlayout.widget.CoordinatorLayout.LayoutParams
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
 import mozilla.components.browser.state.state.CustomTabSessionState
 import mozilla.components.browser.state.store.BrowserStore
@@ -33,11 +33,11 @@ import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.base.theme.localAcornColors
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
-import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.EnvironmentCleared
+import mozilla.components.compose.browser.toolbar.store.EnvironmentRehydrated
 import mozilla.components.feature.toolbar.ToolbarBehaviorController
-import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.ext.observeAsComposableState
 import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -46,7 +46,6 @@ import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.StoreProvider
-import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.BOTTOM
 import org.mozilla.fenix.components.toolbar.ToolbarPosition.TOP
 import org.mozilla.fenix.ext.components
@@ -96,16 +95,7 @@ class BrowserToolbarComposable(
 ) {
     private var showDivider by mutableStateOf(false)
 
-    private val middleware: Middleware<BrowserToolbarState, BrowserToolbarAction> = when (customTabSession) {
-        null -> getOrCreate<BrowserToolbarMiddleware>()
-        else -> getOrCreate<CustomTabBrowserToolbarMiddleware>()
-    }
-    val store = StoreProvider.get(lifecycleOwner) {
-        BrowserToolbarStore(
-            initialState = BrowserToolbarState(),
-            middleware = listOf(middleware),
-        )
-    }
+    private val store = initializeToolbarStore()
 
     override val layout = ScrollableToolbarComposeView(activity, this) {
         val shouldShowTabStrip: Boolean = remember { shouldShowTabStrip() }
@@ -205,60 +195,66 @@ class BrowserToolbarComposable(
         }
     }
 
-    private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
-        BrowserToolbarMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarMiddleware.viewModelFactory(
-                    appStore = appStore,
-                    browserScreenStore = browserScreenStore,
-                    browserStore = browserStore,
-                    permissionsStorage = components.core.geckoSitePermissionsStorage,
-                    cookieBannersStorage = components.core.cookieBannersStorage,
-                    trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
-                    useCases = components.useCases,
-                    clipboard = activity.components.clipboardHandler,
-                    publicSuffixList = components.publicSuffixList,
-                    settings = settings,
-                ),
-            ).get(BrowserToolbarMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    LifecycleDependencies(
+    private fun initializeToolbarStore() = StoreProvider.get(lifecycleOwner) {
+        BrowserToolbarStore(
+            initialState = BrowserToolbarState(),
+            middleware = listOf(
+                when (customTabSession) {
+                    null -> BrowserToolbarMiddleware(
+                        appStore = appStore,
+                        browserScreenStore = browserScreenStore,
+                        browserStore = browserStore,
+                        permissionsStorage = components.core.geckoSitePermissionsStorage,
+                        cookieBannersStorage = components.core.cookieBannersStorage,
+                        trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
+                        useCases = components.useCases,
+                        clipboard = activity.components.clipboardHandler,
+                        publicSuffixList = components.publicSuffixList,
+                        settings = settings,
+                    )
+
+                    else -> CustomTabBrowserToolbarMiddleware(
+                        requireNotNull(customTabSession).id,
+                        browserStore = browserStore,
+                        permissionsStorage = components.core.geckoSitePermissionsStorage,
+                        cookieBannersStorage = components.core.cookieBannersStorage,
+                        useCases = components.useCases.customTabsUseCases,
+                        trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
+                        publicSuffixList = components.publicSuffixList,
+                        settings = settings,
+                    )
+                },
+            ),
+        )
+    }.also {
+        it.dispatch(
+            EnvironmentRehydrated(
+                when (customTabSession) {
+                    null -> BrowserToolbarEnvironment(
                         context = activity,
-                        lifecycleOwner = lifecycleOwner,
+                        viewLifecycleOwner = lifecycleOwner.viewLifecycleOwner,
                         navController = navController,
                         browsingModeManager = browsingModeManager,
                         browserAnimator = browserAnimator,
                         thumbnailsFeature = thumbnailsFeature,
                         readerModeController = readerModeController,
-                    ),
-                )
-            } as T
-
-        CustomTabBrowserToolbarMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                CustomTabBrowserToolbarMiddleware.viewModelFactory(
-                    requireNotNull(customTabSession).id,
-                    browserStore = browserStore,
-                    permissionsStorage = components.core.geckoSitePermissionsStorage,
-                    cookieBannersStorage = components.core.cookieBannersStorage,
-                    useCases = components.useCases.customTabsUseCases,
-                    trackingProtectionUseCases = components.useCases.trackingProtectionUseCases,
-                    publicSuffixList = components.publicSuffixList,
-                    settings = settings,
-                ),
-            ).get(CustomTabBrowserToolbarMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    CustomTabBrowserToolbarMiddleware.LifecycleDependencies(
+                    )
+                    else -> CustomTabToolbarEnvironment(
                         context = activity,
-                        lifecycleOwner = lifecycleOwner,
+                        viewLifecycleOwner = lifecycleOwner.viewLifecycleOwner,
                         navController = navController,
                         closeTabDelegate = { activity.finishAndRemoveTask() },
-                    ),
-                )
-            } as T
+                    )
+                },
+            ),
+        )
 
-        else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
+        lifecycleOwner.viewLifecycleOwner.lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    it.dispatch(EnvironmentCleared)
+                }
+            },
+        )
     }
 }

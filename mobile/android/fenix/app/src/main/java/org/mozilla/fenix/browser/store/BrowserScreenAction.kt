@@ -7,11 +7,24 @@ package org.mozilla.fenix.browser.store
 import mozilla.components.lib.state.Action
 import org.mozilla.fenix.browser.PageTranslationStatus
 import org.mozilla.fenix.browser.ReaderModeStatus
+import org.mozilla.fenix.browser.store.BrowserScreenStore.Environment
 
 /**
  * Actions related to the browser screen.
  */
 sealed class BrowserScreenAction : Action {
+    /**
+     * Signals a new valid [Environment] has been set.
+     *
+     * @property environment The new [Environment].
+     */
+    data class EnvironmentRehydrated(val environment: Environment) : BrowserScreenAction()
+
+    /**
+     * Signals the current [Environment] is not valid anymore.
+     */
+    data object EnvironmentCleared : BrowserScreenAction()
+
     /**
      * [Action] for when the last private tab is about to be closed.
      *

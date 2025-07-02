@@ -4,20 +4,20 @@
 
 package org.mozilla.fenix.browser.store
 
-import android.content.Context
 import android.view.Gravity
 import androidx.annotation.VisibleForTesting
-import androidx.fragment.app.FragmentManager
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.feature.downloads.ui.DownloadCancelDialogFragment
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.Store
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.store.BrowserScreenAction.CancelPrivateDownloadsOnPrivateTabsClosedAccepted
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ClosingLastPrivateTab
+import org.mozilla.fenix.browser.store.BrowserScreenAction.EnvironmentCleared
+import org.mozilla.fenix.browser.store.BrowserScreenAction.EnvironmentRehydrated
+import org.mozilla.fenix.browser.store.BrowserScreenStore.Environment
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware
 import org.mozilla.fenix.theme.ThemeManager
 
@@ -28,18 +28,9 @@ import org.mozilla.fenix.theme.ThemeManager
  */
 class BrowserScreenMiddleware(
     private val crashReporter: CrashReporter,
-) : Middleware<BrowserScreenState, BrowserScreenAction>, ViewModel() {
-    private lateinit var dependencies: LifecycleDependencies
-    private lateinit var store: BrowserScreenStore
-
-    /**
-     * Updates the [LifecycleDependencies] of this middleware.
-     *
-     * @param dependencies The new [LifecycleDependencies].
-     */
-    fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
-        this.dependencies = dependencies
-    }
+) : Middleware<BrowserScreenState, BrowserScreenAction> {
+    @VisibleForTesting
+    internal var environment: Environment? = null
 
     override fun invoke(
         context: MiddlewareContext<BrowserScreenState, BrowserScreenAction>,
@@ -47,12 +38,23 @@ class BrowserScreenMiddleware(
         action: BrowserScreenAction,
     ) {
         when (action) {
+            is EnvironmentRehydrated -> {
+                next(action)
+
+                environment = action.environment
+            }
+
+            is EnvironmentCleared -> {
+                next(action)
+
+                environment = null
+            }
+
             is ClosingLastPrivateTab -> {
                 next(action)
 
-                store = context.store as BrowserScreenStore
-
                 showCancelledDownloadWarning(
+                    store = context.store,
                     downloadCount = action.inProgressPrivateDownloads,
                     tabId = action.tabId,
                 )
@@ -62,7 +64,13 @@ class BrowserScreenMiddleware(
         }
     }
 
-    private fun showCancelledDownloadWarning(downloadCount: Int, tabId: String?) {
+    private fun showCancelledDownloadWarning(
+        store: Store<BrowserScreenState, BrowserScreenAction>,
+        downloadCount: Int,
+        tabId: String?,
+    ) {
+        val environment = environment ?: return
+
         crashReporter.recordCrashBreadcrumb(
             Breadcrumb("DownloadCancelDialogFragment shown in browser screen"),
         )
@@ -75,13 +83,13 @@ class BrowserScreenMiddleware(
                 shouldWidthMatchParent = true,
                 positiveButtonBackgroundColor = ThemeManager.resolveAttribute(
                     R.attr.accent,
-                    dependencies.context,
+                    environment.context,
                 ),
                 positiveButtonTextColor = ThemeManager.resolveAttribute(
                     R.attr.textOnColorPrimary,
-                    dependencies.context,
+                    environment.context,
                 ),
-                positiveButtonRadius = dependencies.context.resources.getDimensionPixelSize(
+                positiveButtonRadius = environment.context.resources.getDimensionPixelSize(
                     R.dimen.tab_corner_radius,
                 ).toFloat(),
             ),
@@ -90,19 +98,8 @@ class BrowserScreenMiddleware(
                 store.dispatch(CancelPrivateDownloadsOnPrivateTabsClosedAccepted)
             },
         )
-        dialog.show(dependencies.fragmentManager, CANCEL_PRIVATE_DOWNLOADS_DIALOG_FRAGMENT_TAG)
+        dialog.show(environment.fragmentManager, CANCEL_PRIVATE_DOWNLOADS_DIALOG_FRAGMENT_TAG)
     }
-
-    /**
-     * Lifecycle dependencies for the [BrowserToolbarMiddleware].
-     *
-     * @property context [Context] used for various system interactions.
-     * @property fragmentManager [FragmentManager] to use for showing other fragments.
-     */
-    data class LifecycleDependencies(
-        val context: Context,
-        val fragmentManager: FragmentManager,
-    )
 
     /**
      * Static functionalities of the [BrowserToolbarMiddleware].
@@ -110,24 +107,5 @@ class BrowserScreenMiddleware(
     companion object {
         @VisibleForTesting
         internal const val CANCEL_PRIVATE_DOWNLOADS_DIALOG_FRAGMENT_TAG = "CANCEL_PRIVATE_DOWNLOADS_DIALOG_FRAGMENT_TAG"
-
-        /**
-         * [ViewModelProvider.Factory] for creating a [BrowserScreenMiddleware].
-         *
-         * @param crashReporter [CrashReporter] for recording crashes.
-         */
-        fun viewModelFactory(
-            crashReporter: CrashReporter,
-        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                if (modelClass.isAssignableFrom(BrowserScreenMiddleware::class.java)) {
-                    return BrowserScreenMiddleware(
-                        crashReporter = crashReporter,
-                    ) as T
-                }
-                throw IllegalArgumentException("Unknown ViewModel class")
-            }
-        }
     }
 }

@@ -23,7 +23,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.NavController
 import mozilla.components.browser.state.action.AwesomeBarAction
 import mozilla.components.browser.state.store.BrowserStore
@@ -40,11 +41,10 @@ import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
 import org.mozilla.fenix.components.metrics.MetricsUtils
-import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.search.BrowserStoreToFenixSearchMapperMiddleware
 import org.mozilla.fenix.search.BrowserToolbarToFenixSearchMapperMiddleware
 import org.mozilla.fenix.search.FenixSearchMiddleware
-import org.mozilla.fenix.search.SearchDialogFragmentStore
+import org.mozilla.fenix.search.SearchFragmentAction
 import org.mozilla.fenix.search.SearchFragmentAction.SearchSuggestionsVisibilityUpdated
 import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
 import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
@@ -77,10 +77,7 @@ class AwesomeBarComposable(
     private val lifecycleOwner: Fragment,
     private val searchAccessPoint: MetricsUtils.Source = MetricsUtils.Source.NONE,
 ) {
-    private val toolbarQueryMapper = getOrCreate<BrowserToolbarToFenixSearchMapperMiddleware>()
-    private val searchMiddleware = getOrCreate<FenixSearchMiddleware>()
-    private val browserSearchStateSyncDelegate = getOrCreate<BrowserStoreToFenixSearchMapperMiddleware>()
-    private val searchStore = getOrCreate<SearchDialogFragmentStore>()
+    private val searchStore = initializeSearchStore()
 
     /**
      * [Composable] fully integrated with [BrowserStore] and [BrowserToolbarStore]
@@ -153,74 +150,47 @@ class AwesomeBarComposable(
         }
     }
 
-    private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
-        BrowserToolbarToFenixSearchMapperMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserToolbarToFenixSearchMapperMiddleware.viewModelFactory(toolbarStore),
-            ).get(BrowserToolbarToFenixSearchMapperMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    BrowserToolbarToFenixSearchMapperMiddleware.LifecycleDependencies(
-                        browsingModeManager = activity.browsingModeManager,
-                        lifecycleOwner = lifecycleOwner,
-                    ),
-                )
-            } as T
-
-        FenixSearchMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                FenixSearchMiddleware.viewModelFactory(
+    private fun initializeSearchStore() = StoreProvider.get(lifecycleOwner) {
+        SearchFragmentStore(
+            initialState = createInitialSearchFragmentState(
+                activity = activity,
+                components = components,
+                tabId = null,
+                pastedText = null,
+                searchAccessPoint = searchAccessPoint,
+            ),
+            middleware = listOf(
+                BrowserToolbarToFenixSearchMapperMiddleware(toolbarStore),
+                BrowserStoreToFenixSearchMapperMiddleware(browserStore),
+                FenixSearchMiddleware(
                     engine = components.core.engine,
-                    tabsUseCases = components.useCases.tabsUseCases,
+                    useCases = components.useCases,
                     nimbusComponents = components.nimbus,
                     settings = components.settings,
                     appStore = appStore,
                     browserStore = browserStore,
                     toolbarStore = toolbarStore,
                 ),
-            )[FenixSearchMiddleware::class.java].also {
-                it.updateLifecycleDependencies(
-                    FenixSearchMiddleware.LifecycleDependencies(
-                        context = activity,
-                        lifecycleOwner = activity,
-                        browsingModeManager = activity.browsingModeManager,
-                        navController = navController,
-                        fenixBrowserUseCases = activity.components.useCases.fenixBrowserUseCases,
-                    ),
-                )
-            } as T
+            ),
+        )
+    }.also {
+        it.dispatch(
+            SearchFragmentAction.EnvironmentRehydrated(
+                SearchFragmentStore.Environment(
+                    context = activity,
+                    viewLifecycleOwner = lifecycleOwner.viewLifecycleOwner,
+                    browsingModeManager = activity.browsingModeManager,
+                    navController = navController,
+                ),
+            ),
+        )
 
-        SearchDialogFragmentStore::class.java ->
-            StoreProvider.get(lifecycleOwner) {
-                SearchFragmentStore(
-                    initialState = createInitialSearchFragmentState(
-                        activity = activity,
-                        components = components,
-                        tabId = null,
-                        pastedText = null,
-                        searchAccessPoint = searchAccessPoint,
-                    ),
-                    middleware = listOf(
-                        toolbarQueryMapper,
-                        searchMiddleware,
-                        browserSearchStateSyncDelegate,
-                    ),
-                )
-            } as T
-
-        BrowserStoreToFenixSearchMapperMiddleware::class.java ->
-            ViewModelProvider(
-                lifecycleOwner,
-                BrowserStoreToFenixSearchMapperMiddleware.viewModelFactory(browserStore),
-            ).get(BrowserStoreToFenixSearchMapperMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    BrowserStoreToFenixSearchMapperMiddleware.LifecycleDependencies(
-                        lifecycleOwner = lifecycleOwner,
-                    ),
-                )
-            } as T
-
-        else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
+        lifecycleOwner.viewLifecycleOwner.lifecycle.addObserver(
+            object : DefaultLifecycleObserver {
+                override fun onDestroy(owner: LifecycleOwner) {
+                    it.dispatch(SearchFragmentAction.EnvironmentCleared)
+                }
+            },
+        )
     }
 }

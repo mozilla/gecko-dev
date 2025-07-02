@@ -34,7 +34,8 @@ import androidx.core.view.OnApplyWindowInsetsListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
@@ -156,9 +157,11 @@ import org.mozilla.fenix.biometricauthentication.BiometricAuthenticationManager
 import org.mozilla.fenix.biometricauthentication.NavigationOrigin
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.readermode.DefaultReaderModeController
+import org.mozilla.fenix.browser.store.BrowserScreenAction.EnvironmentCleared
+import org.mozilla.fenix.browser.store.BrowserScreenAction.EnvironmentRehydrated
 import org.mozilla.fenix.browser.store.BrowserScreenMiddleware
-import org.mozilla.fenix.browser.store.BrowserScreenMiddleware.LifecycleDependencies
 import org.mozilla.fenix.browser.store.BrowserScreenStore
+import org.mozilla.fenix.browser.store.BrowserScreenStore.Environment
 import org.mozilla.fenix.browser.tabstrip.TabStrip
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.Components
@@ -1286,10 +1289,28 @@ abstract class BaseBrowserFragment :
         store: BrowserStore,
         readerMenuController: DefaultReaderModeController,
     ): BrowserToolbarComposable {
-        val middleware = getOrCreate<BrowserScreenMiddleware>()
         browserScreenStore = StoreProvider.get(this) {
             BrowserScreenStore(
-                middleware = listOf(middleware),
+                middleware = listOf(
+                    BrowserScreenMiddleware(requireComponents.analytics.crashReporter),
+                ),
+            )
+        }.also {
+            it.dispatch(
+                EnvironmentRehydrated(
+                    Environment(
+                        context = requireContext(),
+                        viewLifecycleOwner = viewLifecycleOwner,
+                        fragmentManager = childFragmentManager,
+                    ),
+                ),
+            )
+            viewLifecycleOwner.lifecycle.addObserver(
+                object : DefaultLifecycleObserver {
+                    override fun onDestroy(owner: LifecycleOwner) {
+                        it.dispatch(EnvironmentCleared)
+                    }
+                },
             )
         }
 
@@ -2468,25 +2489,6 @@ abstract class BaseBrowserFragment :
                 // no-op
             }
         }
-    }
-
-    private inline fun <reified T> getOrCreate(): T = when (T::class.java) {
-        BrowserScreenMiddleware::class.java ->
-            ViewModelProvider(
-                this,
-                BrowserScreenMiddleware.viewModelFactory(
-                    crashReporter = requireComponents.analytics.crashReporter,
-                ),
-            ).get(BrowserScreenMiddleware::class.java).also {
-                it.updateLifecycleDependencies(
-                    LifecycleDependencies(
-                        context = requireContext(),
-                        fragmentManager = childFragmentManager,
-                    ),
-                )
-            } as T
-
-        else -> throw IllegalArgumentException("Unknown type: ${T::class.java}")
     }
 
     private fun openManageStorageSettings() {

@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.search
 
-import android.content.res.Resources
 import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.Lifecycle.State.RESUMED
@@ -30,6 +29,8 @@ import mozilla.components.compose.browser.toolbar.concept.Action.SearchSelectorA
 import mozilla.components.compose.browser.toolbar.store.BrowserEditToolbarAction.SearchQueryUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
+import mozilla.components.compose.browser.toolbar.store.EnvironmentCleared
+import mozilla.components.compose.browser.toolbar.store.EnvironmentRehydrated
 import mozilla.components.concept.toolbar.AutocompleteProvider
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.middleware.CaptureActionsMiddleware
@@ -39,6 +40,7 @@ import mozilla.telemetry.glean.testing.GleanTestRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -54,7 +56,7 @@ import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.HISTORY_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.search.TABS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.helpers.lifecycle.TestLifecycleOwner
-import org.mozilla.fenix.search.BrowserToolbarSearchMiddleware.LifecycleDependencies
+import org.mozilla.fenix.home.toolbar.HomeToolbarEnvironment
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSelectorItemClicked
 import org.mozilla.fenix.search.SearchSelectorEvents.SearchSettingsItemClicked
@@ -80,7 +82,18 @@ class BrowserToolbarSearchMiddlewareTest {
     val navController: NavController = mockk {
         every { navigate(any<NavDirections>()) } just Runs
     }
-    val resources: Resources = testContext.resources
+
+    @Test
+    fun `GIVEN an environment was already set WHEN it is cleared THEN reset it to null`() {
+        val (middleware, store) = buildMiddlewareAndAddToStore()
+
+        assertNotNull(middleware.environment)
+
+        store.dispatch(EnvironmentCleared)
+
+        assertNull(middleware.environment)
+        assertEquals(emptyList<AutocompleteProvider>(), store.state.editState.autocompleteProviders)
+    }
 
     @Test
     fun `WHEN the toolbar enters in edit mode THEN a new search selector button is added`() {
@@ -347,12 +360,19 @@ class BrowserToolbarSearchMiddlewareTest {
         settings: Settings = this.settings,
         lifecycleOwner: LifecycleOwner = this.lifecycleOwner,
         navController: NavController = this.navController,
-        resources: Resources = this.resources,
     ): Pair<BrowserToolbarSearchMiddleware, BrowserToolbarStore> {
-        val middleware = buildMiddleware(
-            appStore, browserStore, components, settings, lifecycleOwner, navController, resources,
-        )
-        val store = BrowserToolbarStore(middleware = listOf(middleware))
+        val middleware = buildMiddleware(appStore, browserStore, components, settings)
+        val store = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        ).also {
+            it.dispatch(
+                EnvironmentRehydrated(
+                    HomeToolbarEnvironment(
+                        testContext, lifecycleOwner, navController, mockk(),
+                    ),
+                ),
+            )
+        }
 
         return middleware to store
     }
@@ -362,16 +382,7 @@ class BrowserToolbarSearchMiddlewareTest {
         browserStore: BrowserStore = this.browserStore,
         components: Components = this.components,
         settings: Settings = this.settings,
-        lifecycleOwner: LifecycleOwner = this.lifecycleOwner,
-        navController: NavController = this.navController,
-        resources: Resources = this.resources,
-    ) = BrowserToolbarSearchMiddleware(appStore, browserStore, components, settings).apply {
-        updateLifecycleDependencies(
-            LifecycleDependencies(
-                lifecycleOwner, navController, resources,
-            ),
-        )
-    }
+    ) = BrowserToolbarSearchMiddleware(appStore, browserStore, components, settings)
 
     private fun configureAutocompleteProvidersInComponents() {
         every { components.core.historyStorage } returns mockk()
