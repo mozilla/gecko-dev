@@ -122,6 +122,14 @@ Preferences.addAll([
     id: "privacy.trackingprotection.emailtracking.pbmode.enabled",
     type: "bool",
   },
+  {
+    id: "privacy.trackingprotection.allow_list.baseline.enabled",
+    type: "bool",
+  },
+  {
+    id: "privacy.trackingprotection.allow_list.convenience.enabled",
+    type: "bool",
+  },
 
   // Fingerprinting Protection
   { id: "privacy.fingerprintingProtection", type: "bool" },
@@ -1219,6 +1227,10 @@ var gPrivacyPane = {
       document.getElementById("historyMode").disabled =
         privateBrowsingPref.value;
     }
+
+    setSyncFromPrefListener("contentBlockingBaselineExceptionsCustom", () =>
+      this.readBaselineExceptionState()
+    );
 
     /* init HTTPS-Only mode */
     this.initHttpsOnly();
@@ -3524,5 +3536,24 @@ var gPrivacyPane = {
   updateProfilesPrivacyInfo() {
     let profilesInfo = document.getElementById("preferences-privacy-profiles");
     profilesInfo.hidden = !SelectableProfileService.isEnabled;
+  },
+
+  /**
+   * Checks the "privacy.trackingprotection.allow_list.baseline.enabled" pref.
+   * If the baseline is disabled, update the convenience exceptions pref to false, as convenience
+   * exceptions are only allowed when the baseline is enabled.
+   */
+  readBaselineExceptionState() {
+    const isBaselineEnabled = Preferences.get(
+      "privacy.trackingprotection.allow_list.baseline.enabled"
+    ).value;
+
+    // If the baseline is disabled, disable the convenience exceptions preference.
+    if (!isBaselineEnabled) {
+      Services.prefs.setBoolPref(
+        "privacy.trackingprotection.allow_list.convenience.enabled",
+        false
+      );
+    }
   },
 };
