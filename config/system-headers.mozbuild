@@ -691,7 +691,6 @@ system_headers = [
     "prtrace.h",
     "prtypes.h",
     "prvrsion.h",
-    "prwin.h",
     "psap.h",
     "Pt.h",
     "pthread.h",
