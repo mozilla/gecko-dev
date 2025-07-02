@@ -576,12 +576,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         store.dispatch(MenuAction.FindInPage)
                                     },
                                     onBannerClick = {
+                                        store.dispatch(MenuAction.MenuBanner)
                                         (context as? Activity)?.openSetDefaultBrowserOption()
                                         showBanner = false
                                         shouldShowMenuBanner = false
                                     },
                                     onBannerDismiss = {
-                                        settings.shouldShowMenuBanner = false
+                                        store.dispatch(MenuAction.DismissMenuBanner)
                                         shouldShowMenuBanner = false
                                     },
                                     onExtensionsMenuClick = {

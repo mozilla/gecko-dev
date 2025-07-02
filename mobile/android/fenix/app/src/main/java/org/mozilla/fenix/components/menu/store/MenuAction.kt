@@ -83,6 +83,16 @@ sealed class MenuAction : Action {
     data object FindInPage : MenuAction()
 
     /**
+     * [MenuAction] dispatched when it's a new installation of Firefox.
+     */
+    data object MenuBanner : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when menu banner should be dismissed.
+     */
+    data object DismissMenuBanner : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a private tab is open in normal tab.
      */
     data object OpenInRegularTab : MenuAction()

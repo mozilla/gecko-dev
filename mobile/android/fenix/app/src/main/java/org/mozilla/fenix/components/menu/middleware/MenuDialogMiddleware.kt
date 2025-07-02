@@ -111,6 +111,7 @@ class MenuDialogMiddleware(
             is MenuAction.RemoveShortcut -> removeShortcut(context.store)
             is MenuAction.DeleteBrowsingDataAndQuit -> deleteBrowsingDataAndQuit()
             is MenuAction.FindInPage -> launchFindInPage()
+            is MenuAction.DismissMenuBanner -> dismissMenuBanner()
             is MenuAction.OpenInApp -> openInApp(context.store)
             is MenuAction.OpenInFirefox -> openInFirefox()
             is MenuAction.InstallAddon -> installAddon(context.store, action.addon)
@@ -388,6 +389,10 @@ class MenuDialogMiddleware(
     private fun launchFindInPage() = scope.launch {
         appStore.dispatch(FindInPageAction.FindInPageStarted)
         onDismiss()
+    }
+
+    private fun dismissMenuBanner() = scope.launch {
+        settings.shouldShowMenuBanner = false
     }
 
     private fun requestSiteMode(
