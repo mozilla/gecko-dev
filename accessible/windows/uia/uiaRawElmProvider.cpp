@@ -133,6 +133,10 @@ static MsaaAccessible* GetTextPatternProviderFor(Accessible* aOrigin) {
   return MsaaAccessible::GetFrom(GetTextContainer(aOrigin));
 }
 
+static bool MustSelectUsingDoAction(Accessible* aAcc) {
+  return IsRadio(aAcc) || aAcc->Role() == roles::PAGETAB;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // uiaRawElmProvider
 ////////////////////////////////////////////////////////////////////////////////
@@ -1195,7 +1199,7 @@ uiaRawElmProvider::Select() {
   if (!acc) {
     return CO_E_OBJNOTCONNECTED;
   }
-  if (IsRadio(acc)) {
+  if (MustSelectUsingDoAction(acc)) {
     acc->DoAction(0);
   } else {
     acc->TakeSelection();
@@ -1209,7 +1213,7 @@ uiaRawElmProvider::AddToSelection() {
   if (!acc) {
     return CO_E_OBJNOTCONNECTED;
   }
-  if (IsRadio(acc)) {
+  if (MustSelectUsingDoAction(acc)) {
     acc->DoAction(0);
   } else {
     acc->SetSelected(true);
