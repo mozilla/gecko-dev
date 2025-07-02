@@ -100,6 +100,8 @@ private const val SWIPE_ANIMATION_DURATION_MS = 230
  * @property enabled Whether the swipe gesture is active.
  */
 @OptIn(ExperimentalFoundationApi::class)
+// https://bugzilla.mozilla.org/show_bug.cgi?id=1957790
+@Suppress("DEPRECATION")
 class SwipeToDismissState(
     density: Density,
     decayAnimationSpec: DecayAnimationSpec<Float>,
