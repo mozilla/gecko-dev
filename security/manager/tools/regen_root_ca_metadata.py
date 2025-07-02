@@ -32,6 +32,17 @@ class Attribute:
         self.value = value
 
 
+def skip_object_separator(stream):
+    """Objects are separated by one or more blank lines. Advance the stream to
+    the start of the next object or to the end of file."""
+    pos = stream.tell()
+    line = stream.readline()
+    while line and not line.strip():
+        pos = stream.tell()
+        line = stream.readline()
+    stream.seek(pos)
+
+
 def maybe_read_attribute(stream):
     """Skipping any comments (lines starting with '#'), maybe
     read a (attribute name, data type, value) tuple from the
@@ -48,6 +59,7 @@ def maybe_read_attribute(stream):
     while line.startswith("#"):
         line = stream.readline()
     if not line.strip():
+        skip_object_separator(stream)
         return None
     (name, data_type_and_value) = line.strip().split(" ", maxsplit=1)
     if data_type_and_value == "MULTILINE_OCTAL":
