@@ -388,13 +388,25 @@ class BrowserToolbarMiddleware(
     ): Action = when (action) {
         HomeToolbarAction.TabCounter -> {
             val tabsCount = getCurrentNumberOfOpenedTabs()
-            TabCounterAction(
-                count = tabsCount,
-                contentDescription = dependencies.context.getString(
+            val isPrivateMode = dependencies.browsingModeManager.mode.isPrivate
+            val context = dependencies.context
+
+            val tabCounterDescription = if (isPrivateMode) {
+                context.getString(
+                    R.string.mozac_tab_counter_private,
+                    tabsCount.toString(),
+                )
+            } else {
+                context.getString(
                     R.string.mozac_tab_counter_open_tab_tray,
                     tabsCount.toString(),
-                ),
-                showPrivacyMask = dependencies.browsingModeManager.mode == Private,
+                )
+            }
+
+            TabCounterAction(
+                count = tabsCount,
+                contentDescription = tabCounterDescription,
+                showPrivacyMask = isPrivateMode,
                 onClick = TabCounterClicked,
                 onLongClick = buildTabCounterMenu(),
             )

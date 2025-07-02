@@ -2075,7 +2075,17 @@ class BrowserToolbarMiddlewareTest {
         shouldUseBottomToolbar: Boolean = false,
     ) = TabCounterAction(
         count = tabCount,
-        contentDescription = testContext.getString(R.string.mozac_tab_counter_open_tab_tray, tabCount),
+        contentDescription = if (isPrivate) {
+            testContext.getString(
+                R.string.mozac_tab_counter_private,
+                tabCount.toString(),
+            )
+        } else {
+            testContext.getString(
+                R.string.mozac_tab_counter_open_tab_tray,
+                tabCount.toString(),
+            )
+        },
         showPrivacyMask = isPrivate,
         onClick = TabCounterClicked,
         onLongClick = BrowserToolbarMenu {

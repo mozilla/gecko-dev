@@ -73,6 +73,7 @@ class TabCounterView(
 
         tabCounter.setCountWithAnimation(tabCount)
         tabCounter.toggleCounterMask(isPrivate)
+        tabCounter.updateContentDescription(isPrivate)
     }
 
     /**

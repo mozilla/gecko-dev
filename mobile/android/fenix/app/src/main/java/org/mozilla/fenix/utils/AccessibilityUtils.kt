@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.utils
 
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.Toolbar
@@ -15,6 +16,9 @@ import org.mozilla.fenix.R
  * General utilities to to improve a11y support, such as managing screen reader focus.
  */
 object AccessibilityUtils {
+
+    private var lastAnnouncementTime = 0L
+
     /**
      * This function attempts to move focus to the back button on the navigation bar as a generic
      * default location to send focus.
@@ -43,5 +47,31 @@ object AccessibilityUtils {
         backNavigationView?.requestFocus()
         // Removes depressed UI state from back button
         backNavigationView?.clearFocus()
+    }
+
+    /**
+     * Sends an accessibility event. The announcement is only triggered after a minimum time interval.
+     */
+    fun View.announcePrivateModeForAccessibility() = debounceAnnouncement {
+        // Using the deprecated method instead of recommended setStateDescription()
+        // due to limited support when called on binding.root
+        @Suppress("Deprecation")
+        announceForAccessibility(
+            context.getString(R.string.private_browsing_a11y_session_announcement),
+        )
+    }
+
+    /**
+     * Executes the given [action] only if the time since the last invocation is at least [delay].
+     *
+     * @param delay Minimum interval in milliseconds between allowed executions.
+     * @param action The action to execute.
+     */
+    private fun debounceAnnouncement(delay: Long = 2000, action: () -> Unit) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastAnnouncementTime >= delay) {
+            lastAnnouncementTime = currentTime
+            action()
+        }
     }
 }

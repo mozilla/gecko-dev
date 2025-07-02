@@ -87,10 +87,11 @@ fun TabCounter(
         }
     }
 
-    val normalTabsContentDescription = stringResource(
-        R.string.mozac_open_tab_counter_tab_tray,
-        formattedTabCount,
-    )
+    val tabsCounterDescription = if (showPrivacyBadge) {
+        stringResource(R.string.mozac_tab_counter_private, formattedTabCount)
+    } else {
+        stringResource(R.string.mozac_open_tab_counter_tab_tray, formattedTabCount)
+    }
 
     val counterBoxWidthDp =
         dimensionResource(id = R.dimen.mozac_tab_counter_box_width_height)
@@ -110,7 +111,7 @@ fun TabCounter(
             painter = painterResource(
                 id = counterBoxBackground,
             ),
-            contentDescription = normalTabsContentDescription,
+            contentDescription = tabsCounterDescription,
             tint = iconColor,
         )
 

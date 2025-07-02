@@ -187,6 +187,13 @@ class TabPreview @JvmOverloads constructor(
 
     private fun buildComposableToolbarStore(): BrowserToolbarStore {
         val tabsCount = currentOpenedTabsCount
+        val isPrivateMode = context.components.appStore.state.mode.isPrivate
+
+        val tabsCounterDescription = if (isPrivateMode) {
+            context.getString(R.string.mozac_tab_counter_private)
+        } else {
+            context.getString(R.string.mozac_tab_counter_open_tab_tray)
+        }
 
         return BrowserToolbarStore(
             BrowserToolbarState(
@@ -201,10 +208,8 @@ class TabPreview @JvmOverloads constructor(
                     browserActionsEnd = listOf(
                         TabCounterAction(
                             count = tabsCount,
-                            contentDescription = context.getString(
-                                R.string.mozac_tab_counter_open_tab_tray, tabsCount.toString(),
-                            ),
-                            showPrivacyMask = context.components.core.store.state.selectedTab?.content?.private == true,
+                            contentDescription = tabsCounterDescription,
+                            showPrivacyMask = isPrivateMode,
                             onClick = object : BrowserToolbarEvent {},
                         ),
                         ActionButtonRes(

@@ -64,6 +64,8 @@
     <string name="private_browsing_common_myths">
        Common myths about private browsing
     </string>
+    <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+    <string name="private_browsing_a11y_session_announcement">Private browsing session</string>
 
     <!-- True Private Browsing Mode -->
     <!-- Title for info card on private homescreen in True Private Browsing Mode. -->

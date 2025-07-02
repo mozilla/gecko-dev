@@ -76,6 +76,7 @@ open class TabCounterToolbarButton(
                 object : View.OnAttachStateChangeListener {
                     override fun onViewAttachedToWindow(v: View) {
                         setCount(getTabCount(store.state))
+                        updateContentDescription(isPrivate(store))
                     }
 
                     override fun onViewDetachedFromWindow(v: View) { /* no-op */ }
@@ -129,6 +130,7 @@ open class TabCounterToolbarButton(
      */
     fun updateCount(count: Int) {
         reference.get()?.setCountWithAnimation(count)
+        reference.get()?.updateContentDescription(isPrivate(store))
     }
 
     /**

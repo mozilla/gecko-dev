@@ -36,6 +36,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.text.layoutDirection
+import androidx.core.view.doOnLayout
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
@@ -159,6 +160,7 @@ import org.mozilla.fenix.tabstray.TabsTrayFragment
 import org.mozilla.fenix.theme.DefaultThemeManager
 import org.mozilla.fenix.theme.StatusBarColorManager
 import org.mozilla.fenix.theme.ThemeManager
+import org.mozilla.fenix.utils.AccessibilityUtils.announcePrivateModeForAccessibility
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.changeAppLauncherIcon
 import java.lang.Math
@@ -659,6 +661,12 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         breadcrumb(
             message = "onResume()",
         )
+
+        binding.root.doOnLayout {
+            if (browsingModeManager.mode.isPrivate) {
+                it.announcePrivateModeForAccessibility()
+            }
+        }
 
         lifecycleScope.launch(IO) {
             if (settings().checkIfFenixIsDefaultBrowserOnAppResume()) {

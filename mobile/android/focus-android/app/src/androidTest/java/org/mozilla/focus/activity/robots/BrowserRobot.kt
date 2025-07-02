@@ -169,7 +169,7 @@ class BrowserRobot {
     fun verifyNumberOfTabsOpened(tabsCount: Int) {
         assertTrue(
             mDevice.findObject(
-                UiSelector().description("Tabs Open: $tabsCount. Tap to switch tabs."),
+                UiSelector().description("Private Tabs Open: $tabsCount. Tap to switch tabs."),
             ).waitForExists(waitingTime),
         )
     }

@@ -74,11 +74,17 @@ class TabCounterView @JvmOverloads constructor(
         counterText.setTextColor(colorStateList)
     }
 
-    private fun updateContentDescription(count: Int) {
-        contentDescription = context.getString(
-            R.string.mozac_tab_counter_open_tab_tray,
-            count.toString(),
-        )
+    /**
+     * Updates the content description of the tab counter.
+     * @param isPrivate [Boolean] used to determine whether to set the
+     * private or normal mode content description.
+     */
+    fun updateContentDescription(isPrivate: Boolean) {
+        contentDescription = if (isPrivate) {
+            context.getString(R.string.mozac_tab_counter_private, internalCount.toString())
+        } else {
+            context.getString(R.string.mozac_tab_counter_open_tab_tray, internalCount.toString())
+        }
     }
 
     fun setCountWithAnimation(count: Int) {
@@ -110,7 +116,6 @@ class TabCounterView @JvmOverloads constructor(
 
     fun setCount(count: Int) {
         internalCount = count
-        updateContentDescription(count)
         setBackgroundDrawable(count)
         setCounterText(count)
     }
