@@ -15,6 +15,65 @@ constexpr uint32_t kMaxBytesPerPath = 1024;
 
 using namespace mozilla::net;
 
+namespace {
+
+struct CookiePrefix {
+  nsCString mPrefix;
+  std::function<bool(const CookieStruct&, bool)> mCallback;
+};
+
+MOZ_RUNINIT CookiePrefix gCookiePrefixes[] = {
+    {"__Secure-"_ns,
+     [](const CookieStruct& aCookieData, bool aSecureRequest) -> bool {
+       // If a cookie's name begins with a case-sensitive match for the string
+       // __Secure-, then the cookie will have been set with a Secure attribute.
+       return aSecureRequest && aCookieData.isSecure();
+     }},
+
+    {"__Host-"_ns,
+     [](const CookieStruct& aCookieData, bool aSecureRequest) -> bool {
+       // If a cookie's name begins with a case-sensitive match for the string
+       // __Host-, then the cookie will have been set with a Secure attribute, a
+       // Path attribute with a value of /, and no Domain attribute.
+       return aSecureRequest && aCookieData.isSecure() &&
+              aCookieData.host()[0] != '.' &&
+              aCookieData.path().EqualsLiteral("/");
+     }},
+
+    {"__Http-"_ns,
+     [](const CookieStruct& aCookieData, bool aSecureRequest) -> bool {
+       // If a cookie's name begins with a case-sensitive match for the string
+       // __Http-, then the cookie will have been set with a Secure attribute,
+       // and an HttpOnly attribute.
+       return aSecureRequest && aCookieData.isSecure() &&
+              aCookieData.isHttpOnly();
+     }},
+
+    {"__HostHttp-"_ns,
+     [](const CookieStruct& aCookieData, bool aSecureRequest) -> bool {
+       // If a cookie's name begins with a case-sensitive match for the string
+       // __HostHttp-, then the cookie will have been set with a Secure
+       // attribute, an HttpOnly attribute, a Path attribute with a value of /,
+       // and no Domain attribute.
+       return aSecureRequest && aCookieData.isSecure() &&
+              aCookieData.isHttpOnly() && aCookieData.host()[0] != '.' &&
+              aCookieData.path().EqualsLiteral("/");
+     }},
+};
+
+CookiePrefix* FindCookiePrefix(const nsACString& aString) {
+  for (CookiePrefix& prefix : gCookiePrefixes) {
+    if (StringBeginsWith(aString, prefix.mPrefix,
+                         nsCaseInsensitiveCStringComparator)) {
+      return &prefix;
+    }
+  }
+
+  return nullptr;
+}
+
+}  // namespace
+
 NS_IMPL_ISUPPORTS(CookieValidation, nsICookieValidation)
 
 CookieValidation::CookieValidation(const CookieStruct& aCookieData)
@@ -91,10 +150,8 @@ void CookieValidation::ValidateInternal() {
     return;
   }
 
-  // If a cookie is nameless, then its value must not start with
-  // `__Host-` or `__Secure-`
-  if (mCookieData.name().IsEmpty() && (HasSecurePrefix(mCookieData.value()) ||
-                                       HasHostPrefix(mCookieData.value()))) {
+  // If a cookie is nameless, then its value must not start with a known prefix.
+  if (mCookieData.name().IsEmpty() && !!FindCookiePrefix(mCookieData.value())) {
     mResult = eRejectedInvalidPrefix;
     return;
   }
@@ -150,6 +207,11 @@ void CookieValidation::ValidateForHostInternal(nsIURI* aHostURI,
   bool potentiallyTrustworthy =
       nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aHostURI);
 
+  // FixDomain() and FixPath() from CookieParser MUST be run first to make sure
+  // invalid attributes are rejected and to regularlize them. In particular all
+  // explicit domain attributes result in a host that starts with a dot, and if
+  // the host doesn't start with a dot it correctly matches the true
+  // host.
   if (!CheckPrefixes(mCookieData, potentiallyTrustworthy)) {
     mResult = eRejectedInvalidPrefix;
     return;
@@ -272,18 +334,6 @@ bool CookieValidation::CheckDomain(const CookieStruct& aCookieData,
   return false;
 }
 
-// static
-bool CookieValidation::HasSecurePrefix(const nsACString& aString) {
-  return StringBeginsWith(aString, "__Secure-"_ns,
-                          nsCaseInsensitiveCStringComparator);
-}
-
-// static
-bool CookieValidation::HasHostPrefix(const nsACString& aString) {
-  return StringBeginsWith(aString, "__Host-"_ns,
-                          nsCaseInsensitiveCStringComparator);
-}
-
 // CheckPrefixes
 //
 // Reject cookies whose name starts with the magic prefixes from
@@ -291,34 +341,13 @@ bool CookieValidation::HasHostPrefix(const nsACString& aString) {
 // if they do not meet the criteria required by the prefix.
 bool CookieValidation::CheckPrefixes(const CookieStruct& aCookieData,
                                      bool aSecureRequest) {
-  bool hasSecurePrefix = HasSecurePrefix(aCookieData.name());
-  bool hasHostPrefix = HasHostPrefix(aCookieData.name());
-
-  if (!hasSecurePrefix && !hasHostPrefix) {
+  CookiePrefix* prefix = FindCookiePrefix(aCookieData.name());
+  if (!prefix) {
     // not one of the magic prefixes: carry on
     return true;
   }
 
-  if (!aSecureRequest || !aCookieData.isSecure()) {
-    // the magic prefixes may only be used from a secure request and
-    // the secure attribute must be set on the cookie
-    return false;
-  }
-
-  if (hasHostPrefix) {
-    // The host prefix requires that the path is "/" and that the cookie had no
-    // domain attribute. FixDomain() and FixPath() from CookieParser MUST be
-    // run first to make sure invalid attributes are rejected and to
-    // regularlize them. In particular all explicit domain attributes result in
-    // a host that starts with a dot, and if the host doesn't start with a dot
-    // it correctly matches the true host.
-    if (aCookieData.host()[0] == '.' ||
-        !aCookieData.path().EqualsLiteral("/")) {
-      return false;
-    }
-  }
-
-  return true;
+  return prefix->mCallback(aCookieData, aSecureRequest);
 }
 
 void CookieValidation::RetrieveErrorLogData(uint32_t* aFlags,
