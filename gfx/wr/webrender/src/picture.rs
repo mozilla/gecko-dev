@@ -117,7 +117,7 @@ use crate::internal_types::{FastHashMap, FastHashSet, PlaneSplitter, FilterGraph
 use crate::internal_types::{PlaneSplitterIndex, PlaneSplitAnchor, TextureSource};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureState, PictureContext};
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
-use crate::gpu_types::{UvRectKind, ZBufferId};
+use crate::gpu_types::{UvRectKind, ZBufferId, BlurEdgeMode};
 use peek_poke::{PeekPoke, poke_into_vec, peek_from_slice, ensure_red_zone};
 use plane_split::{Clipper, Polygon};
 use crate::prim_store::{PrimitiveTemplateKind, PictureIndex, PrimitiveInstance, PrimitiveInstanceKind};
@@ -4387,7 +4387,7 @@ impl PictureCompositeMode {
         };
 
         match self {
-            PictureCompositeMode::Filter(Filter::Blur { width, height, should_inflate }) => {
+            PictureCompositeMode::Filter(Filter::Blur { width, height, should_inflate, .. }) => {
                 if *should_inflate {
                     let (width_factor, height_factor) = surface.clamp_blur_radius(*width, *height);
 
@@ -4483,7 +4483,7 @@ impl PictureCompositeMode {
         };
 
         match self {
-            PictureCompositeMode::Filter(Filter::Blur { width, height, should_inflate }) => {
+            PictureCompositeMode::Filter(Filter::Blur { width, height, should_inflate, .. }) => {
                 if *should_inflate {
                     let (width_factor, height_factor) = surface.clamp_blur_radius(*width, *height);
 
@@ -6018,7 +6018,7 @@ impl PicturePrimitive {
                     PictureCompositeMode::TileCache { .. } => {
                         unreachable!("handled above");
                     }
-                    PictureCompositeMode::Filter(Filter::Blur { width, height, .. }) => {
+                    PictureCompositeMode::Filter(Filter::Blur { width, height, edge_mode, .. }) => {
                         let surface = &frame_state.surfaces[raster_config.surface_index.0];
                         let (width, height) = surface.clamp_blur_radius(width, height);
 
@@ -6081,6 +6081,7 @@ impl PicturePrimitive {
                                     RenderTargetKind::Color,
                                     None,
                                     original_size.to_i32(),
+                                    edge_mode,
                                 )
                             }
                         );
@@ -6139,6 +6140,7 @@ impl PicturePrimitive {
                                 RenderTargetKind::Color,
                                 Some(&mut blur_tasks),
                                 device_rect.size().to_i32(),
+                                BlurEdgeMode::Duplicate,
                             );
                         }
 

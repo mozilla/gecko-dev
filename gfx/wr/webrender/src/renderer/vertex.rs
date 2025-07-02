@@ -64,6 +64,11 @@ pub mod desc {
                 kind: VertexAttributeKind::I32,
             },
             VertexAttribute {
+                name: "aBlurEdgeMode",
+                count: 1,
+                kind: VertexAttributeKind::I32,
+            },
+            VertexAttribute {
                 name: "aBlurParams",
                 count: 3,
                 kind: VertexAttributeKind::F32,

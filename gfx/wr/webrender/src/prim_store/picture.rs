@@ -10,6 +10,7 @@ use api::{
 use api::units::Au;
 use crate::scene_building::IsVisible;
 use crate::filterdata::SFilterData;
+use crate::gpu_types::BlurEdgeMode;
 use crate::intern::ItemUid;
 use crate::intern::{Internable, InternDebug, Handle as InternHandle};
 use crate::internal_types::{LayoutPrimitiveInfo, FilterGraphPictureReference,
@@ -829,7 +830,7 @@ pub enum PictureCompositeKey {
     Identity,
 
     // FilterOp
-    Blur(Au, Au, bool),
+    Blur(Au, Au, bool, BlurEdgeMode),
     Brightness(Au),
     Contrast(Au),
     Grayscale(Au),
@@ -893,8 +894,14 @@ impl From<Option<PictureCompositeMode>> for PictureCompositeKey {
             }
             Some(PictureCompositeMode::Filter(op)) => {
                 match op {
-                    Filter::Blur { width, height, should_inflate } =>
-                        PictureCompositeKey::Blur(Au::from_f32_px(width), Au::from_f32_px(height), should_inflate),
+                    Filter::Blur { width, height, should_inflate, edge_mode } => {
+                        PictureCompositeKey::Blur(
+                            Au::from_f32_px(width),
+                            Au::from_f32_px(height),
+                            should_inflate,
+                            edge_mode,
+                        )
+                    }
                     Filter::Brightness(value) => PictureCompositeKey::Brightness(Au::from_f32_px(value)),
                     Filter::Contrast(value) => PictureCompositeKey::Contrast(Au::from_f32_px(value)),
                     Filter::Grayscale(value) => PictureCompositeKey::Grayscale(Au::from_f32_px(value)),

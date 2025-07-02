@@ -15,7 +15,7 @@ use crate::clip::{ClipStore, ClipItemKind};
 use crate::frame_builder::FrameGlobalResources;
 use crate::gpu_cache::{GpuCache, GpuCacheAddress};
 use crate::gpu_types::{BorderInstance, SvgFilterInstance, SVGFEFilterInstance, BlurDirection, BlurInstance, PrimitiveHeaders, ScalingInstance};
-use crate::gpu_types::{TransformPalette, ZBufferIdGenerator, MaskInstance, ClipSpace};
+use crate::gpu_types::{TransformPalette, ZBufferIdGenerator, MaskInstance, ClipSpace, BlurEdgeMode};
 use crate::gpu_types::{ZBufferId, QuadSegment, PrimitiveInstanceData, TransformPaletteId};
 use crate::internal_types::{CacheTextureId, FastHashMap, FilterGraphOp, FrameAllocator, FrameMemory, FrameVec, TextureSource};
 use crate::picture::{SliceId, SurfaceInfo, ResolvedSurfaceTexture, TileCacheInstance};
@@ -407,6 +407,7 @@ impl RenderTarget {
                     BlurDirection::Vertical,
                     info.blur_std_deviation,
                     info.blur_region,
+                    info.edge_mode,
                     task_id.into(),
                     task.children[0],
                     render_tasks,
@@ -422,6 +423,7 @@ impl RenderTarget {
                     BlurDirection::Horizontal,
                     info.blur_std_deviation,
                     info.blur_region,
+                    info.edge_mode,
                     task_id.into(),
                     task.children[0],
                     render_tasks,
@@ -624,6 +626,7 @@ fn add_blur_instances(
     blur_direction: BlurDirection,
     blur_std_deviation: f32,
     blur_region: DeviceIntSize,
+    edge_mode: BlurEdgeMode,
     task_address: RenderTaskAddress,
     src_task_id: RenderTaskId,
     render_tasks: &RenderTaskGraph,
@@ -636,6 +639,7 @@ fn add_blur_instances(
         src_task_address: src_task_id.into(),
         blur_direction: blur_direction.as_int(),
         blur_std_deviation,
+        edge_mode: edge_mode.as_int(),
         blur_region: blur_region.to_f32(),
     };
 

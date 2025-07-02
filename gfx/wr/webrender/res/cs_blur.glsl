@@ -15,6 +15,9 @@ flat varying mediump vec2 vOffsetScale;
 flat varying mediump ivec2 vSupport;
 flat varying mediump vec2 vGaussCoefficients;
 
+#define EDGE_MODE_DUPLICATE     0
+#define EDGE_MODE_MIRROR        1
+
 #ifdef WR_VERTEX_SHADER
 // Applies a separable gaussian blur in one direction, as specified
 // by the dir field in the blur command.
@@ -25,6 +28,7 @@ flat varying mediump vec2 vGaussCoefficients;
 PER_INSTANCE in int aBlurRenderTaskAddress;
 PER_INSTANCE in int aBlurSourceTaskAddress;
 PER_INSTANCE in int aBlurDirection;
+PER_INSTANCE in int aBlurEdgeMode;
 PER_INSTANCE in vec3 aBlurParams;
 
 struct BlurTask {
@@ -83,6 +87,7 @@ void main(void) {
     // TODO(pcwalton): Actually make use of this fact and use the texture
     // hardware for linear filtering.
     vSupport.x = int(ceil(1.5 * blur_task.blur_radius)) * 2;
+    vSupport.y = aBlurEdgeMode;
 
     if (vSupport.x > 0) {
         calculate_gauss_coefficients(blur_task.blur_radius);

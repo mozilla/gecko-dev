@@ -105,6 +105,24 @@ impl BlurDirection {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, MallocSizeOf)]
+#[repr(C)]
+#[cfg_attr(feature = "capture", derive(Serialize))]
+#[cfg_attr(feature = "replay", derive(Deserialize))]
+pub enum BlurEdgeMode {
+    Duplicate = 0,
+    Mirror,
+}
+
+impl BlurEdgeMode {
+    pub fn as_int(self) -> i32 {
+        match self {
+            BlurEdgeMode::Duplicate => 0,
+            BlurEdgeMode::Mirror => 1,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 #[repr(C)]
 #[cfg_attr(feature = "capture", derive(Serialize))]
@@ -113,6 +131,7 @@ pub struct BlurInstance {
     pub task_address: RenderTaskAddress,
     pub src_task_address: RenderTaskAddress,
     pub blur_direction: i32,
+    pub edge_mode: i32,
     pub blur_std_deviation: f32,
     pub blur_region: DeviceSize,
 }

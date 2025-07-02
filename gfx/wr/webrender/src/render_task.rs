@@ -14,7 +14,7 @@ use crate::spatial_tree::SpatialNodeIndex;
 use crate::filterdata::SFilterData;
 use crate::frame_builder::FrameBuilderConfig;
 use crate::gpu_cache::{GpuCache, GpuCacheAddress, GpuCacheHandle};
-use crate::gpu_types::{BorderInstance, ImageSource, UvRectKind, TransformPaletteId};
+use crate::gpu_types::{BorderInstance, ImageSource, UvRectKind, TransformPaletteId, BlurEdgeMode};
 use crate::internal_types::{CacheTextureId, FastHashMap, FilterGraphNode, FilterGraphOp, FilterGraphPictureReference, SVGFE_CONVOLVE_VALUES_LIMIT, TextureSource, Swizzle};
 use crate::picture::{ResolvedSurfaceTexture, MAX_SURFACE_SIZE};
 use crate::prim_store::ClipData;
@@ -255,6 +255,7 @@ pub struct BlurTask {
     pub blur_std_deviation: f32,
     pub target_kind: RenderTargetKind,
     pub blur_region: DeviceIntSize,
+    pub edge_mode: BlurEdgeMode,
 }
 
 impl BlurTask {
@@ -703,6 +704,7 @@ impl RenderTaskKind {
                                 RenderTargetKind::Alpha,
                                 None,
                                 cache_size,
+                                BlurEdgeMode::Duplicate,
                             )
                         }
                     ));
@@ -1171,6 +1173,7 @@ impl RenderTask {
         target_kind: RenderTargetKind,
         mut blur_cache: Option<&mut BlurTaskCache>,
         blur_region: DeviceIntSize,
+        edge_mode: BlurEdgeMode,
     ) -> RenderTaskId {
         // Adjust large std deviation value.
         let mut adjusted_blur_std_deviation = blur_std_deviation;
@@ -1230,6 +1233,7 @@ impl RenderTask {
                     blur_std_deviation: adjusted_blur_std_deviation.height,
                     target_kind,
                     blur_region,
+                    edge_mode,
                 }),
             ).with_uv_rect_kind(uv_rect_kind));
             rg_builder.add_dependency(blur_task_v, downscaling_src_task_id);
@@ -1240,6 +1244,7 @@ impl RenderTask {
                     blur_std_deviation: adjusted_blur_std_deviation.width,
                     target_kind,
                     blur_region,
+                    edge_mode,
                 }),
             ).with_uv_rect_kind(uv_rect_kind));
             rg_builder.add_dependency(task_id, blur_task_v);
@@ -1429,6 +1434,7 @@ impl RenderTask {
                         RenderTargetKind::Color,
                         None,
                         content_size,
+                        BlurEdgeMode::Duplicate,
                     )
                 }
                 FilterPrimitiveKind::Opacity(ref opacity) => {
@@ -1498,6 +1504,7 @@ impl RenderTask {
                         RenderTargetKind::Color,
                         None,
                         content_size,
+                        BlurEdgeMode::Duplicate,
                     );
 
                     RenderTask::new_svg_filter_primitive(
@@ -2360,6 +2367,7 @@ impl RenderTask {
                             RenderTargetKind::Color,
                             None,
                             adjusted_blur_task_size.to_i32(),
+                            BlurEdgeMode::Duplicate,
                         );
 
                     task_id = rg_builder.add().init(RenderTask::new_dynamic(
@@ -2488,6 +2496,7 @@ impl RenderTask {
                             RenderTargetKind::Color,
                             None,
                             adjusted_blur_task_size.to_i32(),
+                            BlurEdgeMode::Duplicate,
                         );
 
                     // Now we make the compositing task, for this we need to put
