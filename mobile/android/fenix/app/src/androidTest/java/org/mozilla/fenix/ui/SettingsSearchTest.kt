@@ -10,7 +10,6 @@ import androidx.test.filters.SdkSuppress
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SkipLeaks
@@ -661,7 +660,6 @@ class SettingsSearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2203340
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1965451")
     @SmokeTest
     @Test
     fun verifySearchShortcutChangesAreReflectedInSearchSelectorMenuTest() {
@@ -671,8 +669,8 @@ class SettingsSearchTest : TestSetup() {
         }.openSearchSubMenu {
             openManageShortcutsMenu()
             selectSearchShortcut(EngineShortcut(name = "Google", checkboxIndex = 1))
-            selectSearchShortcut(EngineShortcut(name = "Reddit", checkboxIndex = 16))
-            selectSearchShortcut(EngineShortcut(name = "YouTube", checkboxIndex = 19))
+            selectSearchShortcut(EngineShortcut(name = "Reddit", checkboxIndex = 10))
+            selectSearchShortcut(EngineShortcut(name = "YouTube", checkboxIndex = 16))
             exitMenu()
         }
         searchScreen {

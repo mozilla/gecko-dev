@@ -875,7 +875,6 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2230212
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1965301")
     @SmokeTest
     @Test
     fun searchHistoryNotRememberedInPrivateBrowsingTest() {
