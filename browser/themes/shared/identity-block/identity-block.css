@@ -74,7 +74,7 @@
 #urlbar-label-box {
   margin-inline-end: 8px;
   /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-pref("browser.urlbar.searchModeSwitcher.featureGate") or -moz-pref("browser.urlbar.scotchBonnet.enableOverride")) {
+  @media -moz-pref("browser.urlbar.searchModeSwitcher.featureGate") or -moz-pref("browser.urlbar.scotchBonnet.enableOverride") {
     margin-inline-end: var(--urlbar-searchmodeswitcher-margin-inline-end);
   }
 }

@@ -10,10 +10,8 @@ browser.jar:
 
   content/builtin-themes/dark/preview.svg          (firefox-light-dark/dark-preview.svg)
   content/builtin-themes/dark/icon.svg             (firefox-light-dark/dark-icon.svg)
-  content/builtin-themes/dark/experiment.css       (firefox-light-dark/experiment.css)
   content/builtin-themes/dark/manifest.json        (dark/manifest.json)
 
   content/builtin-themes/light/preview.svg         (firefox-light-dark/light-preview.svg)
   content/builtin-themes/light/icon.svg            (firefox-light-dark/light-icon.svg)
-  content/builtin-themes/light/experiment.css      (firefox-light-dark/experiment.css)
   content/builtin-themes/light/manifest.json       (light/manifest.json)
