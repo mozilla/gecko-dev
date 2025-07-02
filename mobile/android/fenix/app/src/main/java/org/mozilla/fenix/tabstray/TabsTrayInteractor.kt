@@ -98,13 +98,6 @@ interface TabsTrayInteractor :
      * @return true if the back button press was consumed.
      */
     fun onBackPressed(): Boolean
-
-    /**
-     * Invoked when a tab is unselected.
-     *
-     * @param tab [TabSessionState] that was unselected.
-     */
-    fun onTabUnselected(tab: TabSessionState)
 }
 
 /**
@@ -193,10 +186,6 @@ class DefaultTabsTrayInteractor(
 
     override fun onTabLongClicked(tab: TabSessionState): Boolean {
         return controller.handleTabLongClick(tab)
-    }
-
-    override fun onTabUnselected(tab: TabSessionState) {
-        controller.handleTabUnselected(tab)
     }
 
     /**

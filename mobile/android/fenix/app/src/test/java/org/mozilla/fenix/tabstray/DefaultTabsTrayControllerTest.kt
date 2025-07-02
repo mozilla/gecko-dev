@@ -730,7 +730,8 @@ class DefaultTabsTrayControllerTest {
 
     @Test
     fun `GIVEN the user is in multi select mode and a tab is selected WHEN the user taps the selected tab THEN the tab will become unselected`() {
-        trayStore = TabsTrayStore()
+        val middleware = CaptureActionsMiddleware<TabsTrayState, TabsTrayAction>()
+        trayStore = TabsTrayStore(middlewares = listOf(middleware))
         val tab1 = TabSessionState(
             id = "1",
             content = ContentState(
@@ -750,10 +751,14 @@ class DefaultTabsTrayControllerTest {
         trayStore.waitUntilIdle()
 
         controller.handleTabSelected(tab1, "Tabs tray")
-        verify(exactly = 1) { controller.handleTabUnselected(tab1) }
+        middleware.assertLastAction(TabsTrayAction.RemoveSelectTab::class) {
+            assertEquals(tab1, it.tab)
+        }
 
         controller.handleTabSelected(tab2, "Tabs tray")
-        verify(exactly = 1) { controller.handleTabUnselected(tab2) }
+        middleware.assertLastAction(TabsTrayAction.RemoveSelectTab::class) {
+            assertEquals(tab2, it.tab)
+        }
     }
 
     @Test

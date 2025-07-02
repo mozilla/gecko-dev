@@ -169,13 +169,6 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
     )
 
     /**
-     * Removes the provided tab from the current selection of tabs.
-     *
-     * @param tab [TabSessionState] to be unselected.
-     */
-    fun handleTabUnselected(tab: TabSessionState)
-
-    /**
      * Exits multi select mode when the back button was pressed.
      *
      * @return true if the button press was consumed.
@@ -608,16 +601,14 @@ class DefaultTabsTrayController(
                 }
             }
 
-            tab.id in selected.map { it.id } -> handleTabUnselected(tab)
+            tab.id in selected.map { it.id } -> {
+                tabsTrayStore.dispatch(TabsTrayAction.RemoveSelectTab(tab))
+            }
 
             source != INACTIVE_TABS_FEATURE_NAME -> {
                 tabsTrayStore.dispatch(TabsTrayAction.AddSelectTab(tab))
             }
         }
-    }
-
-    override fun handleTabUnselected(tab: TabSessionState) {
-        tabsTrayStore.dispatch(TabsTrayAction.RemoveSelectTab(tab))
     }
 
     override fun handleBackPressed(): Boolean {
