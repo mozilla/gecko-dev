@@ -5,6 +5,11 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const BASE_URL = "https://example.com/";
 
+// Use a different origin so HTTP doesn't upgrade to HTTPS.
+// eslint-disable-next-line @microsoft/sdl/no-insecure-url
+const BASE_URL_HTTP = "http://mochi.test:8888/";
+const HIDDEN_URI = "about:about";
+
 ChromeUtils.defineESModuleGetters(this, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   FileTestUtils: "resource://testing-common/FileTestUtils.sys.mjs",
@@ -225,3 +230,75 @@ add_task(async function revertToMostRecent() {
     BrowserTestUtils.closeWindow(thirdWin),
   ]);
 });
+
+add_task(async function testVariousVisibilityChanges() {
+  const argsList = [
+    [BASE_URL, HIDDEN_URI, true, false],
+    [BASE_URL_HTTP, HIDDEN_URI, true, false],
+    [BASE_URL, BASE_URL_HTTP, true, true],
+    [HIDDEN_URI, BASE_URL, false, true],
+    [HIDDEN_URI, BASE_URL_HTTP, false, true],
+  ];
+
+  for (const args of argsList) {
+    await testVisibilityChange(...args);
+  }
+});
+
+async function testVisibilityChange(aFrom, aTo, aFirstVisible, aSecondVisible) {
+  const element = document.getElementById("taskbar-tabs-button");
+  let locationChange;
+
+  locationChange = BrowserTestUtils.waitForLocationChange(gBrowser, aFrom);
+  const tab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    aFrom,
+    false
+  );
+
+  await locationChange;
+  is(
+    element.hidden,
+    !aFirstVisible,
+    `Page action is ${aFirstVisible ? "" : "not "}hidden on ${getURIScheme(aFrom)} new tab`
+  );
+
+  locationChange = BrowserTestUtils.waitForLocationChange(gBrowser, aTo);
+  BrowserTestUtils.startLoadingURIString(gBrowser, aTo);
+
+  await locationChange;
+  is(
+    element.hidden,
+    !aSecondVisible,
+    `Page action is ${aSecondVisible ? "" : "not "}hidden on ${getURIScheme(aTo)} reused tab`
+  );
+
+  BrowserTestUtils.removeTab(tab);
+}
+
+add_task(async function testIframeNavigationIsIgnored() {
+  // Navigation within an iframe issues events very similar to top-level navigation.
+  // We only want top-level, so test that nothing happens.
+  const element = document.getElementById("taskbar-tabs-button");
+  requestLongerTimeout(10000);
+
+  await BrowserTestUtils.withNewTab("data:text/plain,", async browser => {
+    ok(element.hidden, "Page action is hidden on about: scheme");
+
+    await SpecialPowers.spawn(browser, [], async () => {
+      content.document.body.innerHTML =
+        "<iframe id='iframe' src='https://example.com'></iframe><p>taskbartabs!</p>";
+      return new Promise(resolve => {
+        content.document
+          .getElementById("iframe")
+          .addEventListener("load", _e => resolve(), { once: true });
+      });
+    });
+
+    ok(element.hidden, "Page action is still hidden despite iframe change");
+  });
+});
+
+function getURIScheme(uri) {
+  return Services.io.newURI(uri).scheme;
+}

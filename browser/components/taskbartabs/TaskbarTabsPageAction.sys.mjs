@@ -56,7 +56,7 @@ export const TaskbarTabsPageAction = {
     let taskbarTabsButton = aWindow.document.getElementById(kWidgetId);
     taskbarTabsButton.addEventListener("click", this, true);
 
-    taskbarTabsButton.hidden = false;
+    initVisibilityChanges(aWindow, taskbarTabsButton);
   },
 
   /**
@@ -125,3 +125,22 @@ export const TaskbarTabsPageAction = {
     }
   },
 };
+
+/**
+ * Shows or hides the page action as the user navigates.
+ *
+ * @param {Window} aWindow - The window that contains the page action.
+ * @param {Element} aElement - The element that makes up the page action.
+ */
+function initVisibilityChanges(aWindow, aElement) {
+  const shouldHide = aLocation => !aLocation.scheme.startsWith("http");
+  aElement.hidden = shouldHide(aWindow.gBrowser.currentURI);
+
+  aWindow.gBrowser.addProgressListener({
+    onLocationChange(aWebProgress, aRequest, aLocation) {
+      if (aWebProgress.isTopLevel) {
+        aElement.hidden = shouldHide(aLocation);
+      }
+    },
+  });
+}
