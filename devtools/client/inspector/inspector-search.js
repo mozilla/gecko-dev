@@ -107,6 +107,7 @@ InspectorSearch.prototype = {
     if (res) {
       this.inspector.selection.setNodeFront(res.node, {
         reason: "inspectorsearch",
+        searchQuery: query,
       });
       searchContainer.classList.remove("devtools-searchbox-no-match");
       res.query = query;
