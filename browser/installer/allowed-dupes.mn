@@ -93,6 +93,10 @@ browser/defaults/settings/main/search-config-icons/f312610a-ebfb-a106-ea92-fd643
 browser/defaults/settings/main/search-config-icons/47da97b5-600f-c450-fd15-a52bb2169c11
 browser/defaults/settings/main/search-config-icons/fed4f021-ff3e-942a-010e-afa43fda2136
 
+# Bug 1975170 - Light and dark themes share a tiny experiment.css
+browser/chrome/browser/content/builtin-themes/light/experiment.css
+browser/chrome/browser/content/builtin-themes/dark/experiment.css
+
 # Bug 1946262 - De-Duplicate by moving glyph svg icons in a shared location
 browser/chrome/browser/content/browser/asrouter/assets/glyph-mail-16.svg
 #ifdef BROWSER_NEWTAB_AS_ADDON
