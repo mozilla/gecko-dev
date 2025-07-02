@@ -67,6 +67,8 @@ import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import mozilla.components.service.fxa.store.Account
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuAccessPoint
+import org.mozilla.fenix.components.menu.MenuDialogTestTag.DESKTOP_SITE_OFF
+import org.mozilla.fenix.components.menu.MenuDialogTestTag.DESKTOP_SITE_ON
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.components.menu.compose.header.MenuNavHeader
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
@@ -439,6 +441,7 @@ private fun QuitMenuGroup(
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun ToolsAndActionsMenuGroup(
@@ -499,11 +502,18 @@ private fun ToolsAndActionsMenuGroup(
         )
 
             MenuItem(
-                label = stringResource(id = labelId),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_mobile_24),
-                state = menuItemState,
-                onClick = onSwitchToDesktopSiteMenuClick,
-            ) {
+            modifier = Modifier.semantics {
+                testTagsAsResourceId = true
+                testTag = when (menuItemState) {
+                    MenuItemState.ACTIVE -> DESKTOP_SITE_ON
+                    else -> DESKTOP_SITE_OFF
+                }
+            },
+            label = stringResource(id = labelId),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_device_mobile_24),
+            state = menuItemState,
+            onClick = onSwitchToDesktopSiteMenuClick,
+        ) {
             if (menuItemState == MenuItemState.DISABLED) {
                 return@MenuItem
             }

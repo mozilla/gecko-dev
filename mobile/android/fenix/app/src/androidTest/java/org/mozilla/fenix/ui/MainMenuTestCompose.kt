@@ -525,7 +525,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860845
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
     fun switchDesktopSiteModeOnOffTest() {
@@ -535,18 +534,19 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu(composeTestRule) {
             verifySwitchToDesktopSiteButton()
+            verifyDesktopSiteButtonState(isEnabled = false)
             clickSwitchToDesktopSiteButton()
         }
         browserScreen {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu(composeTestRule) {
-            verifySwitchToMobileSiteButton()
-            clickSwitchToMobileSiteButton()
+            verifyDesktopSiteButtonState(isEnabled = true)
+            clickSwitchToDesktopSiteButton()
         }
         browserScreen {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu(composeTestRule) {
-            verifySwitchToDesktopSiteButton()
+            verifyDesktopSiteButtonState(isEnabled = false)
         }
     }
 
