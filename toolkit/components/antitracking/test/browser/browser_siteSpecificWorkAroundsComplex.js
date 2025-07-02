@@ -3,77 +3,11 @@
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.importESModule(
-  "resource://services-settings/remote-settings.sys.mjs"
-);
-
 // Name of the RemoteSettings collection containing exceptions.
 const COLLECTION_NAME = "url-classifier-exceptions";
 
 // RemoteSettings collection db.
 let db;
-
-/**
- * Wait for the exception list service to initialize.
- * @param {string} [urlPattern] - The URL pattern to wait for to be present.
- * Pass null to wait for all entries to be removed.
- */
-async function waitForExceptionListServiceSynced(urlPattern) {
-  info(
-    `Waiting for the exception list service to initialize for ${urlPattern}`
-  );
-  let classifier = Cc["@mozilla.org/url-classifier/dbservice;1"].getService(
-    Ci.nsIURIClassifier
-  );
-  let feature = classifier.getFeatureByName("tracking-protection");
-  await TestUtils.waitForCondition(() => {
-    if (urlPattern == null) {
-      return feature.exceptionList.testGetEntries().length === 0;
-    }
-    return feature.exceptionList
-      .testGetEntries()
-      .some(entry => entry.urlPattern === urlPattern);
-  }, "Exception list service initialized");
-}
-
-/**
- * Dispatch a RemoteSettings "sync" event.
- * @param {Object} data - The event's data payload.
- * @param {Object} [data.created] - Records that were created.
- * @param {Object} [data.updated] - Records that were updated.
- * @param {Object} [data.deleted] - Records that were removed.
- * @param {Object} [data.current] - The current list of records.
- */
-async function remoteSettingsSync({ created, updated, deleted, current }) {
-  await RemoteSettings(COLLECTION_NAME).emit("sync", {
-    data: {
-      created,
-      updated,
-      deleted,
-      // The list service seems to require this field to be set.
-      current,
-    },
-  });
-}
-
-/**
- * Wait for a content blocking event to occur.
- * @param {Window} win - The window to listen for the event on.
- * @returns {Promise} A promise that resolves when the event occurs.
- */
-async function waitForContentBlockingEvent(win) {
-  return new Promise(resolve => {
-    let listener = {
-      onContentBlockingEvent(webProgress, request, event) {
-        if (event & Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT) {
-          win.gBrowser.removeProgressListener(listener);
-          resolve();
-        }
-      },
-    };
-    win.gBrowser.addProgressListener(listener);
-  });
-}
 
 /**
  * Load a tracker in third-party context.
@@ -151,38 +85,6 @@ add_setup(async function () {
   await db.importChanges({}, Date.now(), [], { clear: true });
 });
 
-/**
- * Set exceptions via RemoteSettings.
- * @param {Object[]} entries - The entries to set. If empty, the exceptions will be cleared.
- */
-async function setExceptions(entries) {
-  info("Set exceptions via RemoteSettings");
-  if (!entries.length) {
-    await db.clear();
-    await db.importChanges({}, Date.now());
-    await remoteSettingsSync({ current: [] });
-    await waitForExceptionListServiceSynced();
-    return;
-  }
-
-  let entriesPromises = entries.map(e =>
-    db.create({
-      category: "baseline",
-      urlPattern: e.urlPattern,
-      classifierFeatures: e.classifierFeatures,
-      // Only apply to private browsing in ETP "standard" mode.
-      isPrivateBrowsingOnly: e.isPrivateBrowsingOnly,
-      filterContentBlockingCategories: e.filterContentBlockingCategories,
-    })
-  );
-
-  let rsEntries = await Promise.all(entriesPromises);
-
-  await db.importChanges({}, Date.now());
-  await remoteSettingsSync({ current: rsEntries });
-  await waitForExceptionListServiceSynced(rsEntries[0].urlPattern);
-}
-
 // Tests that exception list entries can be scoped to only private browsing.
 add_task(async function test_private_browsing_exception() {
   info("Load tracker in normal browsing.");
@@ -208,15 +110,20 @@ add_task(async function test_private_browsing_exception() {
   );
 
   info("Set exception for private browsing.");
-  await setExceptions([
-    {
-      urlPattern: "*://tracking.example.org/*",
-      topLevelUrlPattern: "*://example.com/*",
-      classifierFeatures: ["tracking-protection"],
-      isPrivateBrowsingOnly: true,
-      filterContentBlockingCategories: ["standard"],
-    },
-  ]);
+  await setExceptions(
+    [
+      {
+        category: "baseline",
+        urlPattern: "*://tracking.example.org/*",
+        topLevelUrlPattern: "*://example.com/*",
+        classifierFeatures: ["tracking-protection"],
+        isPrivateBrowsingOnly: true,
+        filterContentBlockingCategories: ["standard"],
+      },
+    ],
+    db,
+    COLLECTION_NAME
+  );
 
   info("Load tracker in normal browsing.");
   success = await loadTracker({
@@ -293,13 +200,18 @@ add_task(async function test_private_browsing_exception() {
   );
 
   info("Update exception, removing the additional filtering criteria.");
-  await setExceptions([
-    {
-      urlPattern: "*://tracking.example.org/*",
-      classifierFeatures: ["tracking-protection"],
-      filterContentBlockingCategories: ["standard", "strict"],
-    },
-  ]);
+  await setExceptions(
+    [
+      {
+        category: "baseline",
+        urlPattern: "*://tracking.example.org/*",
+        classifierFeatures: ["tracking-protection"],
+        filterContentBlockingCategories: ["standard", "strict"],
+      },
+    ],
+    db,
+    COLLECTION_NAME
+  );
 
   info("Load tracker in private browsing.");
   success = await loadTracker({
@@ -330,5 +242,5 @@ add_task(async function test_private_browsing_exception() {
 
   info("Cleanup");
   await SpecialPowers.popPrefEnv();
-  await setExceptions([]);
+  await setExceptions([], db, COLLECTION_NAME);
 });

@@ -178,6 +178,8 @@ skip-if = ["true"]
 
 ["browser_primaryPassword.js"]
 
+["browser_privacy_allowListPreference.js"]
+
 ["browser_privacy_cookieBannerHandling.js"]
 
 ["browser_privacy_dnsoverhttps.js"]

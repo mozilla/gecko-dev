@@ -103,6 +103,10 @@ const { PermissionTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
+const { RemoteSettings } = ChromeUtils.importESModule(
+  "resource://services-settings/remote-settings.sys.mjs"
+);
+
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/toolkit/components/antitracking/test/browser/antitracking_head.js",
   this
@@ -151,4 +155,104 @@ function setCookieBehaviorPref(cookieBehavior, runInPrivateWindow) {
       ["network.cookie.cookieBehavior.pbmode", cbPrivate],
     ],
   });
+}
+
+/**
+ * Wait for the exception list service to initialize.
+ * @param {string} [urlPattern] - The URL pattern to wait for to be present.
+ * Pass null to wait for all entries to be removed.
+ */
+async function waitForExceptionListServiceSynced(urlPattern) {
+  info(
+    `Waiting for the exception list service to initialize for ${urlPattern}`
+  );
+  let classifier = Cc["@mozilla.org/url-classifier/dbservice;1"].getService(
+    Ci.nsIURIClassifier
+  );
+  let feature = classifier.getFeatureByName("tracking-protection");
+  await TestUtils.waitForCondition(() => {
+    if (urlPattern == null) {
+      return feature.exceptionList.testGetEntries().length === 0;
+    }
+    return feature.exceptionList
+      .testGetEntries()
+      .some(entry => entry.urlPattern === urlPattern);
+  }, "Exception list service initialized");
+}
+
+/**
+ * Wait for a content blocking event to occur.
+ * @param {Window} win - The window to listen for the event on.
+ * @returns {Promise} A promise that resolves when the event occurs.
+ */
+async function waitForContentBlockingEvent(win) {
+  return new Promise(resolve => {
+    let listener = {
+      onContentBlockingEvent(webProgress, request, event) {
+        if (event & Ci.nsIWebProgressListener.STATE_BLOCKED_TRACKING_CONTENT) {
+          win.gBrowser.removeProgressListener(listener);
+          resolve();
+        }
+      },
+    };
+    win.gBrowser.addProgressListener(listener);
+  });
+}
+
+/**
+ * Dispatch a RemoteSettings "sync" event.
+ * @param {string} collectionName - The remote setting collection name
+ * @param {Object} data - The event's data payload.
+ * @param {Object} [data.created] - Records that were created.
+ * @param {Object} [data.updated] - Records that were updated.
+ * @param {Object} [data.deleted] - Records that were removed.
+ * @param {Object} [data.current] - The current list of records.
+ */
+async function remoteSettingsSync(
+  collectionName,
+  { created, updated, deleted, current }
+) {
+  await RemoteSettings(collectionName).emit("sync", {
+    data: {
+      created,
+      updated,
+      deleted,
+      // The list service seems to require this field to be set.
+      current,
+    },
+  });
+}
+
+/**
+ * Set exceptions via RemoteSettings.
+ * @param {Object[]} entries - The entries to set. If empty, the exceptions will be cleared.
+ * @param {Object} db - The Remote Settings collections database.
+ * @param {Object} collectionName The remote setting collection name
+ */
+async function setExceptions(entries, db, collectionName) {
+  info("Set exceptions via RemoteSettings");
+  if (!entries.length) {
+    await db.clear();
+    await db.importChanges({}, Date.now());
+    await remoteSettingsSync(collectionName, { current: [] });
+    await waitForExceptionListServiceSynced();
+    return;
+  }
+
+  let entriesPromises = entries.map(e =>
+    db.create({
+      category: e.category,
+      urlPattern: e.urlPattern,
+      classifierFeatures: e.classifierFeatures,
+      // Only apply to private browsing in ETP "standard" mode.
+      isPrivateBrowsingOnly: e.isPrivateBrowsingOnly,
+      filterContentBlockingCategories: e.filterContentBlockingCategories,
+    })
+  );
+
+  let rsEntries = await Promise.all(entriesPromises);
+
+  await db.importChanges({}, Date.now());
+  await remoteSettingsSync(collectionName, { current: rsEntries });
+  await waitForExceptionListServiceSynced(rsEntries[0].urlPattern);
 }
