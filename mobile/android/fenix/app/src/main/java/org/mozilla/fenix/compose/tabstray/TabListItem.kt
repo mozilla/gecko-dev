@@ -112,7 +112,7 @@ fun TabListItem(
         backgroundContent = {
             DismissibleItemBackground(
                 isSwipeActive = swipeState.swipingActive,
-                isSwipingToStart = swipeState.isSwipingToStart,
+                isSwipingToStart = swipeState.swipingActive && swipeState.isSwipingToStart,
             )
         },
     ) {
