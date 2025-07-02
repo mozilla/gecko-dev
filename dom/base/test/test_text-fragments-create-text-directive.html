@@ -43,7 +43,7 @@
   <div>HereEndsATableAndThisIsHereToMakeSureTheTestResultsAreIndependentOfSurroundingContent</div>
 
   <span id="longWord">1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</span>
-
+  <p id="loremIpsum">Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.</p>
   <script>
     SimpleTest.waitForExplicitFinish();
     function rAF() {
@@ -269,6 +269,15 @@
           endOffset: secondRow.firstChild.length,
           content: "first row second row",
           textDirective: "text=first%20row,second%20row",
+        },
+        {
+          name: "Finding prefix in the correct order",
+          startContainer: loremIpsum.firstChild,
+          startOffset: 308,
+          endContainer: loremIpsum.firstChild,
+          endOffset: 313,
+          content: "Lorem",
+          textDirective: "text=a-,Lorem"
         },
         {
           name: "Range-based text directive with multiple end matches 1 (first match)",
