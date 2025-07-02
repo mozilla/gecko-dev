@@ -9,14 +9,6 @@ AB_CD = en-US
 
 # Build a binary bootstrapping with XRE_main
 
-ifndef MOZ_WINCONSOLE
-ifneq (,$(MOZ_DEBUG)$(MOZ_ASAN))
-MOZ_WINCONSOLE = 1
-else
-MOZ_WINCONSOLE = 0
-endif
-endif
-
 include $(topsrcdir)/config/config.mk
 
 # If we are trying to show an error dialog about the lack of SSE2 support,

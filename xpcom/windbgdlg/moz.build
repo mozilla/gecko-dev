@@ -6,6 +6,8 @@
 
 SimplePrograms(["windbgdlg"])
 
+WINCONSOLE = False
+
 OS_LIBS += [
     "advapi32",
     "user32",

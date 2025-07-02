@@ -63,5 +63,13 @@ if CONFIG["CC_TYPE"] == "clang-cl":
 else:
     WIN32_EXE_LDFLAGS += ["-municode"]
 
+# This binary should never open a console window in release builds, because
+# it's going to run in the background when the user may not expect it, and
+# we don't want a console window to just appear out of nowhere on them.
+# For debug builds though, it's okay to use the existing WINCONSOLE value.
+if not CONFIG["MOZ_DEBUG"]:
+    WINCONSOLE = False
+
+
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Default Browser Agent")

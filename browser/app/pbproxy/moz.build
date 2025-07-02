@@ -23,6 +23,9 @@ DEFINES["PBMODE_ICO"] = '"{}/{}/pbmode.ico"'.format(
     CONFIG["MOZ_BRANDING_DIRECTORY"],
 )
 
+# To make sure this process doesn't show a taskbar icon
+WINCONSOLE = False
+
 DisableStlWrapping()
 
 with Files("**"):

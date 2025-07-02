@@ -11,14 +11,6 @@
 # In an artifact build, we copy upstream artifacts from
 # `dist/update_framework_artifacts/UpdateSettings-localbuild.framework`
 
-ifndef MOZ_WINCONSOLE
-ifdef MOZ_DEBUG
-MOZ_WINCONSOLE = 1
-else
-MOZ_WINCONSOLE = 0
-endif
-endif
-
 include $(topsrcdir)/config/rules.mk
 
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))

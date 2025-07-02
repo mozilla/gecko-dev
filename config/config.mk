@@ -271,20 +271,6 @@ ifdef CCACHE_PREFIX
 export CCACHE_PREFIX
 endif
 
-# Set link flags according to whether we want a console.
-ifeq ($(OS_ARCH),WINNT)
-ifdef MOZ_WINCONSOLE
-ifeq ($(MOZ_WINCONSOLE),1)
-WIN32_EXE_LDFLAGS	+= $(WIN32_CONSOLE_EXE_LDFLAGS)
-else # MOZ_WINCONSOLE
-WIN32_EXE_LDFLAGS	+= $(WIN32_GUI_EXE_LDFLAGS)
-endif
-else
-# For setting subsystem version
-WIN32_EXE_LDFLAGS	+= $(WIN32_CONSOLE_EXE_LDFLAGS)
-endif
-endif # WINNT
-
 ifeq ($(OS_ARCH),WINNT)
 ifneq (,$(filter msvc clang-cl,$(CC_TYPE)))
 ifneq ($(TARGET_CPU),x86)

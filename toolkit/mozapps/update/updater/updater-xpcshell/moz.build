@@ -7,6 +7,10 @@
 FINAL_TARGET = "_tests/xpcshell/toolkit/mozapps/update/tests"
 
 Program("updater-xpcshell")
+if CONFIG["MOZ_DEBUG"]:
+    WINCONSOLE = True
+else:
+    WINCONSOLE = False
 
 updater_rel_path = "../"
 DEFINES["TEST_UPDATER"] = True

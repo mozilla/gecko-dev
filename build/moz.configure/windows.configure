@@ -599,11 +599,11 @@ with only_when(depends(c_compiler)(lambda c: c.type == "clang-cl")):
 
     set_config(
         "WIN32_CONSOLE_EXE_LDFLAGS",
-        "-SUBSYSTEM:CONSOLE,{}".format(win32_subsystem_version()),
+        ["-SUBSYSTEM:CONSOLE,{}".format(win32_subsystem_version())],
     )
     set_config(
         "WIN32_GUI_EXE_LDFLAGS",
-        "-SUBSYSTEM:WINDOWS,{}".format(win32_subsystem_version()),
+        ["-SUBSYSTEM:WINDOWS,{}".format(win32_subsystem_version())],
     )
 
     add_flag("-Gy")
@@ -636,8 +636,8 @@ with only_when(target_is_windows & depends(c_compiler)(lambda c: c.type != "clan
     # causing problems with local implementations with the same name.
     set_define("STRSAFE_NO_DEPRECATE", True)
 
-    set_config("WIN32_CONSOLE_EXE_LDFLAGS", "-mconsole")
-    set_config("WIN32_GUI_EXE_LDFLAGS", "-mwindows")
+    set_config("WIN32_CONSOLE_EXE_LDFLAGS", ["-mconsole"])
+    set_config("WIN32_GUI_EXE_LDFLAGS", ["-mwindows"])
 
     # Silence problematic clang warnings
     add_flag("-Wno-incompatible-ms-struct", compiler=cxx_compiler)

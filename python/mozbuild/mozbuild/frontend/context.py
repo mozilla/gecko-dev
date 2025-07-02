@@ -1682,6 +1682,12 @@ VARIABLES = {
         current locale is ``en-US``.
         """,
     ),
+    "WINCONSOLE": (
+        bool,
+        bool,
+        """Whether the current binary requires a console.
+        """,
+    ),
     "MOZ_SRC_FILES": (
         ContextDerivedTypedList(SourcePath),
         list,

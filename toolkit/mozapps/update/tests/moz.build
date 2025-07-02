@@ -117,5 +117,10 @@ FINAL_TARGET_PP_FILES += [
     "data/xpcshellConstantsPP.js",
 ]
 
+if CONFIG["MOZ_DEBUG"]:
+    WINCONSOLE = True
+else:
+    WINCONSOLE = False
+
 with Files("browser/browser_telemetry_updatePing_*_ready.js"):
     BUG_COMPONENT = ("Toolkit", "Telemetry")

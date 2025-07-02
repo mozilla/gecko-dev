@@ -27,6 +27,8 @@ LOCAL_INCLUDES += [
     "/toolkit/xre",
 ]
 
+WINCONSOLE = True
+
 DisableStlWrapping()
 USE_STATIC_MSVCRT = True
 

@@ -64,5 +64,10 @@ OS_LIBS += [
 if CONFIG["ENABLE_TESTS"]:
     DIRS += ["tests/gtest"]
 
+if CONFIG["MOZ_DEBUG"]:
+    WINCONSOLE = True
+else:
+    WINCONSOLE = False
+
 with Files("**"):
     BUG_COMPONENT = ("Toolkit", "Application Update")

@@ -11,14 +11,6 @@ ifeq (,$(MOZ_SUITE)$(MOZ_THUNDERBIRD))
 MOCHITESTBROWSERDIR = $(topobjdir)/_tests/testing/mochitest/browser/toolkit/mozapps/update/tests/browser
 endif
 
-ifndef MOZ_WINCONSOLE
-ifdef MOZ_DEBUG
-MOZ_WINCONSOLE = 1
-else
-MOZ_WINCONSOLE = 0
-endif
-endif
-
 include $(topsrcdir)/config/rules.mk
 
 ifneq (,$(COMPILE_ENVIRONMENT)$(MOZ_ARTIFACT_BUILDS))
