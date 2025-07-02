@@ -1707,6 +1707,14 @@ add_task(async function test_prefChange() {
       /* clear = */ true
     );
 
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
+    );
+
     const { manager, cleanup } = await setupTest();
 
     const cleanupFunctions = {};
