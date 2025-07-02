@@ -11,30 +11,6 @@ $tags:
   - 'Core :: Privacy: Anti-Tracking'
 
 contentblocking:
-  tp_allowlist_convenience_enabled:
-    type: boolean
-    description: >
-      True if the tracking protection allowlist baseline option is enabled. Updates on "idle daily".
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972607
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972607
-    notification_emails:
-      - privacy-team@mozilla.org
-    expires: never
-
-  tp_allowlist_baseline_enabled:
-    type: boolean
-    description: >
-      True if the tracking protection allowlist convenience option is enabled. Updates on "idle daily".
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972607
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1972607
-    notification_emails:
-      - privacy-team@mozilla.org
-    expires: never
-
   category:
     type: quantity
     description: >

@@ -6,7 +6,6 @@
 const BASELINE_PREF = "privacy.trackingprotection.allow_list.baseline.enabled";
 const CONVENIENCE_PREF =
   "privacy.trackingprotection.allow_list.convenience.enabled";
-const CB_CATEGORY_PREF = "browser.contentblocking.category";
 
 const ETP_STANDARD_ID = "standardRadio";
 const ETP_STRICT_ID = "strictRadio";
@@ -18,6 +17,34 @@ const STRICT_CONVENIENCE_CHECKBOX_ID =
 const CUSTOM_BASELINE_CHECKBOX_ID = "contentBlockingBaselineExceptionsCustom";
 const CUSTOM_CONVENIENCE_CHECKBOX_ID =
   "contentBlockingConvenienceExceptionsCustom";
+
+const CB_CATEGORY_PREF = "browser.contentblocking.category";
+
+/**
+ * Clicks a checkbox and waits for the associated preference to change to the expected value.
+ * @param {Document} doc - The content document.
+ * @param {string} checkboxId - The checkbox element id.
+ * @param {string} prefName - The preference name.
+ * @param {boolean} expectedValue - The expected value after click.
+ * @returns {Promise<HTMLInputElement>}
+ */
+async function clickCheckboxAndWaitForPrefChange(
+  doc,
+  checkboxId,
+  prefName,
+  expectedValue
+) {
+  let checkbox = doc.getElementById(checkboxId);
+  let prefChange = waitForAndAssertPrefState(prefName, expectedValue);
+  checkbox.click();
+  await prefChange;
+  is(
+    checkbox.checked,
+    expectedValue,
+    `The checkbox #${checkboxId} should be in the expected state after being clicked.`
+  );
+  return checkbox;
+}
 
 async function cleanUp() {
   await SpecialPowers.popPrefEnv();
