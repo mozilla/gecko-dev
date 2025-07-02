@@ -11,8 +11,7 @@
     username is saved (e.g. we only have a password). This text will be shown in place where otherwise
     the username would be displayed.
   -->
-  <string name="mozac_feature_autofill_popup_no_username">(Kò sí orúkọ àmúlò)
-</string>
+  <string name="mozac_feature_autofill_popup_no_username">(Kò sí orúkọ àmúlò)</string>
   <!--
     Autofill: Text shown in popup in third-party app to autofill the password for an account.
     %1$s will be replaced with the login/username of the account.
@@ -46,7 +45,7 @@
     last item in the list. When clicking it a new screen opens which allows the user to search for
     a specific login. %1$s will be replaced with the name of the application (e.g. "Firefox")
   -->
-  <string name="mozac_feature_autofill_search_suggestions">Ṣàwárí  %1$s</string>
+  <string name="mozac_feature_autofill_search_suggestions">Ṣàwárí %1$s</string>
   <!--
     Autofill: Hint shown in the text field used to search specific logins. Shown when the field
     is empty and the user has not entered any text into it yet.

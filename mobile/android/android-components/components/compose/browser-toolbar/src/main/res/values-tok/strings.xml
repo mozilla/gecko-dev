@@ -9,5 +9,5 @@
   <!-- Contextual menu option for long pressing on the toolbar URL. Clicking it will paste the text from clipboard and allow user to edit it -->
   <string name="mozac_browser_toolbar_long_press_popup_paste">o pana</string>
   <!-- Contextual menu option for long pressing on the toolbar URL. Clicking it will paste the text from clipboard and search for or load it as an URL. '&amp;' is replaced with the ampersand symbol: & -->
-  <string name="mozac_browser_toolbar_long_press_popup_paste_and_go">o pana alasa</string>
+  <string name="mozac_browser_toolbar_long_press_popup_paste_and_go">o pana o alasa</string>
 </resources>

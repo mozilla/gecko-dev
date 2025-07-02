@@ -5,21 +5,15 @@
   <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
   <string name="mozac_browser_errorpages_generic_title">İstək yerinə yetirilə bilmir</string>
   <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_message">&lt;p&gt;Bu xəta və problem haqqında ətraflı məlumat mövcud deyil&lt;/p&gt;</string>
+  <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>Bu xəta və problem haqqında ətraflı məlumat mövcud deyil</p>]]></string>
   <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
   <string name="mozac_browser_errorpages_security_ssl_title">Təhlükəsiz bağlantı qurula bilmədi</string>
   <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_ssl_message">&lt;ul&gt;
-        &lt;li&gt;Görmək istədiyiniz səhifə alınan məlumatlar təsdiqlənə bilmədi deyə göstərilə bilmir.&lt;/li&gt;
-        &lt;li&gt;Lütfən sayt sahibləri ilə əlaqə saxlayın və bu problemdən xəbərdar edin.&lt;/li&gt;
-      &lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[<ul> <li>Görmək istədiyiniz səhifə alınan məlumatlar təsdiqlənə bilmədi deyə göstərilə bilmir.</li> <li>Lütfən sayt sahibləri ilə əlaqə saxlayın və bu problemdən xəbərdar edin.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Təhlükəsiz bağlantı qurula bilmədi</string>
   <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">&lt;ul&gt;
-        &lt;li&gt;Bu, serverin tənzimləməsi ilə bağlı bir problemdən ya da başqa birinin sizi səhv serverə yönləndirməsindən qaynaqlana bilər.&lt;/li&gt;
-        &lt;li&gt;Əvvəllər bu serverə uğurla bağlana bilirdinizsə problem müvəqqəti ola bilər və daha sonra təkrar yoxlaya bilərsiniz.&lt;/li&gt;
-      &lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[<ul> <li>Bu, serverin tənzimləməsi ilə bağlı bir problemdən ya da başqa birinin sizi\u00a0səhv serverə yönləndirməsindən qaynaqlana bilər.</li> <li>Əvvəllər bu serverə uğurla bağlana bilirdinizsə problem müvəqqəti ola bilər\u00a0və daha sonra təkrar yoxlaya bilərsiniz.</li> </ul>]]></string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_advanced">Təkmilləşmiş…</string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
@@ -31,13 +25,7 @@
   <!-- The document title and heading of the error page shown when a website takes too long to load. -->
   <string name="mozac_browser_errorpages_net_timeout_title">Şəbəkə gözləmə müddəti bitdi</string>
   <!-- The error message shown when a website took long to load. -->
-  <string name="mozac_browser_errorpages_net_timeout_message">&lt;p&gt;Açmaq istədiyiniz sayt cavab vermədiyi üçün gözləmə ləğv edildi.&lt;/p&gt;
-      &lt;ul&gt;
-        &lt;li&gt;Server çox yüklənib və ya müvəqqəti olaraq bir problemlə qarşılaşmış ola bilər. Daha sonra təkrar yoxlayın.&lt;/li&gt;
-        &lt;li&gt;Digər səhifələrdə açılmaya bilər. Əgər elədirsə bağlantınızı yoxlayın.&lt;/li&gt;
-        &lt;li&gt;Cihazınız ya da şəbəkəniz təhlükəsizlik divarı ilə qorunmuş ola bilər. Düzgün nizamlanmamış seçimlər internətə qoşulmağınıza problem yarada bilər.&lt;/li&gt;
-        &lt;li&gt;Bütün yolları yoxlamağınıza baxmayaraq hələ də qoşula bilmirsinizsə, internet provayderinizlə və ya bağlantı idarəçinizlə əlaqə saxlayın.&lt;/li&gt;
-      &lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[<p>Açmaq istədiyiniz sayt cavab vermədiyi üçün gözləmə ləğv edildi.</p> <ul> <li>Server çox yüklənib və ya müvəqqəti olaraq bir problemlə qarşılaşmış ola bilər. Daha sonra təkrar yoxlayın.</li> <li>Digər səhifələrdə açılmaya bilər. Əgər elədirsə bağlantınızı yoxlayın.</li> <li>Cihazınız ya da şəbəkəniz təhlükəsizlik divarı ilə qorunmuş ola bilər. Düzgün nizamlanmamış seçimlər internətə qoşulmağınıza problem yarada bilər.</li> <li>Bütün yolları yoxlamağınıza baxmayaraq hələ də qoşula bilmirsinizsə, internet provayderinizlə və ya bağlantı idarəçinizlə əlaqə saxlayın.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website could not be reached. -->
   <string name="mozac_browser_errorpages_connection_failure_title">Əlaqə cəhdi uğursuz oldu</string>
   <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
@@ -64,7 +52,7 @@
   <string name="mozac_browser_errorpages_no_internet_refresh_button">Yenilə</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_malformed_uri_title">Xətalı ünvan</string>
-  <string name="mozac_browser_errorpages_malformed_uri_message">&lt;p&gt;Daxil etdiyiniz ünvan bilinən formata uyğun deyil. Lütfən ünvan sətrinə baxıb mümkün səhvləri düzəltdikdən sonra yenidən yoxlayın.&lt;/p&gt;</string>
+  <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[<p>Daxil etdiyiniz ünvan bilinən formata uyğun deyil. Lütfən ünvan sətrinə baxıb mümkün səhvləri düzəltdikdən sonra yenidən yoxlayın.</p>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_malformed_uri_title_alternative">Ünvan səhvdir</string>
   <!-- The document title and heading of an error page. -->

@@ -5,9 +5,7 @@
   <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
   <string name="mozac_browser_errorpages_generic_title">Niy szło dokōńczyć fołdrowanio</string>
   <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_message">
-      &lt;p&gt;Brak teroz ekstra informacyji ô tym problymie abo felerze.&lt;/p&gt;
-    </string>
+  <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>Brak teroz ekstra informacyji ô tym problymie abo felerze.</p>]]></string>
   <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
   <string name="mozac_browser_errorpages_security_ssl_title">Feler bezpiecznego połōnczynio</string>
   <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->

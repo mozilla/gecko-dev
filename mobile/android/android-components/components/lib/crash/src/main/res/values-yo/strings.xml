@@ -13,7 +13,7 @@
   <!-- Title of the crash reporter notification for background process crashes. %1$s is the name of the app (for example "Firefox"). -->
   <string name="mozac_lib_crash_background_process_notification_title">Pẹ̀lẹ́. Ìṣòrò kan wáyé ní %1$s.</string>
   <!-- Label of a notification action/button that will send the crash report to Mozilla. -->
-  <string name="mozac_lib_crash_notification_action_report">Ìròyìn              </string>
+  <string name="mozac_lib_crash_notification_action_report">Ìròyìn</string>
   <!-- Label of notification showing that the crash report service is running. %1$s is the name of the organization (for example "Mozilla"). -->
   <string name="mozac_lib_send_crash_report_in_progress">Fifi àwọn ìròyìn ìjákulẹ̀ ránṣẹ́ sí %1$s</string>
   <!-- Label of notification showing that the crash handling service is gathering the crash data. -->

@@ -5,7 +5,7 @@
 
     Content description for searching with a widget. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="search_widget_content_description">Hilpekînek nû ya  %1$s `ê veke</string>
+  <string name="search_widget_content_description">Hilpekînek nû ya %1$s `ê veke</string>
   <!-- Text preview for smaller sized widgets. -->
   <string name="search_widget_text_short">Lêgerîn</string>
   <!-- Text preview for larger sized widgets. -->

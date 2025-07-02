@@ -84,16 +84,30 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">Sireg iskripten n wis kraḍ ur nettwasneqden ara akken ad tkecmeḍ ɣer yisefka-k</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">Iskripten ur nettwasenqed ara zemren ad qemmṛen s tɣellist d uqader n tmeddurt tusligt. Selkem ala iskripten i d-yettwawin seg isiɣzaf neɣ seg iɣbula i tettamneḍ.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Aneflay yenna-d asiɣzef-a ileqqeḍ: %1$s.</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">Aneflay yenna-d asiɣzef-a ileqqeḍ: %1$s</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Aneflay yenna-d asiɣzef-a ur yeḥwaǧ ara alqaḍ n yisefka.</string>
+  <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">Aneflay yenna-d asiɣzef yebɣa ad ilqeḍ: %1$s</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Siγzef anekcum i yifecka n uneflay ɣer isefka-inek/inem deg waccaren yeldin</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">Sken akk ismal</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">Sken-d drus ismal</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">talɣut n usesteb</string>
   <!-- Short description for the bookmarksInfo data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">ticraḍ n isebtar</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">armud n tunigin</string>
   <!-- Short description for the locationInfo data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">adig</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">taywalt tudmawant</string>
   <!-- Short description for the searchTerms data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">nadi awalen</string>
   <!-- Short description for the technicalAndInteraction data collection permission -->
@@ -102,6 +116,12 @@
   <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">Aarmud deg usmel web</string>
   <!-- Short description for the websiteContent data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">Agbur n usmel web</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">Bḍu talɣut n tecraḍ n yisebtar s uneflay n usiɣzef</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">Bḍu armud n tunigin s uneflay n usiɣzef</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">Bḍu talɣut n tezmert s uneflay n usiɣzef</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Lqem</string>
   <!-- The author of an add-on. -->

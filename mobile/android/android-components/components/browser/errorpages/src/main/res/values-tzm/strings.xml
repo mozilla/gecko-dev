@@ -3,7 +3,7 @@
   <!-- The button that appears at the bottom of an error page. -->
   <string name="mozac_browser_errorpages_page_refresh">Arem daɣ</string>
   <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_title">Ur teẓḍired ad tsemded asuter </string>
+  <string name="mozac_browser_errorpages_generic_title">Ur teẓḍired ad tsemded asuter</string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_cert_back">Aɣul (assfaw)</string>
   <!-- The document title and heading of an error page. -->

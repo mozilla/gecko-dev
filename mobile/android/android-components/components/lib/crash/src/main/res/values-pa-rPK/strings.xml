@@ -15,8 +15,7 @@
   <!-- Label of a notification action/button that will send the crash report to Mozilla. -->
   <string name="mozac_lib_crash_notification_action_report">ریپورٹ کرو</string>
   <!-- Label of notification showing that the crash report service is running. %1$s is the name of the organization (for example "Mozilla"). -->
-  <string name="mozac_lib_send_crash_report_in_progress">کریش رپورٹ %1$s نوں بھیجی جا رہی اے
-</string>
+  <string name="mozac_lib_send_crash_report_in_progress">کریش رپورٹ %1$s نوں بھیجی جا رہی اے</string>
   <!-- Label of notification showing that the crash handling service is gathering the crash data. -->
   <string name="mozac_lib_gathering_crash_data_in_progress">کریش سنبندھی ڈیٹے نوں اکتر کیتا جا رہا اے</string>
   <!-- Label of notification showing that the telemetry service is gathering the crash data. -->

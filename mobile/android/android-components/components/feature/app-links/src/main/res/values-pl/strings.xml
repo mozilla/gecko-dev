@@ -3,19 +3,19 @@
   <!-- The tile for the list of external apps to open the link in -->
   <string name="mozac_feature_applinks_open_in">Otwórz w…</string>
   <!-- The description to warn users that their private browsing session changes -->
-  <string name="mozac_feature_applinks_confirm_dialog_title">Otworzyć w aplikacji? Twoje działania mogą nie być już prywatne.</string>
+  <string name="mozac_feature_applinks_confirm_dialog_title">Otworzyć w\u00a0aplikacji? Twoje działania mogą nie być już prywatne.</string>
   <!--
     The description to warn users that their private browsing session changes
     %s is a placeholder that will be replaced by an app name
   -->
-  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">Otworzyć w aplikacji %s? Twoje działania mogą nie być już prywatne.</string>
+  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">Otworzyć w\u00a0aplikacji %s? Twoje działania mogą nie być już prywatne.</string>
   <!-- The title of the prompt that warns users their normal browsing session is trying to open another app -->
-  <string name="mozac_feature_applinks_normal_confirm_dialog_title">Otwórz w innej aplikacji</string>
+  <string name="mozac_feature_applinks_normal_confirm_dialog_title">Otwórz w\u00a0innej aplikacji</string>
   <!--
     The title of the prompt that warns users their normal browsing session is trying to open another app
     %s is a placeholder that will be replaced by an app name
   -->
-  <string name="mozac_feature_applinks_normal_confirm_dialog_title_with_app_name">Otwórz w aplikacji %s</string>
+  <string name="mozac_feature_applinks_normal_confirm_dialog_title_with_app_name">Otwórz w\u00a0aplikacji %s</string>
   <!--
     The message of the prompt to confirm with users that they want to open the link in another app
     %s is a placeholder that will be replaced by the app name
@@ -26,5 +26,5 @@
   <!-- Cancels the prompt -->
   <string name="mozac_feature_applinks_confirm_dialog_deny">Anuluj</string>
   <!-- The label of the checkbox that, depending of user's choice, can change the Open links in apps setting -->
-  <string name="mozac_feature_applinks_confirm_dialog_checkbox_label">Zawsze otwieraj odnośniki w aplikacjach</string>
+  <string name="mozac_feature_applinks_confirm_dialog_checkbox_label">Zawsze otwieraj odnośniki w\u00a0aplikacjach</string>
 </resources>

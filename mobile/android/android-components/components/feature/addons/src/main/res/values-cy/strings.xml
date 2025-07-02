@@ -91,7 +91,7 @@
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Mae\'r datblygwr yn dweud nad oes angen casglu data ar yr estyniad hwn.</string>
   <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
-  <string name="mozac_feature_addons_permissions_data_collection_optional_description">Mae\'r datblygwr yn dweud bod yr estyniad am gasglu: %1$s</string>
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">Mae\'r datblygwr yn dweud bod yr estyniad eisiau casglu: %1$s</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Estyn offer datblygwyr i gael mynediad i’ch data mewn tabiau agored</string>
   <!-- Description for text button that expands the list of domain permissions -->

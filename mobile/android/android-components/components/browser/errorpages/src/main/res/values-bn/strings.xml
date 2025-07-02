@@ -5,31 +5,19 @@
   <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
   <string name="mozac_browser_errorpages_generic_title">অনুরোধ পূরণ করা সম্ভব নয়</string>
   <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_message">&lt;p&gt;এই সমস্যা বা ত্রুটি সম্পর্কে অতিরিক্ত তথ্য বর্তমানে নেই।&lt;/p&gt;</string>
+  <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>এই সমস্যা বা ত্রুটি সম্পর্কে অতিরিক্ত তথ্য বর্তমানে নেই।</p>]]></string>
   <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
   <string name="mozac_browser_errorpages_security_ssl_title">নিরাপদ সংযোগ স্থাপনে ব্যর্থ হয়েছে</string>
   <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_ssl_message">&lt;ul&gt;
-        &lt;li&gt;আপনি যে পাতাটি দেখার চেষ্টা করছেন সেটি প্রদর্শিত হবে না কারণ প্রাপ্ত ডাটার সত্যতা যাচাই করা যায়নি।&lt;/li&gt;
-        &lt;li&gt;এই সমস্যা সম্পর্কে তাদের অবহিত করতে ওয়েবসাইটের মালিকদের সাথে যোগাযোগ করুন।&lt;/li&gt;
-      &lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[<ul> <li>আপনি যে পাতাটি দেখার চেষ্টা করছেন সেটি প্রদর্শিত হবে না কারণ প্রাপ্ত ডাটার সত্যতা যাচাই করা যায়নি।</li> <li>এই সমস্যা সম্পর্কে তাদের অবহিত করতে ওয়েবসাইটের মালিকদের সাথে যোগাযোগ করুন।</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">নিরাপদ সংযোগ স্থাপনে ব্যর্থ হয়েছে</string>
   <!-- The error message shown when a website sends has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-      &lt;ul&gt;
-        &lt;li&gt;সম্ভবত সার্ভারের কনফিগারেশনে সমস্যা হয়েছে অথবা কোনো ব্যক্তি এই সার্ভারের পরিচয় জাল করার চেষ্টা করছে।&lt;/li&gt;
-        &lt;li&gt;আপনি যদি আগে এই সার্ভারের সাথে সফলভাবে সংযোগ স্থাপন করে থাকেন, তাহলে সম্ভবত কোনো অস্থায়ী কারণে এই সমস্যা দেখা দিয়েছে এবং কিছুক্ষণ পর আবার চেষ্টা করুন।&lt;/li&gt;
-      &lt;/ul&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[<ul> <li>সম্ভবত সার্ভারের কনফিগারেশনে সমস্যা হয়েছে অথবা কোনো ব্যক্তি এই সার্ভারের পরিচয় জাল করার চেষ্টা করছে।</li> <li>আপনি যদি আগে এই সার্ভারের সাথে সফলভাবে সংযোগ স্থাপন করে থাকেন, তাহলে সম্ভবত কোনো অস্থায়ী কারণে এই সমস্যা দেখা দিয়েছে এবং কিছুক্ষণ পর আবার চেষ্টা করুন।</li> </ul>]]></string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_advanced">উন্নতপর্যায়ের…</string>
   <!-- The advanced certificate information shown when a website sends has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt; কেউ সাইটটি ছদ্মবেশ তৈরি করার চেষ্টা করছেন এবং আপনার চালিয়ে যাওয়া উচিত নয় &lt;/label&gt;
-        &lt;br&gt; &lt;br&gt;
-        &lt;label&gt; ওয়েবসাইটগুলি সার্টিফিকেটের মাধ্যমে তাদের পরিচয় প্রমাণ করে। %1$s &lt;b&gt;%2$s&lt;/b&gt; কে বিশ্বাস করে না কারণ এটির সার্টিফিকেটের জারিকারী অজানা, সার্টিফিকেটটি স্ব-স্বাক্ষরিত, অথবা সার্ভার সঠিক মধ্যবর্তী সার্টিফিকেট প্রেরণ করছে না &lt;/label&gt;
-        </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label> কেউ সাইটটি ছদ্মবেশ তৈরি করার চেষ্টা করছেন এবং আপনার চালিয়ে যাওয়া উচিত নয় </label> <br> <br> <label> ওয়েবসাইটগুলি সার্টিফিকেটের মাধ্যমে তাদের পরিচয় প্রমাণ করে। %1$s <b>%2$s</b> কে বিশ্বাস করে না কারণ এটির সার্টিফিকেটের জারিকারী অজানা, সার্টিফিকেটটি স্ব-স্বাক্ষরিত, অথবা সার্ভার সঠিক মধ্যবর্তী সার্টিফিকেট প্রেরণ করছে না </label>]]></string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_cert_back">ফিরে যান (প্রস্তাবিত)</string>
   <!-- The text shown inside the advanced options button used to bypass the invalid SSL certificate. It's only shown if the user has expanded the advanced options. -->
@@ -43,9 +31,7 @@
   <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
   <string name="mozac_browser_errorpages_unknown_socket_type_title">সার্ভার থেকে অপ্রত্যাশিত প্রতিক্রিয়া দেখাচ্ছে</string>
   <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
-  <string name="mozac_browser_errorpages_unknown_socket_type_message">
-      &lt;p&gt;সাইটটি একটি নেটওয়ার্ক অনুরোধের অপ্রত্যাশিত উত্তর দিয়েছে যার ফলে ব্রাউজার এটি চালিয়ে যেতে পারছে না।&lt;/p&gt;
-    </string>
+  <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[<p>সাইটটি একটি নেটওয়ার্ক অনুরোধের অপ্রত্যাশিত উত্তর দিয়েছে যার ফলে ব্রাউজার এটি চালিয়ে যেতে পারছে না।</p>]]></string>
   <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
   <string name="mozac_browser_errorpages_redirect_loop_title">পাতাটি সঠিকভাবে পুনঃনির্দেশনা দিচ্ছে না</string>
   <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
@@ -57,9 +43,7 @@
   <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
   <string name="mozac_browser_errorpages_unsafe_content_type_title">অনিরাপদ শ্রেণীর ফাইল</string>
   <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
-  <string name="mozac_browser_errorpages_unsafe_content_type_message">&lt;ul&gt;
-        &lt;li&gt;অনুগ্রহ করে এই সমস্যা সম্পর্কে ওয়েব সাইট নির্মাতাদের অবগত করুন।&lt;/li&gt;
-      &lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_unsafe_content_type_message"><![CDATA[<ul> <li>অনুগ্রহ করে এই সমস্যা সম্পর্কে ওয়েব সাইট নির্মাতাদের অবগত করুন।</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
   <string name="mozac_browser_errorpages_corrupted_content_title">ক্ষতিগ্রস্ত কন্টেন্টের ত্রুটি</string>
   <!-- The document title and heading of an error page. -->
