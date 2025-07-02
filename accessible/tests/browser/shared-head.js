@@ -650,14 +650,26 @@ function accessibleTask(doc, task, options = {}) {
     }
   };
   // Propagate the name of the task function to our wrapper function so it shows
-  // up in test run output. For example:
-  // 0:39.16 INFO Entering test bound testProtected
+  // up in test run output. Suffix with the test type. For example:
+  // 0:39.16 INFO Entering test bound testProtected_remoteIframe
   // Even if the name is empty, we still propagate it here to override the
   // implicit "wrapped" name derived from the assignment at the top of this
   // function.
+  let name = task.name;
+  if (name) {
+    if (options.chrome) {
+      name += "_chrome";
+    } else if (options.iframe) {
+      name += "_iframe";
+    } else if (options.remoteIframe) {
+      name += "_remoteIframe";
+    } else {
+      name += "_topLevel";
+    }
+  }
   // The "name" property of functions is not writable, but we can override that
   // using Object.defineProperty.
-  Object.defineProperty(wrapped, "name", { value: task.name });
+  Object.defineProperty(wrapped, "name", { value: name });
   return wrapped;
 }
 
