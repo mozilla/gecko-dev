@@ -559,7 +559,7 @@
   <string name="preferences_open_links_in_apps_ask">o alasa sin e wile mi lon tenpo ale</string>
   <!-- Preference for open links in third party apps never open in apps option -->
   <string name="preferences_open_links_in_apps_never">lon tenpo ala</string>
-  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_downloads_settings_clean_up_files_title">o weka tan ilo %s tan ilo lawa ni</string>
   <!-- Preference for downloads -->
   <string name="preferences_downloads">jo lipu</string>

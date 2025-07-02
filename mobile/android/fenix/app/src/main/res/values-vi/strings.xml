@@ -859,6 +859,8 @@
   <string name="preferences_category_account">Tài khoản</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">Vị trí thanh địa chỉ</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">Bố cục thanh công cụ</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Chủ đề</string>
   <!-- Preference for customizing the home screen -->
@@ -943,7 +945,7 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Trình quản lý tải xuống bên ngoài</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">Quản lý tải xuống bằng ứng dụng khác</string>
-  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_downloads_settings_clean_up_files_title">Xóa khỏi %s và thiết bị</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">Xóa tập tin khỏi trình quản lý tải xuống của bạn và cũng xóa chúng khỏi thiết bị của bạn</string>
@@ -1279,6 +1281,10 @@
   <string name="preference_top_toolbar">Phía trên</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Phía dưới</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Đơn giản</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Mở rộng</string>
   <!--
     Theme Preferences
 
@@ -1653,11 +1659,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • đang đợi</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • thời gian không xác định</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • đã tạm dừng</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • đã tạm dừng</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">đã tạm dừng</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2635,6 +2651,14 @@
   <string name="saved_login_clear_username">Xóa tên người dùng</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Xóa tên máy chủ</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">Menu chi tiết đăng nhập</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">Điều hướng quay lại</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">Chỉnh sửa</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">Xóa</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Mở trang web trong trình duyệt</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

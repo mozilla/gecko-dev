@@ -672,7 +672,7 @@
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Potvrdi i počni pregledavati</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
-  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Još jedna zadnja stvar</string>
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Još jedna stvar</string>
   <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Dijeli s Mozillinim marketinškim partnerima kako si otkrio/la Firefox i da ga koristiš. Ti se podaci nikada ne prodaju.</string>
   <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
@@ -945,7 +945,7 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Vanjski upravitelj preuzimanja</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">Upravljaj preuzimanjima pomoću jedne druge aplikacije</string>
-  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_downloads_settings_clean_up_files_title">Izbriši iz %s aplikacije i s uređaja</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">Uklanjanjem datoteka iz upravljača preuzimanja, one se uklanjaju i s tvog uređaja</string>
@@ -978,7 +978,7 @@
   <!-- The subtitle for the allow for all sites preference toggle -->
   <string name="addons_permissions_allow_for_all_sites_subtitle">Ako vjeruješ ovom proširenju možeš mu dati dozvolu za svaku web stranicu.</string>
   <!-- The text shown when an extension does not require permissions -->
-  <string name="addons_does_not_require_permissions">Ovaj proširenje ne zahtjeva dozvole.</string>
+  <string name="addons_does_not_require_permissions">Ovaj proširenje ne zahtijeva dozvole.</string>
   <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
   <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">Programer kaže da ovo proširenje prikuplja podatke: %1$s.</string>
   <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
@@ -2482,9 +2482,9 @@
   <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
   <string name="preference_doh_default_protection_summary">%1$s odlučuje kada će se koristiti sigurni DNS za zaštitu tvoje privatnosti.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
-  <string name="preference_doh_default_protection_info_1">Koristi tvog odabranog pružatelja usluge</string>
+  <string name="preference_doh_default_protection_info_1">Koristi svog odabranog pružatelja usluge</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
-  <string name="preference_doh_default_protection_info_2">Koristi tvog standarnog DNS prevoditelja, ako postoji problem sa sigurnim pružateljem DNS-a</string>
+  <string name="preference_doh_default_protection_info_2">Koristi svog standarnog DNS prevoditelja, ako postoji problem sa sigurnim pružateljem DNS-a</string>
   <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
   <string name="preference_doh_default_protection_info_3">Koristi lokalnog pružatelja usluga, ukoliko je moguće. %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
@@ -2496,7 +2496,7 @@
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_summary">Ti određuješ kada koristiti sigurni DNS i birati tvog pružatelja usluge.</string>
   <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
-  <string name="preference_doh_increased_protection_info_1">Koristi tvog odabranog pružatelja usluge</string>
+  <string name="preference_doh_increased_protection_info_1">Koristi svog odabranog pružatelja usluge</string>
   <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_2">Koristi tvog standarnog DNS prevoditelja, samo ako postoji problem sa sigurnim DNS-om</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
@@ -2512,7 +2512,7 @@
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Isključeno</string>
   <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
-  <string name="preference_doh_off_summary">Koristi tvog standarnog DNS prevoditelja</string>
+  <string name="preference_doh_off_summary">Koristi svog standarnog DNS prevoditelja</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
   <string name="preference_doh_choose_provider">Odaberi pružatelja usluge</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
@@ -2616,7 +2616,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Spremljene lozinke</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lozinke koje spremiš ili sinkroniziraš u %s će se ovdje prikazati. Sve spremljene lozinke su šifrirane.</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lozinke koje spremiš ili sinkroniziraš u %s prikazat će se ovdje. Sve spremljene lozinke su šifrirane.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Saznaj više o sinkronizaciji</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -3416,7 +3416,7 @@
     Text for the connection security panel to indicate who the certificate was verified by.
     %s is a placeholder for the name of the certificate authority that verified the ticket
   -->
-  <string name="connection_security_panel_verified_by">Potvrđeno od %s</string>
+  <string name="connection_security_panel_verified_by">Potvrđuje %s</string>
   <!--
     Debug drawer
 

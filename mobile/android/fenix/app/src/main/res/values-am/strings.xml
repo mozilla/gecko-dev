@@ -945,7 +945,7 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">የውጭ ማውረድ አስተዳዳሪ</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">ውርዶችን በሌላ መተግበሪያ ያስተዳድሩ</string>
-  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_downloads_settings_clean_up_files_title">ከ%s እና መሳሪያ ሰርዝ</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">ፋይሎችን ከአውርድ አስተዳዳሪዎ ማስወገድ እንዲሁ ከመሣሪያዎ ያስወግዳቸዋል</string>

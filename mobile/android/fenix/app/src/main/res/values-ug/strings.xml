@@ -945,7 +945,7 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">سىرتقى چۈشۈرۈش باشقۇرغۇچ</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">چۈشۈرۈشنى باشقا ئەپتە باشقۇرىدۇ</string>
-  <!-- Title for the setting to automatically clean up downloaded files. %s is the brand of the phone (for example: Samsung). -->
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_downloads_settings_clean_up_files_title">ئۈسكۈنە ۋە %s دىن ئۆچۈرىدۇ</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">ھۆججەتنى چۈشۈرۈش باشقۇرغۇچتىن چىقىرىۋېتىدۇ شۇنداقلا ئۈسكۈنىڭىزدىن چىقىرىۋېتىدۇ</string>
