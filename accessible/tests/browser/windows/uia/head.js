@@ -44,6 +44,16 @@ function addUiaTask(doc, task, options = {}) {
       info(shouldEnable ? "Gecko UIA enabled" : "Gecko UIA disabled");
       await task(browser, docAcc, topDocAcc);
     }
+    // Propagate the name of the task function to our wrapper function so it shows
+    // up in test run output. Suffix with the test type. For example:
+    // 0:39.16 INFO Entering test bound testProtected_uiaEnabled_remoteIframe
+    // The "name" property of functions is not writable, but we can override that
+    // using Object.defineProperty.
+    let name = task.name;
+    if (name) {
+      name += shouldEnable ? "_uiaEnabled" : "_uiaDisabled";
+    }
+    Object.defineProperty(uiaTask, "name", { value: name });
     addAccessibleTask(doc, uiaTask, options);
   }
 
