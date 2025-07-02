@@ -2109,7 +2109,7 @@ def try_task_config_chemspill_prio(config, tasks):
         return
 
     for task in tasks:
-        if task["priority"] in ("lowest", "very-low"):
+        if task.get("priority") in (None, "lowest", "very-low"):
             task["priority"] = "low"
         yield task
 
