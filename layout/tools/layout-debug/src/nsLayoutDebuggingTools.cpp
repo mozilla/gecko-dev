@@ -1,5 +1,5 @@
 /* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-// vim:cindent:tabstop=4:expandtab:shiftwidth=4:
+/* vim: set ts=8 sts=2 et sw=2 tw=80: */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -18,8 +18,11 @@
 
 #include "nsCounterManager.h"
 #include "nsCSSFrameConstructor.h"
+#include "nsDisplayList.h"
+#include "nsLayoutUtils.h"
 #include "nsViewManager.h"
 #include "nsIFrame.h"
+#include "RetainedDisplayListBuilder.h"
 
 #include "mozilla/dom/ChildIterator.h"
 #include "mozilla/dom/Document.h"
@@ -278,6 +281,42 @@ nsLayoutDebuggingTools::DumpCounterManager() {
   if (PresShell* presShell = GetPresShell(mDocShell)) {
     presShell->FrameConstructor()->GetContainStyleScopeManager().DumpCounters();
   }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsLayoutDebuggingTools::DumpRetainedDisplayList() {
+  NS_ENSURE_TRUE(mDocShell, NS_ERROR_NOT_INITIALIZED);
+  PresShell* presShell = GetPresShell(mDocShell);
+  if (!presShell) {
+    fputs("null pres shell\n", stdout);
+    return NS_OK;
+  }
+
+  if (!nsLayoutUtils::AreRetainedDisplayListsEnabled()) {
+    fputs("Retained display list is not enabled\n", stdout);
+    return NS_OK;
+  }
+
+  nsIFrame* root = presShell->GetRootFrame();
+  auto* RDLBuilder = nsLayoutUtils::GetRetainedDisplayListBuilder(root);
+  if (!RDLBuilder) {
+    fputs("no retained display list\n", stdout);
+    return NS_OK;
+  }
+  nsDisplayListBuilder* builder = RDLBuilder->Builder();
+  const nsDisplayList* list = RDLBuilder->List();
+  if (!builder || !list) {
+    fputs("no retained display list\n", stdout);
+    return NS_OK;
+  }
+
+  fprintf(stdout, "Retained Display List (rootframe=%p) visible=%s:\n",
+          nsLayoutUtils::GetDisplayRootFrame(root),
+          ToString(builder->GetVisibleRect()).c_str());
+  fputs("<\n", stdout);
+  nsIFrame::PrintDisplayList(builder, *list, 1, false);
+  fputs(">\n", stdout);
   return NS_OK;
 }
 

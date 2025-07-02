@@ -38,6 +38,7 @@ interface nsILayoutDebuggingTools : nsISupports
     void dumpTextRuns();
     void dumpViews();
     void dumpCounterManager();
+    void dumpRetainedDisplayList();
 
     void dumpStyleSheets();
     void dumpMatchedRules();

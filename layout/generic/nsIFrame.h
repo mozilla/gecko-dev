@@ -5028,7 +5028,7 @@ class nsIFrame : public nsQueryFrame {
   bool HasDisplayItem(uint32_t aKey);
 
   static void PrintDisplayList(nsDisplayListBuilder* aBuilder,
-                               const nsDisplayList& aList,
+                               const nsDisplayList& aList, uint32_t aIndent = 0,
                                bool aDumpHtml = false);
   static void PrintDisplayList(nsDisplayListBuilder* aBuilder,
                                const nsDisplayList& aList,

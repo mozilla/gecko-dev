@@ -49,6 +49,7 @@
     <command id="cmd_dumpFramesInCSSPixels" />
     <command id="cmd_dumpTextRuns" />
     <command id="cmd_openDevTools" />
+    <command id="cmd_dumpRetainedDisplayList" />
   </commandset>
 
   <keyset id="tasksKeys">
@@ -85,6 +86,13 @@
       key="T"
       modifiers="accel"
       command="cmd_dumpTextRuns"
+    />
+    <!-- "G" means Graphics -->
+    <key
+      id="key_dumpRetainedDisplayList"
+      key="G"
+      modifiers="accel"
+      command="cmd_dumpRetainedDisplayList"
     />
     <key id="key_devTools" keycode="VK_F12" command="cmd_openDevTools" />
   </keyset>
@@ -196,6 +204,10 @@
               <menuitem
                 id="menu_dumpCounterManager"
                 data-l10n-id="layoutdebug-dump-counter-manager"
+              />
+              <menuitem
+                id="menu_dumpRetainedDisplayList"
+                data-l10n-id="layoutdebug-dump-retained-display-list"
               />
               <menuseparator />
               <menuitem

@@ -197,9 +197,10 @@ static void PrintDisplayListTo(nsDisplayListBuilder* aBuilder,
 }
 
 void nsIFrame::PrintDisplayList(nsDisplayListBuilder* aBuilder,
-                                const nsDisplayList& aList, bool aDumpHtml) {
+                                const nsDisplayList& aList, uint32_t aIndent,
+                                bool aDumpHtml) {
   std::stringstream ss;
-  PrintDisplayList(aBuilder, aList, ss, aDumpHtml);
+  PrintDisplayListTo(aBuilder, aList, ss, aIndent, aDumpHtml);
   fprintf_stderr(stderr, "%s", ss.str().c_str());
 }
 
