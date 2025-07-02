@@ -38,6 +38,42 @@
     </div>
     <pre id="test"></pre>
     <script class="testbody" type="application/javascript">
+      function assertContainersAlignment(testPromo) {
+        let imageAlignment = testPromo.imageAlignment;
+        is(
+          testPromo.imageSrc,
+          "chrome://global/skin/illustrations/about-license.svg",
+          "imageSrc should not change when modifying imageAlignment."
+        );
+        let container = testPromo.shadowRoot.querySelector(".container");
+        let children = container.children;
+        is(children.length, 2, "There should still be only two containers.");
+        if (imageAlignment == "end" || imageAlignment == "center") {
+          is(
+            children[0].className,
+            "text-container",
+            `The text container should be before the image container when the image is aligned at the ${imageAlignment}.`
+          );
+          is(
+            children[1].className,
+            "image-container",
+            `The image container should be after the text container when the image is aligned at the ${imageAlignment}.`
+          );
+        }
+        if (imageAlignment == "start") {
+          is(
+            children[0].className,
+            "image-container",
+            "The image container should be before the text container when the image is aligned at the start."
+          );
+          is(
+            children[1].className,
+            "text-container",
+            "The text container should be after the image container when the image is aligned at the start."
+          );
+        }
+      }
+
       add_task(async function test_component_declaration() {
         const mozPromo = document.querySelector("#promoMessage");
         ok(mozPromo, "moz-promo component is rendered");
@@ -147,6 +183,43 @@
           defaultBackgroundColor,
           "The vibrant promo was switched to the default type, the background color should be updated"
         );
+      });
+
+      add_task(async function test_image_alignment() {
+        let testBody = document.getElementById("content");
+        let testPromo = document.createElement("moz-promo");
+        testPromo.id = "test-promo";
+        testPromo.imageSrc =
+          "chrome://global/skin/illustrations/about-license.svg";
+        testBody.append(testPromo);
+        await testPromo.updateComplete;
+
+        ok(
+          document.getElementById("test-promo"),
+          "Generated moz-promo should be added to the DOM"
+        );
+        is(
+          testPromo.imageSrc,
+          "chrome://global/skin/illustrations/about-license.svg",
+          "imageSrc should not change when moz-promo is added to the document"
+        );
+        is(
+          testPromo.imageAlignment,
+          "start",
+          "imageAlignment should be set to 'start' by default"
+        );
+
+        // Assert that the logical ordering of the DOM nodes occurs when changing
+        // iconAlignment
+        assertContainersAlignment(testPromo);
+
+        testPromo.imageAlignment = "end";
+        await testPromo.updateComplete;
+        assertContainersAlignment(testPromo);
+
+        testPromo.imageAlignment = "center";
+        await testPromo.updateComplete;
+        assertContainersAlignment(testPromo);
       });
     </script>
   </body>

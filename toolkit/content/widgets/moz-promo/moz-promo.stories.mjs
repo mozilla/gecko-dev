@@ -36,6 +36,10 @@ export default {
     width: {
       control: { type: "number" },
     },
+    imageAlignment: {
+      options: ["start", "end", "center"],
+      control: { type: "select" },
+    },
   },
   parameters: {
     status: "in-development",
@@ -52,13 +56,23 @@ moz-promo-message-heading-long =
   },
 };
 
-const Template = ({ type, heading, message, l10nId, width }) => html`
+const Template = ({
+  type,
+  heading,
+  message,
+  l10nId,
+  width,
+  imageSrc,
+  imageAlignment,
+}) => html`
   <div style="width: ${width}px">
     <moz-promo
       type=${type}
       heading=${ifDefined(heading)}
       message=${ifDefined(message)}
       data-l10n-id=${ifDefined(l10nId)}
+      imageSrc=${ifDefined(imageSrc)}
+      imageAlignment=${ifDefined(imageAlignment)}
     ></moz-promo>
   </div>
 `;
@@ -87,4 +101,34 @@ WithWrappedMessage.args = {
   ...Vibrant.args,
   width: 400,
   l10nId: "moz-promo-message-heading-long",
+};
+
+export const ImageAtStart = Template.bind({});
+ImageAtStart.args = {
+  ...Default.args,
+  imageSrc: "chrome://global/skin/illustrations/about-license.svg",
+  imageAlignment: "start",
+};
+
+export const ImageAtEnd = Template.bind({});
+ImageAtEnd.args = {
+  ...ImageAtStart.args,
+  imageAlignment: "end",
+};
+
+export const ImageAtCenter = Template.bind({});
+ImageAtCenter.args = {
+  ...ImageAtStart.args,
+  imageAlignment: "center",
+};
+
+export const SquareImage = Template.bind({});
+SquareImage.args = {
+  ...ImageAtStart.args,
+};
+
+export const RectangleImage = Template.bind({});
+RectangleImage.args = {
+  ...ImageAtStart.args,
+  imageSrc: "chrome://global/content/aboutconfig/background.svg",
 };

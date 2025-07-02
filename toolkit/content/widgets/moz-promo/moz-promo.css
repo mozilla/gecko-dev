@@ -21,6 +21,22 @@
   --promo-border-color: var(--color-violet-30);
 }
 
+:host([imagealignment="center"]) {
+  .container {
+    flex-direction: column;
+  }
+
+  .image-container {
+    /* TODO: The height of this container should _probably_ be configurable  */
+    /* Bug 1966430: We need this in order to show the image at all when the
+      alignment is set to center
+    */
+    min-height: var(--size-item-large);
+    margin: var(--space-large);
+    margin-block-start: 0;
+  }
+}
+
 :host {
   --promo-message-text-color: var(--text-color);
   --promo-heading-text-color: var(--color-violet-80);
@@ -44,9 +60,24 @@
   border-radius: var(--promo-border-radius);
   color: var(--promo-message-text-color);
   display: flex;
+  flex-direction: row;
+  gap: var(--space-xsmall);
+}
+
+.text-container {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--space-xsmall);
   padding: var(--space-large);
+}
+
+.image-container {
+  background-image: var(--promo-image-url);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  flex-basis: 25%;
 }
 
 /* MozPromo heading style */

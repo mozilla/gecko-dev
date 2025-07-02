@@ -13,18 +13,30 @@ import { MozLitElement } from "../lit-utils.mjs";
  *  "default" or "vibrant". Determines the colors of the promotional
  *  element
  * @property {string} heading - The heading of the promo element.
- * @property {string} message - THe message of the promo element.
+ * @property {string} message - The message of the promo element.
+ * @property {string} imageSrc - The main image of the promo element.
+ * @property {string} iconAlignment - How the icon should be aligned. Can be "start", "end", "center".
  */
 export default class MozPromo extends MozLitElement {
   static properties = {
     type: { type: String, reflect: true },
     heading: { type: String, fluent: true },
     message: { type: String, fluent: true },
+    imageSrc: { type: String, reflect: true },
+    imageAlignment: { type: String, reflect: true },
   };
 
   constructor() {
     super();
     this.type = "default";
+    this.imageAlignment = "start";
+  }
+
+  updated(changedProperties) {
+    // super.updated?.(changedProperties);
+    if (changedProperties.has("imageSrc") && this.imageSrc) {
+      this.style.setProperty("--promo-image-url", `url("${this.imageSrc}")`);
+    }
   }
 
   headingTemplate() {
@@ -35,18 +47,26 @@ export default class MozPromo extends MozLitElement {
     }
     return "";
   }
-
+  imageTemplate() {
+    if (this.imageSrc) {
+      return html` <div class="image-container"></div> `;
+    }
+    return "";
+  }
   render() {
-    return html`
-      <link
+    let imageStartAligned = this.imageAlignment == "start";
+    return html` <link
         rel="stylesheet"
         href="chrome://global/content/elements/moz-promo.css"
       />
       <div class="container">
-        ${this.headingTemplate()}
-        <p class="message">${this.message}</p>
-      </div>
-    `;
+        ${imageStartAligned ? this.imageTemplate() : ""}
+        <div class="text-container">
+          ${this.headingTemplate()}
+          <p class="message">${this.message}</p>
+        </div>
+        ${!imageStartAligned ? this.imageTemplate() : ""}
+      </div>`;
   }
 }
 customElements.define("moz-promo", MozPromo);
