@@ -6565,12 +6565,8 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
     selfAlignment &= ~StyleAlignFlags::FLAG_BITS;
     if (selfAlignment == StyleAlignFlags::BASELINE) {
       state |= ItemState::eFirstBaseline | ItemState::eSelfBaseline;
-      const GridArea& area = gridItem.mArea;
-      baselineTrack = isInlineAxis ? area.mCols.mStart : area.mRows.mStart;
     } else if (selfAlignment == StyleAlignFlags::LAST_BASELINE) {
       state |= ItemState::eLastBaseline | ItemState::eSelfBaseline;
-      const GridArea& area = gridItem.mArea;
-      baselineTrack = (isInlineAxis ? area.mCols.mEnd : area.mRows.mEnd) - 1;
     }
 
     // https://drafts.csswg.org/css-align-3/#baseline-align-content
@@ -6645,6 +6641,13 @@ void nsGridContainerFrame::Tracks::InitializeItemBaselines(
       if (sameSideInBaselineWM != isFirstBaseline) {
         baselineSharingGroup = BaselineSharingGroup::Last;
         state |= ItemState::eLastBaselineSharingGroup;
+
+        baselineTrack = (isInlineAxis ? gridItem.mArea.mCols.mEnd
+                                      : gridItem.mArea.mRows.mEnd) -
+                        1;
+      } else {
+        baselineTrack = isInlineAxis ? gridItem.mArea.mCols.mStart
+                                     : gridItem.mArea.mRows.mStart;
       }
 
       // XXXmats if |child| is a descendant of a subgrid then the metrics
