@@ -144,7 +144,6 @@ impl<'a, E: TElement> OptimizationContext<'a, E> {
                 return true;
             }
             if combinator.is_sibling() && matches!(self.operation, DomMutationOperation::Append) {
-                // If we're in the subtree, same argument applies as ancestor combinator case.
                 // If we're at the top of the DOM tree being mutated, we can ignore it if the
                 // operation is append - we know we'll cover all the later siblings and their descendants.
                 return true;
@@ -250,7 +249,48 @@ struct RelativeSelectorInvalidation<'a> {
 
 type ElementDependencies<'a> = SmallVec<[(Option<OpaqueElement>, &'a Dependency); 1]>;
 type Dependencies<'a, E> = SmallVec<[(E, ElementDependencies<'a>); 1]>;
-type AlreadyInvalidated<'a, E> = SmallVec<[(E, Option<OpaqueElement>, &'a Dependency); 2]>;
+type AlreadyInvalidated<'a, E> = SmallVec<[AlreadyInvalidatedEntry<'a, E>; 2]>;
+
+struct AlreadyInvalidatedEntry<'a, E>
+where
+    E: TElement + 'a,
+{
+    /// Element where the invalidation will begin.
+    element: E,
+    /// The current shadow host.
+    host: Option<OpaqueElement>,
+    /// Dependency chain for this invalidation.
+    dependency: &'a Dependency,
+}
+
+impl<'a, E> AlreadyInvalidatedEntry<'a, E>
+where
+    E: TElement + 'a,
+{
+    fn new(element: E, host: Option<OpaqueElement>, dependency: &'a Dependency) -> Self {
+        Self {
+            element,
+            host,
+            dependency,
+        }
+    }
+
+    /// Update this invalidation with a new invalidation that may collapse with it.
+    fn update(&mut self, element: E, host: Option<OpaqueElement>, dependency: &'a Dependency) {
+        // This dependency should invalidate the same way - Collapse the invalidation
+        // to a more general case so we don't do duplicate work.
+        // e.g. For `:has(.item .item + .item + .item)`, since the anchor would be located
+        // in the ancestor chain for any invalidation triggered by any `.item` compound,
+        // 4 entries can collapse into one.
+        if self.dependency.selector_offset > dependency.selector_offset {
+            *self = Self {
+                element,
+                host,
+                dependency,
+            };
+        }
+    }
+}
 
 /// Interface for collecting relative selector dependencies.
 pub struct RelativeSelectorDependencyCollector<'a, E>
@@ -371,24 +411,14 @@ where
         host: Option<OpaqueElement>,
     ) {
         let in_subtree = element != self.top;
-        match self
-            .invalidations
-            .iter_mut()
-            .find(|(e, _, d)| {
-                let both_in_subtree = in_subtree && *e != self.top;
-                invalidation_can_collapse(dependency, d, both_in_subtree)
-            })
-        {
-            Some((e, h, d)) => {
-                // This dependency should invalidate the same way - Collapse the invalidation
-                // to a more general case so we don't do duplicate work.
-                if d.selector_offset > dependency.selector_offset {
-                    (*e, *h, *d) = (element, host, dependency);
-                }
-            },
-            None => {
-                self.invalidations.push((element, host, dependency));
-            },
+        if let Some(entry) = self.invalidations.iter_mut().find(|entry| {
+            let both_in_subtree = in_subtree && entry.element != self.top;
+            invalidation_can_collapse(dependency, entry.dependency, both_in_subtree)
+        }) {
+            entry.update(element, host, dependency)
+        } else {
+            self.invalidations
+                .push(AlreadyInvalidatedEntry::new(element, host, dependency));
         }
     }
 
@@ -431,27 +461,32 @@ where
     /// Get the dependencies in a list format.
     fn get(self) -> ToInvalidate<'a, E> {
         let mut result = ToInvalidate::default();
-        for (element, host, dependency) in self.invalidations {
-            match dependency.invalidation_kind() {
+        for invalidation in self.invalidations {
+            match invalidation.dependency.invalidation_kind() {
                 DependencyInvalidationKind::Normal(_) => {
                     unreachable!("Inner selector in invalidation?")
                 },
                 DependencyInvalidationKind::Relative(kind) => {
                     if let Some(context) = self.optimization_context.as_ref() {
-                        if context.can_be_ignored(element != self.top, element, host, dependency) {
+                        if context.can_be_ignored(
+                            invalidation.element != self.top,
+                            invalidation.element,
+                            invalidation.host,
+                            invalidation.dependency,
+                        ) {
                             continue;
                         }
                     }
-                    let dependency = dependency.next.as_ref().unwrap();
+                    let dependency = invalidation.dependency.next.as_ref().unwrap();
                     result.invalidations.push(RelativeSelectorInvalidation {
                         kind,
-                        host,
+                        host: invalidation.host,
                         dependency,
                     });
                     // We move the invalidation up to the top of the subtree to avoid unnecessary traveral, but
                     // this means that we need to take ancestor-earlier sibling invalidations into account, as
                     // they'd look into earlier siblings of the top of the subtree as well.
-                    if element != self.top &&
+                    if invalidation.element != self.top &&
                         matches!(
                             kind,
                             RelativeDependencyInvalidationKind::AncestorEarlierSibling |
@@ -467,7 +502,7 @@ where
                             } else {
                                 RelativeDependencyInvalidationKind::EarlierSibling
                             },
-                            host,
+                            host: invalidation.host,
                             dependency,
                         });
                     }
