@@ -273,10 +273,12 @@ sealed class SearchFragmentAction : Action {
      *
      * @property selectedSearchEngine The user selected search engine to use for the new search
      * or `null` if the default search engine should be used.
+     * @property isUserSelected Whether or not the search engine was selected by the user.
      * @property inPrivateMode Whether or not the search is started in private browsing mode.
      */
     data class SearchStarted(
         val selectedSearchEngine: SearchEngine?,
+        val isUserSelected: Boolean,
         val inPrivateMode: Boolean,
     ) : SearchFragmentAction()
 

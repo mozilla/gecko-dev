@@ -131,7 +131,7 @@ class FenixSearchMiddleware(
 
                 engine.speculativeCreateSession(action.inPrivateMode)
                 suggestionsProvidersBuilder = buildSearchSuggestionsProvider(context.store)
-                setSearchEngine(context.store, action.selectedSearchEngine)
+                setSearchEngine(context.store, action.selectedSearchEngine, action.isUserSelected)
                 observeSearchEngineSelection(context.store)
             }
 
@@ -188,10 +188,13 @@ class FenixSearchMiddleware(
     private fun observeSearchEngineSelection(store: Store<SearchFragmentState, SearchFragmentAction>) {
         observeSearchEnginesChangeJob?.cancel()
         observeSearchEnginesChangeJob = appStore.observeWhileActive {
-            distinctUntilChangedBy { it.shortcutSearchEngine }
+            distinctUntilChangedBy { it.selectedSearchEngine?.shortcutSearchEngine }
                 .collect {
-                    it.shortcutSearchEngine?.let {
-                        handleSearchShortcutEngineSelectedByUser(store, it)
+                    it.selectedSearchEngine?.let {
+                        when (it.isUserSelected) {
+                            true -> handleSearchShortcutEngineSelectedByUser(store, it.shortcutSearchEngine)
+                            false -> handleSearchShortcutEngineSelected(store, it.shortcutSearchEngine)
+                        }
                     }
                 }
         }
@@ -203,15 +206,19 @@ class FenixSearchMiddleware(
      * @param store The store which will provide the state and environment dependencies needed.
      * @param searchEngine The new [SearchEngine] to be used for new searches or `null` to fallback to
      * fallback to the default search engine.
+     * @param isSelectedByUser isUserSelected Whether or not the search engine was selected by the user.
      */
     private fun setSearchEngine(
         store: Store<SearchFragmentState, SearchFragmentAction>,
         searchEngine: SearchEngine?,
+        isSelectedByUser: Boolean,
     ) {
-        searchEngine
-            ?.let { handleSearchShortcutEngineSelectedByUser(store, it) }
-            ?: store.state.defaultEngine
-                ?.let { handleSearchShortcutEngineSelected(store, it) }
+        searchEngine?.let {
+            when (isSelectedByUser) {
+                true -> handleSearchShortcutEngineSelectedByUser(store, it)
+                false -> handleSearchShortcutEngineSelected(store, it)
+            }
+        } ?: store.state.defaultEngine?.let { handleSearchShortcutEngineSelected(store, it) }
     }
 
     /**
@@ -434,7 +441,7 @@ class FenixSearchMiddleware(
     }
 
     private fun handleSearchEngineSuggestionClicked(searchEngine: SearchEngine) {
-        appStore.dispatch(SearchEngineSelected(searchEngine))
+        appStore.dispatch(SearchEngineSelected(searchEngine, true))
     }
 
     @VisibleForTesting

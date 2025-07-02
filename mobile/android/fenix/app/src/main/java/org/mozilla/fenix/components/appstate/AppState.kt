@@ -37,7 +37,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * should be expanded when the tray is opened.
  * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
  * @property isSearchActive Flag indicating whether the user is currently performing a search.
- * @property shortcutSearchEngine New search engine to use for the current in-progress browser search.
+ * @property selectedSearchEngine New search engine to use for the current in-progress browser search.
  * @property openInFirefoxRequested Flag indicating whether a custom tab should be opened in the browser.
  * @property nonFatalCrashes List of non-fatal crashes that allow the app to continue being used.
  * @property collections The list of [TabCollection] to display in the [HomeFragment].
@@ -76,7 +76,7 @@ data class AppState(
     val inactiveTabsExpanded: Boolean = false,
     val firstFrameDrawn: Boolean = false,
     val isSearchActive: Boolean = false,
-    val shortcutSearchEngine: SearchEngine? = null,
+    val selectedSearchEngine: SelectedSearchEngine? = null,
     val openInFirefoxRequested: Boolean = false,
     val nonFatalCrashes: List<NativeCodeCrash> = emptyList(),
     val collections: List<TabCollection> = emptyList(),
@@ -105,3 +105,14 @@ data class AppState(
     val isPrivateScreenLocked: Boolean = false,
     val reviewPrompt: ReviewPromptState = Unknown,
 ) : State
+
+/**
+ * Search engine to use for in-progress searches instead of the default one.
+ *
+ * @property shortcutSearchEngine The search engine to use for in-progress searches.
+ * @property isUserSelected Whether or not the search engine is selected by the user.
+ */
+data class SelectedSearchEngine(
+    val shortcutSearchEngine: SearchEngine,
+    val isUserSelected: Boolean,
+)

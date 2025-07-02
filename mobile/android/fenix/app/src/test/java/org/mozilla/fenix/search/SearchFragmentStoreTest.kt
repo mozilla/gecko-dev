@@ -1341,7 +1341,7 @@ class SearchFragmentStoreTest {
         val initialState = emptyDefaultState()
         val store = SearchFragmentStore(initialState)
 
-        store.dispatch(SearchStarted(selectedSearchEngine, true)).joinBlocking()
+        store.dispatch(SearchStarted(selectedSearchEngine, false, true)).joinBlocking()
 
         assertEquals(initialState, store.state)
     }

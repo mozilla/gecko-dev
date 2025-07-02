@@ -106,7 +106,7 @@ class AppStoreReducerTest {
     @Test
     fun `WHEN search is aborted THEN reset the user selected search engine`() {
         val initialState = AppState(
-            shortcutSearchEngine = mockk(),
+            selectedSearchEngine = mockk(),
         )
 
         val updatedState = AppStoreReducer.reduce(
@@ -114,22 +114,25 @@ class AppStoreReducerTest {
             AppAction.UpdateSearchBeingActiveState(isSearchActive = false),
         )
 
-        assertNull(updatedState.shortcutSearchEngine)
+        assertNull(updatedState.selectedSearchEngine)
     }
 
     @Test
     fun `WHEN a new search engine is selected THEN update state to reflect it`() {
         val initialState = AppState()
 
-        assertNull(initialState.shortcutSearchEngine)
+        assertNull(initialState.selectedSearchEngine)
 
         val newSearchEngineSelection: SearchEngine = mockk()
         val updatedState = AppStoreReducer.reduce(
             initialState,
-            AppAction.SearchEngineSelected(newSearchEngineSelection),
+            AppAction.SearchEngineSelected(newSearchEngineSelection, true),
         )
 
-        assertEquals(newSearchEngineSelection, updatedState.shortcutSearchEngine)
+        assertEquals(
+            SelectedSearchEngine(newSearchEngineSelection, true),
+            updatedState.selectedSearchEngine,
+        )
     }
 
     @Test

@@ -552,7 +552,7 @@ class BrowserToolbarMiddlewareTest {
         val toolbarStore = buildStore(middleware)
         val newSearchEngine = SearchEngine("test", "Test", mock(), type = APPLICATION)
 
-        appStore.dispatch(SearchEngineSelected(newSearchEngine)).joinBlocking()
+        appStore.dispatch(SearchEngineSelected(newSearchEngine, true)).joinBlocking()
         shadowOf(Looper.getMainLooper()).idle() // wait for observing and processing the search engine update
 
         assertSearchSelectorEquals(

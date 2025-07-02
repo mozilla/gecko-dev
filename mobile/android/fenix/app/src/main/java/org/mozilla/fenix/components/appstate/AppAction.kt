@@ -70,8 +70,12 @@ sealed class AppAction : Action {
      * Updates the [SearchEngine] used for the current in-progress browser search.
      *
      * @property searchEngine The new [SearchEngine] to use for the current in-progress browser search.
+     * @property isUserSelected Whether the search engine was selected by the user or not.
      */
-    data class SearchEngineSelected(val searchEngine: SearchEngine) : AppAction()
+    data class SearchEngineSelected(
+        val searchEngine: SearchEngine,
+        val isUserSelected: Boolean,
+    ) : AppAction()
     data class AddNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     data class RemoveNonFatalCrash(val crash: NativeCodeCrash) : AppAction()
     object RemoveAllNonFatalCrashes : AppAction()

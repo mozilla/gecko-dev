@@ -69,6 +69,7 @@ class BrowserToolbarToFenixSearchMapperMiddleware(
                         store.dispatch(
                             SearchStarted(
                                 selectedSearchEngine = null,
+                                isUserSelected = true,
                                 inPrivateMode = environment?.browsingModeManager?.mode?.isPrivate == true,
                             ),
                         )

@@ -222,10 +222,10 @@ class BrowserToolbarMiddleware(
     private fun observeSearchStateUpdates(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
         syncCurrentSearchEngineJob?.cancel()
         syncCurrentSearchEngineJob = appStore.observeWhileActive {
-            distinctUntilChangedBy { it.shortcutSearchEngine }
+            distinctUntilChangedBy { it.selectedSearchEngine?.shortcutSearchEngine }
                 .collect {
-                    it.shortcutSearchEngine?.let {
-                        updateStartPageActions(store, it)
+                    it.selectedSearchEngine?.let {
+                        updateStartPageActions(store, it.shortcutSearchEngine)
                     }
                 }
         }

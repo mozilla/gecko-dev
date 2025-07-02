@@ -66,7 +66,7 @@ class BrowserToolbarToFenixSearchMapperMiddlewareTest {
         val searchStore = buildSearchStore(listOf(buildMiddleware()))
         toolbarStore.dispatch(ToggleEditMode(true))
 
-        searchStore.dispatch(SearchStarted(mockk(), false))
+        searchStore.dispatch(SearchStarted(mockk(), false, false))
 
         toolbarStore.dispatch(SearchQueryUpdated("t"))
         assertEquals("t", searchStore.state.query)

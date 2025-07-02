@@ -52,6 +52,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.NimbusComponents
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppState
+import org.mozilla.fenix.components.appstate.SelectedSearchEngine
 import org.mozilla.fenix.components.search.BOOKMARKS_SEARCH_ENGINE_ID
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.telemetryName
@@ -115,6 +116,7 @@ class FenixSearchMiddlewareTest {
     fun `WHEN search is started THEN warmup http engine and configure search providers`() {
         val defaultSearchEngine = fakeSearchEnginesState().selectedOrDefaultSearchEngine
         val preselectedSearchEngine = SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED)
+        val wasEngineSelectedByUser = false
         val isSearchInPrivateMode = true
         val (middleware, store) = buildMiddlewareAndAddToSearchStore()
         val expectedSuggestionProviders = setOf(mockk<SuggestionProvider>(), mockk<SuggestionProvider>())
@@ -123,7 +125,7 @@ class FenixSearchMiddlewareTest {
         }
         every { middleware.buildSearchSuggestionsProvider(store) } returns expectedSearchSuggestionsProvider
 
-        store.dispatch(SearchStarted(preselectedSearchEngine, isSearchInPrivateMode))
+        store.dispatch(SearchStarted(preselectedSearchEngine, wasEngineSelectedByUser, isSearchInPrivateMode))
 
         verify { engine.speculativeCreateSession(isSearchInPrivateMode) }
         assertEquals(expectedSearchSuggestionsProvider, middleware.suggestionsProvidersBuilder)
@@ -135,12 +137,18 @@ class FenixSearchMiddlewareTest {
     }
 
     @Test
-    fun `WHEN search is started with a preselected search engine THEN record telemetry`() {
+    fun `GIVEN the user preselects a search engine WHEN search is started THEN record telemetry`() {
         val preselectedSearchEngine = SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED)
         val (middleware, store) = buildMiddlewareAndAddToSearchStore()
         every { middleware.buildSearchSuggestionsProvider(store) } returns mockk(relaxed = true)
 
-        store.dispatch(SearchStarted(preselectedSearchEngine, false))
+        store.dispatch(
+            SearchStarted(
+                selectedSearchEngine = preselectedSearchEngine,
+                isUserSelected = true,
+                inPrivateMode = false,
+            ),
+        )
 
         val telemetry = UnifiedSearch.engineSelected.testGetValue()
         assertEquals("engine_selected", telemetry?.get(0)?.name)
@@ -148,11 +156,28 @@ class FenixSearchMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN the app preselects a search engine WHEN search is started THEN don't record telemetry`() {
+        val preselectedSearchEngine = SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED)
+        val (middleware, store) = buildMiddlewareAndAddToSearchStore()
+        every { middleware.buildSearchSuggestionsProvider(store) } returns mockk(relaxed = true)
+
+        store.dispatch(
+            SearchStarted(
+                selectedSearchEngine = preselectedSearchEngine,
+                isUserSelected = false,
+                inPrivateMode = false,
+            ),
+        )
+
+        assertNull(UnifiedSearch.engineSelected.testGetValue())
+    }
+
+    @Test
     fun `WHEN search is started with the default search engine then don't record telemetry`() {
         val (middleware, store) = buildMiddlewareAndAddToSearchStore()
         every { middleware.buildSearchSuggestionsProvider(store) } returns mockk(relaxed = true)
 
-        store.dispatch(SearchStarted(null, false))
+        store.dispatch(SearchStarted(null, false, false))
 
         assertNull(UnifiedSearch.engineSelected.testGetValue())
     }
@@ -161,6 +186,7 @@ class FenixSearchMiddlewareTest {
     fun `GIVEN should show recent searches and a query is set WHEN search is started THEN show search suggestions`() {
         val defaultSearchEngine = fakeSearchEnginesState().selectedOrDefaultSearchEngine
         val preselectedSearchEngine = SearchEngine("engine-a", "Engine A", mockk(), type = SearchEngine.Type.BUNDLED)
+        val wasEngineSelectedByUser = false
         val isSearchInPrivateMode = false
         every { settings.shouldShowRecentSearchSuggestions } returns true
         val (middleware, store) = buildMiddlewareAndAddToSearchStore()
@@ -171,7 +197,7 @@ class FenixSearchMiddlewareTest {
         every { middleware.buildSearchSuggestionsProvider(store) } returns expectedSearchSuggestionsProvider
 
         store.dispatch(SearchFragmentAction.UpdateQuery("test"))
-        store.dispatch(SearchStarted(preselectedSearchEngine, isSearchInPrivateMode))
+        store.dispatch(SearchStarted(preselectedSearchEngine, wasEngineSelectedByUser, isSearchInPrivateMode))
 
         verify { engine.speculativeCreateSession(isSearchInPrivateMode) }
         assertEquals(expectedSearchSuggestionsProvider, middleware.suggestionsProvidersBuilder)
@@ -185,6 +211,7 @@ class FenixSearchMiddlewareTest {
     @Test
     fun `GIVEN should show shortcut suggestions and a query is set WHEN search is started THEN show search suggestions`() {
         val defaultSearchEngine = fakeSearchEnginesState().selectedOrDefaultSearchEngine!!
+        val wasEngineSelectedByUser = false
         val isSearchInPrivateMode = true
         every { settings.shouldShowShortcutSuggestions } returns true
         val (middleware, store) = buildMiddlewareAndAddToSearchStore()
@@ -195,7 +222,7 @@ class FenixSearchMiddlewareTest {
         every { middleware.buildSearchSuggestionsProvider(store) } returns expectedSearchSuggestionsProvider
 
         store.dispatch(SearchFragmentAction.UpdateQuery("test"))
-        store.dispatch(SearchStarted(null, isSearchInPrivateMode))
+        store.dispatch(SearchStarted(null, wasEngineSelectedByUser, isSearchInPrivateMode))
         store.waitUntilIdle()
 
         verify { engine.speculativeCreateSession(isSearchInPrivateMode) }
@@ -238,7 +265,7 @@ class FenixSearchMiddlewareTest {
         )
         val appStore = AppStore(
             AppState(
-                shortcutSearchEngine = newSearchEngineSelection,
+                selectedSearchEngine = SelectedSearchEngine(newSearchEngineSelection, true),
             ),
         )
         val (middleware, store) = buildMiddlewareAndAddToSearchStore(appStore = appStore)
@@ -248,7 +275,7 @@ class FenixSearchMiddlewareTest {
         }
         every { middleware.buildSearchSuggestionsProvider(store) } returns expectedSearchSuggestionsProvider
 
-        store.dispatch(SearchStarted(null, false)) // this triggers observing the search engine updates
+        store.dispatch(SearchStarted(null, false, false)) // this triggers observing the search engine updates
 
         searchActionsCaptor.assertLastAction(SearchShortcutEngineSelected::class) {
             assertEquals(newSearchEngineSelection, it.engine)

@@ -123,7 +123,7 @@ class BrowserToolbarSearchMiddleware(
                 if (action.editMode) {
                     refreshConfigurationAfterSearchEngineChange(
                         store = context.store,
-                        searchEngine = appStore.state.shortcutSearchEngine
+                        searchEngine = appStore.state.selectedSearchEngine?.shortcutSearchEngine
                             ?: browserStore.state.search.selectedOrDefaultSearchEngine,
                     )
                     syncCurrentSearchEngine(context.store)
@@ -152,7 +152,7 @@ class BrowserToolbarSearchMiddleware(
                 if (!context.store.state.isEditMode()) {
                     context.store.dispatch(ToggleEditMode(true))
                 }
-                appStore.dispatch(SearchEngineSelected(action.searchEngine))
+                appStore.dispatch(SearchEngineSelected(action.searchEngine, true))
                 refreshConfigurationAfterSearchEngineChange(context.store, action.searchEngine)
             }
 
@@ -239,10 +239,10 @@ class BrowserToolbarSearchMiddleware(
     private fun syncCurrentSearchEngine(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
         syncCurrentSearchEngineJob?.cancel()
         syncCurrentSearchEngineJob = appStore.observeWhileActive {
-            distinctUntilChangedBy { it.shortcutSearchEngine }
+            distinctUntilChangedBy { it.selectedSearchEngine?.shortcutSearchEngine }
                 .collect {
-                    it.shortcutSearchEngine?.let {
-                        refreshConfigurationAfterSearchEngineChange(store, it)
+                    it.selectedSearchEngine?.let {
+                        refreshConfigurationAfterSearchEngineChange(store, it.shortcutSearchEngine)
                     }
                 }
         }

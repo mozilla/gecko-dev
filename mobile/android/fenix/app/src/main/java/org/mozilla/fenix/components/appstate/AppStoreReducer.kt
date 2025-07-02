@@ -153,13 +153,18 @@ internal object AppStoreReducer {
 
         is AppAction.UpdateSearchBeingActiveState -> state.copy(
             isSearchActive = action.isSearchActive,
-            shortcutSearchEngine = when (action.isSearchActive) {
-                true -> state.shortcutSearchEngine
+            selectedSearchEngine = when (action.isSearchActive) {
+                true -> state.selectedSearchEngine
                 false -> null
             },
         )
 
-        is AppAction.SearchEngineSelected -> state.copy(shortcutSearchEngine = action.searchEngine)
+        is AppAction.SearchEngineSelected -> state.copy(
+            selectedSearchEngine = SelectedSearchEngine(
+                shortcutSearchEngine = action.searchEngine,
+                isUserSelected = action.isUserSelected,
+            ),
+        )
 
         is AppAction.TranslationsAction.TranslationStarted -> state.copy(
             snackbarState = SnackbarState.TranslationInProgress(sessionId = action.sessionId),
