@@ -178,20 +178,33 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if the recent saved bookmarks functionality should be visible.
      */
-    var showBookmarksHomeFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_customization_bookmarks),
-        default = { homescreenSections[HomeScreenSection.BOOKMARKS] == true },
-        featureFlag = true,
-    )
+    val showBookmarksHomeFeature: Boolean
+        get() = if (overrideUserSpecifiedHomepageSections) {
+            homescreenSections[HomeScreenSection.BOOKMARKS] == true
+        } else {
+            preferences.getBoolean(
+                appContext.getPreferenceKey(R.string.pref_key_customization_bookmarks),
+                homescreenSections[HomeScreenSection.BOOKMARKS] == true,
+            )
+        }
 
     /**
      * Indicates if the recent tabs functionality should be visible.
      */
-    var showRecentTabsFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_recent_tabs),
-        featureFlag = true,
-        default = { homescreenSections[HomeScreenSection.JUMP_BACK_IN] == true },
-    )
+    var showRecentTabsFeature: Boolean
+        get() = if (overrideUserSpecifiedHomepageSections) {
+            homescreenSections[HomeScreenSection.JUMP_BACK_IN] == true
+        } else {
+            preferences.getBoolean(
+                appContext.getPreferenceKey(R.string.pref_key_recent_tabs),
+                homescreenSections[HomeScreenSection.JUMP_BACK_IN] == true,
+            )
+        }
+        set(value) {
+            preferences.edit {
+                putBoolean(appContext.getPreferenceKey(R.string.pref_key_recent_tabs), value)
+            }
+        }
 
     /**
      * Indicates if the stories homescreen section should be shown.
@@ -214,11 +227,20 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates whether or not the "Recently Visited" section should be shown on the home screen.
      */
-    var historyMetadataUIFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_history_metadata_feature),
-        default = { homescreenSections[HomeScreenSection.RECENT_EXPLORATIONS] == true },
-        featureFlag = true,
-    )
+    var historyMetadataUIFeature: Boolean
+        get() = if (overrideUserSpecifiedHomepageSections) {
+            homescreenSections[HomeScreenSection.RECENT_EXPLORATIONS] == true
+        } else {
+            preferences.getBoolean(
+                appContext.getPreferenceKey(R.string.pref_key_history_metadata_feature),
+                homescreenSections[HomeScreenSection.RECENT_EXPLORATIONS] == true,
+            )
+        }
+        set(value) {
+            preferences.edit {
+                putBoolean(appContext.getPreferenceKey(R.string.pref_key_history_metadata_feature), value)
+            }
+        }
 
     /**
      * Indicates whether or not the "Synced Tabs" section should be shown on the home screen.
@@ -229,15 +251,22 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates whether or not top sites should be shown on the home screen.
      */
-    var showTopSitesFeature by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_show_top_sites),
-        featureFlag = true,
-        default = { homescreenSections[HomeScreenSection.TOP_SITES] == true },
-    )
+    val showTopSitesFeature: Boolean
+        get() = if (overrideUserSpecifiedHomepageSections) {
+            homescreenSections[HomeScreenSection.TOP_SITES] == true
+        } else {
+            preferences.getBoolean(
+                appContext.getPreferenceKey(R.string.pref_key_show_top_sites),
+                homescreenSections[HomeScreenSection.TOP_SITES] == true,
+            )
+        }
 
     private val homescreenSections: Map<HomeScreenSection, Boolean>
         get() = FxNimbus.features.homescreen.value().sectionsEnabled
 
+    /**
+     * Indicates if the user specified homepage section visibility should be ignored.
+     */
     val overrideUserSpecifiedHomepageSections by lazyFeatureFlagPreference(
         appContext.getPreferenceKey(R.string.pref_key_override_user_specified_homepage_sections),
         featureFlag = true,
