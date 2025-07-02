@@ -3,8 +3,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package mozilla.components.browser.engine.gecko.preferences
 
+import androidx.annotation.OptIn
 import mozilla.components.concept.engine.preferences.Branch
 import mozilla.components.concept.engine.preferences.BrowserPreference
+import org.mozilla.geckoview.ExperimentalGeckoViewApi
 import org.mozilla.geckoview.GeckoPreferenceController.GeckoPreference
 import org.mozilla.geckoview.GeckoPreferenceController.PREF_BRANCH_DEFAULT
 import org.mozilla.geckoview.GeckoPreferenceController.PREF_BRANCH_USER
@@ -18,6 +20,7 @@ object GeckoPreferencesUtils {
      * Convenience method for mapping an Android Components [Branch]
      * into the corresponding GeckoView branch
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     fun Branch.intoGeckoBranch(): Int {
         return when (this) {
             Branch.DEFAULT -> PREF_BRANCH_DEFAULT
@@ -29,6 +32,7 @@ object GeckoPreferencesUtils {
      * Convenience method for mapping a GeckoView [GeckoPreference]
      * into an Android Components [BrowserPreference].
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     fun GeckoPreference<*>.intoBrowserPreference(): BrowserPreference<*> {
         return BrowserPreference(
             pref = this.pref,

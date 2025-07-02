@@ -8,7 +8,9 @@ import android.content.Context
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.JsonReader
+import androidx.annotation.OptIn
 import androidx.annotation.VisibleForTesting
+import mozilla.components.ExperimentalAndroidComponentsApi
 import mozilla.components.browser.engine.fission.GeckoWebContentIsolationMapper.intoWebContentIsolationStrategy
 import mozilla.components.browser.engine.gecko.activity.GeckoActivityDelegate
 import mozilla.components.browser.engine.gecko.activity.GeckoScreenOrientationDelegate
@@ -79,6 +81,7 @@ import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.ContentBlockingController
 import org.mozilla.geckoview.ContentBlockingController.Event
+import org.mozilla.geckoview.ExperimentalGeckoViewApi
 import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoRuntime
 import org.mozilla.geckoview.GeckoRuntimeSettings
@@ -971,6 +974,8 @@ class GeckoEngine(
     /**
      * See [Engine.getBrowserPref].
      */
+    @ExperimentalAndroidComponentsApi
+    @OptIn(ExperimentalGeckoViewApi::class)
     override fun getBrowserPref(
         pref: String,
         onSuccess: (BrowserPreference<*>) -> Unit,
@@ -997,6 +1002,7 @@ class GeckoEngine(
     /**
      * See [Engine.setBrowserPref].
      */
+    @ExperimentalAndroidComponentsApi
     override fun setBrowserPref(
         pref: String,
         value: String,
@@ -1019,6 +1025,7 @@ class GeckoEngine(
     /**
      * See [Engine.setBrowserPref].
      */
+    @ExperimentalAndroidComponentsApi
     override fun setBrowserPref(
         pref: String,
         value: Int,
@@ -1041,6 +1048,7 @@ class GeckoEngine(
     /**
      * See [Engine.setBrowserPref].
      */
+    @ExperimentalAndroidComponentsApi
     override fun setBrowserPref(
         pref: String,
         value: Boolean,
@@ -1063,6 +1071,7 @@ class GeckoEngine(
     /**
      * See [Engine.clearBrowserUserPref].
      */
+    @ExperimentalAndroidComponentsApi
     override fun clearBrowserUserPref(
         pref: String,
         onSuccess: () -> Unit,
