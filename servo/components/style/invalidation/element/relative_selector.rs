@@ -93,6 +93,7 @@ impl<'a, E: TElement> OptimizationContext<'a, E> {
         element: E,
         host: Option<OpaqueElement>,
         dependency: &Dependency,
+        leftmost_collapse_offset: usize,
     ) -> bool {
         if is_subtree {
             // Subtree elements don't have unaffected sibling to look at.
@@ -133,8 +134,8 @@ impl<'a, E: TElement> OptimizationContext<'a, E> {
                 }
             }
         }
-        let is_rightmost = dependency.selector_offset == 0;
-        if !is_rightmost {
+        let dependency_is_rightmost = dependency.selector_offset == 0;
+        if !dependency_is_rightmost {
             let combinator = dependency
                 .selector
                 .combinator_at_match_order(dependency.selector_offset - 1);
@@ -149,6 +150,19 @@ impl<'a, E: TElement> OptimizationContext<'a, E> {
                 return true;
             }
         }
+
+        // We have a situation like `:has(.item .item + .item + .item)`, where the first element in the sibling
+        // chain position (i.e. The element matched by the second `.item` from the left) mutates. By the time we
+        // get here, we've collapsed the 4 dependencies for each of `.item` position into one at the rightmost
+        // position. Before we look for a standin, we need to find which `.item` this element matches - Doing
+        // that would generate more work than it saves.
+        if dependency_is_rightmost &&
+            leftmost_collapse_offset != dependency.selector_offset &&
+            self.sibling_traversal_map.next_sibling_for(&element).is_some()
+        {
+            return false;
+        }
+
         let mut caches = SelectorCaches::default();
         let mut matching_context = MatchingContext::new(
             MatchingMode::Normal,
@@ -261,6 +275,10 @@ where
     host: Option<OpaqueElement>,
     /// Dependency chain for this invalidation.
     dependency: &'a Dependency,
+    /// The offset, of the leftmost dependencies that this
+    /// invalidation collapsed. See the `update()` function
+    /// for more information.
+    leftmost_collapse_offset: usize,
 }
 
 impl<'a, E> AlreadyInvalidatedEntry<'a, E>
@@ -272,6 +290,7 @@ where
             element,
             host,
             dependency,
+            leftmost_collapse_offset: dependency.selector_offset,
         }
     }
 
@@ -281,13 +300,16 @@ where
         // to a more general case so we don't do duplicate work.
         // e.g. For `:has(.item .item + .item + .item)`, since the anchor would be located
         // in the ancestor chain for any invalidation triggered by any `.item` compound,
-        // 4 entries can collapse into one.
+        // 4 entries can collapse into one - but keep track of the leftmost offset.
         if self.dependency.selector_offset > dependency.selector_offset {
             *self = Self {
                 element,
                 host,
                 dependency,
+                leftmost_collapse_offset: self.leftmost_collapse_offset,
             };
+        } else if self.leftmost_collapse_offset < dependency.selector_offset {
+            self.leftmost_collapse_offset = dependency.selector_offset;
         }
     }
 }
@@ -473,6 +495,7 @@ where
                             invalidation.element,
                             invalidation.host,
                             invalidation.dependency,
+                            invalidation.leftmost_collapse_offset,
                         ) {
                             continue;
                         }
