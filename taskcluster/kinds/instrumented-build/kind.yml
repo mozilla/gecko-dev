@@ -141,7 +141,7 @@ tasks:
         shipping-product: firefox
         treeherder:
             platform: osx-shippable/opt
-        worker-type: b-linux-gcp
+        worker-type: b-linux-amd
         worker:
             max-run-time: 7200
             env:
@@ -177,7 +177,7 @@ tasks:
         shipping-product: firefox
         treeherder:
             platform: osx-aarch64-shippable/opt
-        worker-type: b-linux-gcp
+        worker-type: b-linux-amd
         worker:
             max-run-time: 7200
             env:

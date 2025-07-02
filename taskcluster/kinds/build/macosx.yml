@@ -5,7 +5,7 @@
 task-defaults:
     index:
         product: firefox
-    worker-type: b-linux-gcp
+    worker-type: b-linux-amd
     run:
         using: mozharness
         actions: [get-secrets, build]
