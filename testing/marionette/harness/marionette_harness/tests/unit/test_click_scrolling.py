@@ -15,6 +15,12 @@ def inline(doc):
 
 
 class TestClickScrolling(MarionetteTestCase):
+    def setUp(self):
+        super(TestClickScrolling, self).setUp()
+
+        # Reset the scroll position for each test
+        self.marionette.execute_script("window.scrollTo(0, 0);")
+
     def test_clicking_on_anchor_scrolls_page(self):
         self.marionette.navigate(
             inline(
