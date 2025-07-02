@@ -70,7 +70,6 @@ struct NavigationAPIMethodTracker final : public nsISupports {
 
   // https://html.spec.whatwg.org/#notify-about-the-committed-to-entry
   void NotifyAboutCommittedToEntry(NavigationHistoryEntry* aNHE) {
-    MOZ_DIAGNOSTIC_ASSERT(mCommittedPromise);
     // Step 1
     mCommittedToEntry = aNHE;
     if (mSerializedState) {
@@ -86,7 +85,6 @@ struct NavigationAPIMethodTracker final : public nsISupports {
 
   // https://html.spec.whatwg.org/#resolve-the-finished-promise
   void ResolveFinishedPromise() {
-    MOZ_DIAGNOSTIC_ASSERT(mFinishedPromise);
     // Step 1
     MOZ_DIAGNOSTIC_ASSERT(mCommittedToEntry);
     // Step 2
@@ -97,8 +95,6 @@ struct NavigationAPIMethodTracker final : public nsISupports {
 
   // https://html.spec.whatwg.org/#reject-the-finished-promise
   void RejectFinishedPromise(JS::Handle<JS::Value> aException) {
-    MOZ_DIAGNOSTIC_ASSERT(mFinishedPromise);
-    MOZ_DIAGNOSTIC_ASSERT(mCommittedPromise);
     // Step 1
     mCommittedPromise->MaybeReject(aException);
     // Step 2
@@ -390,11 +386,9 @@ static void CreateResultFromAPIMethodTracker(
   //    "finished" → apiMethodTracker's finished promise ]».
   MOZ_ASSERT(aApiMethodTracker);
   aResult.mCommitted.Reset();
-  aResult.mCommitted.Construct(
-      OwningNonNull<Promise>(*aApiMethodTracker->mCommittedPromise));
+  aResult.mCommitted.Construct(aApiMethodTracker->mCommittedPromise.forget());
   aResult.mFinished.Reset();
-  aResult.mFinished.Construct(
-      OwningNonNull<Promise>(*aApiMethodTracker->mFinishedPromise));
+  aResult.mFinished.Construct(aApiMethodTracker->mFinishedPromise.forget());
 }
 
 bool Navigation::CheckIfDocumentIsFullyActiveAndMaybeSetEarlyErrorResult(
