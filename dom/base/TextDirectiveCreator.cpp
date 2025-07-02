@@ -283,7 +283,8 @@ bool RangeBasedTextDirectiveCreator::CollectContextTermWordBoundaryDistances() {
   mStartWordEndDistances =
       TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
           mStartContent);
-  mFirstWordOfStartContent = Substring(mStartContent, 0, mStartWordEndDistances[0]);
+  mFirstWordOfStartContent =
+      Substring(mStartContent, 0, mStartWordEndDistances[0]);
   TEXT_FRAGMENT_LOG("First word of start term: {}",
                     NS_ConvertUTF16toUTF8(mFirstWordOfStartContent));
   if (mStartWordEndDistances[0] == mStartContent.Length()) {
@@ -487,8 +488,9 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
   searchEnd =
       TextDirectiveUtil::FindWordBoundary<TextScanDirection::Left>(searchEnd);
 
-  const nsTArray<RefPtr<AbstractRange>> endContentRanges = MOZ_TRY(
-      FindAllMatchingRanges(mLastWordOfEndContent, mRange->StartRef(), searchEnd));
+  const nsTArray<RefPtr<AbstractRange>> endContentRanges =
+      MOZ_TRY(FindAllMatchingRanges(mLastWordOfEndContent, mRange->StartRef(),
+                                    searchEnd));
   FindEndMatchCommonSubstringLengths(endContentRanges);
   return Ok();
 }
