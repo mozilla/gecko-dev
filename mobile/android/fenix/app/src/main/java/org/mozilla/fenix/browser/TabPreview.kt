@@ -37,11 +37,11 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.concept.base.images.ImageLoadRequest
 import mozilla.components.support.ktx.android.view.toScope
+import mozilla.components.support.ktx.kotlin.applyRegistrableDomainSpan
 import mozilla.components.support.ktx.kotlin.isContentUrl
 import mozilla.components.support.ktx.util.URLStringUtils
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.components.toolbar.URLDomainHighlight.getRegistrableDomainOrHostIndexRange
 import org.mozilla.fenix.databinding.TabPreviewBinding
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
@@ -252,16 +252,13 @@ class TabPreview @JvmOverloads constructor(
     }
 
     private suspend fun buildComposableToolbarPageOrigin(tab: TabSessionState): PageOrigin {
-        val displayUrl = URLStringUtils.toDisplayUrl(tab.content.url).toString()
-        val registrableDomainIndexRange = getRegistrableDomainOrHostIndexRange(
-            tab.content.url, displayUrl, context.components.publicSuffixList,
-        )
+        val url = tab.content.url.applyRegistrableDomainSpan(context.components.publicSuffixList)
+        val displayUrl = URLStringUtils.toDisplayUrl(url)
 
         return PageOrigin(
             hint = R.string.search_hint,
             title = null,
             url = displayUrl,
-            registrableDomainIndexRange = registrableDomainIndexRange,
             onClick = object : BrowserToolbarEvent {},
         )
     }

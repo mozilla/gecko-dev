@@ -136,7 +136,6 @@ fun BrowserDisplayToolbar(
                         .height(48.dp)
                         .weight(1f),
                     url = pageOrigin.url,
-                    registrableDomainIndexRange = pageOrigin.registrableDomainIndexRange,
                     title = pageOrigin.title,
                     textGravity = pageOrigin.textGravity,
                     contextualMenuOptions = pageOrigin.contextualMenuOptions,

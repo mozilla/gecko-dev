@@ -60,6 +60,7 @@ import mozilla.components.lib.state.State
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.ktx.kotlin.applyRegistrableDomainSpan
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlin.isContentUrl
 import mozilla.components.support.ktx.kotlin.isUrl
@@ -103,7 +104,6 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterLongClicked
-import org.mozilla.fenix.components.toolbar.URLDomainHighlight.getRegistrableDomainOrHostIndexRange
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases.Companion.ABOUT_HOME
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
@@ -684,18 +684,17 @@ class BrowserToolbarMiddleware(
     private fun updateCurrentPageOrigin(
         store: Store<BrowserToolbarState, BrowserToolbarAction>,
     ) = environment?.viewLifecycleOwner?.lifecycleScope?.launch {
-        val url = browserStore.state.selectedTab?.content?.url
+        val url = browserStore.state.selectedTab?.content?.url?.let {
+            it.applyRegistrableDomainSpan(publicSuffixList)
+        }
+
         val displayUrl = url?.let { originalUrl ->
-            if (originalUrl == ABOUT_HOME) {
+            if (originalUrl.toString() == ABOUT_HOME) {
                 // Default to showing the toolbar hint when the URL is ABOUT_HOME.
                 ""
             } else {
-                URLStringUtils.toDisplayUrl(originalUrl).toString()
+                URLStringUtils.toDisplayUrl(originalUrl)
             }
-        }
-        val registrableDomainIndexRange = when (displayUrl != null && displayUrl.isNotEmpty()) {
-            true -> getRegistrableDomainOrHostIndexRange(url, displayUrl, publicSuffixList)
-            false -> null
         }
 
         store.dispatch(
@@ -704,7 +703,6 @@ class BrowserToolbarMiddleware(
                     hint = R.string.search_hint,
                     title = null,
                     url = displayUrl,
-                    registrableDomainIndexRange = registrableDomainIndexRange,
                     contextualMenuOptions = ContextualMenuOption.entries,
                     onClick = OriginClicked,
                 ),

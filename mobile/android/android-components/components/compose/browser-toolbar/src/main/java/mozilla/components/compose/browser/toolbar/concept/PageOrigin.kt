@@ -27,8 +27,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
 data class PageOrigin(
     @StringRes val hint: Int,
     val title: String?,
-    val url: String?,
-    val registrableDomainIndexRange: Pair<Int, Int>? = null,
+    val url: CharSequence?,
     val textGravity: TextGravity = TEXT_GRAVITY_START,
     val contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
     val onClick: BrowserToolbarEvent?,

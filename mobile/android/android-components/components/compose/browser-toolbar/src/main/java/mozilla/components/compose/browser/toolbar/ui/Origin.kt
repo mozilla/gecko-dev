@@ -55,6 +55,7 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.T
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.utils.PageOriginContextualMenuBuilder
+import mozilla.components.support.ktx.kotlin.getRegistrableDomainIndexRange
 import mozilla.components.support.utils.ClipboardHandler
 
 private const val URL_TEXT_SIZE_ALONE = 15
@@ -80,8 +81,7 @@ private const val FADE_LENGTH = 66
 internal fun Origin(
     @StringRes hint: Int,
     modifier: Modifier = Modifier,
-    url: String? = null,
-    registrableDomainIndexRange: Pair<Int, Int>? = null,
+    url: CharSequence? = null,
     title: String? = null,
     textGravity: TextGravity = TEXT_GRAVITY_START,
     contextualMenuOptions: List<ContextualMenuOption> = emptyList(),
@@ -106,7 +106,7 @@ internal fun Origin(
     }
 
     val hint = stringResource(hint)
-    val urlToShow: String = remember(url) {
+    val urlToShow: CharSequence = remember(url) {
         when (url == null || url.isBlank()) {
             true -> hint
             else -> url
@@ -146,7 +146,7 @@ internal fun Origin(
             ) {
                 Title(title, textGravity)
 
-                Url(urlToShow, registrableDomainIndexRange, urlTextSize)
+                Url(urlToShow, urlTextSize)
             }
 
             LongPressMenu(showMenu, contextualMenuOptions, clipboardHandler, onInteraction) {
@@ -176,15 +176,18 @@ private fun Title(
 
 @Composable
 private fun Url(
-    url: String,
-    registrableDomainIndexRange: Pair<Int, Int>?,
+    url: CharSequence,
     fontSize: Int,
 ) {
     // Ensure compatibility with MaterialTheme attributes. See bug 1936346 for more context.
     val materialTextStyle = LocalTextStyle.current
+    val urlString = remember(url) { url.toString() }
+    val registrableDomainIndexRange = remember(url) {
+        url.getRegistrableDomainIndexRange()
+    }
 
     HighlightedDomainUrl(
-        url = url,
+        url = urlString,
         registrableDomainIndexRange = registrableDomainIndexRange,
         fadedTextStyle = materialTextStyle.merge(
             fontSize = fontSize.sp,

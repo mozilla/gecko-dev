@@ -286,7 +286,7 @@ class BrowserToolbarMiddlewareTest {
         val toolbarStore = buildStore(middleware)
 
         val originConfiguration = toolbarStore.state.displayState.pageOrigin
-        assertEquals(expectedConfiguration, originConfiguration)
+        assertEqualsOrigin(expectedConfiguration, originConfiguration)
     }
 
     @Test
@@ -320,19 +320,17 @@ class BrowserToolbarMiddlewareTest {
             hint = R.string.search_hint,
             title = null,
             url = URLStringUtils.toDisplayUrl(tab.getUrl()!!).toString(),
-            registrableDomainIndexRange = 0 to 11,
             contextualMenuOptions = ContextualMenuOption.entries,
             onClick = OriginClicked,
         )
-        assertEquals(pageOrigin, toolbarStore.state.displayState.pageOrigin)
+        assertEqualsOrigin(pageOrigin, toolbarStore.state.displayState.pageOrigin)
 
         browserStore.dispatch(UpdateUrlAction(sessionId = tab.id, url = ABOUT_HOME)).joinBlocking()
         testScheduler.advanceUntilIdle()
 
-        assertEquals(
+        assertEqualsOrigin(
             pageOrigin.copy(
                 url = "",
-                registrableDomainIndexRange = null,
             ),
             toolbarStore.state.displayState.pageOrigin,
         )
@@ -1960,6 +1958,16 @@ class BrowserToolbarMiddlewareTest {
                 )
             }
         }
+    }
+
+    private fun assertEqualsOrigin(expected: PageOrigin, actual: PageOrigin) {
+        assertEquals(expected.hint, actual.hint)
+        assertEquals(expected.url, actual.url.toString())
+        assertEquals(expected.title, actual.title)
+        assertEquals(expected.contextualMenuOptions, actual.contextualMenuOptions)
+        assertEquals(expected.onClick, actual.onClick)
+        assertEquals(expected.textGravity, actual.textGravity)
+        assertEquals(expected.onLongClick, actual.onLongClick)
     }
 
     private val expectedRefreshButton = ActionButtonRes(
