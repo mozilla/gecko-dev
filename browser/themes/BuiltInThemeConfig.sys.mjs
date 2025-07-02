@@ -22,7 +22,7 @@ export const BuiltInThemeConfig = new Map([
   [
     "firefox-compact-light@mozilla.org",
     {
-      version: "1.3.2",
+      version: "1.3.3",
       path: "resource://builtin-themes/light/",
     },
   ],

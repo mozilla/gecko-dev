@@ -5,3 +5,17 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 JAR_MANIFESTS += ["jar.mn"]
+
+GeneratedFile(
+    "light/manifest.json",
+    script="gen_light_dark_manifest.py",
+    entry_point="gen_light_manifest",
+    inputs=["firefox-light-dark/manifest.json"],
+)
+
+GeneratedFile(
+    "dark/manifest.json",
+    script="gen_light_dark_manifest.py",
+    entry_point="gen_dark_manifest",
+    inputs=["firefox-light-dark/manifest.json"],
+)
