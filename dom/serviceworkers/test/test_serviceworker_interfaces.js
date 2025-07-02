@@ -414,7 +414,7 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "Response",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "Scheduler", nightly: true },
+  "Scheduler",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "ServiceWorker",
   // IMPORTANT: Do not change this list without review from a DOM peer!
