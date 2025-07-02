@@ -96,14 +96,14 @@ class FenixSearchMiddleware(
     ) {
         when (action) {
             is Init -> {
+                next(action)
+
                 context.store.dispatch(
                     SearchFragmentAction.UpdateSearchState(
                         browserStore.state.search,
                         true,
                     ),
                 )
-
-                next(action)
             }
 
             is EnvironmentRehydrated -> {

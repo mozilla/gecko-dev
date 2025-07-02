@@ -103,7 +103,9 @@ class BrowserToolbarSearchMiddleware(
         next: (BrowserToolbarAction) -> Unit,
         action: BrowserToolbarAction,
     ) {
-        next(action)
+        if (action !is SearchSelectorEvents) {
+            next(action)
+        }
 
         when (action) {
             is EnvironmentRehydrated -> {
@@ -174,6 +176,9 @@ class BrowserToolbarSearchMiddleware(
         updateAutocompleteProviders(store, searchEngine)
     }
 
+    /**
+     * Synchronously update the toolbar with a new search selector.
+     */
     private fun updateSearchSelectorMenu(
         store: Store<BrowserToolbarState, BrowserToolbarAction>,
         selectedSearchEngine: SearchEngine?,
@@ -194,9 +199,6 @@ class BrowserToolbarSearchMiddleware(
         )
     }
 
-    /**
-     * Synchronously update the toolbar with new autocomplete providers suitable for the selected search engine.
-     */
     private fun updateAutocompleteProviders(
         store: Store<BrowserToolbarState, BrowserToolbarAction>,
         selectedSearchEngine: SearchEngine?,

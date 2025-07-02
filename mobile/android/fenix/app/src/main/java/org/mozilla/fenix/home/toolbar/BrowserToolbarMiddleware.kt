@@ -138,12 +138,12 @@ class BrowserToolbarMiddleware(
             }
 
             is ToggleEditMode -> {
+                next(action)
+
                 when (action.editMode) {
                     true -> stopSearchStateUpdates()
                     false -> observeSearchStateUpdates(context.store)
                 }
-
-                next(action)
             }
 
             is MenuClicked -> {

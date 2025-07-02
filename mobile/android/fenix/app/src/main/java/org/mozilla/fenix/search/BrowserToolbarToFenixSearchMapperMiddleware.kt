@@ -58,6 +58,8 @@ class BrowserToolbarToFenixSearchMapperMiddleware(
         } else if (action is EnvironmentCleared) {
             environment = null
         }
+
+        next(action)
     }
 
     private fun syncSearchStatus(store: Store<SearchFragmentState, SearchFragmentAction>) {

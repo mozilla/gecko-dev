@@ -401,6 +401,7 @@ class BrowserToolbarMiddleware(
                 val tabId = browserStore.state.selectedTabId
                 sessionUseCases.stopLoading(tabId)
             }
+
             else -> next(action)
         }
     }
