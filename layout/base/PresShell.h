@@ -903,11 +903,11 @@ class PresShell final : public nsStubDocumentObserver,
    * PresShell::PaintDefaultBackground, and nsDocShell::SetupNewViewer;
    * bug 488242, bug 476557 and other bugs mentioned there.
    */
-  void SetCanvasBackground(nscolor aColor) {
-    mCanvasBackground.mViewport.mColor = aColor;
+  void SetViewportCanvasBackground(const SingleCanvasBackground& aBg) {
+    mCanvasBackground.mViewport = aBg;
   }
-  nscolor GetCanvasBackground() const {
-    return mCanvasBackground.mViewport.mColor;
+  const SingleCanvasBackground& GetViewportCanvasBackground() const {
+    return mCanvasBackground.mViewport;
   }
 
   const SingleCanvasBackground& GetCanvasBackground(bool aForPage) const {

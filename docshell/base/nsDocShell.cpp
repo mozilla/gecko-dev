@@ -8177,7 +8177,7 @@ nsresult nsDocShell::SetupNewViewer(nsIDocumentViewer* aNewViewer,
     }
   }
 
-  nscolor bgcolor = NS_RGBA(0, 0, 0, 0);
+  SingleCanvasBackground canvasBg = {};
   bool isUnderHiddenEmbedderElement = false;
   // Ensure that the content viewer is destroyed *after* the GC - bug 71515
   nsCOMPtr<nsIDocumentViewer> viewer = mDocumentViewer;
@@ -8189,7 +8189,7 @@ nsresult nsDocShell::SetupNewViewer(nsIDocumentViewer* aNewViewer,
     // Try to extract the canvas background color from the old
     // presentation shell, so we can use it for the next document.
     if (PresShell* presShell = viewer->GetPresShell()) {
-      bgcolor = presShell->GetCanvasBackground();
+      canvasBg = presShell->GetViewportCanvasBackground();
       isUnderHiddenEmbedderElement = presShell->IsUnderHiddenEmbedderElement();
     }
 
@@ -8238,7 +8238,7 @@ nsresult nsDocShell::SetupNewViewer(nsIDocumentViewer* aNewViewer,
   // Stuff the bgcolor from the old pres shell into the new
   // pres shell. This improves page load continuity.
   if (RefPtr<PresShell> presShell = mDocumentViewer->GetPresShell()) {
-    presShell->SetCanvasBackground(bgcolor);
+    presShell->SetViewportCanvasBackground(canvasBg);
     presShell->ActivenessMaybeChanged();
     if (isUnderHiddenEmbedderElement) {
       presShell->SetIsUnderHiddenEmbedderElement(isUnderHiddenEmbedderElement);
