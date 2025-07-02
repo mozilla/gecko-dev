@@ -1,5 +1,6 @@
 ChromeUtils.defineESModuleGetters(this, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
+  ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
   ExtensionsUI: "resource:///modules/ExtensionsUI.sys.mjs",
 });
 
@@ -9,11 +10,7 @@ const BASE = getRootDirectory(gTestPath).replace(
 );
 
 ChromeUtils.defineLazyGetter(this, "Management", () => {
-  // eslint-disable-next-line no-shadow
-  const { Management } = ChromeUtils.importESModule(
-    "resource://gre/modules/Extension.sys.mjs"
-  );
-  return Management;
+  return ExtensionParent.apiManager;
 });
 
 let { CustomizableUITestUtils } = ChromeUtils.importESModule(
@@ -677,6 +674,24 @@ async function interactiveUpdateTest(autoUpdate, checkFn) {
     hasDownloadTimeExtras,
     "Every 'download_completed' update telemetry event should have a download_time extra vars"
   );
+}
+
+async function getCachedPermissions(extensionId) {
+  const NotFound = Symbol("extension ID not found in permissions cache");
+  try {
+    return await ExtensionParent.StartupCache.permissions.get(
+      extensionId,
+      () => {
+        // Throw error to prevent the key from being created.
+        throw NotFound;
+      }
+    );
+  } catch (e) {
+    if (e === NotFound) {
+      return null;
+    }
+    throw e;
+  }
 }
 
 // The tests in this directory install a bunch of extensions but they

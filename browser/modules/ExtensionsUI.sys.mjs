@@ -414,7 +414,12 @@ export var ExtensionsUI = {
 
     const incognitoPermissionName = "internal:privateBrowsingAllowed";
     let grantPrivateBrowsingAllowed = false;
-    if (showIncognitoCheckbox) {
+    if (
+      showIncognitoCheckbox &&
+      // Usually false, unless the user tries to install a XPI file whose ID
+      // matches an already-installed add-on.
+      (await lazy.AddonManager.getAddonByID(addon.id))
+    ) {
       let { permissions } = await lazy.ExtensionPermissions.get(addon.id);
       grantPrivateBrowsingAllowed = permissions.includes(
         incognitoPermissionName
