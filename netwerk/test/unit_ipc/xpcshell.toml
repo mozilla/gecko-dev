@@ -83,18 +83,22 @@ prefs = [
 ]
 
 ["test_alt-data_closeWithStatus_wrap.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_alt-data_cross_process_wrap.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_alt-data_simple_wrap.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_alt-data_stream_wrap.js"]
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_cache-entry-id_wrap.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_cache_jar_wrap.js"]
@@ -154,6 +158,7 @@ run-sequentially = "http3server"
 skip-if = ["true"] # Will be reenabled in bug 1865394
 
 ["test_httpcancel_wrap.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_httpsuspend_wrap.js"]
@@ -181,6 +186,7 @@ prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_redirect-caching_failure_wrap.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_redirect-caching_passing_wrap.js"]
@@ -206,6 +212,7 @@ prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 
 ["test_redirect_veto_parent.js"]
+skip-if = ["isolated_process"] # Bug 1709961
 prefs = ["network.allow_raw_sockets_in_content_processes=true"]
 run-sequentially = "doesn't play nice with others."
 
