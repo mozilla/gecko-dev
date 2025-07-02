@@ -2099,7 +2099,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozAutofillPreview |
             NonTSPseudoClass::MozRevealed |
             NonTSPseudoClass::ActiveViewTransition |
-            NonTSPseudoClass::MozValueEmpty => self.state().intersects(pseudo_class.state_flag()),
+            NonTSPseudoClass::MozValueEmpty |
+            NonTSPseudoClass::MozSuppressForPrintSelection => self.state().intersects(pseudo_class.state_flag()),
             NonTSPseudoClass::Dir(ref dir) => self.state().intersects(dir.element_state()),
             NonTSPseudoClass::AnyLink => self.is_link(),
             NonTSPseudoClass::Link => {

@@ -564,3 +564,9 @@ parsererror|sourcetext {
     }
   }
 }
+
+@media print {
+  :-moz-suppress-for-print-selection {
+    display: none !important;
+  }
+}
