@@ -281,4 +281,144 @@ class LoginsReducerTest {
             expectedAddStateForDuplicateLogin.newLoginState,
         )
     }
+
+    @Test
+    fun `GIVEN we are on the edit login screen WHEN the back button is clicked THEN go back to login details screen`() {
+        val items = List(7) {
+            LoginItem(
+                guid = "$it",
+                url = if (it % 2 == 0) "$it url" else "$it uri",
+                username = "user$it",
+                password = "pass$it",
+                timeLastUsed = System.currentTimeMillis(),
+            )
+        }
+
+        val state = LoginsState().copy(
+            loginItems = items,
+            loginsLoginDetailState = LoginsLoginDetailState(items[1]),
+            loginsEditLoginState = LoginsEditLoginState(
+                login = items[1],
+                newUsername = "newUsername",
+                newPassword = "newPassword",
+                isPasswordVisible = true,
+            ),
+        )
+
+        val resultListStateAfterBackClick = loginsReducer(state, EditLoginBackClicked)
+        val expectedListStateAfterBackClick = state.copy(loginsEditLoginState = null)
+
+        assertEquals(resultListStateAfterBackClick, expectedListStateAfterBackClick)
+    }
+
+    @Test
+    fun `GIVEN we are on the edit login screen WHEN the save button is clicked THEN go back to details login and reflect the changed state`() {
+        val items = List(7) {
+            LoginItem(
+                guid = "$it",
+                url = if (it % 2 == 0) "$it url" else "$it uri",
+                username = "user$it",
+                password = "pass$it",
+                timeLastUsed = System.currentTimeMillis(),
+            )
+        }
+
+        val loginsEditState = LoginsEditLoginState(
+            login = items[1],
+            newUsername = "newUsername",
+            newPassword = "newPassword",
+            isPasswordVisible = true,
+        )
+        val state = LoginsState().copy(
+            loginItems = items,
+            loginsLoginDetailState = LoginsLoginDetailState(items[1]),
+            loginsEditLoginState = loginsEditState,
+        )
+
+        val resultListStateAfterBackClick =
+            loginsReducer(state, EditLoginAction.SaveEditClicked(items[1]))
+        val expectedListStateAfterSaveClick = state.copy(
+            loginsEditLoginState = loginsEditState.copy(
+                newUsername = "newUsername",
+                newPassword = "newPassword",
+                isPasswordVisible = true,
+            ),
+        )
+
+        assertEquals(resultListStateAfterBackClick, expectedListStateAfterSaveClick)
+    }
+
+    @Test
+    fun `GIVEN we are on the edit login screen and the password is visible WHEN the hide password button is clicked THEN reflect the changed state`() {
+        val items = List(7) {
+            LoginItem(
+                guid = "$it",
+                url = if (it % 2 == 0) "$it url" else "$it uri",
+                username = "user$it",
+                password = "pass$it",
+                timeLastUsed = System.currentTimeMillis(),
+            )
+        }
+
+        val loginsEditState = LoginsEditLoginState(
+            login = items[1],
+            newUsername = "newUsername",
+            newPassword = "newPassword",
+            isPasswordVisible = true,
+        )
+        val state = LoginsState().copy(
+            loginItems = items,
+            loginsLoginDetailState = LoginsLoginDetailState(items[1]),
+            loginsEditLoginState = loginsEditState,
+        )
+
+        val resultListStateAfterBackClick =
+            loginsReducer(state, EditLoginAction.PasswordVisibilityChanged(false))
+        val expectedListStateAfterSaveClick = state.copy(
+            loginsEditLoginState = loginsEditState.copy(
+                newUsername = "newUsername",
+                newPassword = "newPassword",
+                isPasswordVisible = false,
+            ),
+        )
+
+        assertEquals(resultListStateAfterBackClick, expectedListStateAfterSaveClick)
+    }
+
+    @Test
+    fun `GIVEN we are on the edit login screen and the password is hidden WHEN the show password button is clicked THEN reflect the changed state`() {
+        val items = List(7) {
+            LoginItem(
+                guid = "$it",
+                url = if (it % 2 == 0) "$it url" else "$it uri",
+                username = "user$it",
+                password = "pass$it",
+                timeLastUsed = System.currentTimeMillis(),
+            )
+        }
+
+        val loginsEditState = LoginsEditLoginState(
+            login = items[1],
+            newUsername = "newUsername",
+            newPassword = "newPassword",
+            isPasswordVisible = false,
+        )
+        val state = LoginsState().copy(
+            loginItems = items,
+            loginsLoginDetailState = LoginsLoginDetailState(items[1]),
+            loginsEditLoginState = loginsEditState,
+        )
+
+        val resultListStateAfterBackClick =
+            loginsReducer(state, EditLoginAction.PasswordVisibilityChanged(true))
+        val expectedListStateAfterSaveClick = state.copy(
+            loginsEditLoginState = loginsEditState.copy(
+                newUsername = "newUsername",
+                newPassword = "newPassword",
+                isPasswordVisible = true,
+            ),
+        )
+
+        assertEquals(resultListStateAfterBackClick, expectedListStateAfterSaveClick)
+    }
 }

@@ -15,11 +15,6 @@ internal sealed interface LoginsAction : Action
  * The Store is initializing.
  */
 internal data object Init : LoginsAction
-internal data class InitEdit(val guid: String) : LoginsAction
-internal data class InitEditLoaded(
-    val login: LoginItem,
-) : LoginsAction
-
 internal data object ViewDisposed : LoginsAction
 internal data object LoginsListBackClicked : LoginsAction
 
@@ -51,15 +46,13 @@ internal sealed class DetailLoginMenuAction : LoginsAction {
 
 internal data object LoginsDetailBackClicked : LoginsAction
 internal data object AddLoginBackClicked : LoginsAction
+internal data object EditLoginBackClicked : LoginsAction
 
 internal sealed class EditLoginAction : LoginsAction {
     data class UsernameChanged(val usernameChanged: String) : EditLoginAction()
     data class PasswordChanged(val passwordChanged: String) : EditLoginAction()
-    data class PasswordVisible(val visible: Boolean) : EditLoginAction()
-    data object UsernameClearClicked : EditLoginAction()
-    data object PasswordClearClicked : EditLoginAction()
+    data class PasswordVisibilityChanged(val isPasswordVisible: Boolean) : EditLoginAction()
     data class SaveEditClicked(val login: LoginItem) : EditLoginAction()
-    data object BackEditClicked : EditLoginAction()
 }
 
 internal sealed class AddLoginAction : LoginsAction {
@@ -74,5 +67,4 @@ internal sealed class DetailLoginAction : LoginsAction {
     data class GoToSiteClicked(val url: String) : DetailLoginAction()
     data class CopyUsernameClicked(val username: String) : DetailLoginAction()
     data class CopyPasswordClicked(val password: String) : DetailLoginAction()
-    data class PasswordVisibleClicked(val visible: Boolean) : DetailLoginAction()
 }

@@ -62,24 +62,6 @@ internal class LoginsMiddleware(
             Init -> {
                 context.store.loadLoginsList()
             }
-            is InitEdit -> {
-                scope.launch {
-                    Result.runCatching {
-                        val login = loginsStorage.get(action.guid)
-                        val loginItem = login?.let {
-                            LoginItem(
-                                guid = it.guid,
-                                url = it.formActionOrigin ?: "",
-                                username = it.username,
-                                password = it.password,
-                            )
-                        }
-                        InitEditLoaded(login = loginItem!!)
-                    }.getOrNull()?.also {
-                        context.store.dispatch(it)
-                    }
-                }
-            }
             is SearchLogins -> {
                 context.store.loadLoginsList()
             }
@@ -131,16 +113,16 @@ internal class LoginsMiddleware(
             is AddLoginAction.AddLoginSaveClicked -> {
                 context.store.handleAddLogin()
             }
-            is InitEditLoaded,
-            is EditLoginAction.UsernameChanged,
-            is EditLoginAction.BackEditClicked,
+            is EditLoginBackClicked -> {
+                getNavController().navigate(LoginsDestinations.LOGIN_DETAILS)
+            }
+            is EditLoginAction.SaveEditClicked -> {
+                context.store.handleEditLogin(loginItem = action.login)
+            }
             is LoginsLoaded,
+            is EditLoginAction.UsernameChanged,
             is EditLoginAction.PasswordChanged,
-            is EditLoginAction.PasswordClearClicked,
-            is EditLoginAction.PasswordVisible,
-            is DetailLoginAction.PasswordVisibleClicked,
-            is EditLoginAction.SaveEditClicked,
-            is EditLoginAction.UsernameClearClicked,
+            is EditLoginAction.PasswordVisibilityChanged,
             is AddLoginAction.HostChanged,
             is AddLoginAction.UsernameChanged,
             is AddLoginAction.PasswordChanged,
@@ -238,4 +220,31 @@ internal class LoginsMiddleware(
             getNavController().navigate(LoginsDestinations.LIST)
         }
     }
+
+    private fun Store<LoginsState, LoginsAction>.handleEditLogin(loginItem: LoginItem) =
+        scope.launch {
+            val updatedLogin = LoginEntry(
+                origin = loginItem.url,
+                formActionOrigin = loginItem.url,
+                httpRealm = loginItem.url,
+                username = state.loginsEditLoginState?.newUsername ?: loginItem.username,
+                password = state.loginsEditLoginState?.newPassword ?: loginItem.password,
+            )
+
+            try {
+                val loginEdited = loginsStorage.update(loginItem.guid, updatedLogin)
+                dispatch(
+                    LoginClicked(
+                        LoginItem(
+                            guid = loginEdited.guid,
+                            url = loginEdited.origin,
+                            username = loginEdited.username,
+                            password = loginEdited.password,
+                        ),
+                    ),
+                )
+            } catch (exception: LoginsApiException) {
+                exception.printStackTrace()
+            }
+        }
 }

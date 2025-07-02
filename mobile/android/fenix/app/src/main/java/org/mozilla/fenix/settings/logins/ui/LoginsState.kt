@@ -58,6 +58,9 @@ internal data class LoginsListState(
 
 internal data class LoginsEditLoginState(
     val login: LoginItem,
+    val newUsername: String,
+    val newPassword: String,
+    val isPasswordVisible: Boolean,
 )
 
 internal data class LoginsAddLoginState(

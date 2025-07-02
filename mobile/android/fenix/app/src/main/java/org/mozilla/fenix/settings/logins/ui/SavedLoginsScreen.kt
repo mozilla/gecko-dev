@@ -94,7 +94,8 @@ internal fun SavedLoginsScreen(
             AddLoginScreen(store = store)
         }
         composable(route = LoginsDestinations.EDIT_LOGIN) {
-            BackHandler { store.dispatch(EditLoginAction.BackEditClicked) }
+            BackHandler { store.dispatch(EditLoginBackClicked) }
+            EditLoginScreen(store = store)
         }
         composable(route = LoginsDestinations.LOGIN_DETAILS) {
             BackHandler { store.dispatch(LoginsDetailBackClicked) }
