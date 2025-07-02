@@ -39,18 +39,22 @@ class TextDirectiveCreator {
    *
    * @param aDocument   The document in which `aInputRange` lives.
    * @param aInputRange The input range. This range will not be modified.
+   * @param aWatchdog   A watchdog to ensure the operation does not run
+   *                    longer than the predefined timeout.
    *
    * @return Returns a percent-encoded text directive string on success, an
    *         empty string if it's not possible to create a text fragment for the
    *         given range, or an error code.
    */
   static Result<nsCString, ErrorResult> CreateTextDirectiveFromRange(
-      Document* aDocument, AbstractRange* aInputRange);
+      Document* aDocument, AbstractRange* aInputRange,
+      const TimeoutWatchdog* aWatchdog);
 
   virtual ~TextDirectiveCreator() = default;
 
  protected:
-  TextDirectiveCreator(Document* aDocument, AbstractRange* aRange);
+  TextDirectiveCreator(Document* aDocument, AbstractRange* aRange,
+                       const TimeoutWatchdog* aWatchdog);
 
   /**
    * @brief Ensures the boundary points of the range point to word boundaries.
@@ -77,7 +81,8 @@ class TextDirectiveCreator {
    * @brief Creates an instance either for exact or range-based matching.
    */
   static Result<UniquePtr<TextDirectiveCreator>, ErrorResult> CreateInstance(
-      Document* aDocument, AbstractRange* aRange);
+      Document* aDocument, AbstractRange* aRange,
+      const TimeoutWatchdog* aWatchdog);
 
   /**
    * @brief Collects text content surrounding the target range.
@@ -220,7 +225,7 @@ class TextDirectiveCreator {
    * The duration is defined by the pref
    * `dom.text_fragments.create_text_fragment.timeout`.
    */
-  TimeoutWatchdog mWatchdog;
+  RefPtr<const TimeoutWatchdog> mWatchdog;
 
   nsContentUtils::NodeIndexCache mNodeIndexCache;
 };

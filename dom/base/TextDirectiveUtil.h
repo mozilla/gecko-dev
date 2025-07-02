@@ -210,6 +210,7 @@ class TextDirectiveUtil final {
 
 class TimeoutWatchdog final {
  public:
+  NS_INLINE_DECL_REFCOUNTING(TimeoutWatchdog);
   TimeoutWatchdog()
       : mStartTime(TimeStamp::Now()),
         mDuration(TimeDuration::FromSeconds(
@@ -218,6 +219,7 @@ class TimeoutWatchdog final {
   bool IsDone() const { return TimeStamp::Now() - mStartTime > mDuration; }
 
  private:
+  ~TimeoutWatchdog() = default;
   TimeStamp mStartTime;
   TimeDuration mDuration;
 };

@@ -454,6 +454,7 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirectiveForSelection() {
   AutoTArray<nsCString, 4> textDirectives;
 
   const TimeStamp start = TimeStamp::Now();
+  RefPtr<TimeoutWatchdog> watchdog = new TimeoutWatchdog();
   for (const auto rangeIndex : IntegerRange(selection->RangeCount())) {
     nsRange* range = selection->GetRangeAt(rangeIndex);
     if (!range) {
@@ -464,7 +465,8 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirectiveForSelection() {
       continue;
     }
     Result<nsCString, ErrorResult> maybeTextDirective =
-        TextDirectiveCreator::CreateTextDirectiveFromRange(mDocument, range);
+        TextDirectiveCreator::CreateTextDirectiveFromRange(mDocument, range,
+                                                           watchdog);
     if (MOZ_UNLIKELY(maybeTextDirective.isErr())) {
       TEXT_FRAGMENT_LOG(
           "Failed to create text directive for range at index {}.", rangeIndex);
@@ -482,7 +484,10 @@ already_AddRefed<Promise> FragmentDirective::CreateTextDirectiveForSelection() {
                       rangeIndex, textDirectives.LastElement());
   }
 
-  if (textDirectives.IsEmpty()) {
+  if (watchdog->IsDone()) {
+    TEXT_FRAGMENT_LOG("Hitting timeout while creating text directives.");
+    resultPromise->MaybeResolve(JS::NullHandleValue);
+  } else if (textDirectives.IsEmpty()) {
     TEXT_FRAGMENT_LOG("No text directives created.");
     mDocument->SetUseCounter(eUseCounter_custom_TextDirectiveNotCreated);
     resultPromise->MaybeResolve(JS::NullHandleValue);

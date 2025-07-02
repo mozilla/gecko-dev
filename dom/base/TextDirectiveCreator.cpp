@@ -17,13 +17,16 @@
 namespace mozilla::dom {
 
 TextDirectiveCreator::TextDirectiveCreator(Document* aDocument,
-                                           AbstractRange* aRange)
-    : mDocument(WrapNotNull(aDocument)), mRange(WrapNotNull(aRange)) {}
+                                           AbstractRange* aRange,
+                                           const TimeoutWatchdog* aWatchdog)
+    : mDocument(WrapNotNull(aDocument)),
+      mRange(WrapNotNull(aRange)), mWatchdog(aWatchdog) {}
 
 /* static */
 mozilla::Result<nsCString, ErrorResult>
-TextDirectiveCreator::CreateTextDirectiveFromRange(Document* aDocument,
-                                                   AbstractRange* aInputRange) {
+TextDirectiveCreator::CreateTextDirectiveFromRange(
+    Document* aDocument, AbstractRange* aInputRange,
+    const TimeoutWatchdog* aWatchdog) {
   MOZ_ASSERT(aInputRange);
   MOZ_ASSERT(!aInputRange->Collapsed());
   const nsString rangeContent =
@@ -39,7 +42,7 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document* aDocument,
     return VoidCString();
   }
   UniquePtr<TextDirectiveCreator> instance =
-      MOZ_TRY(CreateInstance(aDocument, extendedRange));
+      MOZ_TRY(CreateInstance(aDocument, extendedRange, aWatchdog));
 
   MOZ_TRY(instance->CollectContextTerms());
   const bool canContinue = instance->CollectContextTermWordBoundaryDistances();
@@ -79,13 +82,15 @@ TextDirectiveCreator::MustUseRangeBasedMatching(AbstractRange* aRange) {
 }
 
 Result<UniquePtr<TextDirectiveCreator>, ErrorResult>
-TextDirectiveCreator::CreateInstance(Document* aDocument,
-                                     AbstractRange* aRange) {
+TextDirectiveCreator::CreateInstance(Document* aDocument, AbstractRange* aRange,
+                                     const TimeoutWatchdog* aWatchdog) {
   return MOZ_TRY(MustUseRangeBasedMatching(aRange))
              ? UniquePtr<TextDirectiveCreator>(
-                   new RangeBasedTextDirectiveCreator(aDocument, aRange))
+                   new RangeBasedTextDirectiveCreator(aDocument, aRange,
+                                                      aWatchdog))
              : UniquePtr<TextDirectiveCreator>(
-                   new ExactMatchTextDirectiveCreator(aDocument, aRange));
+                   new ExactMatchTextDirectiveCreator(aDocument, aRange,
+                                                      aWatchdog));
 }
 
 /*static*/
@@ -312,7 +317,7 @@ TextDirectiveCreator::FindAllMatchingRanges(const nsString& aSearchQuery,
   nsTArray<RefPtr<AbstractRange>> matchingRanges;
 
   while (true) {
-    if (mWatchdog.IsDone()) {
+    if (mWatchdog && mWatchdog->IsDone()) {
       return matchingRanges;
     }
     RefPtr<AbstractRange> searchResult = TextDirectiveUtil::FindStringInRange(
@@ -370,7 +375,7 @@ ExactMatchTextDirectiveCreator::FindAllMatchingCandidates() {
 
 void ExactMatchTextDirectiveCreator::FindCommonSubstringLengths(
     const nsTArray<RefPtr<AbstractRange>>& aMatchRanges) {
-  if (mWatchdog.IsDone()) {
+  if (mWatchdog && mWatchdog->IsDone()) {
     return;
   }
   size_t loopCounter = 0;
@@ -416,7 +421,7 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
                                     mRange->StartRef()));
   FindStartMatchCommonSubstringLengths(startContentRanges);
 
-  if (mWatchdog.IsDone()) {
+  if (mWatchdog && mWatchdog->IsDone()) {
     return Ok();
   }
   TEXT_FRAGMENT_LOG(
@@ -503,7 +508,7 @@ void RangeBasedTextDirectiveCreator::FindEndMatchCommonSubstringLengths(
 }
 
 Result<nsCString, ErrorResult> TextDirectiveCreator::CreateTextDirective() {
-  if (mWatchdog.IsDone()) {
+  if (mWatchdog && mWatchdog->IsDone()) {
     TEXT_FRAGMENT_LOG("Hitting timeout.");
     return VoidCString();
   }
