@@ -325,8 +325,6 @@ wmf-media-engine:
         $eval: '"windows1" in task["test-platform"]'
     suffix: "wmfme"
     mozinfo: "wmfme"
-    replace:
-        tier: 2
     merge:
         worker:
             env:
@@ -349,8 +347,6 @@ eme-wmf:
         $eval: '"windows1" in task["test-platform"]'
     suffix: "emewmf"
     mozinfo: "emewmf"
-    replace:
-        tier: 2
     merge:
         worker:
             env:
