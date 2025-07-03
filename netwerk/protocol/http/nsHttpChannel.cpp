@@ -1874,12 +1874,23 @@ nsresult nsHttpChannel::InitTransaction() {
     }
   }
 
+  RefPtr<mozilla::dom::BrowsingContext> bc;
+  mLoadInfo->GetBrowsingContext(getter_AddRefs(bc));
+
+  nsILoadInfo::IPAddressSpace parentAddressSpace =
+      nsILoadInfo::IPAddressSpace::Unknown;
+  if (!bc) {
+    parentAddressSpace = mLoadInfo->GetParentIpAddressSpace();
+  } else {
+    parentAddressSpace = bc->GetCurrentIPAddressSpace();
+  }
+
   rv = mTransaction->Init(
       mCaps, mConnectionInfo, &mRequestHead, mUploadStream, mReqContentLength,
       LoadUploadStreamHasHeaders(), GetCurrentSerialEventTarget(), callbacks,
       this, mBrowserId, category, mRequestContext, mClassOfService,
       mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      std::move(observer), mLoadInfo->GetParentIpAddressSpace(), perms);
+      std::move(observer), parentAddressSpace, perms);
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;
@@ -8110,10 +8121,15 @@ nsHttpChannel::OnStartRequest(nsIRequest* request) {
     mTransaction->GetNetworkAddresses(mSelfAddr, mPeerAddr, isTrr,
                                       mEffectiveTRRMode, mTRRSkipReason,
                                       echConfigUsed);
-    // update IP AddressSpace for non-proxy connections
-    if (!mProxyInfo) {
+    // update IP AddressSpace for non-proxy connections and tests
+    // We need to update the browsing context for tests as browser tests
+    // uses local proxy to connect to
+    // external domains
+    if (!mProxyInfo || xpc::IsInAutomation()) {
       // If this is main document load or iframe store the IP Address space in
       // the browsing context
+      nsAutoCString addrPort;
+      mPeerAddr.ToAddrPortString(addrPort);
       nsILoadInfo::IPAddressSpace docAddressSpace =
           mPeerAddr.GetIpAddressSpace();
       ExtContentPolicyType type = mLoadInfo->GetExternalContentPolicyType();
