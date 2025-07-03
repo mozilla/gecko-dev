@@ -428,11 +428,11 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "SubtleCrypto",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "TaskController", nightly: true },
+  "TaskController",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "TaskPriorityChangeEvent", nightly: true },
+  "TaskPriorityChangeEvent",
   // IMPORTANT: Do not change this list without review from a DOM peer!
-  { name: "TaskSignal", nightly: true },
+  "TaskSignal",
   // IMPORTANT: Do not change this list without review from a DOM peer!
   "TextDecoder",
   // IMPORTANT: Do not change this list without review from a DOM peer!
