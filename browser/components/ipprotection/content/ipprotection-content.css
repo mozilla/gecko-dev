@@ -7,3 +7,17 @@
 #ipprotection-content-wrapper {
   display: flex;
 }
+
+#upgrade-vpn-content {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-small) var(--space-large);
+}
+
+#upgrade-vpn-title {
+  margin: 0;
+}
+
+#upgrade-vpn-button {
+  align-self: end;
+}
