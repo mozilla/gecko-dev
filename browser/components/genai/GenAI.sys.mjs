@@ -61,7 +61,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "chatProviders",
   "browser.ml.chat.providers",
-  "claude,chatgpt,gemini,huggingchat,lechat",
+  "claude,chatgpt,gemini,lechat",
   reorderChatProviders
 );
 XPCOMUtils.defineLazyPreferenceGetter(
