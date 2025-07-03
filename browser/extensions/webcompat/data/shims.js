@@ -775,7 +775,10 @@ const AVAILABLE_SHIMS = [
     contentScripts: [
       {
         js: "microsoftOfficeAuth.js",
-        matches: ["*://usc-excel.officeapps.live.com/*"],
+        matches: [
+          "*://usc-excel.officeapps.live.com/*",
+          "*://excel.officeapps.live.com/*",
+        ],
         runAt: "document_start",
         allFrames: true,
       },
