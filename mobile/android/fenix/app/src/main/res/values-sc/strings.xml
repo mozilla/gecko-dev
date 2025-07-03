@@ -820,7 +820,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Tradutziones</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Sèberu de is datos</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Sèberu de is datos</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Còllida de datos</string>
   <!-- Preference for developers -->

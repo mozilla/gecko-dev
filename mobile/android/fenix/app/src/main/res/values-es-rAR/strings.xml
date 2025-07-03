@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Traducciones</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Elección de datos</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Elección de datos</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Recopilación de datos</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Conocer más</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Enviar datos técnicos y de interacción</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Conocer más sobre los datos técnicos</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Conocer más</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Conocer más</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Los datos sobre tu dispositivo, la configuración del hardware y el uso nos ayudan a mejorar las características, el rendimiento y la estabilidad de Firefox.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping de uso diario</string>
+  <string name="preferences_daily_usage_ping_description">Esto ayuda a Mozilla a estimar la cantidad de usuarios activos.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Conocer más sobre el ping de uso diario</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Enviar informes de fallos automáticamente</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Esto nos ayuda a diagnosticar y solucionar problemas con el navegador. Los informes pueden incluir datos personales o confidenciales.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Conocer más sobre los informes de fallos</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Informes de fallos</string>
+  <string name="usage_data_category">Datos de uso</string>
+  <string name="studies_data_category">Estudios</string>
+  <string name="technical_data_category">Datos técnicos</string>
+  <string name="crash_reporting_description">Los informes de fallos nos permiten diagnosticar y solucionar problemas del navegador. Los informes pueden incluir datos personales o confidenciales.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Medición de campañas</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Datos de medición de la campaña</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Compartí con los socios de tecnología de marketing de Mozilla cómo descubriste Firefox y lo usás.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Conocer más sobre datos de marketing</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping de uso diario</string>
-  <string name="preferences_daily_usage_ping_description">Esto ayuda a Mozilla a estimar la cantidad de usuarios activos.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Conocer más sobre el ping de uso diario</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Enviar informes de fallos automáticamente</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Esto nos ayuda a diagnosticar y solucionar problemas con el navegador. Los informes pueden incluir datos personales o confidenciales.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Conocer más sobre los informes de fallos</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Editar</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Borrar</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Navegar hacia atrás</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Guardar nuevo inicio de sesión</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Abrir sitio en el navegador</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

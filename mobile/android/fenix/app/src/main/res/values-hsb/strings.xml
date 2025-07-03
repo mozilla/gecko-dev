@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Přełožki</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Datowe wuběry</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Datowe wuběry</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Hromadźenje datow</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Dalše informacije</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Techniske daty a daty interakcije pósłać</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Zhońće wjace wo techniskich datach</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Dalše informacije</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Dalše informacije</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Daty wo wašim graće, wašej hardwarowej konfiguraciji a wo wužiću nam pomhaja, funkcije, wukon a stabilnosć Firefox polěpšić.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping za wšědne wužiwanje</string>
+  <string name="preferences_daily_usage_ping_description">To Mozilla pomha, sej aktiwnych wužiwarjow wažić.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Zhońće wjace wo pingu za wšědne wužiwanje</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Spadowe rozprawy awtomatisce pósłać</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">To nam pomha, problemy z wobhladowakom diagnosticěrować a rozrisać. Rozprawy móža wosobinske abo sensibelne daty wobsahować.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Dalše informacije wo spadowych rozprawach</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Rozprawy wo spadach</string>
+  <string name="usage_data_category">Wužiwanske daty</string>
+  <string name="studies_data_category">Studije</string>
+  <string name="technical_data_category">Techniske daty</string>
+  <string name="crash_reporting_description">Spadowe rozprawy wam zmóžnjeja, problemy z wobhladowakom diagnosticěrować a rozrisać. Rozprawy móža wosobinske abo sensibelne daty wobsahować.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Měrjenje kampanjow</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Měrjenske daty za kampanju</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Zdźělće našim partneram Mozilla marketingoweje technologije, kak sće Firefox wotkrył a zo jón wužiwaće.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Dalše informacije wo marketingowych datach</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping za wšědne wužiwanje</string>
-  <string name="preferences_daily_usage_ping_description">To Mozilla pomha, sej aktiwnych wužiwarjow wažić.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Zhońće wjace wo pingu za wšědne wužiwanje</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Spadowe rozprawy awtomatisce pósłać</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">To nam pomha, problemy z wobhladowakom diagnosticěrować a rozrisać. Rozprawy móža wosobinske abo sensibelne daty wobsahować.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Dalše informacije wo spadowych rozprawach</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Wobdźěłać</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Zhašeć</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Wróćo nawigěrować</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Nowe přizjewjenje składować</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Sydło we wobhladowaku wočinić</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

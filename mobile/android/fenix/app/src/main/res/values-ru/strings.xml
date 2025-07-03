@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Переводы</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Выбор данных</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Выбор данных</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Сбор данных</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Узнать больше</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Отправлять технические данные и данные взаимодействия</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Узнайте больше о технических данных</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Подробнее</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Подробнее</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Данные о вашем устройстве, конфигурации оборудования и использовании помогают нам улучшить возможности, производительность и стабильность Firefox.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ежедневный пинг использования</string>
+  <string name="preferences_daily_usage_ping_description">Это помогает Mozilla оценить активных пользователей.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Узнайте больше о ежедневном пинге использования</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Автоматически отправлять отчёты о падениях</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Это помогает нам диагностировать и устранять проблемы с браузером. Отчёты могут содержать личные или конфиденциальные данные.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Узнайте больше о сообщениях о падениях</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Сообщения о падениях</string>
+  <string name="usage_data_category">Данные об использовании</string>
+  <string name="studies_data_category">Исследования</string>
+  <string name="technical_data_category">Технические данные</string>
+  <string name="crash_reporting_description">Сообщения о падении позволяют нам диагностировать и устранять проблемы с браузером. Отчёты могут содержать личные или конфиденциальные данные.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Измерение кампании</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Данные отслеживания кампании</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Расскажите партнёрам по маркетинговым технологиям Mozilla о том, как вы открыли для себя Firefox и о том, что вы его используете.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Узнайте больше о маркетинговых данных</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ежедневный пинг использования</string>
-  <string name="preferences_daily_usage_ping_description">Это помогает Mozilla оценить активных пользователей.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Узнайте больше о ежедневном пинге использования</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Автоматически отправлять отчёты о падениях</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Это помогает нам диагностировать и устранять проблемы с браузером. Отчёты могут содержать личные или конфиденциальные данные.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Узнайте больше о сообщениях о падениях</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Изменить</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Удалить</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Перейти назад</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Сохранить новый логин</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Открыть сайт в браузере</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

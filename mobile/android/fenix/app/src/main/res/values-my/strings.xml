@@ -264,7 +264,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">ဘာသာစကား</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">ဒေတာရွေးချယ်မှုများ</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">ဒေတာရွေးချယ်မှုများ</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">ဒေတာစုဆောင်းခြင်း</string>
   <!-- Preference for developers -->

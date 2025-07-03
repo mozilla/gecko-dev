@@ -843,7 +843,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Itzulpenak</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Datu-aukerak</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Datu-aukerak</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Datu-bilketa</string>
   <!-- Preference for developers -->
@@ -1114,9 +1114,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Bidali datu tekniko eta interakziozkoak</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Argibide gehiago</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Argibide gehiago</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Zure gailuaren, hardware-konfigurazioaren eta erabilpenaren inguruko datuek guztientzat Firefoxen eginbideak, errendimendua eta egonkortasuna hobetzen laguntzen dute.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Eguneroko erabilpenaren ping-a</string>
+  <string name="preferences_daily_usage_ping_description">Honek erabiltzaile aktiboen kopurua kalkulatzen laguntzen dio Mozillari.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Eguneroko erabilpenari ping-ari buruzko argibide gehiago</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digu honek. Txostenek datu pertsonal edo kontuzkoak izan litzakete.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Kanpainen neurketa-datuak</string>
   <!--
@@ -1126,14 +1134,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Partekatu Mozillaren marketineko teknologia-bazkideekin Firefox nola aurkitu zenuen eta erabiltzen duzula.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Marketin-datuei buruzko argibide gehiago</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Eguneroko erabilpenaren ping-a</string>
-  <string name="preferences_daily_usage_ping_description">Honek erabiltzaile aktiboen kopurua kalkulatzen laguntzen dio Mozillari.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Eguneroko erabilpenari ping-ari buruzko argibide gehiago</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digu honek. Txostenek datu pertsonal edo kontuzkoak izan litzakete.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Hutsegite-txostenei buruzko argibide gehiago</string>
   <!-- Title for studies preferences -->

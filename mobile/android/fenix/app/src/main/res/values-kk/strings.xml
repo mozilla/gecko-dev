@@ -876,7 +876,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Аудармалар</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Деректер таңдауы</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Деректер таңдауы</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Деректер жинау</string>
   <!-- Preference for developers -->
@@ -1221,9 +1221,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Техникалық және өзара әрекеттесу деректерін жіберу</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Көбірек білу</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Көбірек білу</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Құрылғыңыз, жабдық конфигурациясы және пайдалану туралы деректер бізге Firefox мүмкіндіктерін, өнімділігін мен тұрақтылығын жақсартуға көмектеседі.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Күнделікті пайдалану пингі</string>
+  <string name="preferences_daily_usage_ping_description">Бұл Mozilla-ға белсенді пайдаланушылар санын бағалауға көмектеседі.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Күнделікті пайдалану пингі туралы көбірек білу</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Құлау хабарламаларын автоматты түрде жіберу</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Бұл бізге браузердегі ақауларды диагностикалауға және түзетуге мүмкіндік береді. Есептемелер жеке немесе сезімтал деректерді қамтуы мүмкін.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Науқанды өлшеу деректері</string>
   <!--
@@ -1233,14 +1241,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Firefox-ты өзіңіз үшін қалай ашқаныңызды және оны қалай пайдаланатыныңызды Mozilla маркетингтік технологиялар серіктестерімен бөлісіңіз.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Маркетинг деректері туралы көбірек білу</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Күнделікті пайдалану пингі</string>
-  <string name="preferences_daily_usage_ping_description">Бұл Mozilla-ға белсенді пайдаланушылар санын бағалауға көмектеседі.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Күнделікті пайдалану пингі туралы көбірек білу</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Құлау хабарламаларын автоматты түрде жіберу</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Бұл бізге браузердегі ақауларды диагностикалауға және түзетуге мүмкіндік береді. Есептемелер жеке немесе сезімтал деректерді қамтуы мүмкін.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Құлау есептемелері туралы көбірек білу</string>
   <!-- Title for studies preferences -->

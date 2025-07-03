@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Preklady</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Odosielanie údajov</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Odosielanie údajov</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Zber údajov</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Ďalšie informácie</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Odosielať technické údaje a údaje o interakciách</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Ďalšie informácie o technických údajoch</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Ďalšie informácie</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Ďalšie informácie</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Údaje o vašom zariadení, konfigurácii hardvéru a používaní nám pomáhajú zlepšovať funkcie, výkon a stabilitu Firefoxu.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping denného používania</string>
+  <string name="preferences_daily_usage_ping_description">Toto pomáha spoločnosti Mozilla odhadnúť počet aktívnych používateľov.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Ďalšie informácie o pingu denného používania</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Automaticky odosielať správy o zlyhaní</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Toto nám umožňuje diagnostikovať a opraviť problémy s prehliadačom. Hlásenia môžu obsahovať osobné alebo citlivé údaje.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Ďalšie informácie o správach o zlyhaní</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Správy o zlyhaní</string>
+  <string name="usage_data_category">Údaje o používaní</string>
+  <string name="studies_data_category">Štúdie</string>
+  <string name="technical_data_category">Technické údaje</string>
+  <string name="crash_reporting_description">Správy o zlyhaní nám umožňujú diagnostikovať a opraviť problémy s prehliadačom. Hlásenia môžu obsahovať osobné alebo citlivé údaje.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Meranie kampane</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Údaje merania kampaní</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Podeľte sa o to, ako ste objavili Firefox a že ho používate, s partnermi pre marketingové technológie Mozilly.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Ďalšie informácie o marketingových údajoch</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping denného používania</string>
-  <string name="preferences_daily_usage_ping_description">Toto pomáha spoločnosti Mozilla odhadnúť počet aktívnych používateľov.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Ďalšie informácie o pingu denného používania</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automaticky odosielať správy o zlyhaní</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Toto nám umožňuje diagnostikovať a opraviť problémy s prehliadačom. Hlásenia môžu obsahovať osobné alebo citlivé údaje.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Ďalšie informácie o správach o zlyhaní</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Upraviť</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Odstrániť</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Prejsť dozadu</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Uložiť nové prihlásenie</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Otvoriť stránku v prehliadači</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

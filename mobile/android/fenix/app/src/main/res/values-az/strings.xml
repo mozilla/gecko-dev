@@ -144,7 +144,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Dil</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Məlumat seçimi</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Məlumat seçimi</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Məlumat yığma</string>
   <!-- Preference for developers -->

@@ -710,7 +710,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Аиҭагақәа</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Адыррақәа ралхра</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Адыррақәа ралхра</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Адыррақәа реизгара</string>
   <!-- Preference for developers -->

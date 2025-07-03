@@ -640,7 +640,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Tarjamah</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Pilihan data</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Pilihan data</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Koléksi data</string>
   <!-- Preference for developers -->

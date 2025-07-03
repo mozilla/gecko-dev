@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Преводи</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Избор на данни</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Избор на данни</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Събирани данни</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Научете повече</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Изпращане на технически данни и данни за взаимодействие</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Научете повече за техническите данни</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Научете повече</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Научете повече</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Данните за вашето устройство, хардуерна конфигурация и използване ни помагат да подобрим възможностите, производителността и стабилността на Firefox.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ежедневна употреба</string>
+  <string name="preferences_daily_usage_ping_description">Това помага на Mozilla да оцени активните потребители.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Научете повече за ежедневната употреба</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Автоматично изпращане на доклади за срив</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Това ни помага да откриваме и отстраняваме проблеми с браузъра. Докладите може да включват лични или чувствителни данни.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Научете повече за докладите за сривове</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Доклади за сривове</string>
+  <string name="usage_data_category">Данни за употребата</string>
+  <string name="studies_data_category">Проучвания</string>
+  <string name="technical_data_category">Технически данни</string>
+  <string name="crash_reporting_description">Докладите за сривове ни позволяват да откриваме и отстраняваме проблеми с браузъра. Докладите може да включват лични или чувствителни данни.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Измерване на кампании</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Данни от измерване на кампания</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Споделете как сте открили Firefox и че го използвате с партньорите в маркетинговите технологии на Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Научете повече за маркетинговите данни</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ежедневна употреба</string>
-  <string name="preferences_daily_usage_ping_description">Това помага на Mozilla да оцени активните потребители.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Научете повече за ежедневната употреба</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Автоматично изпращане на доклади за срив</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Това ни помага да откриваме и отстраняваме проблеми с браузъра. Докладите може да включват лични или чувствителни данни.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Научете повече за докладите за сривове</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Редактиране</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Изтриване</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Връщане назад</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Запазете новото влизане</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Отваряне препратката в четеца</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

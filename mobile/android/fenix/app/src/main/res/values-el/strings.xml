@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Μεταφράσεις</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Επιλογές δεδομένων</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Επιλογές δεδομένων</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Συλλογή δεδομένων</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Μάθετε περισσότερα</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Αποστολή τεχνικών δεδομένων και δεδομένων αλληλεπίδρασης</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Μάθετε περισσότερα σχετικά με τα τεχνικά δεδομένα</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Μάθετε περισσότερα</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Μάθετε περισσότερα</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Τα δεδομένα της συσκευής, των ρυθμίσεων υλικού και της χρήσης σας, μάς βοηθούν να βελτιώσουμε τις λειτουργίες, τις επιδόσεις και τη σταθερότητα του Firefox.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping ημερήσιας χρήσης</string>
+  <string name="preferences_daily_usage_ping_description">Αυτό βοηθά τη Mozilla να εκτιμήσει τους ενεργούς χρήστες.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Μάθετε περισσότερα σχετικά με το ping ημερήσιας χρήσης</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Αυτόματη αποστολή αναφορών κατάρρευσης</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Αυτό μας βοηθάει να διαγνώσουμε και να επιλύσουμε προβλήματα με το πρόγραμμα περιήγησης. Οι αναφορές ενδέχεται να περιέχουν προσωπικά ή ευαίσθητα δεδομένα.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Μάθετε περισσότερα σχετικά με τις αναφορές καταρρεύσεων</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Αναφορές καταρρεύσεων</string>
+  <string name="usage_data_category">Δεδομένα χρήσης</string>
+  <string name="studies_data_category">Μελέτες</string>
+  <string name="technical_data_category">Τεχνικά δεδομένα</string>
+  <string name="crash_reporting_description">Οι αναφορές κατάρρευσης μάς επιτρέπουν να διαγνώσουμε και να διορθώσουμε προβλήματα του προγράμματος περιήγησης. Οι αναφορές ενδέχεται να περιλαμβάνουν προσωπικά ή ευαίσθητα δεδομένα.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Μετρήσεις εκστρατειών</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Δεδομένα μέτρησης εκστρατειών</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Μοιραστείτε πώς ανακαλύψατε το Firefox και δηλώστε ότι το χρησιμοποιείτε στους συνεργάτες μάρκετινγκ της Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Μάθετε περισσότερα σχετικά με τα δεδομένα μάρκετινγκ</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping ημερήσιας χρήσης</string>
-  <string name="preferences_daily_usage_ping_description">Αυτό βοηθά τη Mozilla να εκτιμήσει τους ενεργούς χρήστες.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Μάθετε περισσότερα σχετικά με το ping ημερήσιας χρήσης</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Αυτόματη αποστολή αναφορών κατάρρευσης</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Αυτό μας βοηθάει να διαγνώσουμε και να επιλύσουμε προβλήματα με το πρόγραμμα περιήγησης. Οι αναφορές ενδέχεται να περιέχουν προσωπικά ή ευαίσθητα δεδομένα.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Μάθετε περισσότερα σχετικά με τις αναφορές καταρρεύσεων</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Επεξεργασία</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Διαγραφή</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Πλοήγηση προς τα πίσω</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Αποθήκευση νέας σύνδεσης</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Άνοιγμα σελίδας στο πρόγραμμα περιήγησης</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

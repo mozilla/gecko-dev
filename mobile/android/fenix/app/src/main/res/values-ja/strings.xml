@@ -318,6 +318,8 @@
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">パスワード、タブなどを同期します</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">ブックマーク、パスワード、タブなどを同期します</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">パスワード、ブックマークなどを同期します</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">ログインして Sync に戻る</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -857,6 +859,8 @@
   <string name="preferences_category_account">アカウント</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">アドレスバーの配置</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">ツールバーのレイアウト</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">テーマ</string>
   <!-- Preference for customizing the home screen -->
@@ -876,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">翻訳</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">データの選択</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">データの選択</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">データ収集</string>
   <!-- Preference for developers -->
@@ -939,6 +943,14 @@
   <string name="preferences_open_links_in_apps_never">使用しない</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">外部のダウンロードマネージャー</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">別のアプリでダウンロードを管理する</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">%s および端末から削除</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">ダウンロードマネージャーでファイルを削除すると、端末からも削除されます</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">ダウンロード</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko ログを有効にする</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -967,6 +979,20 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">この拡張機能を信頼する場合は、すべてのウェブサイトに対して権限を与えられます。</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">この拡張機能は権限を必要としません。</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">開発者によると、この拡張機能は次のデータを収集します: %1$s</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">開発者によると、この拡張機能は次のデータを収集します: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">開発者によると、この拡張機能はデータ収集を必要としません。</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">必要な権限:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">任意の許可設定:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">必要なデータ収集:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">任意のデータ収集:</string>
   <!--
     Add-on Preferences
 
@@ -1090,6 +1116,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Created by @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">無地</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">グラデーション</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">その他</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1198,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">詳細情報</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">技術データと対話データを送信する</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">技術データについての詳細</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">詳細情報</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">詳細情報</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">端末、ハードウェア構成、アプリの使用状況に関するデータは、Firefox の機能やパフォーマンス、安定性の向上に役立てられます。</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">毎日の使用頻度を送信する</string>
+  <string name="preferences_daily_usage_ping_description">これは Mozilla がアクティブユーザー数を推定するのに役立ちます。</string>
+  <string name="preferences_daily_usage_ping_learn_more">日ごとの使用状況データについての詳細</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">クラッシュレポートを自動的に送信する</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">これはブラウザーの問題の診断と修正に役立てられます。レポートには個人情報や機密性の高い情報が含まれる場合があります。</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">クラッシュレポートについて詳細</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">クラッシュレポート</string>
+  <string name="usage_data_category">使用状況データ</string>
+  <string name="studies_data_category">調査</string>
+  <string name="technical_data_category">技術データ</string>
+  <string name="crash_reporting_description">クラッシュレポートが送信されることにより、ブラウザーの問題の診断と修正に役立てられます。レポートには個人情報や機密性の高い情報が含まれる場合があります。</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">キャンペーン測定</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">キャンペーン測定データ</string>
   <!--
@@ -1211,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Firefox を見つけた経緯や、Firefox を使用していることを Mozilla のマーケティング技術パートナーと共有してください。</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">マーケティングデータについての詳細</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">毎日の使用頻度を送信する</string>
-  <string name="preferences_daily_usage_ping_description">これは Mozilla がアクティブユーザー数を推定するのに役立ちます。</string>
-  <string name="preferences_daily_usage_ping_learn_more">日ごとの使用状況データについての詳細</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">クラッシュレポートを自動的に送信する</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">これはブラウザーの問題の診断と修正に役立てられます。レポートには個人情報や機密性の高い情報が含まれる場合があります。</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">クラッシュレポートについて詳細</string>
   <!-- Title for studies preferences -->
@@ -1249,6 +1293,10 @@
   <string name="preference_top_toolbar">画面上部</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">画面下部</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">シンプル</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">展開表示</string>
   <!--
     Theme Preferences
 
@@ -1517,6 +1565,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">削除されたアイテム: %1$d 個</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">次のアプリでファイルをダウンロード:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">“%1$s” を削除しました</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1621,11 +1671,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • 計算中</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • 残り時間不明</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • 一時停止</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • 一時停止中</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">一時停止中</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1734,8 +1794,12 @@
   <string name="unsubmitted_crash_dialog_checkbox_label">クラッシュレポートを自動的に送信する</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">閉じる</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">今後は表示しない</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">クラッシュレポートを送信する</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">詳細情報</string>
   <!--
     Bookmarks
 
@@ -2595,6 +2659,18 @@
   <string name="saved_login_clear_username">ユーザー名を消去</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">ホスト名を消去</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">ログイン詳細メニュー</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">前のページへ戻る</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">編集</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">削除</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">前のページへ戻る</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">新しいログイン情報を保存します</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">サイトをブラウザーで開く</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

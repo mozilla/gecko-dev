@@ -687,7 +687,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">පරිවර්තන</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">දත්ත තේරීම්</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">දත්ත තේරීම්</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">දත්ත රැස් කිරීම</string>
   <!-- Preference for developers -->
@@ -930,7 +930,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">තව දැනගන්න</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">තව දැනගන්න</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">තව දැනගන්න</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">අධ්‍යන</string>
   <!-- Summary for studies preferences -->

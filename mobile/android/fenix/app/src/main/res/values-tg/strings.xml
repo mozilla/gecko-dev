@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Тарҷумаҳо</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Интихоби маълумот</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Интихоби маълумот</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Маҷмуаи маълумот</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Маълумоти бештар</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Фиристодани маълумоти техникӣ ва ҳамкорӣ</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Маълумоти бештар дар бораи маълумоти техникӣ</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Маълумоти бештар</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Маълумоти бештар</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Маълумот дар бораи дастгоҳи шумо, танзимоти сахтафзор ва тарзи истифодаи браузер ба мо барои беҳтар кардани хусусиятҳо, самаранокӣ ва устувории «Firefox» кумак мерасонад.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Пинги истифодабарии ҳаррӯза</string>
+  <string name="preferences_daily_usage_ping_description">Ин ба «Mozilla» кумак мекунад, ки корбарони фаъолро ҳисоб кунад.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Маълумоти бештар дар бораи пинги истифодабарии ҳаррӯза</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Ба таври худкор фиристодани гузоришҳо дар бораи вайронӣ</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Ин ба мо барои ташхис ва ислоҳ кардани хатоҳои браузер кумак мекунад. Гузоришҳо метавонанд маълумоти шахсӣ ва махфиро дар бар гиранд.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Маълумоти бештар дар бораи гузоришҳо дар бораи вайронӣ</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Гузоришҳо дар бораи вайронӣ</string>
+  <string name="usage_data_category">Маълумоти истифодабарӣ</string>
+  <string name="studies_data_category">Омӯзишҳо</string>
+  <string name="technical_data_category">Маълумоти техникӣ</string>
+  <string name="crash_reporting_description">Гузоришҳо дар бораи вайронӣ ба мо барои ташхис ва ислоҳ кардани хатоҳои браузер имкон медиҳанд. Гузоришҳо метавонанд маълумоти шахсӣ ва махфиро дар бар гиранд.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Андозагирии маърака</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Маълумоти андозагирии маърака</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Ба шарикони технологияи бозоршиносии «Mozilla» хабар диҳед, ки шумо чӣ тавр браузери «Firefox»-ро пайдо кардед ва онро истифода мебаред.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Маълумоти бештар дар бораи иттилооти бозоршиносӣ</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Пинги истифодабарии ҳаррӯза</string>
-  <string name="preferences_daily_usage_ping_description">Ин ба «Mozilla» кумак мекунад, ки корбарони фаъолро ҳисоб кунад.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Маълумоти бештар дар бораи пинги истифодабарии ҳаррӯза</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Ба таври худкор фиристодани гузоришҳо дар бораи вайронӣ</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Ин ба мо барои ташхис ва ислоҳ кардани хатоҳои браузер кумак мекунад. Гузоришҳо метавонанд маълумоти шахсӣ ва махфиро дар бар гиранд.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Маълумоти бештар дар бораи гузоришҳо дар бораи вайронӣ</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Таҳрир кардан</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Нест кардан</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Ба қафо гузаштан</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Нигоҳ доштани воридшавии нав</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Кушодани сомона дар браузер</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

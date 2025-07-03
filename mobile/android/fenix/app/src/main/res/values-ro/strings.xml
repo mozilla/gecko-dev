@@ -323,7 +323,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Limbă</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Selecții de date</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Selecții de date</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Colectare de date</string>
   <!-- Preference for developers -->

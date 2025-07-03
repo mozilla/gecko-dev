@@ -703,7 +703,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Пераклады</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Выбар дадзеных</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Выбар дадзеных</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Збор дадзеных</string>
   <!-- Preference for developers -->

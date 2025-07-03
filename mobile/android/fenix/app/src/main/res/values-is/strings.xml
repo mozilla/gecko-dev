@@ -876,7 +876,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Þýðingar</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Gagnamöguleikar</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Gagnamöguleikar</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Gagnasöfnun</string>
   <!-- Preference for developers -->
@@ -1199,9 +1199,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Senda tækni- og samskiptagögn</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Fræðast meira</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Fræðast meira</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Gögn um tækið þitt, vélbúnaðarstillingar og hvernig þú notar Firefox, hjálpa til við að bæta eiginleika, afköst og stöðugleika fyrir alla notendur.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping um daglega notkun</string>
+  <string name="preferences_daily_usage_ping_description">Þetta hjálpar Mozilla að áætla virka notendur.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Frekari upplýsingar um notkunargögn</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Senda hrunskýrslur inn sjálfkrafa</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Þetta gerir okkur kleift að greina og laga vandamál með vafrann. Slíkar skýrslur geta innihaldið persónuleg eða viðkvæm gögn.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Mælingagögn herferðar</string>
   <!--
@@ -1211,14 +1219,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Deildu því hvernig þú uppgötvaðir Firefox og að þú notar hann með markaðstæknifélögum Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Frekari upplýsingar um markaðsgögn</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping um daglega notkun</string>
-  <string name="preferences_daily_usage_ping_description">Þetta hjálpar Mozilla að áætla virka notendur.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Frekari upplýsingar um notkunargögn</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Senda hrunskýrslur inn sjálfkrafa</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Þetta gerir okkur kleift að greina og laga vandamál með vafrann. Slíkar skýrslur geta innihaldið persónuleg eða viðkvæm gögn.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Frekari upplýsingar um hrunskýrslur</string>
   <!-- Title for studies preferences -->

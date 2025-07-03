@@ -671,7 +671,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">ترجمے</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">ڈیٹا چوائس</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">ڈیٹا چوائس</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">ڈیٹا مجموعہ</string>
   <!-- Preference for developers -->
@@ -924,7 +924,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ٻیا سِکھو</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">ٻیا سِکھو</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">ٻیا سِکھو</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">مطالعہ</string>
   <!-- Summary for studies preferences -->

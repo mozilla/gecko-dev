@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Translations</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Data choices</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Data choices</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Data collection</string>
   <!-- Preference for developers -->
@@ -1231,9 +1231,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Send technical and interaction data</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Learn more</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Learn more</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Data about your device, hardware configuration, and usage helps us improve Firefox features, performance, and stability.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Daily usage ping</string>
+  <string name="preferences_daily_usage_ping_description">This helps Mozilla to estimate active users.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Learn more about daily usage ping</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Automatically send crash reports</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">This helps us diagnose and fix issues with the browser. Reports may include personal or sensitive data.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Campaign measurement data</string>
   <!--
@@ -1243,14 +1251,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Share how you discovered Firefox and that you use it with Mozilla’s marketing technology partners.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Learn more about marketing data</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Daily usage ping</string>
-  <string name="preferences_daily_usage_ping_description">This helps Mozilla to estimate active users.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Learn more about daily usage ping</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automatically send crash reports</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">This helps us diagnose and fix issues with the browser. Reports may include personal or sensitive data.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Learn more about crash reports</string>
   <!-- Title for studies preferences -->

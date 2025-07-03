@@ -835,6 +835,8 @@
   <string name="preferences_category_account">അക്കൗണ്ട്</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">വിലാസം പട്ടയുടെ സ്ഥാനം</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">കരുപ്പട്ട രേഖാചിത്രം</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">കെട്ടും മട്ടും</string>
   <!-- Preference for customizing the home screen -->
@@ -854,7 +856,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">വിവർത്തനങ്ങൾ</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">ഡേറ്റാ ഐച്ഛികങ്ങൾ</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">ഡേറ്റാ ഐച്ഛികങ്ങൾ</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">ഡാറ്റ ശേഖരണം</string>
   <!-- Preference for developers -->
@@ -1153,15 +1155,25 @@
   <string name="exceptions_empty_message_learn_more_link">കൂടുതല്‍ അറിയുക</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">സാങ്കേതിയും ഇടപാടുനീയ ദത്ത അയയ്ക്കുക</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">സാങ്കേതികദത്തയെപ്പറ്റി കൂടുതലറിയുക</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">കൂടുതലറിയുക</string>
-  <!-- Learn more link for marketing data preference -->
-  <string name="preferences_marketing_data_learn_more">വില്പനദത്തയെ കുറിച്ചു് കൂടുതൽ അറിയുക</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">കൂടുതലറിയുക</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">പ്രതിദിന ഉപയോഗ പിംഗ്</string>
   <string name="preferences_daily_usage_ping_description">സജീവ ഉപയോക്താക്കളുടെ കണക്കെടുക്കാൻ ഇതു് മോസ്സില്ലയെ സഹായിക്കുന്നു.</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">തകർച്ചവിവരങ്ങളെക്കുറിച്ചു കൂടുതലറിയുക</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">തകരാർ വിവരങ്ങൾ</string>
+  <string name="usage_data_category">ഉപയോഗ ഡാറ്റ</string>
+  <string name="studies_data_category">പഠനങ്ങൾ</string>
+  <string name="technical_data_category">സാങ്കേതിക ഡാറ്റ</string>
+  <string name="crash_reporting_description">തകൎച്ച റിപ്പോർട്ടുകൾ ഞങ്ങൾക്കു് അന്വേഷിയന്ത്രത്തിന്റെ കൂടെയുള്ള എല്ലാ പ്രശ്നങ്ങളെ കണ്ടുപിടിക്കാനും പരിഹരിക്കാനും സഹായിക്കുന്നു. റിപ്പോർട്ടുകളിൽ തനതായ അല്ലെങ്കിൽ സൂക്ഷിച്ചുവയ്ക്കാനുള്ള ദത്തയും ഉൾപ്പെടാം.</string>
+  <!-- Learn more link for marketing data preference -->
+  <string name="preferences_marketing_data_learn_more">വില്പനദത്തയെ കുറിച്ചു് കൂടുതൽ അറിയുക</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">തകർച്ചവിവരങ്ങളെ കുറിച്ചു് അറിയുക</string>
   <!-- Title for studies preferences -->
@@ -1192,6 +1204,10 @@
   <string name="preference_top_toolbar">മുകളിൽ</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">താഴെ</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">എളുപ്പം</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">വലുതാക്കിയതു്</string>
   <!--
     Theme Preferences
 
@@ -1566,11 +1582,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • മിച്ചം</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • മിച്ചമിരിക്കുന്ന നേരമറിയില്ല</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • നിൎത്തിയിരിപ്പുണ്ടു്</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • നിൎത്തി</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">താല്ക്കാലം നിറുത്തി</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2503,6 +2529,18 @@
   <string name="saved_login_clear_username">ഉപയോക്തൃപ്പേരു് മായ്ക്കുക</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">ഹോസ്റ്റ്നാമം കളയുക</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">പ്രവേശന വിശദാംശ കുറിപ്പടി</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">തിരിച്ചു ചെല്ലുക</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">തിരുത്തുക</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">മായ്ക്കുക</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">തിരിച്ചു ചെല്ലുക</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">പുതിയ പ്രവേശനമായി കരുതിവയ്ക്കുക</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">അന്വേഷിയിൽ വെബ്സ്ഥാനം തുറക്കുക</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

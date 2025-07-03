@@ -558,7 +558,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Ch\'ab\'äl</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Rucha\'ik tzij</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Rucha\'ik tzij</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Rucha\'ik tzij</string>
   <!-- Preference for developers -->

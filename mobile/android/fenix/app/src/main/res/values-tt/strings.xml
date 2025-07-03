@@ -603,7 +603,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Тәрҗемәләр</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Бирелгәннәрне сайлау</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Бирелгәннәрне сайлау</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Мәгълүмат туплау</string>
   <!-- Preference for developers -->
@@ -833,7 +833,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Күбрәк белү</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Күбрәк белү</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Күбрәк белү</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Тикшеренүләр</string>
   <!-- Summary for studies preferences -->

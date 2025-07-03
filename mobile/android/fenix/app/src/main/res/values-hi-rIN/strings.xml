@@ -253,7 +253,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">भाषा</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">डेटा विकल्प</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">डेटा विकल्प</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">डेटा संग्रहण</string>
   <!-- Preference for developers -->

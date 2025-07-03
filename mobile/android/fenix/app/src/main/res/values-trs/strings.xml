@@ -387,7 +387,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Nânj ga\'minj</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Doj sa nikāj nej dâto</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Doj sa nikāj nej dâto</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Nara\'uij nej dâto</string>
   <!-- Preference for developers -->

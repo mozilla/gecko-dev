@@ -319,7 +319,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Èdè</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Àwọn dátà tó wunni</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Àwọn dátà tó wunni</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Gbígba àwọn dátà</string>
   <!-- Preference for developers -->

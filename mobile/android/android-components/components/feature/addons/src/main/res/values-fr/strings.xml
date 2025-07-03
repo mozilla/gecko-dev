@@ -203,7 +203,7 @@
   <!-- This is the title of a dialog that asks the users to grant optional data collection permissions only. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title">%1$s demande une collecte de données supplémentaire</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Votre permission est nécessaire pour :</string>
+  <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Votre permission est nécessaire pour\u00a0:</string>
   <!-- Heading for the permissions section in the add-on install dialog. -->
   <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">Autorisations nécessaires\u00a0:</string>
   <!-- Heading for the data collection permissions section in the add-on install dialog. -->
@@ -211,7 +211,7 @@
   <!-- Heading for the optional settings section in the add-on install dialog. -->
   <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Paramètres optionnels\u00a0:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
-  <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">L’extension souhaite :</string>
+  <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">L’extension souhaite\u00a0:</string>
   <!-- Heading for the permissions section in the optional permissions request dialog. -->
   <string name="mozac_feature_addons_permissions_dialog_heading_optional_permissions">Nouvelles autorisations\u00a0:</string>
   <!-- Heading for the data collection permissions section in the optional permissions request dialog. -->
@@ -233,9 +233,9 @@
   <!-- This is the label of a button to cancel an ongoing add-on installation. -->
   <string name="mozac_feature_addons_install_addon_dialog_cancel">Annuler</string>
   <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
-  <string name="mozac_feature_addons_user_rating_count_2">Avis : %1$s</string>
+  <string name="mozac_feature_addons_user_rating_count_2">Avis\u00a0: %1$s</string>
   <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
-  <string name="mozac_feature_addons_rating_content_description_2">Note : %1$.02f sur 5</string>
+  <string name="mozac_feature_addons_rating_content_description_2">Note\u00a0: %1$.02f sur 5</string>
   <!-- This is the title of page where all the add-ons are listed -->
   <string name="mozac_feature_addons_addons">Modules complémentaires</string>
   <!-- Label for add-ons sub menu item for add-ons manager -->
@@ -335,9 +335,9 @@
   <!-- Text shown in a dialog that displays information about the last attempt to update an add-on. This is the title of the dialog. -->
   <string name="mozac_feature_addons_updater_dialog_title">Informations de mise à jour</string>
   <!-- Label in the dialog displaying information for the last attempt to update add-ons. It's followed by the date of the last attempt. -->
-  <string name="mozac_feature_addons_updater_dialog_last_attempt">Dernière tentative :</string>
+  <string name="mozac_feature_addons_updater_dialog_last_attempt">Dernière tentative\u00a0:</string>
   <!-- Displayed in the "Status" field for the updater when an add-on has been correctly updated -->
-  <string name="mozac_feature_addons_updater_dialog_status">État :</string>
+  <string name="mozac_feature_addons_updater_dialog_status">État\u00a0:</string>
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_installed_dialog_title">%1$s a été ajouté à %2$s</string>
   <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->

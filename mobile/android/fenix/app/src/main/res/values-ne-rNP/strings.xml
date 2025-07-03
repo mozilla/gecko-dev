@@ -210,7 +210,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">भाषा</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">डाटा बिकल्पहरु</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">डाटा बिकल्पहरु</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">डाटा सङ्कलन</string>
   <!-- Preference title for switch preference to show search suggestions -->

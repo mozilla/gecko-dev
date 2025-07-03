@@ -289,7 +289,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Kalba</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Duomenų siuntimas</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Duomenų siuntimas</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Duomenų rinkimas</string>
   <!-- Preference for developers -->

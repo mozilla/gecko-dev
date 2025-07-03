@@ -488,7 +488,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Tõlkimine</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Saadetavad andmed</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Saadetavad andmed</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Andmete kogumine</string>
   <!-- Preference for developers -->
@@ -647,7 +647,7 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Saadetakse tehnilisi ja interaktsiooniandmeid</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Lisateave</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Lisateave</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Andmed sinu seadme, riistvara konfiguratsiooni ja kasutuse kohta aitavad meil Firefoxi funktsioone, jõudlust ja stabiilsust täiustada.</string>
   <!-- Preference switch for daily usage ping data collection -->
