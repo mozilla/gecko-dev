@@ -140,3 +140,29 @@ add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URL);
   await checkMarkupSearchSuggestions(inspector, TEST_DATA);
 });
+
+add_task(async function testEscape() {
+  const { inspector } = await openInspectorForURL(TEST_URL);
+
+  // Get in a state where the suggestions popup is displayed
+  await checkMarkupSearchSuggestions(inspector, [
+    { key: "d", value: "d", suggestions: ["div", "#d1", "#d2"] },
+  ]);
+
+  const searchBox = inspector.searchBox;
+  const popup = inspector.searchSuggestions.searchPopup;
+
+  ok(popup.isOpen, `The suggestions popup is open`);
+  is(searchBox.value, "d", "search input has expected value");
+
+  info("Check that Esc closes the suggestions popup");
+  const onPopupClose = popup.once("popup-closed");
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, inspector.panelWin);
+  await onPopupClose;
+  ok(!popup.isOpen, `The suggestions popup is closed`);
+  is(searchBox.value, "d", "The search input value didn't changed");
+
+  info("Check that Esc clears the input when the popup isn't opened");
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, inspector.panelWin);
+  is(searchBox.value, "", "The search input was cleared");
+});
