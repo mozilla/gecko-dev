@@ -4,6 +4,7 @@
 
 package org.mozilla.focus.activity.robots
 
+import android.net.Uri
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.IdlingResource
@@ -113,6 +114,13 @@ class BrowserRobot {
                 }
             }
         }
+    }
+
+    fun verifyCustomTabUrl(url: String) {
+        val uri = Uri.parse(url)
+        val expectedText = uri.host ?: url // fallback if host is null
+
+        verifyPageURL(expectedText)
     }
 
     fun verifyPageURL(expectedText: String) {

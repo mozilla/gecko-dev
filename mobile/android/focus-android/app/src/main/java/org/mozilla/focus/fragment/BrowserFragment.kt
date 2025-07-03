@@ -60,6 +60,7 @@ import mozilla.components.feature.session.PictureInPictureFeature
 import mozilla.components.feature.session.SessionFeature
 import mozilla.components.feature.sitepermissions.SitePermissionsFeature
 import mozilla.components.feature.tabs.WindowFeature
+import mozilla.components.feature.toolbar.ToolbarFeature
 import mozilla.components.feature.top.sites.TopSitesConfig
 import mozilla.components.feature.top.sites.TopSitesFeature
 import mozilla.components.lib.crash.Crash
@@ -584,6 +585,12 @@ class BrowserFragment :
             binding.browserToolbar.display.menuBuilder = browserMenu.menuBuilder
         }
 
+        val renderStyle = if (tab.isCustomTab()) {
+            ToolbarFeature.RenderStyle.RegistrableDomain
+        } else {
+            ToolbarFeature.RenderStyle.ColoredUrl
+        }
+
         toolbarIntegration.set(
             BrowserToolbarIntegration(
                 requireComponents.store,
@@ -597,6 +604,7 @@ class BrowserFragment :
                 eraseActionListener = { erase(shouldEraseAllTabs = true) },
                 isOnboardingTab = isOnboardingTab(customTabSessionState),
                 tabCounterListener = ::tabCounterListener,
+                renderStyle = renderStyle,
             ),
             owner = this,
             view = binding.browserToolbar,

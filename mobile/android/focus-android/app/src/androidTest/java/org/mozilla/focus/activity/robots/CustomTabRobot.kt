@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.focus.activity.robots
 
+import android.net.Uri
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.ViewInteraction
 import androidx.test.espresso.action.ViewActions.click
@@ -59,6 +60,13 @@ class CustomTabRobot {
         closeCustomTabButton
             .check(matches(isDisplayed()))
             .perform(click())
+    }
+
+    fun verifyCustomTabUrl(url: String) {
+        val uri = Uri.parse(url)
+        val expectedText = uri.host ?: url // fallback if host is null
+
+        verifyPageURL(expectedText)
     }
 
     fun verifyPageURL(expectedText: String) {

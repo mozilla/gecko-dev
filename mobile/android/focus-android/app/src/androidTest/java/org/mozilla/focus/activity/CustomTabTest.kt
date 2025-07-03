@@ -78,7 +78,7 @@ class CustomTabTest : TestSetup() {
         browserScreen {
             progressBar.waitUntilGone(waitingTime)
             verifyPageContent(customTabPage.content)
-            verifyPageURL(customTabPage.url)
+            verifyCustomTabUrl(customTabPage.url)
         }
 
         customTab {
@@ -102,10 +102,10 @@ class CustomTabTest : TestSetup() {
         launchActivity<IntentReceiverActivity>(createCustomTabIntent(customTabPage.url))
         customTab {
             progressBar.waitUntilGone(waitingTime)
-            verifyPageURL(customTabPage.url)
+            verifyCustomTabUrl(customTabPage.url)
             openCustomTabMenu()
         }.clickOpenInFocusButton {
-            verifyPageURL(customTabPage.url)
+            verifyCustomTabUrl(customTabPage.url)
         }
     }
 
@@ -119,14 +119,14 @@ class CustomTabTest : TestSetup() {
         customTab {
             verifyPageContent(firstPage.content)
             clickLinkMatchingText("Tab 2")
-            verifyPageURL(secondPage.url)
+            verifyCustomTabUrl(secondPage.url)
         }.openCustomTabMenu {
         }.pressBack {
             progressBar.waitUntilGone(waitingTime)
-            verifyPageURL(firstPage.url)
+            verifyCustomTabUrl(firstPage.url)
         }.openMainMenu {
         }.pressForward {
-            verifyPageURL(secondPage.url)
+            verifyCustomTabUrl(secondPage.url)
         }.openMainMenu {
         }.clickReloadButton {
             verifyPageContent(secondPage.content)
