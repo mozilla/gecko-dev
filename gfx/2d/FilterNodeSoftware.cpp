@@ -2263,9 +2263,9 @@ void FilterNodeConvolveMatrixSoftware::SetAttribute(uint32_t aIndex,
 }
 
 void FilterNodeConvolveMatrixSoftware::SetAttribute(
-    uint32_t aIndex, const IntRect& aSourceRect) {
-  MOZ_ASSERT(aIndex == ATT_CONVOLVE_MATRIX_SOURCE_RECT);
-  mSourceRect = aSourceRect;
+    uint32_t aIndex, const IntRect& aRenderRect) {
+  MOZ_ASSERT(aIndex == ATT_CONVOLVE_MATRIX_RENDER_RECT);
+  mRenderRect = aRenderRect;
   Invalidate();
 }
 
@@ -2465,7 +2465,7 @@ already_AddRefed<DataSourceSurface> FilterNodeConvolveMatrixSoftware::DoRender(
 
   RefPtr<DataSourceSurface> input =
       GetInputDataSourceSurface(IN_CONVOLVE_MATRIX_IN, srcRect,
-                                NEED_COLOR_CHANNELS, mEdgeMode, &mSourceRect);
+                                NEED_COLOR_CHANNELS, mEdgeMode, &mRenderRect);
 
   if (!input) {
     return nullptr;
@@ -2582,6 +2582,10 @@ IntRect FilterNodeConvolveMatrixSoftware::InflatedDestRect(
 
 IntRect FilterNodeConvolveMatrixSoftware::GetOutputRectInRect(
     const IntRect& aRect) {
+  if (!mPreserveAlpha && mBias > 0) {
+    // we transform transparent colors into non-transparent colors in this case
+    return aRect;
+  }
   IntRect srcRequest = InflatedSourceRect(aRect);
   IntRect srcOutput = GetInputRectInRect(IN_CONVOLVE_MATRIX_IN, srcRequest);
   return InflatedDestRect(srcOutput).Intersect(aRect);

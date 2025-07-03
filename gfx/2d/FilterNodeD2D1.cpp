@@ -909,7 +909,7 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext* aDC)
       mEdgeMode(EDGE_MODE_DUPLICATE) {
   // Correctly handling the interaction of edge mode and source rect is a bit
   // tricky with D2D1 effects. We want the edge mode to only apply outside of
-  // the source rect (as specified by the ATT_CONVOLVE_MATRIX_SOURCE_RECT
+  // the source rect (as specified by the ATT_CONVOLVE_MATRIX_RENDER_RECT
   // attribute). So if our input surface or filter is smaller than the source
   // rect, we need to add transparency around it until we reach the edges of
   // the source rect, and only then do any repeating or edge duplicating.
@@ -949,7 +949,7 @@ FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext* aDC)
   mBorderEffect->SetInputEffect(0, mExtendInputEffect.get());
 
   UpdateChain();
-  UpdateSourceRect();
+  UpdateRenderRect();
 }
 
 void FilterNodeConvolveD2D1::SetInput(uint32_t aIndex, FilterNode* aFilter) {
@@ -1035,14 +1035,14 @@ void FilterNodeConvolveD2D1::SetAttribute(uint32_t aIndex,
 
 void FilterNodeConvolveD2D1::SetAttribute(uint32_t aIndex,
                                           const IntRect& aValue) {
-  if (aIndex != ATT_CONVOLVE_MATRIX_SOURCE_RECT) {
+  if (aIndex != ATT_CONVOLVE_MATRIX_RENDER_RECT) {
     MOZ_ASSERT(false);
     return;
   }
 
-  mSourceRect = aValue;
+  mRenderRect = aValue;
 
-  UpdateSourceRect();
+  UpdateRenderRect();
 }
 
 void FilterNodeConvolveD2D1::UpdateOffset() {
@@ -1053,11 +1053,11 @@ void FilterNodeConvolveD2D1::UpdateOffset() {
   mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_KERNEL_OFFSET, vector);
 }
 
-void FilterNodeConvolveD2D1::UpdateSourceRect() {
+void FilterNodeConvolveD2D1::UpdateRenderRect() {
   mExtendInputEffect->SetValue(
       EXTENDINPUT_PROP_OUTPUT_RECT,
-      D2D1::Vector4F(Float(mSourceRect.X()), Float(mSourceRect.Y()),
-                     Float(mSourceRect.XMost()), Float(mSourceRect.YMost())));
+      D2D1::Vector4F(Float(mRenderRect.X()), Float(mRenderRect.Y()),
+                     Float(mRenderRect.XMost()), Float(mRenderRect.YMost())));
 }
 
 FilterNodeExtendInputAdapterD2D1::FilterNodeExtendInputAdapterD2D1(

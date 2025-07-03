@@ -97,14 +97,14 @@ class FilterNodeConvolveD2D1 : public FilterNodeD2D1 {
 
   void UpdateChain();
   void UpdateOffset();
-  void UpdateSourceRect();
+  void UpdateRenderRect();
 
   RefPtr<ID2D1Effect> mExtendInputEffect;
   RefPtr<ID2D1Effect> mBorderEffect;
   ConvolveMatrixEdgeMode mEdgeMode;
   IntPoint mTarget;
   IntSize mKernelSize;
-  IntRect mSourceRect;
+  IntRect mRenderRect;
 };
 
 class FilterNodeOpacityD2D1 : public FilterNodeD2D1 {

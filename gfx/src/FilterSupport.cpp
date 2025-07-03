@@ -860,7 +860,8 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
                            aConvolveMatrix.mDivisor);
       filter->SetAttribute(ATT_CONVOLVE_MATRIX_BIAS, aConvolveMatrix.mBias);
       filter->SetAttribute(ATT_CONVOLVE_MATRIX_TARGET, aConvolveMatrix.mTarget);
-      filter->SetAttribute(ATT_CONVOLVE_MATRIX_SOURCE_RECT, mSourceRegions[0]);
+      filter->SetAttribute(ATT_CONVOLVE_MATRIX_RENDER_RECT,
+                           mDescription.PrimitiveSubregion());
       uint32_t edgeMode = aConvolveMatrix.mEdgeMode;
       static const uint8_t edgeModes[SVG_EDGEMODE_NONE + 1] = {
           EDGE_MODE_NONE,       // SVG_EDGEMODE_UNKNOWN
@@ -1639,6 +1640,9 @@ nsIntRegion FilterSupport::PostFilterExtentsForPrimitive(
     }
 
     nsIntRegion operator()(const ConvolveMatrixAttributes& aConvolveMatrix) {
+      if (!aConvolveMatrix.mPreserveAlpha && aConvolveMatrix.mBias > 0) {
+        return mDescription.PrimitiveSubregion();
+      }
       return ResultChangeRegionForPrimitive(mDescription, mInputExtents);
     }
 

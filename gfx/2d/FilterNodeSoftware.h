@@ -510,7 +510,7 @@ class FilterNodeConvolveMatrixSoftware : public FilterNodeSoftware {
   Float mDivisor;
   Float mBias;
   IntPoint mTarget;
-  IntRect mSourceRect;
+  IntRect mRenderRect;
   ConvolveMatrixEdgeMode mEdgeMode;
   Size mKernelUnitLength;
   bool mPreserveAlpha;
