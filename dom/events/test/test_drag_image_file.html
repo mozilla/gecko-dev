@@ -10,6 +10,7 @@
 <body>
 
 <img id="green-png" src="green.png">
+<img id="blob-img" alt="Blob image">
 
 <script>
 async function synthesizeDragAndCheck(aImgId, aImageAsFile) {
@@ -72,6 +73,33 @@ async function synthesizeDragAndCheck(aImgId, aImageAsFile) {
     });
 
     await synthesizeDragAndCheck("green-png", pref);
+  });
+
+  add_task(async function test_drag_blob_image() {
+    info(`test with dom.events.dataTransfer.imageAsFile.enabled=${pref}`);
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.events.dataTransfer.imageAsFile.enabled", pref]],
+    });
+
+    // Setup blob image.
+    const response = await fetch("green.png");
+    ok(response.ok, "Fetched green.png for blob");
+
+    const blob = await response.blob();
+    is(blob.type, "image/png", "Fetched blob has correct MIME type");
+
+    const blobURL = URL.createObjectURL(blob);
+    const blobImg = document.getElementById("blob-img");
+    const loadPromise = new Promise(resolve => {
+      blobImg.onload = () => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      };
+    });
+    blobImg.src = blobURL;
+    await loadPromise;
+
+    // Start drag test.
+    await synthesizeDragAndCheck("blob-img", pref);
   });
 });
 </script>
