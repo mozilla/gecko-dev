@@ -370,8 +370,7 @@ ipc::IPCResult WebGPUChild::RecvUncapturedError(RawId aDeviceId,
   return IPC_OK();
 }
 
-bool WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId,
-                                         Maybe<uint8_t> aReason,
+bool WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId, uint8_t aReason,
                                          const nsAString& aMessage) {
   RefPtr<Device> device;
   const auto itr = mDeviceMap.find(aDeviceId);
@@ -384,21 +383,14 @@ bool WebGPUChild::ResolveLostForDeviceId(RawId aDeviceId,
     return false;
   }
 
-  if (aReason.isSome()) {
-    dom::GPUDeviceLostReason reason =
-        static_cast<dom::GPUDeviceLostReason>(*aReason);
-    MOZ_ASSERT(reason == dom::GPUDeviceLostReason::Destroyed,
-               "There is only one valid GPUDeviceLostReason value.");
-    device->ResolveLost(Some(reason), aMessage);
-  } else {
-    device->ResolveLost(Nothing(), aMessage);
-  }
+  dom::GPUDeviceLostReason reason =
+      static_cast<dom::GPUDeviceLostReason>(aReason);
+  device->ResolveLost(reason, aMessage);
 
   return true;
 }
 
-ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId,
-                                           Maybe<uint8_t> aReason,
+ipc::IPCResult WebGPUChild::RecvDeviceLost(RawId aDeviceId, uint8_t aReason,
                                            const nsACString& aMessage) {
   auto message = NS_ConvertUTF8toUTF16(aMessage);
   ResolveLostForDeviceId(aDeviceId, aReason, message);
@@ -441,7 +433,8 @@ void WebGPUChild::ActorDestroy(ActorDestroyReason) {
     // It would be cleaner to call ResolveLostForDeviceId, but we
     // just cleared the device map, so we have to invoke ResolveLost
     // directly on the device.
-    device->ResolveLost(Nothing(), u"WebGPUChild destroyed"_ns);
+    device->ResolveLost(dom::GPUDeviceLostReason::Unknown,
+                        u"WebGPUChild destroyed"_ns);
   }
 
   ClearAllPendingPromises();
@@ -468,7 +461,8 @@ void WebGPUChild::ClearAllPendingPromises() {
                      pending_promise.queue_id, pending_promise.features,
                      pending_promise.limits, pending_promise.adapter_info);
       device->SetLabel(pending_promise.label);
-      device->ResolveLost(Nothing(), u"WebGPUChild destroyed"_ns);
+      device->ResolveLost(dom::GPUDeviceLostReason::Unknown,
+                          u"WebGPUChild destroyed"_ns);
       pending_promise.promise->MaybeResolve(device);
     }
   }
