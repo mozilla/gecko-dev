@@ -200,8 +200,9 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
       MaybeCreateNewBoundary(endContainer, mEnd);
 
   if (newStartBoundary || newEndBoundary) {
-    SetStartAndEnd(newStartBoundary ? newStartBoundary.ref() : mStart.AsRaw(),
-                   newEndBoundary ? newEndBoundary.ref() : mEnd.AsRaw());
+    DoSetRange(newStartBoundary ? newStartBoundary.ref() : mStart.AsRaw(),
+               newEndBoundary ? newEndBoundary.ref() : mEnd.AsRaw(), nullptr,
+               mOwner);
   }
 }
 
