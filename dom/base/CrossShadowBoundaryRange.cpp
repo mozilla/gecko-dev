@@ -58,7 +58,8 @@ NS_IMPL_CYCLE_COLLECTING_ADDREF(CrossShadowBoundaryRange)
 
 NS_IMPL_CYCLE_COLLECTING_RELEASE_WITH_INTERRUPTABLE_LAST_RELEASE(
     CrossShadowBoundaryRange,
-    DoSetRange(RawRangeBoundary(), RawRangeBoundary(), nullptr, nullptr),
+    DoSetRange(RawRangeBoundary(TreeKind::Flat),
+               RawRangeBoundary(TreeKind::Flat), nullptr, nullptr),
     AbstractRange::MaybeCacheToReuse(*this))
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(CrossShadowBoundaryRange)
@@ -193,7 +194,7 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
         return Some<RawRangeBoundary>(
             {container, aChild->GetPreviousSibling()});
       }
-      RawRangeBoundary newBoundary;
+      RawRangeBoundary newBoundary(TreeKind::Flat);
       newBoundary.CopyFrom(aBoundary, RangeBoundaryIsMutationObserved::Yes);
       newBoundary.InvalidateOffset();
       return Some(newBoundary);

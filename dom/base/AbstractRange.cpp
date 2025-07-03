@@ -190,8 +190,11 @@ void AbstractRange::UnmarkDescendants(nsINode& aNode) {
 
 // NOTE: If you need to change default value of members of AbstractRange,
 //       update nsRange::Create(nsINode* aNode) and ClearForReuse() too.
-AbstractRange::AbstractRange(nsINode* aNode, bool aIsDynamicRange)
-    : mRegisteredClosestCommonInclusiveAncestor(nullptr),
+AbstractRange::AbstractRange(nsINode* aNode, bool aIsDynamicRange,
+                             TreeKind aBoundaryTreeKind)
+    : mStart(aBoundaryTreeKind),
+      mEnd(aBoundaryTreeKind),
+      mRegisteredClosestCommonInclusiveAncestor(nullptr),
       mIsPositioned(false),
       mIsGenerated(false),
       mCalledByJS(false),
@@ -603,8 +606,8 @@ bool AbstractRange::AreNormalRangeAndCrossShadowBoundaryRangeCollapsed() const {
 
 void AbstractRange::ClearForReuse() {
   mOwner = nullptr;
-  mStart = RangeBoundary();
-  mEnd = RangeBoundary();
+  mStart = RangeBoundary(mStart.GetTreeKind());
+  mEnd = RangeBoundary(mEnd.GetTreeKind());
   mIsPositioned = false;
   mIsGenerated = false;
   mCalledByJS = false;

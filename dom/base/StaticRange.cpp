@@ -93,7 +93,8 @@ already_AddRefed<StaticRange> StaticRange::Create(
 }
 
 StaticRange::~StaticRange() {
-  DoSetRange(RawRangeBoundary(), RawRangeBoundary(), nullptr);
+  DoSetRange(RawRangeBoundary(mStart.GetTreeKind()),
+             RawRangeBoundary(mEnd.GetTreeKind()), nullptr);
 }
 
 bool StaticRange::IsValid() const {

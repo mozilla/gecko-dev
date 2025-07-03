@@ -81,8 +81,9 @@ class StaticRange : public AbstractRange {
 
  protected:
   explicit StaticRange(nsINode* aNode,
-                       RangeBoundaryIsMutationObserved aIsMutationObserved)
-      : AbstractRange(aNode, /* aIsDynamicRange = */ false),
+                       RangeBoundaryIsMutationObserved aIsMutationObserved,
+                       TreeKind aBoundaryTreeKind = TreeKind::DOM)
+      : AbstractRange(aNode, /* aIsDynamicRange = */ false, aBoundaryTreeKind),
         mIsMutationObserved(aIsMutationObserved) {}
   virtual ~StaticRange();
 

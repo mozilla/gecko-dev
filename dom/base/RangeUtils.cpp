@@ -153,6 +153,8 @@ bool RangeUtils::IsValidPoints(
     return false;
   }
 
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == aEndBoundary.GetTreeKind());
+
   // Otherwise, don't use NS_WARN_IF() for preventing to make console messy.
   // Instead, check one by one since it is easier to catch the error reason
   // with debugger.
@@ -218,6 +220,7 @@ nsresult RangeUtils::CompareNodeToRangeBoundaries(
     bool* aNodeIsAfterRange) {
   MOZ_ASSERT(aNodeIsBeforeRange);
   MOZ_ASSERT(aNodeIsAfterRange);
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == aEndBoundary.GetTreeKind());
 
   if (NS_WARN_IF(!aNode) ||
       NS_WARN_IF(!aStartBoundary.IsSet() || !aEndBoundary.IsSet())) {

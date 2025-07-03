@@ -245,7 +245,7 @@ RangeBoundary TextDirectiveUtil::MoveToNextBoundaryPoint(
   uint32_t pos =
       *aPoint.Offset(RangeBoundary::OffsetFilter::kValidOrInvalidOffsets);
   if (!node) {
-    return {};
+    return RangeBoundary{};
   }
   ++pos;
   if (pos < node->Length() &&

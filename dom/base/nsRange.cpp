@@ -190,7 +190,7 @@ nsRange::~nsRange() {
 }
 
 nsRange::nsRange(nsINode* aNode)
-    : AbstractRange(aNode, /* aIsDynamicRange = */ true),
+    : AbstractRange(aNode, /* aIsDynamicRange = */ true, TreeKind::DOM),
       mNextStartRef(nullptr),
       mNextEndRef(nullptr) {
   // printf("Size of nsRange: %zu\n", sizeof(nsRange));
@@ -216,6 +216,8 @@ already_AddRefed<nsRange> nsRange::Create(
     const RangeBoundaryBase<SPT, SRT>& aStartBoundary,
     const RangeBoundaryBase<EPT, ERT>& aEndBoundary, ErrorResult& aRv,
     AllowRangeCrossShadowBoundary aAllowCrossShadowBoundary) {
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == aEndBoundary.GetTreeKind());
+
   // If we fail to initialize the range a lot, nsRange should have a static
   // initializer since the allocation cost is not cheap in hot path.
   RefPtr<nsRange> range = nsRange::Create(aStartBoundary.GetContainer());
@@ -879,7 +881,12 @@ int16_t nsRange::ComparePoint(const nsINode& aContainer, uint32_t aOffset,
     return 0;
   }
 
-  const RawRangeBoundary point{const_cast<nsINode*>(&aContainer), aOffset};
+  const auto& startRef =
+      aAllowCrossShadowBoundary ? MayCrossShadowBoundaryStartRef() : StartRef();
+
+  const RawRangeBoundary point{const_cast<nsINode*>(&aContainer), aOffset,
+                               RangeBoundaryIsMutationObserved::Yes,
+                               startRef.GetTreeKind()};
 
   MOZ_ASSERT(point.IsSetAndValid());
 
@@ -1024,6 +1031,8 @@ void nsRange::AssertIfMismatchRootAndRangeBoundaries(
 
   MOZ_ASSERT(aStartBoundary.IsSet());
   MOZ_ASSERT(aEndBoundary.IsSet());
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == aEndBoundary.GetTreeKind());
+
   if (!aNotInsertedYet) {
     // Compute temporary root for given range boundaries.  If a range in native
     // anonymous subtree is being removed, tempRoot may return the fragment's
@@ -1067,6 +1076,8 @@ void nsRange::
   MOZ_ASSERT_IF(!mIsPositioned, !aStartBoundary.IsSet());
   MOZ_ASSERT_IF(!mIsPositioned, !aEndBoundary.IsSet());
   MOZ_ASSERT_IF(!mIsPositioned, !aRootNode);
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == aEndBoundary.GetTreeKind());
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == TreeKind::DOM);
 
   nsRange::AssertIfMismatchRootAndRangeBoundaries(aStartBoundary, aEndBoundary,
                                                   aRootNode, aNotInsertedYet);
@@ -3572,6 +3583,8 @@ void nsRange::CreateOrUpdateCrossShadowBoundaryRangeIfNeeded(
   }
 
   MOZ_ASSERT(aStartBoundary.IsSetAndValid() && aEndBoundary.IsSetAndValid());
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == aEndBoundary.GetTreeKind());
+  MOZ_ASSERT(aStartBoundary.GetTreeKind() == TreeKind::Flat);
 
   nsINode* startNode = aStartBoundary.GetContainer();
   nsINode* endNode = aEndBoundary.GetContainer();

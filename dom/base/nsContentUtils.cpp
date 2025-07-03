@@ -3675,6 +3675,8 @@ Maybe<int32_t> nsContentUtils::ComparePoints(
   if (!aBoundary1.IsSet() || !aBoundary2.IsSet()) {
     return Nothing{};
   }
+  MOZ_ASSERT(aBoundary1.GetTreeKind() == aBoundary2.GetTreeKind());
+
   const auto kValidOrInvalidOffsets1 =
       RangeBoundaryBase<PT1, RT1>::OffsetFilter::kValidOrInvalidOffsets;
   const auto kValidOrInvalidOffsets2 =

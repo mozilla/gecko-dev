@@ -62,8 +62,8 @@ class MOZ_STACK_CLASS ContentEventHandler {
 
     void Clear() {
       mRoot = nullptr;
-      mStart = {};
-      mEnd = {};
+      mStart = RangeBoundaryType{};
+      mEnd = RangeBoundaryType{};
     }
 
     bool IsPositioned() const { return mStart.IsSet() && mEnd.IsSet(); }

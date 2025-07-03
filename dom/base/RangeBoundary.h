@@ -9,6 +9,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsIContent.h"
+#include "mozilla/dom/HTMLSlotElement.h"
 #include "mozilla/dom/ShadowRoot.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Assertions.h"
@@ -38,6 +39,15 @@ class EditorDOMPointBase;
 // If mOffset == 0, mRef is null.
 // For text nodes, mRef will always be null and the offset will
 // be kept up-to-date.
+//
+// One special case is when mTreeKind is TreeKind::Flat and
+// mParent is slot and slot has assigned nodes, it'll use
+// the assigned nodes to determine the reference with the
+// same idea as above.
+//
+// Users of RangeBoundary should be extra careful about comparing
+// range boundaries with different kinds, as it tends to lead to
+// unexpected results.
 
 template <typename ParentType, typename RefType>
 class RangeBoundaryBase;
@@ -112,10 +122,17 @@ class RangeBoundaryBase {
   static_assert(std::is_same_v<RawRefType, nsIContent> ||
                 std::is_same_v<RawRefType, const nsIContent>);
 
-  RangeBoundaryBase(RawParentType* aContainer, RawRefType* aRef)
-      : mParent(aContainer), mRef(aRef), mIsMutationObserved(true) {
+  RangeBoundaryBase(RawParentType* aContainer, RawRefType* aRef,
+                    TreeKind aTreeKind = TreeKind::DOM)
+      : mParent(aContainer),
+        mRef(aRef),
+        mIsMutationObserved(true),
+        mTreeKind(aTreeKind) {
+    MOZ_ASSERT(
+        aTreeKind == TreeKind::DOM || aTreeKind == TreeKind::Flat,
+        "Only TreeKind::DOM and TreeKind::Flat are valid at the moment.");
     if (mRef) {
-      NS_WARNING_ASSERTION(mRef->GetParentNode() == mParent,
+      NS_WARNING_ASSERTION(GetParentNode(mRef) == mParent,
                            "Initializing RangeBoundary with invalid value");
     } else {
       mOffset.emplace(0);
@@ -124,44 +141,76 @@ class RangeBoundaryBase {
 
   RangeBoundaryBase(RawParentType* aContainer, uint32_t aOffset,
                     RangeBoundaryIsMutationObserved aRangeIsMutationObserver =
-                        RangeBoundaryIsMutationObserved::Yes)
+                        RangeBoundaryIsMutationObserved::Yes,
+                    TreeKind aTreeKind = TreeKind::DOM)
       : mParent(aContainer),
         mRef(nullptr),
         mOffset(mozilla::Some(aOffset)),
-        mIsMutationObserved(bool(aRangeIsMutationObserver)) {
+        mIsMutationObserved(bool(aRangeIsMutationObserver)),
+        mTreeKind(aTreeKind) {
+    MOZ_ASSERT(
+        aTreeKind == TreeKind::DOM || aTreeKind == TreeKind::Flat,
+        "Only TreeKind::DOM and TreeKind::Flat are valid at the moment.");
     if (mIsMutationObserved && mParent && mParent->IsContainerNode()) {
       // Find a reference node
-      if (aOffset == mParent->GetChildCount()) {
-        mRef = mParent->GetLastChild();
+      if (aOffset == GetLength(mParent)) {
+        mRef = GetLastChild(mParent);
       } else if (aOffset > 0) {
-        mRef = mParent->GetChildAt_Deprecated(aOffset - 1);
+        mRef = GetChildAt(mParent, aOffset - 1);
       }
       NS_WARNING_ASSERTION(mRef || aOffset == 0,
                            "Constructing RangeBoundary with invalid value");
     }
-    NS_WARNING_ASSERTION(!mRef || mRef->GetParentNode() == mParent,
+    NS_WARNING_ASSERTION(!mRef || GetParentNode(mRef) == mParent,
                          "Constructing RangeBoundary with invalid value");
   }
 
+  [[nodiscard]] TreeKind GetTreeKind() const { return mTreeKind; }
+
+  RangeBoundaryBase AsRangeBoundaryInFlatTree() const {
+    if (mOffset) {
+      if (mTreeKind == TreeKind::Flat) {
+        MOZ_ASSERT_IF(IsSet(), IsSetAndValid());
+        return RangeBoundaryBase(
+            mParent, mRef, *mOffset,
+            RangeBoundaryIsMutationObserved(mIsMutationObserved),
+            TreeKind::Flat);
+      }
+      // We don't assert IsSetAndValid() here because it's possible
+      // that a RangeBoundary is not valid for TreeKind::DOM but valid
+      // for TreeKind::Flat.
+      return RangeBoundaryBase(
+          mParent, *mOffset,
+          RangeBoundaryIsMutationObserved(mIsMutationObserved), TreeKind::Flat);
+    }
+    MOZ_ASSERT_IF(IsSet(), IsSetAndValid());
+    return RangeBoundaryBase(mParent, mRef, TreeKind::Flat);
+  }
+
   /**
-   * Special constructor to create RangeBoundaryBase which stores both mRef and
-   * mOffset.  This can make the instance provide both mRef and mOffset without
-   * computation, but the creator needs to guarantee that this is valid at least
-   * at construction.
+   * Special constructor to create RangeBoundaryBase which stores both mRef
+   * and mOffset.  This can make the instance provide both mRef and mOffset
+   * without computation, but the creator needs to guarantee that this is
+   * valid at least at construction.
    */
   RangeBoundaryBase(RawParentType* aContainer, RawRefType* aRef,
                     uint32_t aOffset,
                     RangeBoundaryIsMutationObserved aRangeIsMutationObserver =
-                        RangeBoundaryIsMutationObserved::Yes)
+                        RangeBoundaryIsMutationObserved::Yes,
+                    TreeKind aTreeKind = TreeKind::DOM)
       : mParent(const_cast<nsINode*>(aContainer)),
         mRef(const_cast<nsIContent*>(aRef)),
         mOffset(mozilla::Some(aOffset)),
-        mIsMutationObserved(bool(aRangeIsMutationObserver)) {
+        mIsMutationObserved(bool(aRangeIsMutationObserver)),
+        mTreeKind(aTreeKind) {
     MOZ_ASSERT(IsSetAndValid());
   }
 
-  RangeBoundaryBase()
-      : mParent(nullptr), mRef(nullptr), mIsMutationObserved(true) {}
+  explicit RangeBoundaryBase(TreeKind aTreeKind = TreeKind::DOM)
+      : mParent(nullptr),
+        mRef(nullptr),
+        mIsMutationObserved(true),
+        mTreeKind(aTreeKind) {}
 
   // Convert from RawRangeBoundary or RangeBoundary.
   template <typename PT, typename RT,
@@ -172,7 +221,8 @@ class RangeBoundaryBase {
       : mParent(aOther.mParent),
         mRef(aOther.mRef),
         mOffset(aOther.mOffset),
-        mIsMutationObserved(bool(aIsMutationObserved)) {}
+        mIsMutationObserved(bool(aIsMutationObserved)),
+        mTreeKind(aOther.mTreeKind) {}
 
   /**
    * This method may return `nullptr` in two cases:
@@ -195,21 +245,24 @@ class RangeBoundaryBase {
     // `mRef` may have become invalid due to some DOM mutation,
     // which is not monitored here. Therefore, we need to validate `mRef`
     // manually.
-    if (*mOffset > GetContainer()->Length()) {
+    const uint32_t parentLength = GetLength(mParent);
+    if (*mOffset > parentLength) {
       // offset > child count means that the range boundary has become invalid
       // due to a DOM mutation.
       mRef = nullptr;
-    } else if (*mOffset == GetContainer()->Length()) {
-      mRef = mParent->GetLastChild();
+    } else if (*mOffset == parentLength) {
+      mRef = GetLastChild(mParent);
     } else if (*mOffset) {
       // validate and update `mRef`.
       // If `ComputeIndexOf()` returns `Nothing`, then `mRef` is not a child of
       // `mParent` anymore.
       // If the returned index for `mRef` does not match to `mOffset`, `mRef`
       // needs to be updated.
-      auto indexOfRefObject = mParent->ComputeIndexOf(mRef);
+      auto indexOfRefObject = mTreeKind == TreeKind::DOM
+                                  ? mParent->ComputeIndexOf(mRef)
+                                  : mParent->ComputeFlatTreeIndexOf(mRef);
       if (indexOfRefObject.isNothing() || *mOffset != *indexOfRefObject + 1) {
-        mRef = mParent->GetChildAt_Deprecated(*mOffset - 1);
+        mRef = GetChildAt(mParent, *mOffset - 1);
       }
     } else {
       mRef = nullptr;
@@ -240,12 +293,12 @@ class RangeBoundaryBase {
       }
       MOZ_ASSERT(*Offset(OffsetFilter::kValidOrInvalidOffsets) == 0,
                  "invalid RangeBoundary");
-      return mParent->GetFirstChild();
+      return GetFirstChild(mParent);
     }
-    MOZ_ASSERT(mParent->GetChildAt_Deprecated(
-                   *Offset(OffsetFilter::kValidOrInvalidOffsets)) ==
-               ref->GetNextSibling());
-    return ref->GetNextSibling();
+    MOZ_ASSERT(
+        GetChildAt(mParent, *Offset(OffsetFilter::kValidOrInvalidOffsets)) ==
+        GetNextSibling(ref));
+    return GetNextSibling(ref);
   }
 
   /**
@@ -266,18 +319,18 @@ class RangeBoundaryBase {
       }
       MOZ_ASSERT(*Offset(OffsetFilter::kValidOffsets) == 0,
                  "invalid RangeBoundary");
-      nsIContent* firstChild = mParent->GetFirstChild();
+      nsIContent* firstChild = GetFirstChild(mParent);
       if (NS_WARN_IF(!firstChild)) {
         // Already referring the end of the container.
         return nullptr;
       }
-      return firstChild->GetNextSibling();
+      return GetNextSibling(firstChild);
     }
-    if (NS_WARN_IF(!ref->GetNextSibling())) {
+    if (NS_WARN_IF(!GetNextSibling(ref))) {
       // Already referring the end of the container.
       return nullptr;
     }
-    return ref->GetNextSibling()->GetNextSibling();
+    return GetNextSibling(GetNextSibling(ref));
   }
 
   /**
@@ -320,9 +373,8 @@ class RangeBoundaryBase {
             DetermineOffsetFromReference();
           }
         }
-        return !mIsMutationObserved && *mOffset > GetContainer()->Length()
-                   ? Nothing{}
-                   : mOffset;
+        return !mIsMutationObserved && *mOffset > GetLength(mParent) ? Nothing{}
+                                                                     : mOffset;
       }
       case OffsetFilter::kValidOrInvalidOffsets: {
         MOZ_ASSERT_IF(!mIsMutationObserved, mOffset.isSome());
@@ -373,7 +425,7 @@ class RangeBoundaryBase {
   void DetermineOffsetFromReference() const {
     MOZ_ASSERT(mParent);
     MOZ_ASSERT(mRef);
-    MOZ_ASSERT(mRef->GetParentNode() == mParent);
+    MOZ_ASSERT(GetParentNode(mRef) == mParent);
     MOZ_ASSERT(mIsMutationObserved);
     MOZ_ASSERT(mOffset.isNothing());
 
@@ -383,9 +435,93 @@ class RangeBoundaryBase {
       return;
     }
 
-    const Maybe<uint32_t> index = mParent->ComputeIndexOf(mRef);
+    const Maybe<uint32_t> index = mTreeKind == TreeKind::DOM
+                                      ? mParent->ComputeIndexOf(mRef)
+                                      : mParent->ComputeFlatTreeIndexOf(mRef);
+
     MOZ_ASSERT(*index != UINT32_MAX);
     mOffset.emplace(MOZ_LIKELY(index.isSome()) ? *index + 1u : 0u);
+  }
+
+  RawRefType* GetNextSibling(const nsIContent* aCurrentNode) const {
+    MOZ_ASSERT(mParent);
+    MOZ_ASSERT(aCurrentNode);
+
+    if (mTreeKind == TreeKind::Flat) {
+      if (const auto* slot = dom::HTMLSlotElement::FromNode(mParent)) {
+        const auto& assignedNodes = slot->AssignedNodes();
+        const auto index = assignedNodes.IndexOf(aCurrentNode);
+        if (index != assignedNodes.NoIndex &&
+            index + 1 < assignedNodes.Length()) {
+          if (RawRefType* nextSibling =
+                  RawRefType::FromNode(assignedNodes.ElementAt(index + 1))) {
+            return nextSibling;
+          }
+          return nullptr;
+        }
+      }
+    }
+    return aCurrentNode->GetNextSibling();
+  }
+
+  RawRefType* GetFirstChild(const nsINode* aNode) const {
+    MOZ_ASSERT(aNode);
+    if (mTreeKind == TreeKind::Flat) {
+      if (const auto* slot = dom::HTMLSlotElement::FromNode(aNode)) {
+        const auto& assignedNodes = slot->AssignedNodes();
+        if (!assignedNodes.IsEmpty()) {
+          if (RawRefType* child = RawRefType::FromNode(assignedNodes[0])) {
+            return child;
+          }
+          return nullptr;
+        }
+      }
+    }
+    return aNode->GetFirstChild();
+  }
+
+  const RawParentType* GetParentNode(const nsIContent* aNode) const {
+    MOZ_ASSERT(aNode);
+    if (mTreeKind == TreeKind::Flat) {
+      if (const auto* slot = aNode->GetAssignedSlot()) {
+        return slot;
+      }
+    }
+    return aNode->GetParentNode();
+  }
+
+  uint32_t GetLength(const nsINode* aNode) const {
+    MOZ_ASSERT(aNode);
+    if (mTreeKind == TreeKind::Flat) {
+      if (const auto* slot = dom::HTMLSlotElement::FromNode(aNode)) {
+        const auto& assignedNodes = slot->AssignedNodes();
+        if (!assignedNodes.IsEmpty()) {
+          return assignedNodes.Length();
+        }
+      }
+    }
+    return aNode->Length();
+  }
+
+  RawRefType* GetChildAt(const nsINode* aParent, uint32_t aOffset) const {
+    MOZ_ASSERT(aParent);
+    return mTreeKind == TreeKind::Flat
+               ? RawRefType::FromNodeOrNull(
+                     aParent->GetChildAtInFlatTree(aOffset))
+               : aParent->GetChildAt_Deprecated(aOffset);
+  }
+
+  RawRefType* GetLastChild(const nsINode* aParent) const {
+    MOZ_ASSERT(aParent);
+    if (mTreeKind == TreeKind::Flat) {
+      if (const auto* slot = dom::HTMLSlotElement::FromNode(aParent)) {
+        const auto& assignedNodes = slot->AssignedNodes();
+        if (!assignedNodes.IsEmpty()) {
+          return RawRefType::FromNode(assignedNodes.LastElement());
+        }
+      }
+    }
+    return aParent->GetLastChild();
   }
 
   void InvalidateOffset() {
@@ -450,8 +586,7 @@ class RangeBoundaryBase {
       // XXX mRef refers previous sibling of pointing child.  Therefore, it
       //     seems odd that this becomes invalid due to its removal.  Should we
       //     change RangeBoundaryBase to refer child at offset directly?
-      return Ref()->GetParentNode() == GetContainer() &&
-             !Ref()->IsBeingRemoved();
+      return GetParentNode(Ref()) == GetContainer() && !Ref()->IsBeingRemoved();
     }
 
     MOZ_ASSERT(mOffset.isSome());
@@ -471,9 +606,8 @@ class RangeBoundaryBase {
     // child in GetContainer(), or our Offset() is the same as the length of our
     // container. If we don't have a Ref, then we should already have an offset,
     // so we can just directly fetch it.
-    return mIsMutationObserved && Ref()
-               ? !Ref()->GetNextSibling()
-               : mOffset.value() == GetContainer()->Length();
+    return mIsMutationObserved && Ref() ? !GetNextSibling(Ref())
+                                        : mOffset.value() == GetLength(mParent);
   }
 
   // Convenience methods for switching between the two types
@@ -489,8 +623,16 @@ class RangeBoundaryBase {
         *this, RangeBoundaryIsMutationObserved(mIsMutationObserved));
   }
 
-  template <typename A, typename B>
-  RangeBoundaryBase& operator=(const RangeBoundaryBase<A, B>& aOther) = delete;
+  RangeBoundaryBase& operator=(const RangeBoundaryBase& aOther) {
+    MOZ_ASSERT(mTreeKind == aOther.mTreeKind);
+    if (this != &aOther) {
+      mParent = aOther.mParent;
+      mRef = aOther.mRef;
+      mOffset = aOther.mOffset;
+      mIsMutationObserved = aOther.mIsMutationObserved;
+    }
+    return *this;
+  }
 
   template <
       typename PT, typename RT, typename RPT = RawParentType,
@@ -498,6 +640,7 @@ class RangeBoundaryBase {
   RangeBoundaryBase& CopyFrom(
       const RangeBoundaryBase<PT, RT>& aOther,
       RangeBoundaryIsMutationObserved aIsMutationObserved) {
+    MOZ_ASSERT(mTreeKind == aOther.mTreeKind);
     // mParent and mRef can be strong pointers, so better to try to avoid any
     // extra AddRef/Release calls.
     if (mParent != aOther.mParent) {
@@ -506,6 +649,7 @@ class RangeBoundaryBase {
     if (mRef != aOther.mRef) {
       mRef = aOther.mRef;
     }
+
     mIsMutationObserved = bool(aIsMutationObserved);
     if (!mIsMutationObserved && aOther.mOffset.isNothing()) {
       // "Fix" the offset from mRef if and only if we won't be updated for
@@ -524,9 +668,9 @@ class RangeBoundaryBase {
     if (mIsMutationObserved && !mRef && mParent && mOffset.isSome() &&
         *mOffset) {
       if (*mOffset == mParent->GetChildCount()) {
-        mRef = mParent->GetLastChild();
+        mRef = GetLastChild(mParent);
       } else {
-        mRef = mParent->GetChildAt_Deprecated(*mOffset - 1);
+        mRef = GetChildAt(mParent, *mOffset - 1);
       }
     }
     return *this;
@@ -552,6 +696,11 @@ class RangeBoundaryBase {
     if (RefIsFixed() && aOther.RefIsFixed()) {
       return mRef == aOther.mRef;
     }
+
+    if (mTreeKind != aOther.mTreeKind) {
+      return false;
+    }
+
     return Offset(OffsetFilter::kValidOrInvalidOffsets) ==
            aOther.Offset(
                RangeBoundaryBase<A, B>::OffsetFilter::kValidOrInvalidOffsets);
@@ -579,6 +728,7 @@ class RangeBoundaryBase {
 
   mutable mozilla::Maybe<uint32_t> mOffset;
   bool mIsMutationObserved;
+  const TreeKind mTreeKind;
 };
 
 template <typename ParentType, typename RefType>
