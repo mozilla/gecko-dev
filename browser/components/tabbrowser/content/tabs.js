@@ -692,10 +692,6 @@
     }
 
     startTabDrag(event, tab, { fromTabList = false } = {}) {
-      if (this.expandOnHover) {
-        // Temporarily disable MousePosTracker while dragging
-        MousePosTracker.removeListener(document.defaultView.SidebarController);
-      }
       if (this.#isContainerVerticalPinnedGrid(tab)) {
         // In expanded vertical mode, the max number of pinned tabs per row is dynamic
         // Set this before adjusting dragged tab's position
@@ -3096,11 +3092,6 @@
 
     // If the tab is dropped in another window, we need to pass in the original window document
     #resetTabsAfterDrop(draggedTabDocument = document) {
-      if (this.expandOnHover) {
-        // Re-enable MousePosTracker after dropping
-        MousePosTracker.addListener(document.defaultView.SidebarController);
-      }
-
       let allTabs = draggedTabDocument.getElementsByClassName("tabbrowser-tab");
       for (let tab of allTabs) {
         tab.style.width = "";
