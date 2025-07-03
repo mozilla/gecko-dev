@@ -133,7 +133,7 @@ add_task(async function copiesToClipboard() {
 });
 
 /**
- * Tests the "Remove all Highlights" context menu item.
+ * Tests the "Remove Highlight" context menu item.
  *
  * This test checks that the menu item is present and enabled if there is a
  * text fragment in the URL.
@@ -174,12 +174,12 @@ add_task(async function removesAllHighlightsWithEmptyFragment() {
       );
 
       let removeAllHighlights = contextMenu.querySelector(
-        "#context-remove-all-highlights"
+        "#context-remove-highlight"
       );
-      ok(removeAllHighlights, '"Remove all Highlights" menu item is present');
+      ok(removeAllHighlights, '"Remove Highlight" menu item is present');
       ok(
         BrowserTestUtils.isVisible(removeAllHighlights),
-        '"Remove all Highlights" menu item is visible'
+        '"Remove Highlight" menu item is visible'
       );
       let awaitLocationChange = BrowserTestUtils.waitForLocationChange(
         gBrowser,
@@ -202,7 +202,7 @@ add_task(async function removesAllHighlightsWithEmptyFragment() {
 });
 
 /**
- * Tests the "Remove all Highlights" context menu item for a page which has both
+ * Tests the "Remove Highlight" context menu item for a page which has both
  * a fragment and a text fragment in the URL. After removing the highlights,
  * the text fragment should be removed from the URL, but the fragment must still
  * be there.
@@ -238,12 +238,12 @@ add_task(async function removesAllHighlightsWithNonEmptyFragment() {
       );
 
       let removeAllHighlights = contextMenu.querySelector(
-        "#context-remove-all-highlights"
+        "#context-remove-highlight"
       );
-      ok(removeAllHighlights, '"Remove all Highlights" menu item is present');
+      ok(removeAllHighlights, '"Remove Highlight" menu item is present');
       ok(
         BrowserTestUtils.isVisible(removeAllHighlights),
-        '"Remove all Highlights" menu item is visible'
+        '"Remove Highlight" menu item is visible'
       );
       let awaitLocationChange = BrowserTestUtils.waitForLocationChange(
         gBrowser,

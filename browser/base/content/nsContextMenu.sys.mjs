@@ -442,7 +442,7 @@ export class nsContextMenu {
 
     // Only show remove option if there are text fragments on the page.
     this.showItem("context-sep-highlights", this.hasTextFragments);
-    this.showItem("context-remove-all-highlights", this.hasTextFragments);
+    this.showItem("context-remove-highlight", this.hasTextFragments);
   }
 
   async getTextDirective() {

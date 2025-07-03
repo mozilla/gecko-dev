@@ -302,7 +302,7 @@ document.addEventListener(
         case "context-copy-clean-link-to-highlight":
           gContextMenu.copyLinkToHighlight(/* stripSiteTracking */ true);
           break;
-        case "context-remove-all-highlights":
+        case "context-remove-highlight":
           gContextMenu.removeAllTextFragments();
           break;
       }

@@ -321,8 +321,8 @@
       <menuitem id="context-copy-clean-link-to-highlight"
                 data-l10n-id="text-action-copy-clean-link-to-highlight"
                 />
-      <menuitem id="context-remove-all-highlights"
-                data-l10n-id="text-action-remove-all-highlights"
+      <menuitem id="context-remove-highlight"
+                data-l10n-id="text-action-remove-highlight"
                 />
       <menuseparator id="context-sep-highlights"/>
 
