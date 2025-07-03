@@ -713,7 +713,9 @@ static nsresult CacheFavicon(
         aPromiseHolder) {
   nsresult rv = NS_OK;
   auto guard = MakeScopeExit([&]() {
-    if (NS_FAILED(rv) && aPromiseHolder) {
+    MOZ_ASSERT(NS_FAILED(rv));
+
+    if (aPromiseHolder) {
       aPromiseHolder->RejectIfExists(rv, __func__);
     }
   });
@@ -752,7 +754,9 @@ static nsresult CacheFavicon(
   RefPtr<SourceSurface> surface = container->GetFrame(
       imgIContainer::FRAME_FIRST,
       imgIContainer::FLAG_SYNC_DECODE | imgIContainer::FLAG_ASYNC_NOTIFY);
-  NS_ENSURE_TRUE(surface, NS_ERROR_FAILURE);
+  if (MOZ_UNLIKELY(!surface)) {
+    return (rv = NS_ERROR_FAILURE);
+  }
 
   RefPtr<DataSourceSurface> dataSurface;
   IntSize size;
@@ -764,11 +768,13 @@ static nsresult CacheFavicon(
     size.height = std::max(surface->GetSize().height, 48);
     dataSurface =
         Factory::CreateDataSourceSurface(size, SurfaceFormat::B8G8R8A8);
-    NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+    if (MOZ_UNLIKELY(!dataSurface)) {
+      return (rv = NS_ERROR_FAILURE);
+    }
 
     DataSourceSurface::MappedSurface map;
     if (!dataSurface->Map(DataSourceSurface::MapType::WRITE, &map)) {
-      return NS_ERROR_FAILURE;
+      return (rv = NS_ERROR_FAILURE);
     }
 
     RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
@@ -776,7 +782,7 @@ static nsresult CacheFavicon(
         dataSurface->GetFormat());
     if (!dt) {
       gfxWarning() << "CreateDrawTargetForData failed in CacheFavicon";
-      return NS_ERROR_OUT_OF_MEMORY;
+      return (rv = NS_ERROR_OUT_OF_MEMORY);
     }
     dt->FillRect(Rect(0, 0, size.width, size.height),
                  ColorPattern(ToDeviceColor(sRGBColor::OpaqueWhite())));
@@ -801,14 +807,16 @@ static nsresult CacheFavicon(
     size.width = surface->GetSize().width;
     size.height = surface->GetSize().height;
     dataSurface = surface->GetDataSurface();
-    NS_ENSURE_TRUE(dataSurface, NS_ERROR_FAILURE);
+    if (MOZ_UNLIKELY(!dataSurface)) {
+      return (rv = NS_ERROR_FAILURE);
+    }
   }
 
   // Allocate a new buffer that we own and can use out of line in
   // another thread.
   UniquePtr<uint8_t[]> data = SurfaceToPackedBGRA(dataSurface);
   if (!data) {
-    return NS_ERROR_OUT_OF_MEMORY;
+    return (rv = NS_ERROR_OUT_OF_MEMORY);
   }
   int32_t stride = 4 * size.width;
 
