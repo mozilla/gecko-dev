@@ -161,6 +161,25 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
+    fun `WHEN navigate to installed addons action is dispatched THEN navigate to installed addons fragment`() = runTest {
+        val store = createStore()
+        val addon = Addon(id = "ext1")
+
+        store.dispatch(
+            MenuAction.Navigate.InstalledAddonDetails(
+                addon = addon,
+            ),
+        ).join()
+
+        verify {
+            navController.nav(
+                R.id.menuDialogFragment,
+                MenuDialogFragmentDirections.actionMenuDialogFragmentToInstalledAddonDetailsFragment(addon),
+            )
+        }
+    }
+
+    @Test
     fun `WHEN navigate to history action is dispatched THEN navigate to history`() = runTest {
         val store = createStore()
         store.dispatch(MenuAction.Navigate.Settings).join()
