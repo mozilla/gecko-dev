@@ -916,15 +916,6 @@ features:
         type: Boolean
         default: false
 
-  tab-management-enhancements:
-    description: Control the visibility of the tab management enhancements.
-    variables:
-      enabled:
-        description: >
-          Whether or not to enable the tab management enhancements.
-        type: Boolean
-        default: false
-
 types:
   objects: {}
 

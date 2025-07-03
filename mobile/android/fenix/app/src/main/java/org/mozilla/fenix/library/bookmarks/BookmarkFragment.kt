@@ -100,7 +100,6 @@ import org.mozilla.fenix.search.SearchFragmentStore
 import org.mozilla.fenix.search.createInitialSearchFragmentState
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
-import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.allowUndo
@@ -539,24 +538,15 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
     }
 
     private fun showTabTray(openInPrivate: Boolean = false) {
-        val directions = if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-            BookmarkFragmentDirections.actionGlobalTabManagementFragment(
-                page = if (openInPrivate) {
-                    Page.PrivateTabs
-                } else {
-                    Page.NormalTabs
-                },
-            )
-        } else {
+        navigateToBookmarkFragment(
             BookmarkFragmentDirections.actionGlobalTabsTrayFragment(
                 page = if (openInPrivate) {
                     Page.PrivateTabs
                 } else {
                     Page.NormalTabs
                 },
-            )
-        }
-        navigateToBookmarkFragment(directions = directions)
+            ),
+        )
     }
 
     private fun navigateToBookmarkFragment(directions: NavDirections) {

@@ -51,7 +51,6 @@ import org.mozilla.fenix.library.historymetadata.interactor.HistoryMetadataGroup
 import org.mozilla.fenix.library.historymetadata.view.HistoryMetadataGroupView
 import org.mozilla.fenix.lifecycle.registerForVerification
 import org.mozilla.fenix.lifecycle.verifyUser
-import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.utils.allowUndo
 
@@ -268,29 +267,16 @@ class HistoryMetadataGroupFragment :
     }
 
     private fun showTabTray(openInPrivate: Boolean = false) {
-        if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-            findNavController().nav(
-                R.id.historyMetadataGroupFragment,
-                HistoryMetadataGroupFragmentDirections.actionGlobalTabManagementFragment(
-                    page = if (openInPrivate) {
-                        Page.PrivateTabs
-                    } else {
-                        Page.NormalTabs
-                    },
-                ),
-            )
-        } else {
-            findNavController().nav(
-                R.id.historyMetadataGroupFragment,
-                HistoryMetadataGroupFragmentDirections.actionGlobalTabsTrayFragment(
-                    page = if (openInPrivate) {
-                        Page.PrivateTabs
-                    } else {
-                        Page.NormalTabs
-                    },
-                ),
-            )
-        }
+        findNavController().nav(
+            R.id.historyMetadataGroupFragment,
+            HistoryMetadataGroupFragmentDirections.actionGlobalTabsTrayFragment(
+                page = if (openInPrivate) {
+                    Page.PrivateTabs
+                } else {
+                    Page.NormalTabs
+                },
+            ),
+        )
     }
 
     private fun getSnackBarMessage(historyItems: Set<History.Metadata>): String {

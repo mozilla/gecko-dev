@@ -123,7 +123,6 @@ import org.mozilla.fenix.search.SearchFragmentAction.SuggestionClicked
 import org.mozilla.fenix.search.SearchFragmentAction.SuggestionSelected
 import org.mozilla.fenix.search.SearchFragmentStore
 import org.mozilla.fenix.search.createInitialSearchFragmentState
-import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.allowUndo
@@ -527,29 +526,16 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
     }
 
     private fun showTabTray(openInPrivate: Boolean = false) {
-        if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-            findNavController().nav(
-                R.id.historyFragment,
-                HistoryFragmentDirections.actionGlobalTabManagementFragment(
-                    page = if (openInPrivate) {
-                        Page.PrivateTabs
-                    } else {
-                        Page.NormalTabs
-                    },
-                ),
-            )
-        } else {
-            findNavController().nav(
-                R.id.historyFragment,
-                HistoryFragmentDirections.actionGlobalTabsTrayFragment(
-                    page = if (openInPrivate) {
-                        Page.PrivateTabs
-                    } else {
-                        Page.NormalTabs
-                    },
-                ),
-            )
-        }
+        findNavController().nav(
+            R.id.historyFragment,
+            HistoryFragmentDirections.actionGlobalTabsTrayFragment(
+                page = if (openInPrivate) {
+                    Page.PrivateTabs
+                } else {
+                    Page.NormalTabs
+                },
+            ),
+        )
     }
 
     private fun getMultiSelectSnackBarMessage(historyItems: Set<History>): String {
