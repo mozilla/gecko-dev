@@ -14238,6 +14238,25 @@
   value: true
   mirror: always
 
+# This preference specifies a comma seperated list of URL/IPAddress:Port that will be treated as public IPAddressSpace.
+- name: network.lna.address_space.public.override
+  type: String
+  type: String
+  value: ""
+  mirror: never
+
+# This preference specifies a comma seperated list of URL/IPAddress:Port that will be treated as private IPAddressSpace.
+- name: network.lna.address_space.private.override
+  type: String
+  value: ""
+  mirror: never
+
+# This preference specifies a comma seperated list of URL/IPAddress:Port that will be treated as local IPAddressSpace.
+- name: network.lna.address_space.local.override
+  type: String
+  value: ""
+  mirror: never
+
 # This preference controls Local Network Access (LNA) feature.
 - name: network.lna.enabled
   type: RelaxedAtomicBool
