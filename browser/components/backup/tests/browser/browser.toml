@@ -14,7 +14,6 @@ support-files = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1911904
   "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1911904
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1911904
 ]
 
 ["browser_settings_enable_backup_encryption.js"]

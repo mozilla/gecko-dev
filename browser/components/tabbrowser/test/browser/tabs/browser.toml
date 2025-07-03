@@ -178,9 +178,6 @@ support-files = [
 ]
 tags = "vertical-tabs"
 fail-if =  ["vertical_tab"] # Bug 1932786, fails in the "vertical-tabs" variant
-skip-if = [
-  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1904826
-]
 
 ["browser_long_data_url_label_truncation.js"]
 tags = "vertical-tabs"
