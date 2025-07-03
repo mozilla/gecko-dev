@@ -178,8 +178,7 @@ pkix::Result MultiLogCTVerifier::VerifySingleSCT(
   }
 
   VerifiedSCT verifiedSct(std::move(sct), origin, matchingLog->operatorId(),
-                          matchingLog->state(), matchingLog->format(),
-                          matchingLog->timestamp());
+                          matchingLog->state(), matchingLog->timestamp());
   result.verifiedScts.push_back(std::move(verifiedSct));
   return Success;
 }

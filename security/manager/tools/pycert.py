@@ -36,7 +36,7 @@ certificatePolicies:[<policy OID>,...]
 nameConstraints:{permitted,excluded}:[<dNSName|directoryName>,...]
 nsCertType:sslServer
 TLSFeature:[<TLSFeature>,...]
-embeddedSCTList:[<key specification>:<YYYYMMDD>[:<leaf index>],...]
+embeddedSCTList:[<key specification>:<YYYYMMDD>,...]
 delegationUsage:
 
 Where:
@@ -109,12 +109,12 @@ class UnknownBaseError(Error):
     """Base class for handling unexpected input in this module."""
 
     def __init__(self, value):
-        super().__init__()
+        super(UnknownBaseError, self).__init__()
         self.value = value
         self.category = "input"
 
     def __str__(self):
-        return f'Unknown {self.category} type "{repr(self.value)}"'
+        return 'Unknown %s type "%s"' % (self.category, repr(self.value))
 
 
 class UnknownAlgorithmTypeError(UnknownBaseError):
@@ -210,18 +210,18 @@ class InvalidSCTSpecification(Error):
     """Helper exception type to handle invalid SCT specifications."""
 
     def __init__(self, value):
-        super().__init__()
+        super(InvalidSCTSpecification, self).__init__()
         self.value = value
 
     def __str__(self):
-        return f'invalid SCT specification "{self.value}"'
+        return repr('invalid SCT specification "{}"' % self.value)
 
 
 class InvalidSerialNumber(Error):
     """Exception type to handle invalid serial numbers."""
 
     def __init__(self, value):
-        super().__init__()
+        super(InvalidSerialNumber, self).__init__()
         self.value = value
 
     def __str__(self):
@@ -254,7 +254,7 @@ def stringToDN(string, tag=None):
     optional implicit tag in cases where the Name needs to be tagged
     differently."""
     if string and "/" not in string:
-        string = f"/CN={string}"
+        string = "/CN=%s" % string
     rdns = rfc2459.RDNSequence()
     pattern = "/(C|ST|L|O|OU|CN|emailAddress)="
     split = re.split(pattern, string)
@@ -621,11 +621,10 @@ class Certificate:
     def addCertificatePolicies(self, policyOIDs, critical):
         policies = rfc2459.CertificatePolicies()
         for pos, policyOID in enumerate(policyOIDs.split(",")):
-            policyOIDMapped = policyOID
-            if policyOIDMapped == "any":
-                policyOIDMapped = "2.5.29.32.0"
+            if policyOID == "any":
+                policyOID = "2.5.29.32.0"
             policy = rfc2459.PolicyInformation()
-            policyIdentifier = rfc2459.CertPolicyId(policyOIDMapped)
+            policyIdentifier = rfc2459.CertPolicyId(policyOID)
             policy["policyIdentifier"] = policyIdentifier
             policies.setComponentByPosition(pos, policy)
         self.addExtension(rfc2459.id_ce_certificatePolicies, policies, critical)
@@ -697,20 +696,15 @@ class Certificate:
         (scts, critical) = self.savedEmbeddedSCTListData
         encodedSCTs = []
         for sctSpec in scts.split(","):
-            match = re.search(r"(\w+):(\d{8}):?(\d+)?", sctSpec)
+            match = re.search(r"(\w+):(\d{8})", sctSpec)
             if not match:
                 raise InvalidSCTSpecification(sctSpec)
             keySpec = match.group(1)
-            leafIndex = match.group(3)
-            if leafIndex:
-                leafIndex = int(leafIndex)
             key = pykey.keyFromSpecification(keySpec)
             time = datetime.datetime.strptime(match.group(2), "%Y%m%d")
             tbsCertificate = self.getTBSCertificate()
             tbsDER = encoder.encode(tbsCertificate)
-            sct = pyct.SCT(
-                key, time, pyct.PrecertEntry(tbsDER, self.issuerKey), leafIndex
-            )
+            sct = pyct.SCT(key, time, pyct.PrecertEntry(tbsDER, self.issuerKey))
             signed = sct.signAndEncode()
             lengthPrefix = pack("!H", len(signed))
             encodedSCTs.append(lengthPrefix + signed)

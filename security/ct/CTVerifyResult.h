@@ -28,14 +28,13 @@ enum class SCTOrigin {
 struct VerifiedSCT {
   VerifiedSCT(SignedCertificateTimestamp&& sct, SCTOrigin origin,
               CTLogOperatorId logOperatorId, CTLogState logState,
-              CTLogFormat logFormat, uint64_t logTimestamp);
+              uint64_t logTimestamp);
 
   // The original SCT.
   SignedCertificateTimestamp sct;
   SCTOrigin origin;
   CTLogOperatorId logOperatorId;
   CTLogState logState;
-  CTLogFormat logFormat;
   uint64_t logTimestamp;
 };
 

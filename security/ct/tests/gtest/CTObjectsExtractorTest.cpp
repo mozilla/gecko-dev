@@ -39,8 +39,7 @@ class CTObjectsExtractorTest : public ::testing::Test {
   Buffer mEmbeddedCert;
   Buffer mCaCert;
   Buffer mCaCertSPKI;
-  CTLogVerifier mLog =
-      CTLogVerifier(-1, CTLogState::Admissible, CTLogFormat::RFC6962, 0);
+  CTLogVerifier mLog = CTLogVerifier(-1, CTLogState::Admissible, 0);
 };
 
 TEST_F(CTObjectsExtractorTest, ExtractPrecert) {

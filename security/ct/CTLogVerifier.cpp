@@ -114,11 +114,10 @@ class SignatureParamsTrustDomain final : public TrustDomain {
 };
 
 CTLogVerifier::CTLogVerifier(CTLogOperatorId operatorId, CTLogState state,
-                             CTLogFormat format, uint64_t timestamp)
+                             uint64_t timestamp)
     : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous),
       mOperatorId(operatorId),
       mState(state),
-      mFormat(format),
       mTimestamp(timestamp) {}
 
 pkix::Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {

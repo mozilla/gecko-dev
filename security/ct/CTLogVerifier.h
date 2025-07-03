@@ -30,10 +30,9 @@ class CTLogVerifier {
  public:
   // |operatorId| The numeric ID of the log operator.
   // |logState| "Qualified", "Usable", "ReadOnly", or "Retired".
-  // |logFormat| "RFC6962" or "Tiled"
   // |timestamp| timestamp associated with logState.
   CTLogVerifier(CTLogOperatorId operatorId, CTLogState logState,
-                CTLogFormat logFormat, uint64_t timestamp);
+                uint64_t timestamp);
 
   // Initializes the verifier with the given subjectPublicKeyInfo.
   // |subjectPublicKeyInfo| is a DER-encoded SubjectPublicKeyInfo.
@@ -47,7 +46,6 @@ class CTLogVerifier {
 
   CTLogOperatorId operatorId() const { return mOperatorId; }
   CTLogState state() const { return mState; }
-  CTLogFormat format() const { return mFormat; }
   uint64_t timestamp() const { return mTimestamp; }
 
   // Verifies that |sct| contains a valid signature for |entry|.
@@ -76,7 +74,6 @@ class CTLogVerifier {
   DigitallySigned::SignatureAlgorithm mSignatureAlgorithm;
   CTLogOperatorId mOperatorId;
   CTLogState mState;
-  CTLogFormat mFormat;
   uint64_t mTimestamp;
 };
 

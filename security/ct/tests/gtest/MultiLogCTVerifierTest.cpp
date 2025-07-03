@@ -30,8 +30,7 @@ class MultiLogCTVerifierTest : public ::testing::Test {
       abort();
     }
 
-    CTLogVerifier log(mLogOperatorID, CTLogState::Admissible,
-                      CTLogFormat::RFC6962, 0);
+    CTLogVerifier log(mLogOperatorID, CTLogState::Admissible, 0);
     ;
     ASSERT_EQ(Success, log.Init(InputForBuffer(GetTestPublicKey())));
     mVerifier.AddLog(std::move(log));
@@ -223,8 +222,7 @@ TEST_F(MultiLogCTVerifierTest, IdentifiesSCTFromUnknownLog) {
 TEST_F(MultiLogCTVerifierTest, IdentifiesSCTFromDisqualifiedLog) {
   MultiLogCTVerifier verifier;
   const uint64_t retiredTime = 12345u;
-  CTLogVerifier log(mLogOperatorID, CTLogState::Retired, CTLogFormat::RFC6962,
-                    retiredTime);
+  CTLogVerifier log(mLogOperatorID, CTLogState::Retired, retiredTime);
   ASSERT_EQ(Success, log.Init(InputForBuffer(GetTestPublicKey())));
   verifier.AddLog(std::move(log));
 
