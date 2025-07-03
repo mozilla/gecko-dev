@@ -870,9 +870,11 @@ export class SearchEngine {
       this.copyUserSettingsFrom(engine);
 
       this._urls = engine._urls;
-      this.setAttr("overriddenBy", engine._extensionID ?? engine.id);
       if (engine instanceof lazy.OpenSearchEngine) {
+        this.setAttr("overriddenBy", engine.id);
         this.setAttr("overriddenByOpenSearch", engine.toJSON());
+      } else {
+        this.setAttr("overriddenBy", engine._extensionID);
       }
     } else {
       this._urls = [];
@@ -1459,7 +1461,9 @@ export class SearchEngine {
 
     let searchURI = this.searchURLWithNoTerms;
 
-    let callbacks = options.window.docShell.QueryInterface(Ci.nsILoadContext);
+    let callbacks = options.window.docShell.QueryInterface(
+      Ci.nsIInterfaceRequestor
+    );
 
     // Using the content principal which is constructed by the search URI
     // and given originAttributes. If originAttributes are not given, we

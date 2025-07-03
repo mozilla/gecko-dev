@@ -1603,7 +1603,9 @@ export class SearchService {
     // reload the engines - it is possible the settings just had one engine in it,
     // and that is now empty, so we need to load from our main list.
     if (engineRemoved && !this._engines.size) {
-      this._maybeReloadEngines().catch(console.error);
+      this._maybeReloadEngines(
+        Ci.nsISearchService.CHANGE_REASON_ENGINE_IGNORE_LIST_UPDATED
+      ).catch(console.error);
     }
   }
 
@@ -2499,7 +2501,10 @@ export class SearchService {
           let existingEngine = this.#getEngineByName(engineJSON._name);
           let extensionId = engineJSON.extensionID ?? engineJSON._extensionID;
 
-          if (existingEngine && existingEngine._extensionID == extensionId) {
+          if (
+            existingEngine instanceof lazy.AddonSearchEngine &&
+            existingEngine._extensionID == extensionId
+          ) {
             // We assume that this WebExtension was already loaded as part of
             // #loadStartupEngines, and therefore do not try to add it again.
             lazy.logConsole.log(
