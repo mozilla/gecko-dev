@@ -464,12 +464,11 @@ class Selection final : public nsSupportsWeakReference,
     }
 
     AbstractRange* range = mStyledRanges.mRanges[0].mRange;
-    MOZ_ASSERT_IF(
-        range->MayCrossShadowBoundary(),
-        !range->AsDynamicRange()->CrossShadowBoundaryRangeCollapsed());
-    // Returns false if nsRange::mCrossBoundaryRange exists,
-    // true otherwise.
-    return !range->MayCrossShadowBoundary();
+    if (range->MayCrossShadowBoundary()) {
+      return range->AsDynamicRange()->CrossShadowBoundaryRangeCollapsed();
+    }
+
+    return true;
   }
 
   // *JS() methods are mapped to Selection.*().

@@ -114,21 +114,13 @@ void CrossShadowBoundaryRange::DoSetRange(
   nsINode* endRoot = RangeUtils::ComputeRootNode(mEnd.GetContainer());
 
   nsINode* previousCommonAncestor = mCommonAncestor;
-  if (startRoot == endRoot) {
-    MOZ_ASSERT(!startRoot && !endRoot);
-    MOZ_ASSERT(!aOwner);
-    // This should be the case when Release() is called.
-    mCommonAncestor = startRoot;
-    mOwner = nullptr;
-  } else {
-    mCommonAncestor =
-        nsContentUtils::GetClosestCommonShadowIncludingInclusiveAncestor(
-            mStart.GetContainer(), mEnd.GetContainer());
-    MOZ_ASSERT_IF(mOwner, mOwner == aOwner);
-    if (!mOwner) {
-      mOwner = aOwner;
-    }
-  }
+  mCommonAncestor =
+      startRoot == endRoot
+          ? startRoot
+          : nsContentUtils::GetClosestCommonShadowIncludingInclusiveAncestor(
+                mStart.GetContainer(), mEnd.GetContainer());
+  MOZ_ASSERT_IF(mOwner, mOwner == aOwner || !aOwner);
+  mOwner = aOwner;
 
   if (previousCommonAncestor != mCommonAncestor) {
     if (previousCommonAncestor) {
@@ -192,7 +184,7 @@ void CrossShadowBoundaryRange::ContentWillBeRemoved(nsIContent* aChild,
       // we can just invalidate the offset.
       if (aChild == aBoundary.Ref()) {
         return Some<RawRangeBoundary>(
-            {container, aChild->GetPreviousSibling()});
+            {container, aChild->GetPreviousSibling(), TreeKind::Flat});
       }
       RawRangeBoundary newBoundary(TreeKind::Flat);
       newBoundary.CopyFrom(aBoundary, RangeBoundaryIsMutationObserved::Yes);
@@ -242,7 +234,7 @@ void CrossShadowBoundaryRange::CharacterDataChanged(
       RawRangeBoundary newStart =
           nsRange::ComputeNewBoundaryWhenBoundaryInsideChangedText(
               aInfo, aBoundary.AsRaw());
-      return Some(newStart);
+      return Some(newStart.AsRangeBoundaryInFlatTree());
     }
     return Nothing();
   };

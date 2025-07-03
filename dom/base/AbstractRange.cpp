@@ -372,10 +372,12 @@ nsresult AbstractRange::SetStartAndEndInternal(
       // Don't create the cross shadow bounday range if the one of the roots is
       // an UA widget regardless whether the boundaries are allowed to cross
       // shadow boundary or not.
-      if (!IsRootUAWidget(newStartRoot) && !IsRootUAWidget(newEndRoot)) {
+      if (aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes &&
+          !IsRootUAWidget(newStartRoot) && !IsRootUAWidget(newEndRoot)) {
         aRange->AsDynamicRange()
-            ->CreateOrUpdateCrossShadowBoundaryRangeIfNeeded(aStartBoundary,
-                                                             aEndBoundary);
+            ->CreateOrUpdateCrossShadowBoundaryRangeIfNeeded(
+                aStartBoundary.AsRangeBoundaryInFlatTree(),
+                aEndBoundary.AsRangeBoundaryInFlatTree());
       }
     }
     return NS_OK;
@@ -402,6 +404,16 @@ nsresult AbstractRange::SetStartAndEndInternal(
 
   // Otherwise, set the range as specified.
   aRange->DoSetRange(aStartBoundary, aEndBoundary, newStartRoot);
+
+  if (aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes &&
+      aRange->IsDynamicRange()) {
+    auto startInFlat = aStartBoundary.AsRangeBoundaryInFlatTree();
+    auto endInFlat = aEndBoundary.AsRangeBoundaryInFlatTree();
+
+    aRange->AsDynamicRange()->CreateOrUpdateCrossShadowBoundaryRangeIfNeeded(
+        startInFlat, endInFlat);
+  }
+
   return NS_OK;
 }
 

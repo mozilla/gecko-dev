@@ -14029,7 +14029,10 @@ static void CachePrintSelectionRanges(const Document& aSourceDoc,
 
     RefPtr<nsRange> clonedRange = nsRange::Create(
         startNode, range->MayCrossShadowBoundaryStartOffset(), endNode,
-        range->MayCrossShadowBoundaryEndOffset(), IgnoreErrors());
+        range->MayCrossShadowBoundaryEndOffset(), IgnoreErrors(),
+        StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+            ? AllowRangeCrossShadowBoundary::Yes
+            : AllowRangeCrossShadowBoundary::No);
     if (clonedRange &&
         !clonedRange->AreNormalRangeAndCrossShadowBoundaryRangeCollapsed()) {
       printRanges->AppendElement(std::move(clonedRange));

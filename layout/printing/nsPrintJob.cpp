@@ -1611,7 +1611,10 @@ void SelectionRangeState::SelectNodesExceptInSubtree(const Position& aStart,
   }
 
   RefPtr<nsRange> range = nsRange::Create(
-      start.mNode, start.mOffset, aStart.mNode, aStart.mOffset, IgnoreErrors());
+      start.mNode, start.mOffset, aStart.mNode, aStart.mOffset, IgnoreErrors(),
+      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+          ? AllowRangeCrossShadowBoundary::Yes
+          : AllowRangeCrossShadowBoundary::No);
   SelectRange(range);
 
   start = aEnd;
@@ -1636,7 +1639,10 @@ void SelectionRangeState::RemoveSelectionFromDocument() {
     const Position& pos = entry.GetData();
     nsINode* root = entry.GetKey();
     RefPtr<nsRange> range = nsRange::Create(
-        pos.mNode, pos.mOffset, root, root->GetChildCount(), IgnoreErrors());
+        pos.mNode, pos.mOffset, root, root->GetChildCount(), IgnoreErrors(),
+        StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+            ? AllowRangeCrossShadowBoundary::Yes
+            : AllowRangeCrossShadowBoundary::No);
     SelectRange(range);
   }
   mSelection->DeleteFromDocument(IgnoreErrors());

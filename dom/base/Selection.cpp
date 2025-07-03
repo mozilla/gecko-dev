@@ -4457,7 +4457,8 @@ void Selection::SetStartAndEndInternal(InLimiter aInLimiter,
 
   RefPtr<nsRange> newRange = nsRange::Create(
       aStartRef, aEndRef, aRv,
-      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled()
+      StaticPrefs::dom_shadowdom_selection_across_boundary_enabled() &&
+              aInLimiter == InLimiter::eNo
           ? AllowRangeCrossShadowBoundary::Yes
           : AllowRangeCrossShadowBoundary::No);
   if (aRv.Failed()) {
