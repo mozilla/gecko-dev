@@ -9,7 +9,7 @@ libpng-manual.txt - A description on how to use and modify libpng
 
  Based on:
 
- libpng version 1.6.36, December 2018, through 1.6.49 - June 2025
+ libpng version 1.6.36, December 2018, through 1.6.50 - July 2025
  Updated and distributed by Cosmin Truta
  Copyright (c) 2018-2025 Cosmin Truta
 
@@ -65,18 +65,22 @@ Libpng was written as a companion to the PNG specification, as a way
 of reducing the amount of time and effort it takes to support the PNG
 file format in application programs.
 
-The PNG specification (second edition), November 2003, is available as
+The PNG specification (Third Edition), June 2025, is available as
+a W3C Recommendation at
+<https://www.w3.org/TR/2025/REC-png-3-20250624/>.
+
+The PNG specification (Second Edition), November 2003, is available as
 a W3C Recommendation and as an ISO Standard (ISO/IEC 15948:2004 (E)) at
 <https://www.w3.org/TR/2003/REC-PNG-20031110/>.
 The W3C and ISO documents have identical technical content.
 
 The PNG-1.2 specification is available at
-<https://png-mng.sourceforge.io/pub/png/spec/1.2/>.
-It is technically equivalent
-to the PNG specification (second edition) but has some additional material.
+<https://www.libpng.org/pub/png/spec/1.2/>.
+It is technically equivalent to the PNG specification (Second Edition)
+but has some additional material.
 
 The PNG-1.0 specification is available as RFC 2083 at
-<https://png-mng.sourceforge.io/pub/png/spec/1.0/> and as a
+<https://www.libpng.org/pub/png/spec/1.0/> and as a
 W3C Recommendation at <https://www.w3.org/TR/REC-png-961001>.
 
 Some additional chunks are described in the special-purpose public chunks

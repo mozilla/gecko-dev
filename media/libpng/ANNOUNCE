@@ -1,5 +1,5 @@
-libpng 1.6.49 - June 12, 2025
-=============================
+libpng 1.6.50 - July 1, 2025
+============================
 
 This is a public release of libpng, intended for use in production code.
 
@@ -9,13 +9,13 @@ Files available for download
 
 Source files with LF line endings (for Unix/Linux):
 
- * libpng-1.6.49.tar.xz (LZMA-compressed, recommended)
- * libpng-1.6.49.tar.gz (deflate-compressed)
+ * libpng-1.6.50.tar.xz (LZMA-compressed, recommended)
+ * libpng-1.6.50.tar.gz (deflate-compressed)
 
 Source files with CRLF line endings (for Windows):
 
- * lpng1649.7z (LZMA-compressed, recommended)
- * lpng1649.zip (deflate-compressed)
+ * lpng1650.7z (LZMA-compressed, recommended)
+ * lpng1650.zip (deflate-compressed)
 
 Other information:
 
@@ -25,13 +25,18 @@ Other information:
  * TRADEMARK.md
 
 
-Changes from version 1.6.48 to version 1.6.49
+Changes from version 1.6.49 to version 1.6.50
 ---------------------------------------------
 
- * Added SIMD-optimized code for the RISC-V Vector Extension (RVV).
-   (Contributed by Manfred Schlaegl, Dragos Tiselice and Filip Wasil)
- * Added various fixes and improvements to the build scripts and to
-   the sample code.
+ * Improved the detection of the RVV Extension on the RISC-V platform.
+   (Contributed by Filip Wasil)
+ * Replaced inline ASM with C intrinsics in the RVV code.
+   (Contributed by Filip Wasil)
+ * Fixed a decoder defect in which unknown chunks trailing IDAT, set
+   to go through the unknown chunk handler, incorrectly triggered
+   out-of-place IEND errors.
+   (Contributed by John Bowler)
+ * Fixed the CMake file for cross-platform builds that require `libm`.
 
 
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.

@@ -6267,6 +6267,17 @@ Version 1.6.49 [June 12, 2025]
   Added various fixes and improvements to the build scripts and to
     the sample code.
 
+Version 1.6.50 [July 1, 2025]
+  Improved the detection of the RVV Extension on the RISC-V platform.
+    (Contributed by Filip Wasil)
+  Replaced inline ASM with C intrinsics in the RVV code.
+    (Contributed by Filip Wasil)
+  Fixed a decoder defect in which unknown chunks trailing IDAT, set
+    to go through the unknown chunk handler, incorrectly triggered
+    out-of-place IEND errors.
+    (Contributed by John Bowler)
+  Fixed the CMake file for cross-platform builds that require `libm`.
+
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.
 Subscription is required; visit
 https://lists.sourceforge.net/lists/listinfo/png-mng-implement
