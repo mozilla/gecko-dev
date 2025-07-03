@@ -1022,7 +1022,11 @@ impl Shaders {
         let cs_linear_gradient = loader.create_shader(
             ShaderKind::Cache(VertexArrayKind::LinearGradient),
             "cs_linear_gradient",
-            &[],
+            if options.enable_dithering {
+               &[DITHERING_FEATURE]
+            } else {
+               &[]
+            },
             &shader_list,
         )?;
 
