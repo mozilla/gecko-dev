@@ -728,6 +728,411 @@
       "name": "semantics",
       "namespace": "http://www.w3.org/1998/Math/MathML",
       "attributes": []
+    },
+    {
+      "name": "svg",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "viewBox",
+          "namespace": null
+        },
+        {
+          "name": "preserveAspectRatio",
+          "namespace": null
+        },
+        {
+          "name": "height",
+          "namespace": null
+        },
+        {
+          "name": "width",
+          "namespace": null
+        },
+        {
+          "name": "x",
+          "namespace": null
+        },
+        {
+          "name": "y",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "g",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": []
+    },
+    {
+      "name": "defs",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": []
+    },
+    {
+      "name": "symbol",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "preserveAspectRatio",
+          "namespace": null
+        },
+        {
+          "name": "viewBox",
+          "namespace": null
+        },
+        {
+          "name": "refX",
+          "namespace": null
+        },
+        {
+          "name": "refY",
+          "namespace": null
+        },
+        {
+          "name": "height",
+          "namespace": null
+        },
+        {
+          "name": "width",
+          "namespace": null
+        },
+        {
+          "name": "x",
+          "namespace": null
+        },
+        {
+          "name": "y",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "title",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": []
+    },
+    {
+      "name": "desc",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": []
+    },
+    {
+      "name": "metadata",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": []
+    },
+    {
+      "name": "path",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "d",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "rect",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "x",
+          "namespace": null
+        },
+        {
+          "name": "y",
+          "namespace": null
+        },
+        {
+          "name": "width",
+          "namespace": null
+        },
+        {
+          "name": "height",
+          "namespace": null
+        },
+        {
+          "name": "rx",
+          "namespace": null
+        },
+        {
+          "name": "ry",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "circle",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "cx",
+          "namespace": null
+        },
+        {
+          "name": "cy",
+          "namespace": null
+        },
+        {
+          "name": "r",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "ellipse",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "cx",
+          "namespace": null
+        },
+        {
+          "name": "cy",
+          "namespace": null
+        },
+        {
+          "name": "rx",
+          "namespace": null
+        },
+        {
+          "name": "ry",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "line",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "x1",
+          "namespace": null
+        },
+        {
+          "name": "y1",
+          "namespace": null
+        },
+        {
+          "name": "x2",
+          "namespace": null
+        },
+        {
+          "name": "y2",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "polyline",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "points",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "polygon",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "pathLength",
+          "namespace": null
+        },
+        {
+          "name": "points",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "text",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "lengthAdjust",
+          "namespace": null
+        },
+        {
+          "name": "x",
+          "namespace": null
+        },
+        {
+          "name": "y",
+          "namespace": null
+        },
+        {
+          "name": "dx",
+          "namespace": null
+        },
+        {
+          "name": "dy",
+          "namespace": null
+        },
+        {
+          "name": "rotate",
+          "namespace": null
+        },
+        {
+          "name": "textLength",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "tspan",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "lengthAdjust",
+          "namespace": null
+        },
+        {
+          "name": "x",
+          "namespace": null
+        },
+        {
+          "name": "y",
+          "namespace": null
+        },
+        {
+          "name": "dx",
+          "namespace": null
+        },
+        {
+          "name": "dy",
+          "namespace": null
+        },
+        {
+          "name": "rotate",
+          "namespace": null
+        },
+        {
+          "name": "textLength",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "textPath",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "lengthAdjust",
+          "namespace": null
+        },
+        {
+          "name": "textLength",
+          "namespace": null
+        },
+        {
+          "name": "path",
+          "namespace": null
+        },
+        {
+          "name": "startOffset",
+          "namespace": null
+        },
+        {
+          "name": "method",
+          "namespace": null
+        },
+        {
+          "name": "spacing",
+          "namespace": null
+        },
+        {
+          "name": "side",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "foreignObject",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "x",
+          "namespace": null
+        },
+        {
+          "name": "y",
+          "namespace": null
+        },
+        {
+          "name": "width",
+          "namespace": null
+        },
+        {
+          "name": "height",
+          "namespace": null
+        }
+      ]
+    },
+    {
+      "name": "marker",
+      "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [
+        {
+          "name": "viewBox",
+          "namespace": null
+        },
+        {
+          "name": "preserveAspectRatio",
+          "namespace": null
+        },
+        {
+          "name": "refX",
+          "namespace": null
+        },
+        {
+          "name": "refY",
+          "namespace": null
+        },
+        {
+          "name": "markerUnits",
+          "namespace": null
+        },
+        {
+          "name": "markerWidth",
+          "namespace": null
+        },
+        {
+          "name": "markerHeight",
+          "namespace": null
+        },
+        {
+          "name": "orient",
+          "namespace": null
+        }
+      ]
     }
   ],
   "attributes": [
@@ -761,6 +1166,246 @@
     },
     {
       "name": "scriptlevel",
+      "namespace": null
+    },
+    {
+      "name": "fill",
+      "namespace": null
+    },
+    {
+      "name": "transform",
+      "namespace": null
+    },
+    {
+      "name": "alignment-baseline",
+      "namespace": null
+    },
+    {
+      "name": "baseline-shift",
+      "namespace": null
+    },
+    {
+      "name": "clip-path",
+      "namespace": null
+    },
+    {
+      "name": "clip-rule",
+      "namespace": null
+    },
+    {
+      "name": "color",
+      "namespace": null
+    },
+    {
+      "name": "color-interpolation",
+      "namespace": null
+    },
+    {
+      "name": "color-interpolation-filters",
+      "namespace": null
+    },
+    {
+      "name": "cursor",
+      "namespace": null
+    },
+    {
+      "name": "direction",
+      "namespace": null
+    },
+    {
+      "name": "display",
+      "namespace": null
+    },
+    {
+      "name": "dominant-baseline",
+      "namespace": null
+    },
+    {
+      "name": "fill-opacity",
+      "namespace": null
+    },
+    {
+      "name": "fill-rule",
+      "namespace": null
+    },
+    {
+      "name": "filter",
+      "namespace": null
+    },
+    {
+      "name": "flood-color",
+      "namespace": null
+    },
+    {
+      "name": "flood-opacity",
+      "namespace": null
+    },
+    {
+      "name": "font-family",
+      "namespace": null
+    },
+    {
+      "name": "font-size",
+      "namespace": null
+    },
+    {
+      "name": "font-size-adjust",
+      "namespace": null
+    },
+    {
+      "name": "font-stretch",
+      "namespace": null
+    },
+    {
+      "name": "font-style",
+      "namespace": null
+    },
+    {
+      "name": "font-variant",
+      "namespace": null
+    },
+    {
+      "name": "font-weight",
+      "namespace": null
+    },
+    {
+      "name": "glyph-orientation-horizontal",
+      "namespace": null
+    },
+    {
+      "name": "glyph-orientation-vertical",
+      "namespace": null
+    },
+    {
+      "name": "image-rendering",
+      "namespace": null
+    },
+    {
+      "name": "letter-spacing",
+      "namespace": null
+    },
+    {
+      "name": "lighting-color",
+      "namespace": null
+    },
+    {
+      "name": "marker-end",
+      "namespace": null
+    },
+    {
+      "name": "marker-mid",
+      "namespace": null
+    },
+    {
+      "name": "marker-start",
+      "namespace": null
+    },
+    {
+      "name": "mask",
+      "namespace": null
+    },
+    {
+      "name": "mask-type",
+      "namespace": null
+    },
+    {
+      "name": "opacity",
+      "namespace": null
+    },
+    {
+      "name": "paint-order",
+      "namespace": null
+    },
+    {
+      "name": "pointer-events",
+      "namespace": null
+    },
+    {
+      "name": "shape-rendering",
+      "namespace": null
+    },
+    {
+      "name": "stop-color",
+      "namespace": null
+    },
+    {
+      "name": "stop-opacity",
+      "namespace": null
+    },
+    {
+      "name": "stroke",
+      "namespace": null
+    },
+    {
+      "name": "stroke-dasharray",
+      "namespace": null
+    },
+    {
+      "name": "stroke-dashoffset",
+      "namespace": null
+    },
+    {
+      "name": "stroke-linecap",
+      "namespace": null
+    },
+    {
+      "name": "stroke-linejoin",
+      "namespace": null
+    },
+    {
+      "name": "stroke-miterlimit",
+      "namespace": null
+    },
+    {
+      "name": "stroke-opacity",
+      "namespace": null
+    },
+    {
+      "name": "stroke-width",
+      "namespace": null
+    },
+    {
+      "name": "text-anchor",
+      "namespace": null
+    },
+    {
+      "name": "text-decoration",
+      "namespace": null
+    },
+    {
+      "name": "text-overflow",
+      "namespace": null
+    },
+    {
+      "name": "text-rendering",
+      "namespace": null
+    },
+    {
+      "name": "transform-origin",
+      "namespace": null
+    },
+    {
+      "name": "unicode-bidi",
+      "namespace": null
+    },
+    {
+      "name": "vector-effect",
+      "namespace": null
+    },
+    {
+      "name": "visibility",
+      "namespace": null
+    },
+    {
+      "name": "white-space",
+      "namespace": null
+    },
+    {
+      "name": "word-spacing",
+      "namespace": null
+    },
+    {
+      "name": "writing-mode",
       "namespace": null
     }
   ],

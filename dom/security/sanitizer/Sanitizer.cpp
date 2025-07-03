@@ -7,6 +7,7 @@
 #include "Sanitizer.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/StaticPtr.h"
+#include "mozilla/Span.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DocumentFragment.h"
@@ -38,6 +39,7 @@ using ElementsWithAttributes =
 
 StaticAutoPtr<ElementsWithAttributes> sDefaultHTMLElements;
 StaticAutoPtr<ElementsWithAttributes> sDefaultMathMLElements;
+StaticAutoPtr<ElementsWithAttributes> sDefaultSVGElements;
 StaticAutoPtr<StaticAtomSet> sDefaultAttributes;
 
 JSObject* Sanitizer::WrapObject(JSContext* aCx,
@@ -144,41 +146,36 @@ void Sanitizer::SetDefaultConfig() {
     return;
   }
 
+  auto createElements = [](mozilla::Span<nsStaticAtom* const> aElements,
+                           nsStaticAtom* const* aElementWithAttributes) {
+    auto elements = new ElementsWithAttributes(aElements.Length());
+
+    size_t i = 0;
+    for (nsStaticAtom* name : aElements) {
+      UniquePtr<StaticAtomSet> attributes = nullptr;
+
+      // Walkthrough the element specific attribute list in lockstep.
+      // The last "name" in the array is a nullptr sentinel.
+      if (name == aElementWithAttributes[i]) {
+        attributes = MakeUnique<StaticAtomSet>();
+        while (aElementWithAttributes[++i]) {
+          attributes->Insert(aElementWithAttributes[i]);
+        }
+        i++;
+      }
+
+      elements->InsertOrUpdate(name, std::move(attributes));
+    }
+
+    return elements;
+  };
+
   sDefaultHTMLElements =
-      new ElementsWithAttributes(std::size(kDefaultHTMLElements));
-  size_t i = 0;
-  for (nsStaticAtom* name : kDefaultHTMLElements) {
-    UniquePtr<StaticAtomSet> attributes = nullptr;
-
-    // Walkthrough the element specific attribute list in lockstep.
-    // The last "name" in the array is a nullptr sentinel.
-    if (name == kHTMLElementWithAttributes[i]) {
-      attributes = MakeUnique<StaticAtomSet>();
-      while (kHTMLElementWithAttributes[++i]) {
-        attributes->Insert(kHTMLElementWithAttributes[i]);
-      }
-      i++;
-    }
-
-    sDefaultHTMLElements->InsertOrUpdate(name, std::move(attributes));
-  }
-
-  sDefaultMathMLElements =
-      new ElementsWithAttributes(std::size(kDefaultMathMLElements));
-  i = 0;
-  for (nsStaticAtom* name : kDefaultMathMLElements) {
-    UniquePtr<StaticAtomSet> attributes = nullptr;
-
-    if (name == kMathMLElementWithAttributes[i]) {
-      attributes = MakeUnique<StaticAtomSet>();
-      while (kMathMLElementWithAttributes[++i]) {
-        attributes->Insert(kMathMLElementWithAttributes[i]);
-      }
-      i++;
-    }
-
-    sDefaultMathMLElements->InsertOrUpdate(name, std::move(attributes));
-  }
+      createElements(Span(kDefaultHTMLElements), kHTMLElementWithAttributes);
+  sDefaultMathMLElements = createElements(Span(kDefaultMathMLElements),
+                                          kMathMLElementWithAttributes);
+  sDefaultSVGElements =
+      createElements(Span(kDefaultSVGElements), kSVGElementWithAttributes);
 
   sDefaultAttributes = new StaticAtomSet(std::size(kDefaultAttributes));
   for (nsStaticAtom* name : kDefaultAttributes) {
@@ -337,41 +334,33 @@ void Sanitizer::MaybeMaterializeDefaultConfig() {
 
   AssertNoLists();
 
-  size_t i = 0;
-  for (nsStaticAtom* name : kDefaultHTMLElements) {
-    CanonicalElementWithAttributes element(
-        CanonicalName(name, nsGkAtoms::nsuri_xhtml));
+  auto insertElements = [this](mozilla::Span<nsStaticAtom* const> aElements,
+                               nsStaticAtom* aNamespace,
+                               nsStaticAtom* const* aElementWithAttributes) {
+    size_t i = 0;
+    for (nsStaticAtom* name : aElements) {
+      CanonicalElementWithAttributes element(CanonicalName(name, aNamespace));
 
-    if (name == kHTMLElementWithAttributes[i]) {
-      ListSet<CanonicalName> attributes;
-      while (kHTMLElementWithAttributes[++i]) {
-        attributes.InsertNew(
-            CanonicalName(kHTMLElementWithAttributes[i], nullptr));
+      if (name == aElementWithAttributes[i]) {
+        ListSet<CanonicalName> attributes;
+        while (aElementWithAttributes[++i]) {
+          attributes.InsertNew(
+              CanonicalName(aElementWithAttributes[i], nullptr));
+        }
+        i++;
+        element.mAttributes = Some(std::move(attributes));
       }
-      i++;
-      element.mAttributes = Some(std::move(attributes));
+
+      mElements.InsertNew(std::move(element));
     }
+  };
 
-    mElements.InsertNew(std::move(element));
-  }
-
-  i = 0;
-  for (nsStaticAtom* name : kDefaultMathMLElements) {
-    CanonicalElementWithAttributes element(
-        CanonicalName(name, nsGkAtoms::nsuri_mathml));
-
-    if (name == kMathMLElementWithAttributes[i]) {
-      ListSet<CanonicalName> attributes;
-      while (kMathMLElementWithAttributes[++i]) {
-        attributes.InsertNew(
-            CanonicalName(kMathMLElementWithAttributes[i], nullptr));
-      }
-      i++;
-      element.mAttributes = Some(std::move(attributes));
-    }
-
-    mElements.InsertNew(std::move(element));
-  }
+  insertElements(Span(kDefaultHTMLElements), nsGkAtoms::nsuri_xhtml,
+                 kHTMLElementWithAttributes);
+  insertElements(Span(kDefaultMathMLElements), nsGkAtoms::nsuri_mathml,
+                 kMathMLElementWithAttributes);
+  insertElements(Span(kDefaultSVGElements), nsGkAtoms::nsuri_svg,
+                 kSVGElementWithAttributes);
 
   for (nsStaticAtom* name : kDefaultAttributes) {
     mAttributes.InsertNew(CanonicalName(name, nullptr));
@@ -875,6 +864,8 @@ void Sanitizer::SanitizeChildren(nsINode* aNode, bool aSafe) {
           elements = sDefaultHTMLElements;
         } else if (namespaceID == kNameSpaceID_MathML) {
           elements = sDefaultMathMLElements;
+        } else if (namespaceID == kNameSpaceID_SVG) {
+          elements = sDefaultSVGElements;
         }
         if (elements) {
           if (auto lookup = elements->Lookup(nameAtom->AsStatic())) {

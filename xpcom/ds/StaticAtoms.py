@@ -1610,6 +1610,7 @@ STATIC_ATOMS = [
     Atom("targetX", "targetX"),
     Atom("targetY", "targetY"),
     Atom("text_anchor", "text-anchor"),
+    Atom("text_overflow", "text-overflow"),
     Atom("text_rendering", "text-rendering"),
     Atom("textLength", "textLength"),
     Atom("textPath", "textPath"),

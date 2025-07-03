@@ -5,7 +5,7 @@
 import json
 from urllib.request import urlretrieve
 
-REVISION = "d4a6cff1ad499ac66bcfdf4b5a08dd0cec160225"
+REVISION = "7f24d56f7cbbf19778a3e26b00cf7cb88208fb03"
 
 urlretrieve(
     f"https://raw.githubusercontent.com/WICG/sanitizer-api/{REVISION}/builtins/safe-default-configuration.json",
@@ -26,7 +26,9 @@ def attributes_list(attributes):
     for attr in attributes:
         assert set(attr.keys()) == {"name", "namespace"}
         assert attr["namespace"] is None
-        result.append("nsGkAtoms::" + attr["name"])
+
+        name = attr["name"].replace("-", "_")
+        result.append("nsGkAtoms::" + name)
 
     # Should not have duplicate attributes
     assert len(result) == len(set(result))
@@ -36,10 +38,12 @@ def attributes_list(attributes):
 
 xhtml_elements = []
 mathml_elements = []
+svg_elements = []
 attributes = []
 
 xhtml_element_with_attributes = []
 mathml_element_with_attributes = []
+svg_element_with_attributes = []
 
 for element in config["elements"]:
     assert set(element.keys()) == {"name", "namespace", "attributes"}
@@ -60,12 +64,16 @@ for element in config["elements"]:
     elif namespace == "http://www.w3.org/1998/Math/MathML":
         mathml_elements.append(atom)
         mathml_element_with_attributes.extend(element_attributes)
+    elif namespace == "http://www.w3.org/2000/svg":
+        svg_elements.append(atom)
+        svg_element_with_attributes.extend(element_attributes)
     else:
         raise TypeError(f"unknown namespace: {namespace}")
 
 # Should not have duplicate elements
 assert len(set(xhtml_elements)) == len(xhtml_elements)
 assert len(set(mathml_elements)) == len(mathml_elements)
+assert len(set(svg_elements)) == len(svg_elements)
 
 
 def create_list_body(l):
@@ -74,6 +82,7 @@ def create_list_body(l):
 
 xhtml_elements_body = create_list_body(xhtml_elements)
 mathml_elements_body = create_list_body(mathml_elements)
+svg_elements_body = create_list_body(svg_elements)
 
 attributes_body = create_list_body(attributes_list(config["attributes"]))
 
@@ -82,6 +91,9 @@ xhtml_element_with_attributes_body = create_list_body(
 )
 mathml_element_with_attributes_body = create_list_body(
     mathml_element_with_attributes + ["/* sentinel */ nullptr"]
+)
+svg_element_with_attributes_body = create_list_body(
+    svg_element_with_attributes + ["/* sentinel */ nullptr"]
 )
 
 out = open("SanitizerDefaultConfig.h", "w")
@@ -113,6 +125,12 @@ constexpr nsStaticAtom* kDefaultMathMLElements[] = {{
     // clang-format on
 }};
 
+constexpr nsStaticAtom* kDefaultSVGElements[] = {{
+    // clang-format off
+{ svg_elements_body }
+    // clang-format on
+}};
+
 constexpr nsStaticAtom* kDefaultAttributes[] = {{
     // clang-format off
 { attributes_body }
@@ -129,6 +147,12 @@ constexpr nsStaticAtom* kHTMLElementWithAttributes[] = {{
 constexpr nsStaticAtom* kMathMLElementWithAttributes[] = {{
     // clang-format off
 { mathml_element_with_attributes_body }
+    // clang-format on
+}};
+
+constexpr nsStaticAtom* kSVGElementWithAttributes[] = {{
+    // clang-format off
+{ svg_element_with_attributes_body }
     // clang-format on
 }};
 
