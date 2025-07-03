@@ -16,6 +16,9 @@ try {
   globalThis.Debugger = globalThis.browserLoader.require(
     "devtools/client/debugger/src/main"
   );
+  // Expose `require` for the CustomFormatter ESM in order to allow it to load
+  // ObjectInspector, which are still CommonJS modules, via the same BrowserLoader instance.
+  globalThis.browserLoaderRequire = globalThis.browserLoader.require;
 } catch (e) {
   dump("Exception happened while loading the debugger:\n");
   dump(e + "\n");
