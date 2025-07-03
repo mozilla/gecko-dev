@@ -327,6 +327,7 @@ class SearchEngineReaderTest {
             charset = "UTF-8",
             classification = SearchEngineClassification.GENERAL,
             identifier = "google",
+            isNewUntil = null,
             name = "Google",
             optional = false,
             partnerCode = "firefox-b-m",
