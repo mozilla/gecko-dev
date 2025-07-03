@@ -767,12 +767,12 @@ class IndexedDBStorageActor extends BaseStorageActor {
    */
   async getNameFromDatabaseFile(path) {
     let connection = null;
-    let retryCount = 0;
 
+    // First establish a connection
     // Content pages might be having an open transaction for the same indexed db
     // which this sqlite file belongs to. In that case, sqlite.openConnection
     // will throw. Thus we retry for some time to see if lock is removed.
-    while (!connection && retryCount++ < 25) {
+    for (let retries = 0; !connection && retries < 25; retries++) {
       try {
         connection = await lazy.Sqlite.openConnection({ path });
       } catch (ex) {
@@ -781,17 +781,29 @@ class IndexedDBStorageActor extends BaseStorageActor {
       }
     }
 
-    if (!connection) {
+    // If the connection could not be established, bail out.
+    if (connection === null) {
+      console.error("Unable to open Sqlite connection to path: " + path);
       return null;
     }
 
-    const rows = await connection.execute("SELECT name FROM database");
-    if (rows.length != 1) {
-      return null;
+    // Then try to read the name.
+    let name = undefined;
+    for (let retries = 0; name === undefined && retries < 25; retries++) {
+      try {
+        const rows = await connection.execute("SELECT name FROM database");
+        name = rows[0].getResultByName("name");
+      } catch {
+        // Database might not be ready immediately, keep polling.
+        await sleep(100);
+      }
     }
 
-    const name = rows[0].getResultByName("name");
+    if (!name) {
+      console.error("Unable to get the database name for path: " + path);
+    }
 
+    // Always close the connection, even if a name could not be retrieved.
     await connection.close();
 
     return name;
