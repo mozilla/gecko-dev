@@ -160,7 +160,7 @@ private fun AddLoginHost(store: LoginsStore) {
         },
     )
 
-    if (isValidHost(host) && !isHttpOrHttps(host)) {
+    if ((host.isEmpty() || isValidHost(host)) && !isHttpOrHttps(host)) {
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
