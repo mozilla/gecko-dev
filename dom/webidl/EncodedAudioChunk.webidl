@@ -8,7 +8,7 @@
  */
 
 // [Serializable] is implemented without adding attribute here.
-[Exposed=(Window,DedicatedWorker), Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), Func="nsRFPService::ExposeWebCodecsAPI"]
 interface EncodedAudioChunk {
   [Throws]
   constructor(EncodedAudioChunkInit init);

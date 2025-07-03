@@ -12,7 +12,7 @@
  * commented with a link of the document in which the member is listed.
  */
 
-[Exposed=(Window,DedicatedWorker), SecureContext, Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), SecureContext, Func="nsRFPService::ExposeWebCodecsAPI"]
 interface VideoEncoder : EventTarget {
   [Throws]
   constructor(VideoEncoderInit init);

@@ -7,7 +7,7 @@
  * https://w3c.github.io/webcodecs/#videodecoder
  */
 
-[Exposed=(Window,DedicatedWorker), SecureContext, Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), SecureContext, Func="nsRFPService::ExposeWebCodecsAPI"]
 interface VideoDecoder : EventTarget {
   [Throws]
   constructor(VideoDecoderInit init);

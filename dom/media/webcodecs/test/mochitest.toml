@@ -16,4 +16,13 @@ scheme = "https"
 ["test_imageDecoder_desiredSize.html"]
 scheme = "https"
 
+["test_rfp_api_disabling_disabled.html"]
+scheme = "https"
+
+["test_rfp_api_disabling_enabled.html"]
+scheme = "https"
+
+["test_rfp_api_disabling_exemption.html"]
+scheme = "https"
+
 ["test_videoFrame_mismatched_codedSize.html"]

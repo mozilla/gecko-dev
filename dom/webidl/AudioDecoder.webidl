@@ -7,7 +7,7 @@
  * https://w3c.github.io/webcodecs/#audiodecoder
  */
 
-[Exposed=(Window,DedicatedWorker), SecureContext, Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), SecureContext, Func="nsRFPService::ExposeWebCodecsAPI"]
 interface AudioDecoder : EventTarget {
   [Throws]
   constructor(AudioDecoderInit init);

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<script>
+const apis = [
+  "AudioData",
+  "AudioDecoder",
+  "AudioEncoder",
+  "EncodedAudioChunk",
+  "EncodedVideoChunk",
+  "ImageDecoder",
+  "ImageTrack",
+  "ImageTrackList",
+  "VideoColorSpace",
+  "VideoDecoder",
+  "VideoEncoder",
+  "VideoFrame",
+];
+
+function enabledAPIs() {
+  return apis.filter(api => typeof window[api] !== "undefined");
+}
+
+function enabledAPIsWorker() {
+  const code = `
+  onmessage = e => {
+    const apis = ${JSON.stringify(apis)};
+    postMessage(apis.filter(api => typeof self[api] !== "undefined"));
+  };`;
+  const blob = new Blob([code], { type: "application/javascript" });
+  const worker = new Worker(URL.createObjectURL(blob));
+
+  return new Promise((resolve) => {
+    worker.addEventListener("message", async (e) => {
+      worker.terminate();
+      resolve(e.data);
+    });
+
+    worker.postMessage({});
+  });
+}
+
+add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["dom.media.webcodecs.enabled", true],
+      ["dom.media.webcodecs.image-decoder.enabled", true],
+      ["privacy.fingerprintingProtection", true],
+      ["privacy.fingerprintingProtection.overrides", "-AllTargets,+WebCodecs"],
+      ["privacy.resistFingerprinting.exemptedDomains", location.hostname]
+    ],
+  });
+});
+
+add_task(async () => {
+  is(enabledAPIs().length, apis.length, true, "All WebCodecs APIs should be disabled");
+  is(
+    (await enabledAPIsWorker()).length,
+    apis.length,
+    "All WebCodecs APIs should be disabled in workers too"
+  );
+});
+</script>
+</body>
+</html>

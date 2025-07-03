@@ -42,7 +42,7 @@ dictionary OpusEncoderConfig {
   boolean usedtx = false;
 };
 
-[Exposed=(Window,DedicatedWorker), SecureContext, Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), SecureContext, Func="nsRFPService::ExposeWebCodecsAPI"]
 interface AudioEncoder : EventTarget {
   [Throws]
   constructor(AudioEncoderInit init);

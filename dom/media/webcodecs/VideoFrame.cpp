@@ -1423,7 +1423,7 @@ JSObject* VideoFrame::WrapObject(JSContext* aCx,
 
 /* static */
 bool VideoFrame::PrefEnabled(JSContext* aCx, JSObject* aObj) {
-  return StaticPrefs::dom_media_webcodecs_enabled() ||
+  return nsRFPService::ExposeWebCodecsAPI(aCx, aObj) &&
          StaticPrefs::dom_media_webcodecs_image_decoder_enabled();
 }
 

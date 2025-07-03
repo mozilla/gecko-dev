@@ -2702,3 +2702,48 @@ uint64_t nsRFPService::GetSpoofedStorageLimit() {
 
   return limit;
 }
+
+/* static */
+bool nsRFPService::ExposeWebCodecsAPI(JSContext* aCx, JSObject* aObj) {
+  if (!StaticPrefs::dom_media_webcodecs_enabled()) {
+    return false;
+  }
+
+  return !IsWebCodecsRFPTargetEnabled(aCx);
+}
+
+/* static */
+bool nsRFPService::ExposeWebCodecsAPIImageDecoder(JSContext* aCx,
+                                                  JSObject* aObj) {
+  if (!StaticPrefs::dom_media_webcodecs_image_decoder_enabled()) {
+    return false;
+  }
+
+  return !IsWebCodecsRFPTargetEnabled(aCx);
+}
+
+/* static */
+bool nsRFPService::IsWebCodecsRFPTargetEnabled(JSContext* aCx) {
+  if (!nsContentUtils::ShouldResistFingerprinting("Efficiency check",
+                                                  RFPTarget::WebCodecs)) {
+    return false;
+  }
+
+  // We know that the RFPTarget::WebCodecs is enabled, check if principal
+  // is exempted.
+
+  // VideoFrame::PrefEnabled function can be called without a JSContext.
+  if (!aCx) {
+    return true;
+  }
+
+  // Once bug 1973966 is resolved, we can replace this section with just
+  // nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
+  JS::Realm* realm = js::GetContextRealm(aCx);
+  MOZ_ASSERT(realm);
+  JSPrincipals* principals = JS::GetRealmPrincipals(realm);
+  nsIPrincipal* principal = nsJSPrincipals::get(principals);
+
+  return nsContentUtils::ShouldResistFingerprinting_dangerous(
+      principal, "Principal is the best context we have", RFPTarget::WebCodecs);
+}

@@ -9,7 +9,7 @@
 
 // [Serializable, Transferable] are implemented without adding attributes here,
 // but directly with {Read,Write}StructuredClone and Transfer/FromTransfered.
-[Exposed=(Window,DedicatedWorker), Pref="dom.media.webcodecs.enabled"]
+[Exposed=(Window,DedicatedWorker), Func="nsRFPService::ExposeWebCodecsAPI"]
 interface AudioData {
   [Throws]
   constructor(AudioDataInit init);

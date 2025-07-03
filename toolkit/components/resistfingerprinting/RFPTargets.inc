@@ -101,6 +101,7 @@ ITEM_VALUE(JSLocalePrompt,              67)
 ITEM_VALUE(ScreenAvailToResolution,     68)
 ITEM_VALUE(UseHardcodedFontSubstitutes, 69)
 ITEM_VALUE(DiskStorageLimit,            70)
+ITEM_VALUE(WebCodecs,                   71)
 
 
 // !!! Don't forget to update kDefaultFingerprintingProtections in nsRFPService.cpp

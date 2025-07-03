@@ -30,7 +30,7 @@ dictionary ImageDecodeResult {
 
 [Exposed=(Window,DedicatedWorker),
  SecureContext,
- Pref="dom.media.webcodecs.image-decoder.enabled"]
+ Func="nsRFPService::ExposeWebCodecsAPIImageDecoder"]
 interface ImageTrack {
   readonly attribute boolean animated;
   readonly attribute unsigned long frameCount;
@@ -40,7 +40,7 @@ interface ImageTrack {
 
 [Exposed=(Window,DedicatedWorker),
  SecureContext,
- Pref="dom.media.webcodecs.image-decoder.enabled"]
+ Func="nsRFPService::ExposeWebCodecsAPIImageDecoder"]
 interface ImageTrackList {
   getter ImageTrack (unsigned long index);
 
@@ -52,7 +52,7 @@ interface ImageTrackList {
 
 [Exposed=(Window,DedicatedWorker),
  SecureContext,
- Pref="dom.media.webcodecs.image-decoder.enabled"]
+ Func="nsRFPService::ExposeWebCodecsAPIImageDecoder"]
 interface ImageDecoder {
   [Throws]
   constructor(ImageDecoderInit init);
