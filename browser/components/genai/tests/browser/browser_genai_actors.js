@@ -30,8 +30,12 @@ add_task(async function test_actor_extract_text() {
         browser.browsingContext.currentWindowContext.getActor("GenAI");
       Assert.ok(actor, "GenAI should be attached to this tab");
 
-      const innerText = await actor.sendQuery("GetReadableText");
-      Assert.ok(innerText.includes("Hello world!"), "Page text was extracted");
+      const result = await actor.sendQuery("GetReadableText");
+      Assert.equal(result.readerMode, false, "Not reader mode content");
+      Assert.ok(
+        result.selection.includes("Hello world!"),
+        "Page text was extracted"
+      );
     }
   );
 });

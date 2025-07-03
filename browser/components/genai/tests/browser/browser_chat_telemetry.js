@@ -1,15 +1,38 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+const { GenAI } = ChromeUtils.importESModule(
+  "resource:///modules/GenAI.sys.mjs"
+);
+
+registerCleanupFunction(() => {
+  Services.prefs.clearUserPref("sidebar.old-sidebar.has-used");
+});
+
 /**
  * Check that chat set default telemetry
  */
 add_task(async function test_default_telemetry() {
   // These metrics rely on startup init, which is skipped in repeat verify
   Assert.equal(
+    Glean.genaiChatbot.badges.testGetValue() ?? "footer,menu",
+    "footer,menu",
+    "Default 2 badges for test"
+  );
+  Assert.equal(
     Glean.genaiChatbot.enabled.testGetValue() ?? true,
     true,
     "Default enabled for test"
+  );
+  Assert.equal(
+    Glean.genaiChatbot.menu.testGetValue() ?? true,
+    true,
+    "Default menu shown for test"
+  );
+  Assert.equal(
+    Glean.genaiChatbot.page.testGetValue() ?? false,
+    false,
+    "Default no page feature for test"
   );
   Assert.equal(
     Glean.genaiChatbot.provider.testGetValue() ?? "none",
@@ -33,7 +56,11 @@ add_task(async function test_default_telemetry() {
   );
 
   Services.fog.testResetFOG();
-  await SidebarController.show("viewGenaiChatSidebar");
+  SidebarController.show("viewGenaiChatSidebar");
+  await TestUtils.waitForCondition(
+    () => Glean.genaiChatbot.sidebarToggle.testGetValue(),
+    "Sidebar toggle recorded before hiding"
+  );
   SidebarController.hide();
 
   const events = Glean.genaiChatbot.sidebarToggle.testGetValue();
@@ -105,4 +132,45 @@ add_task(async function test_telemetry_change() {
   Assert.equal(events[1].extra.previous, "localhost", "From localhost");
   Assert.equal(events[1].extra.current, "none", "To none");
   Assert.equal(events[1].extra.surface, "panel", "Using sidebar panel");
+});
+
+/**
+ * Check that summarize page telemetry is recorded
+ */
+add_task(async function test_summarize_telemetry() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.chat.page", true],
+      ["browser.ml.chat.provider", "http://localhost:8080"],
+    ],
+  });
+
+  await GenAI.summarizeCurrentPage(window, "test_entry");
+
+  let events = Glean.genaiChatbot.summarizePage.testGetValue();
+  Assert.equal(events.length, 1, "One summarize event");
+  Assert.equal(events[0].extra.provider, "localhost", "Correct provider");
+  Assert.equal(
+    events[0].extra.reader_mode,
+    "false",
+    "Reader mode is false for about:blank"
+  );
+  Assert.equal(events[0].extra.selection, "0", "Has selection length");
+  Assert.equal(events[0].extra.source, "test_entry", "Correct source");
+
+  events = Glean.genaiChatbot.promptClick.testGetValue();
+  Assert.equal(events.length, 1, "One prompt click");
+  Assert.equal(events[0].extra.content_type, "page", "Has content type");
+  Assert.equal(events[0].extra.prompt, "summarize", "Has prompt");
+  Assert.equal(events[0].extra.provider, "localhost", "Correct provider");
+  Assert.equal(
+    events[0].extra.reader_mode,
+    "false",
+    "Reader mode is false for about:blank"
+  );
+  Assert.equal(events[0].extra.selection, "0", "Has selection length");
+  Assert.equal(events[0].extra.source, "test_entry", "Correct source");
+
+  await SpecialPowers.popPrefEnv();
 });

@@ -13,6 +13,23 @@ $tags:
 genai.chatbot:
   # metrics
 
+  badges:
+    type: string
+    lifetime: application
+    description: >
+      Which badges are shown in various surfaces (comma separated).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974185
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255286
+    data_sensitivity:
+      - interaction
+    expires: 154
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
   enabled:
     type: boolean
     lifetime: application
@@ -25,6 +42,40 @@ genai.chatbot:
     data_sensitivity:
       - interaction
     expires: 147
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
+  menu:
+    type: boolean
+    lifetime: application
+    description: >
+      Indicates if the chatbot menu is shown without provider.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974185
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255286
+    data_sensitivity:
+      - interaction
+    expires: 154
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - metrics
+
+  page:
+    type: boolean
+    lifetime: application
+    description: >
+      Indicates if the chatbot page level features are enabled.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974185
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255286
+    data_sensitivity:
+      - interaction
+    expires: 154
     notification_emails:
       - elee@mozilla.com
     send_in_pings:
@@ -99,6 +150,26 @@ genai.chatbot:
       - metrics
 
   # events
+
+  contextmenu_choose:
+    type: event
+    description: >
+      Choose/open chatbot provider was clicked from the context menu.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974185
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255286
+    data_sensitivity:
+      - interaction
+    expires: 154
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Current provider id.
 
   contextmenu_prompt_click:
     type: event
@@ -399,6 +470,41 @@ genai.chatbot:
         type: quantity
         description: Onboarding screen number.
 
+  prompt_click:
+    type: event
+    description: >
+      Chatbot prompt requested.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974185
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255286
+    data_sensitivity:
+      - interaction
+    expires: 154
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      content_type:
+        type: string
+        description: Type of content, e.g., page, selection.
+      prompt:
+        type: string
+        description: Selected prompt id.
+      provider:
+        type: string
+        description: Selected provider id.
+      reader_mode:
+        type: boolean
+        description: Whether reader mode text was used.
+      selection:
+        type: quantity
+        description: Page content length.
+      source:
+        type: string
+        description: Entrypoint for the request, e.g., callout, footer, page.
+
   provider_change:
     type: event
     description: >
@@ -659,6 +765,35 @@ genai.chatbot:
       version:
         type: string
         description: The active version of sidebar (either "old" or "new").
+
+  summarize_page:
+    type: event
+    description: >
+      Chatbot page summarization was requested.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1974185
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255286
+    data_sensitivity:
+      - interaction
+    expires: 154
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      provider:
+        type: string
+        description: Selected provider id.
+      reader_mode:
+        type: boolean
+        description: Whether reader mode text was used.
+      selection:
+        type: quantity
+        description: Page content length.
+      source:
+        type: string
+        description: Entrypoint for the request, e.g., callout, footer, page.
 
 genai.linkpreview:
   # metrics
