@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef GPU_ExternalTextureDMABuf_H_
-#define GPU_ExternalTextureDMABuf_H_
+#ifndef GPU_SharedTextureDMABuf_H_
+#define GPU_SharedTextureDMABuf_H_
 
 #include "mozilla/gfx/FileHandleWrapper.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/webgpu/ExternalTexture.h"
+#include "mozilla/webgpu/SharedTexture.h"
 #include "nsTArrayForwardDeclare.h"
 
 class DMABufSurface;
@@ -20,28 +20,28 @@ namespace webgpu {
 class VkImageHandle;
 class VkSemaphoreHandle;
 
-class ExternalTextureDMABuf final : public ExternalTexture {
+class SharedTextureDMABuf final : public SharedTexture {
  public:
-  static UniquePtr<ExternalTextureDMABuf> Create(
+  static UniquePtr<SharedTextureDMABuf> Create(
       WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       const uint32_t aWidth, const uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);
 
-  ExternalTextureDMABuf(
+  SharedTextureDMABuf(
       WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       UniquePtr<VkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
       const uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage, RefPtr<DMABufSurface>&& aSurface,
       const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor);
-  virtual ~ExternalTextureDMABuf();
+  virtual ~SharedTextureDMABuf();
 
   Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override;
 
   void GetSnapshot(const ipc::Shmem& aDestShmem,
                    const gfx::IntSize& aSize) override;
 
-  ExternalTextureDMABuf* AsExternalTextureDMABuf() override { return this; }
+  SharedTextureDMABuf* AsSharedTextureDMABuf() override { return this; }
 
   void onBeforeQueueSubmit(RawId aQueueId) override;
 

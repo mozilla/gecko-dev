@@ -114,7 +114,7 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
   Maybe<layers::RemoteTextureOwnerId> mRemoteTextureOwnerId;
   nsTArray<RawId> mBufferIds;
   RefPtr<layers::FwdTransactionTracker> mFwdTransactionTracker;
-  bool mUseExternalTextureInSwapChain = false;
+  bool mUseSharedTextureInSwapChain = false;
   bool mNewTextureRequested = false;
 };
 
