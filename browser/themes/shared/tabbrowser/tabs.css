@@ -2039,11 +2039,6 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   stroke: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
 }
 
-.tab-group-suggestion-label {
-  --text-color-disabled: var(--panel-color);
-  --button-opacity-disabled: 1;
-}
-
 #tab-group-suggestions-heading,
 #tab-group-main {
   flex-direction: column;
@@ -2100,6 +2095,10 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 
 #tab-group-suggestions {
   margin-inline-start: var(--space-xlarge);
+  margin-block-start: var(--space-xlarge);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xlarge);
 }
 
 #tab-group-suggestions-loading {
