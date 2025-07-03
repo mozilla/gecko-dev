@@ -1290,16 +1290,6 @@ inline StylePhysicalSide ToStylePhysicalSide(mozilla::Side aSide) {
   return static_cast<StylePhysicalSide>(static_cast<uint8_t>(aSide));
 }
 
-inline StylePhysicalAxis ToStylePhysicalAxis(StylePhysicalSide aSide) {
-  return aSide == StylePhysicalSide::Top || aSide == StylePhysicalSide::Bottom
-             ? StylePhysicalAxis::Vertical
-             : StylePhysicalAxis::Horizontal;
-}
-
-inline StylePhysicalAxis ToStylePhysicalAxis(mozilla::Side aSide) {
-  return ToStylePhysicalAxis(ToStylePhysicalSide(aSide));
-}
-
 inline mozilla::Side ToSide(StylePhysicalSide aSide) {
   return static_cast<mozilla::Side>(static_cast<uint8_t>(aSide));
 }

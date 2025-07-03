@@ -16,7 +16,6 @@ use selectors::matching::{ElementSelectorFlags, MatchingForInvalidation, Selecto
 use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
 use smallvec::SmallVec;
-use style::values::computed::length_percentage::AllowAnchorPosResolutionInCalcPercentage;
 use style::values::generics::Optional;
 use std::collections::BTreeSet;
 use std::fmt::Write;
@@ -68,7 +67,7 @@ use style::gecko_bindings::structs::nsCSSPropertyID;
 use style::gecko_bindings::structs::nsChangeHint;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsresult;
-use style::gecko_bindings::structs::{AnchorPosResolutionParams, AnchorPosOffsetResolutionParams};
+use style::gecko_bindings::structs::AnchorPosOffsetResolutionParams;
 use style::gecko_bindings::structs::CallerType;
 use style::gecko_bindings::structs::CompositeOperation;
 use style::gecko_bindings::structs::DeclarationBlockMutationClosure;
@@ -106,7 +105,7 @@ use style::invalidation::element::relative_selector::{
 };
 use style::invalidation::element::restyle_hints::RestyleHint;
 use style::invalidation::stylesheets::RuleChangeKind;
-use style::logical_geometry::{PhysicalAxis, PhysicalSide};
+use style::logical_geometry::PhysicalSide;
 use style::media_queries::MediaList;
 use style::parser::{Parse, ParserContext};
 #[cfg(feature = "gecko_debug")]
@@ -155,10 +154,11 @@ use style::values::computed::font::{
 };
 use style::values::computed::length::AnchorSizeFunction;
 use style::values::computed::position::AnchorFunction;
-use style::values::computed::{self, ContentVisibility, Context, ToComputedValue};
+use style::values::computed::{self, ContentVisibility, Context, PositionProperty, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
 use style::values::generics::color::ColorMixFlags;
 use style::values::generics::easing::BeforeFlag;
+use style::values::generics::length::AnchorResolutionResult;
 use style::values::resolved;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style::values::specified::source_size_list::SourceSizeList;
@@ -8523,11 +8523,11 @@ pub enum CalcAnchorPositioningFunctionResolution {
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunctionsInCalcPercentage(
     calc: &computed::length_percentage::CalcLengthPercentage,
-    allowed: &AllowAnchorPosResolutionInCalcPercentage,
+    prop_side: Option<&PhysicalSide>,
     params: &AnchorPosOffsetResolutionParams,
     out: &mut CalcAnchorPositioningFunctionResolution,
 ) {
-    let resolved = calc.resolve_anchor(*allowed, params);
+    let resolved = calc.resolve_anchor(prop_side.copied(), params);
 
     match resolved {
         Err(()) => *out = CalcAnchorPositioningFunctionResolution::Invalid,
@@ -9926,6 +9926,18 @@ pub enum AnchorPositioningFunctionResolution {
     Resolved(computed::LengthPercentage),
 }
 
+impl AnchorPositioningFunctionResolution {
+    fn new(result: AnchorResolutionResult<'_, computed::LengthPercentage>) -> Self {
+        match result {
+            AnchorResolutionResult::Resolved(l) => AnchorPositioningFunctionResolution::Resolved(l),
+            AnchorResolutionResult::Fallback(l) => {
+                AnchorPositioningFunctionResolution::ResolvedReference(l as *const _)
+            },
+            AnchorResolutionResult::Invalid => AnchorPositioningFunctionResolution::Invalid,
+        }
+    }
+}
+
 fn resolve_anchor_fallback(
     fallback: &Optional<computed::LengthPercentage>
 ) -> AnchorPositioningFunctionResolution {
@@ -9960,22 +9972,8 @@ pub extern "C" fn Servo_ResolveAnchorFunction(
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorSizeFunction(
     func: &AnchorSizeFunction,
-    params: &AnchorPosResolutionParams,
-    prop_axis: PhysicalAxis,
+    prop: PositionProperty,
     out: &mut AnchorPositioningFunctionResolution,
 ) {
-    if !func.valid_for(params.mPosition) {
-        *out = resolve_anchor_fallback(&func.fallback);
-        return;
-    }
-    let result = AnchorSizeFunction::resolve(
-        &func.target_element,
-        prop_axis,
-        func.size,
-        params,
-    );
-    *out = match result {
-        Ok(l) => AnchorPositioningFunctionResolution::Resolved(computed::LengthPercentage::new_length(l)),
-        Err(()) => resolve_anchor_fallback(&func.fallback),
-    };
+    *out = AnchorPositioningFunctionResolution::new(func.resolve(prop));
 }

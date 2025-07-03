@@ -285,14 +285,13 @@ static StyleRect<T> StyleRectWithAllSides(const T& aSide) {
 }
 
 AnchorResolvedMargin AnchorResolvedMarginHelper::ResolveAnchor(
-    const StyleMargin& aValue, StylePhysicalAxis aAxis,
-    const AnchorPosResolutionParams& aParams) {
+    const StyleMargin& aValue, StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
              "Calling anchor resolution without using it?");
   if (aValue.IsAnchorSizeFunction()) {
     auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), &aParams,
-                                    aAxis, &resolved);
+    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
+                                    &resolved);
     if (resolved.IsInvalid()) {
       return Zero();
     }
@@ -307,11 +306,10 @@ AnchorResolvedMargin AnchorResolvedMarginHelper::ResolveAnchor(
   const auto& lp = aValue.AsAnchorContainingCalcFunction();
   const auto& c = lp.AsCalc();
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+  // TODO(dshin, bug 1969305)
   AnchorPosOffsetResolutionParams params =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(aParams);
-  const auto allowed =
-      StyleAllowAnchorPosResolutionInCalcPercentage::AnchorSizeOnly(aAxis);
-  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &allowed, &params, &result);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize({nullptr, aPosition});
+  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, &params, &result);
   if (result.IsInvalid()) {
     return Zero();
   }
@@ -1377,9 +1375,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
       const auto& lp = aValue.AsAnchorContainingCalcFunction();
       const auto& c = lp.AsCalc();
       auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
-      const auto allowed =
-          StyleAllowAnchorPosResolutionInCalcPercentage::Both(aSide);
-      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &allowed, &aParams,
+      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aSide, &aParams,
                                                    &result);
       if (result.IsInvalid()) {
         return Auto();
@@ -1404,8 +1400,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
     case StyleInset::Tag::AnchorSizeFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
       Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(),
-                                      &aParams.mBaseParams,
-                                      ToStylePhysicalAxis(aSide), &resolved);
+                                      aParams.mBaseParams.mPosition, &resolved);
       if (resolved.IsInvalid()) {
         return Auto();
       }
@@ -1423,14 +1418,14 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
 }
 
 AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
-    const mozilla::StyleSize& aValue, StylePhysicalAxis aAxis,
-    const AnchorPosResolutionParams& aParams) {
+    const mozilla::StyleSize& aValue,
+    mozilla::StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
              "Calling anchor resolution without using it?");
   if (aValue.IsAnchorSizeFunction()) {
     auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), &aParams,
-                                    aAxis, &resolved);
+    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
+                                    &resolved);
     if (resolved.IsInvalid()) {
       return Auto();
     }
@@ -1446,11 +1441,10 @@ AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
   // Follows the same reasoning as anchor resolved insets.
   const auto& c = lp.AsCalc();
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+  // TODO(dshin, bug 1969305)
   AnchorPosOffsetResolutionParams params =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(aParams);
-  const auto allowed =
-      StyleAllowAnchorPosResolutionInCalcPercentage::AnchorSizeOnly(aAxis);
-  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &allowed, &params, &result);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize({nullptr, aPosition});
+  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, &params, &result);
   if (result.IsInvalid()) {
     return Auto();
   }
@@ -1458,14 +1452,14 @@ AnchorResolvedSize AnchorResolvedSizeHelper::ResolveAnchor(
 }
 
 AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
-    const mozilla::StyleMaxSize& aValue, StylePhysicalAxis aAxis,
-    const AnchorPosResolutionParams& aParams) {
+    const mozilla::StyleMaxSize& aValue,
+    mozilla::StylePositionProperty aPosition) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
              "Calling anchor resolution without using it?");
   if (aValue.IsAnchorSizeFunction()) {
     auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), &aParams,
-                                    aAxis, &resolved);
+    Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(), aPosition,
+                                    &resolved);
     if (resolved.IsInvalid()) {
       return None();
     }
@@ -1481,11 +1475,10 @@ AnchorResolvedMaxSize AnchorResolvedMaxSizeHelper::ResolveAnchor(
   // Follows the same reasoning as anchor resolved insets.
   const auto& c = lp.AsCalc();
   auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
+  // TODO(dshin, bug 1969305)
   AnchorPosOffsetResolutionParams params =
-      AnchorPosOffsetResolutionParams::UseCBFrameSize(aParams);
-  const auto allowed =
-      StyleAllowAnchorPosResolutionInCalcPercentage::AnchorSizeOnly(aAxis);
-  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &allowed, &params, &result);
+      AnchorPosOffsetResolutionParams::UseCBFrameSize({nullptr, aPosition});
+  Servo_ResolveAnchorFunctionsInCalcPercentage(&c, nullptr, &params, &result);
   if (result.IsInvalid()) {
     return None();
   }

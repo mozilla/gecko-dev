@@ -44,7 +44,6 @@ class nsPresContext;
 class nsSimpleContentList;
 class imgRequestProxy;
 struct nsCSSValueSharedList;
-struct AnchorPosResolutionParams;
 struct AnchorPosOffsetResolutionParams;
 class gfxFontFeatureValueSet;
 struct GeckoFontMetrics;

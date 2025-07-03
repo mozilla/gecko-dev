@@ -634,27 +634,6 @@ bool Gecko_GetAnchorPosOffset(
     mozilla::StyleAnchorSideKeyword aAnchorSideKeyword, float aPercentage,
     mozilla::Length* aOut);
 
-/**
- * Resolve the anchor size for a positioned element, given the anchor name.
- *
- * @param aParams  Parameters required to resolve anchor size.
- * @param aAnchorName  Name of the anchor to use. If null, it will try to use
- *                     the position-anchor property of the positioned frame (In
- *                     |aParams|). If the property is not set, the lookup fails.
- * @param aPropAxis  Axis of the property the anchor size is being resolved for.
- *                   Used when |aAnchorSizeKeyword| is None
- * @param aAnchorSizeKeyword  Which size value to use as the output.
- * @param aLength  Location to write the resolved anchor size. Only set if the
- *                 resolution is valid.
- *
- * @returns  True if the lookup succeeded.
- */
-bool Gecko_GetAnchorPosSize(const AnchorPosResolutionParams* aParams,
-                            const nsAtom* aAnchorName,
-                            mozilla::StylePhysicalAxis aPropAxis,
-                            mozilla::StyleAnchorSizeKeyword aAnchorSizeKeyword,
-                            mozilla::Length* aOut);
-
 }  // extern "C"
 
 #endif  // mozilla_GeckoBindings_h

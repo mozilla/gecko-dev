@@ -336,7 +336,6 @@ include = [
   "PhysicalAxis",
   "PhysicalSide",
   "QueryFontMetricsFlags",
-  "AllowAnchorPosResolutionInCalcPercentage",
 ]
 item_types = [
   "enums",
