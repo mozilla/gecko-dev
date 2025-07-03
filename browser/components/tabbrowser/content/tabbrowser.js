@@ -3987,6 +3987,9 @@
       /** @type {MozTabbrowserTab|undefined} */
       let itemAfter = allItems.at(index);
 
+      if (pinned && !itemAfter?.pinned) {
+        itemAfter = null;
+      }
       // Prevent a flash of unstyled content by setting up the tab content
       // and inherited attributes before appending it (see Bug 1592054):
       tab.initialize();
@@ -4018,7 +4021,10 @@
         this.tabContainer.insertBefore(tab, itemAfter.group);
       } else {
         // Place ungrouped tab before `itemAfter` by default
-        this.tabContainer.insertBefore(tab, itemAfter);
+        const tabContainer = pinned
+          ? this.tabContainer.pinnedTabsContainer
+          : this.tabContainer;
+        tabContainer.insertBefore(tab, itemAfter);
       }
 
       this._updateTabsAfterInsert();
@@ -5905,6 +5911,7 @@
       if (!tabs.includes(selectedTab)) {
         selectedTab = tabs[0];
       }
+
       let win = this.replaceTabWithWindow(selectedTab, aOptions);
       win.addEventListener(
         "before-initial-tab-adopted",
@@ -5919,6 +5926,7 @@
                 continue;
               }
             }
+
             ++tabIndex;
           }
           // Restore tab selection
@@ -6391,6 +6399,9 @@
         createLazyBrowser,
       };
 
+      // We want to explicitly set this param rather than carry it over to
+      // avoid situations like an unpinned tab being dragged between pinned
+      // tabs but not getting pinned as expected.
       let numPinned = this.pinnedTabCount;
       if (index < numPinned || (aTab.pinned && index == numPinned)) {
         params.pinned = true;

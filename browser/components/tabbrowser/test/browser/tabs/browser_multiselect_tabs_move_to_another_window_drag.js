@@ -70,7 +70,9 @@ add_task(async function test() {
   ok(true, "Tab3 and tab5 are duplicated succesfully");
 
   BrowserTestUtils.closeWindow(newWindow);
-  BrowserTestUtils.removeTab(tab4);
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
 });
 
 add_task(async function test_laziness() {
@@ -115,4 +117,84 @@ add_task(async function test_laziness() {
   ok(!gBrowser2.tabs[3].linkedPanel, "Tab3 is lazy");
 
   await BrowserTestUtils.closeWindow(win2);
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
+});
+
+add_task(async function test_pinned_tabs_new_window() {
+  let menuItemPinSelectedTabs = document.getElementById(
+    "context_pinSelectedTabs"
+  );
+  let initialTabsLength = gBrowser.tabs.length;
+
+  let newTab1 = await BrowserTestUtils.addTab(gBrowser, "about:robots", {
+    skipAnimation: true,
+  });
+  let newTab2 = await BrowserTestUtils.addTab(gBrowser, "about:about", {
+    skipAnimation: true,
+  });
+  let newTab3 = await BrowserTestUtils.addTab(gBrowser, "about:config", {
+    skipAnimation: true,
+  });
+  is(gBrowser.tabs.length, initialTabsLength + 3, "Three new tabs are opened");
+
+  await BrowserTestUtils.switchTab(gBrowser, newTab1);
+  await triggerClickOn(newTab2, { ctrlKey: true });
+
+  ok(newTab1.multiselected, "Tab1 is multiselected");
+  ok(newTab2.multiselected, "Tab2 is multiselected");
+  ok(!newTab3.multiselected, "Tab3 is not multiselected");
+
+  let tab1Pinned = BrowserTestUtils.waitForEvent(newTab1, "TabPinned");
+  let tab2Pinned = BrowserTestUtils.waitForEvent(newTab2, "TabPinned");
+  menuItemPinSelectedTabs.click();
+
+  await tab1Pinned;
+  await tab2Pinned;
+
+  ok(newTab1.pinned, "Tab1 is pinned");
+  ok(newTab2.pinned, "Tab2 is pinned");
+  ok(!newTab3.pinned, "Tab3 is not pinned");
+
+  // Work around for bug 1975186
+  await BrowserTestUtils.switchTab(gBrowser, newTab2);
+  await triggerClickOn(newTab1, { ctrlKey: true });
+
+  ok(newTab1.multiselected, "Tab1 is multiselected");
+  ok(newTab2.multiselected, "Tab2 is multiselected");
+  ok(!newTab3.multiselected, "Tab3 is not multiselected");
+
+  let newWindow = gBrowser.replaceTabsWithWindow(newTab2);
+  await BrowserTestUtils.waitForEvent(newWindow, "DOMContentLoaded");
+
+  await TestUtils.waitForCondition(
+    () => newWindow.gBrowser.tabs.length == 2,
+    "Wait for all two tabs to get moved to the new window"
+  );
+  ok(newWindow.gBrowser.tabs[0].pinned, "Tab1 is pinned");
+  ok(!newWindow.gBrowser.tabs[1].pinned, "Tab2 is unpinned");
+
+  let newWindowTab1 = getUrl(newWindow.gBrowser.tabs[0]);
+  let newWindowTab2 = getUrl(newWindow.gBrowser.tabs[1]);
+  let pinnedTabContainer = newWindow.document.getElementById(
+    "pinned-tabs-container"
+  );
+
+  is(
+    pinnedTabContainer.children.length,
+    1,
+    "New window has one tab in the pinned tabs container"
+  );
+  is(newWindowTab1, "about:robots", "Tab 1 is pinned in new window");
+  is(
+    newWindowTab2,
+    "about:about",
+    "Tab 2 was selected tab and is unpinned in new window"
+  );
+
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
+  await BrowserTestUtils.closeWindow(newWindow);
 });
