@@ -410,25 +410,6 @@ nsresult nsBaseDragSession::InvokeDragSession(
     }
   }
 
-  if (MOZ_DRAGSERVICE_LOG_ENABLED()) {
-    uint32_t len = 0;
-    aTransferableArray->GetLength(&len);
-    LOGD("[%p] %s | num of nsITransferable: %d", this, __FUNCTION__, len);
-
-    for (uint32_t i = 0; i < len; ++i) {
-      LOGD("    nsITransferable %d:", i);
-
-      if (nsCOMPtr<nsITransferable> trans =
-              do_QueryElementAt(aTransferableArray, i)) {
-        nsTArray<nsCString> flavors;
-        trans->FlavorsTransferableCanExport(flavors);
-        for (const auto& flavor : flavors) {
-          LOGD("        MIME %s", flavor.get());
-        }
-      }
-    }
-  }
-
   nsresult rv =
       InvokeDragSessionImpl(aWidget, aTransferableArray, mRegion, aActionType);
 
