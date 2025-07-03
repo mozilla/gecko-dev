@@ -48,7 +48,10 @@ run-if = ["os == 'android'"] # Android has no remote extensions, Bug 1535365
 ["test_OriginControls.js"]
 
 ["test_StorageSyncService.js"]
-skip-if = ["os == 'android' && processor == 'x86_64'"]
+skip-if = [
+  "!sync",
+  "os == 'android' && processor == 'x86_64'",
+]
 
 ["test_WebExtensionPolicy.js"]
 
