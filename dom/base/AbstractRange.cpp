@@ -264,8 +264,10 @@ nsINode* AbstractRange::GetClosestCommonInclusiveAncestor(
   nsINode* endContainer = ShadowDOMSelectionHelpers::GetEndContainer(
       this, aAllowCrossShadowBoundary);
 
-  if (MayCrossShadowBoundary() &&
-      aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+  if (aAllowCrossShadowBoundary == AllowRangeCrossShadowBoundary::Yes) {
+    if (startContainer == endContainer) {
+      return startContainer;
+    }
     // Since both the start container and the end container are
     // guaranteed to be in the same composed document.
     // If one of the boundary is a document, use that document

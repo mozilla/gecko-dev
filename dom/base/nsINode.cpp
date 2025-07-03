@@ -1914,6 +1914,21 @@ nsIContent* nsINode::GetChildAt_Deprecated(uint32_t aIndex) const {
   return child;
 }
 
+nsINode* nsINode::GetChildAtInFlatTree(uint32_t aIndex) const {
+  if (const auto* slot = HTMLSlotElement::FromNode(this)) {
+    const auto& assignedNodes = slot->AssignedNodes();
+    if (!assignedNodes.IsEmpty()) {
+      if (aIndex >= assignedNodes.Length()) {
+        return nullptr;
+      }
+      return assignedNodes[aIndex];
+    }
+  } else if (auto* shadowRoot = GetShadowRoot()) {
+    return shadowRoot->GetChildAtInFlatTree(aIndex);
+  }
+  return GetChildAt_Deprecated(aIndex);
+}
+
 int32_t nsINode::ComputeIndexOf_Deprecated(
     const nsINode* aPossibleChild) const {
   Maybe<uint32_t> maybeIndex = ComputeIndexOf(aPossibleChild);

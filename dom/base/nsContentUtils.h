@@ -502,15 +502,12 @@ class nsContentUtils {
       nsTArray<mozilla::Maybe<uint32_t>>& aAncestorOffsets);
 
   /*
-   * https://dom.spec.whatwg.org/#concept-shadow-including-ancestor.
-   *
-   * Similar as the GetInclusiveAncestorsAndOffsets method, except this
-   * will use host elements as the parent for shadow roots.
+   * Similar as the GetInclusiveAncestorsAndOffsets method, but for flat tree.
    *
    * When the current content is a ShadowRoot, the offset of it from
    * its ancestor (the host element) will be Nothing().
    */
-  static nsresult GetShadowIncludingAncestorsAndOffsets(
+  static nsresult GetFlattenedTreeAncestorsAndOffsets(
       nsINode* aNode, uint32_t aOffset, nsTArray<nsIContent*>& aAncestorNodes,
       nsTArray<mozilla::Maybe<uint32_t>>& aAncestorOffsets);
 

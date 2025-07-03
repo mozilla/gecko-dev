@@ -3132,10 +3132,11 @@ nsresult nsContentUtils::GetInclusiveAncestors(nsINode* aNode,
 }
 
 // static
-template <typename GetParentFunc>
+template <typename GetParentFunc, typename ComputeChildIndexFunc>
 nsresult static GetInclusiveAncestorsAndOffsetsHelper(
     nsINode* aNode, uint32_t aOffset, nsTArray<nsIContent*>& aAncestorNodes,
-    nsTArray<Maybe<uint32_t>>& aAncestorOffsets, GetParentFunc aGetParentFunc) {
+    nsTArray<Maybe<uint32_t>>& aAncestorOffsets, GetParentFunc aGetParentFunc,
+    ComputeChildIndexFunc aComputeChildIndexFunc) {
   NS_ENSURE_ARG_POINTER(aNode);
 
   if (!aNode->IsContent()) {
@@ -3162,7 +3163,7 @@ nsresult static GetInclusiveAncestorsAndOffsetsHelper(
   nsIContent* parent = aGetParentFunc(child);
   while (parent) {
     aAncestorNodes.AppendElement(parent->AsContent());
-    aAncestorOffsets.AppendElement(parent->ComputeIndexOf(child));
+    aAncestorOffsets.AppendElement(aComputeChildIndexFunc(parent, child));
     child = parent;
     parent = aGetParentFunc(child);
   }
@@ -3175,17 +3176,23 @@ nsresult nsContentUtils::GetInclusiveAncestorsAndOffsets(
     nsTArray<Maybe<uint32_t>>& aAncestorOffsets) {
   return GetInclusiveAncestorsAndOffsetsHelper(
       aNode, aOffset, aAncestorNodes, aAncestorOffsets,
-      [](nsIContent* aContent) { return aContent->GetParent(); });
+      [](nsIContent* aContent) { return aContent->GetParent(); },
+      [](nsIContent* aParent, nsIContent* aChild) {
+        return aParent->ComputeIndexOf(aChild);
+      });
 }
 
-nsresult nsContentUtils::GetShadowIncludingAncestorsAndOffsets(
+nsresult nsContentUtils::GetFlattenedTreeAncestorsAndOffsets(
     nsINode* aNode, uint32_t aOffset, nsTArray<nsIContent*>& aAncestorNodes,
     nsTArray<Maybe<uint32_t>>& aAncestorOffsets) {
   return GetInclusiveAncestorsAndOffsetsHelper(
       aNode, aOffset, aAncestorNodes, aAncestorOffsets,
       [](nsIContent* aContent) -> nsIContent* {
         return nsIContent::FromNodeOrNull(
-            aContent->GetParentOrShadowHostNode());
+            GetParentFuncForComparison<TreeKind::Flat>(aContent));
+      },
+      [](nsIContent* aParent, nsIContent* aChild) {
+        return aParent->ComputeFlatTreeIndexOf(aChild);
       });
 }
 
