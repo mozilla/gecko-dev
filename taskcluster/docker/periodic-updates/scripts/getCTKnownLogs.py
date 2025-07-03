@@ -58,10 +58,16 @@ enum class CTLogState {
   Retired,
 };
 
+enum class CTLogFormat {
+  RFC6962,
+  Tiled,
+};
+
 struct CTLogInfo {
   // See bug 1338873 about making these fields const.
   const char* name;
   CTLogState state;
+  CTLogFormat format;
   uint64_t timestamp;
   // Index within kCTLogOperatorList.
   size_t operatorIndex;
@@ -122,7 +128,7 @@ def get_operator_index(json_data, target_name):
 
 
 LOG_INFO_TEMPLATE = """\
-    {$description, $state,
+    {$description, $state, $log_format,
      $timestamp,  // $timestamp_comment
      $operator_index,$spaces  // $operator_comment
 $indented_log_key,
@@ -140,56 +146,71 @@ def map_state(state):
     states to be included are 'qualified', 'usable', 'readonly', or 'retired'.
     Valid states that are not to be included are 'pending' or 'rejected'.
     """
-    if state == "qualified" or state == "usable" or state == "readonly":
+    if state in {"qualified", "usable", "readonly"}:
         return "CTLogState::Admissible"
     elif state == "retired":
         return "CTLogState::Retired"
-    elif state == "pending" or state == "rejected":
+    elif state in {"pending", "rejected"}:
         return None
     else:
-        raise UnhandledLogStateException("unhandled log state '%s'" % state)
+        raise UnhandledLogStateException(f"unhandled log state '{state}'")
+
+
+def get_initializer_for_log(log, operator, json_data, log_format):
+    log_key = base64.b64decode(log["key"])
+    operator_name = operator["name"]
+    operator_index = get_operator_index(json_data, operator_name)
+    state = list(log["state"].keys())[0]
+    timestamp_comment = log["state"][state]["timestamp"]
+    timestamp = get_timestamp(timestamp_comment)
+    state = map_state(state)
+    if state is None:
+        return None
+    is_test_log = "test_only" in operator and operator["test_only"]
+    prefix = ""
+    suffix = ","
+    if is_test_log:
+        prefix = "#ifdef DEBUG\n"
+        suffix = ",\n#endif  // DEBUG"
+    num_spaces = len(str(timestamp)) - len(str(operator_index))
+    spaces = " " * num_spaces
+    tmpl = Template(LOG_INFO_TEMPLATE)
+    toappend = tmpl.substitute(
+        # Use json.dumps for C-escaping strings.
+        # Not perfect but close enough.
+        description=json.dumps(log["description"]),
+        operator_index=operator_index,
+        operator_comment=f"operated by {operator_name}".replace("/", "|"),
+        state=state,
+        log_format=log_format,
+        timestamp=timestamp,
+        spaces=spaces,
+        timestamp_comment=timestamp_comment,
+        # Maximum line width is 80.
+        indented_log_key="\n".join([f'     "{l}"' for l in get_hex_lines(log_key, 74)]),
+        log_key_len=len(log_key),
+    )
+    return prefix + toappend + suffix
 
 
 def get_log_info_structs(json_data):
     """Return array of CTLogInfo initializers for the known logs."""
-    tmpl = Template(LOG_INFO_TEMPLATE)
     initializers = []
     for operator in json_data["operators"]:
-        operator_name = operator["name"]
-        for log in operator["logs"]:
-            log_key = base64.b64decode(log["key"])
-            operator_index = get_operator_index(json_data, operator_name)
-            state = list(log["state"].keys())[0]
-            timestamp_comment = log["state"][state]["timestamp"]
-            timestamp = get_timestamp(timestamp_comment)
-            state = map_state(state)
-            if state is None:
-                continue
-            is_test_log = "test_only" in operator and operator["test_only"]
-            prefix = ""
-            suffix = ","
-            if is_test_log:
-                prefix = "#ifdef DEBUG\n"
-                suffix = ",\n#endif  // DEBUG"
-            num_spaces = len(str(timestamp)) - len(str(operator_index))
-            spaces = " " * num_spaces
-            toappend = tmpl.substitute(
-                # Use json.dumps for C-escaping strings.
-                # Not perfect but close enough.
-                description=json.dumps(log["description"]),
-                operator_index=operator_index,
-                operator_comment=f"operated by {operator_name}".replace("/", "|"),
-                state=state,
-                timestamp=timestamp,
-                spaces=spaces,
-                timestamp_comment=timestamp_comment,
-                # Maximum line width is 80.
-                indented_log_key="\n".join(
-                    [f'     "{l}"' for l in get_hex_lines(log_key, 74)]
-                ),
-                log_key_len=len(log_key),
-            )
-            initializers.append(prefix + toappend + suffix)
+        if "logs" in operator:
+            for log in operator["logs"]:
+                initializer = get_initializer_for_log(
+                    log, operator, json_data, "CTLogFormat::RFC6962"
+                )
+                if initializer:
+                    initializers.append(initializer)
+        if "tiled_logs" in operator:
+            for log in operator["tiled_logs"]:
+                initializer = get_initializer_for_log(
+                    log, operator, json_data, "CTLogFormat::Tiled"
+                )
+                if initializer:
+                    initializers.append(initializer)
     return initializers
 
 
@@ -301,8 +322,34 @@ def patch_in_test_logs(json_data):
             }
         ],
     }
+    mozilla_test_operator_3 = {
+        "name": "Mozilla Test Org 3",
+        "id": max_id + 3,
+        "test_only": True,
+        "tiled_logs": [
+            {
+                "description": "Mozilla Test RSA Log 4",
+                # `openssl x509 -noout -pubkey -in <path/to/evroot.pem>`
+                "key": """
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtUmJXJ0AEI0Rofmfh6nj
+            0aXbXfrs8YjaV79kE2iPLORyLP8QkDjBdALJOipHPb0oau0/3NNjz1opFHcBvdgY
+            12Fb+TVr1dPIM2qqjAlxNooGw81EYbk+UUJOF0S7LqrUaqs4zhloIZYfh3FKFmNp
+            Pwl2HN9Na6El6s7HvicNOI94n2zfeK4xRO0oxF55KThjp6IqSJgKNqQOctV5ybkl
+            3/jHkzYv/WiXp8F1TF6XyWfD6t0aroqizM40igFpuA4ootcMGpYMbzNfLaCbm2Q/
+            Wr+6SeiqqYHpYOJ9h0gL3VXdlBf6GFCfu1VMz4GkOX6LqBKKNL3yeGXBieVzT7Ip
+            BQIDAQAB
+        """,
+                "state": {
+                    "qualified": {
+                        "timestamp": "2025-06-25T12:09:26Z",
+                    },
+                },
+            }
+        ],
+    }
     json_data["operators"].append(mozilla_test_operator_1)
     json_data["operators"].append(mozilla_test_operator_2)
+    json_data["operators"].append(mozilla_test_operator_3)
 
 
 def get_content_at(url):
@@ -348,7 +395,7 @@ def run(args):
         hash_alg = rsa.verify(json_text, signature, key)
         if hash_alg != "SHA-256":
             raise UnsupportedSignatureHashAlgorithmException(
-                "unsupported hash algorithm '%s'" % hash_alg
+                f"unsupported hash algorithm '{hash_alg}'"
             )
         print("Writing output: ", args.json_file_out)
         with open(args.json_file_out, "wb") as json_file_out:
@@ -373,7 +420,7 @@ def parse_arguments_and_run():
         "Downloads the JSON file from the known source "
         "of truth by default, but can also operate on a "
         "previously-downloaded file. See https://certificate.transparency.dev/google/",
-        epilog="Example: ./mach python %s" % os.path.basename(sys.argv[0]),
+        epilog=f"Example: ./mach python {os.path.basename(sys.argv[0])}",
     )
 
     arg_parser.add_argument(

@@ -219,7 +219,8 @@ void CertVerifier::LoadKnownCTLogs() {
 
     const CTLogOperatorInfo& logOperator =
         kCTLogOperatorList[log.operatorIndex];
-    CTLogVerifier logVerifier(logOperator.id, log.state, log.timestamp);
+    CTLogVerifier logVerifier(logOperator.id, log.state, log.format,
+                              log.timestamp);
     rv = logVerifier.Init(publicKey);
     if (rv != Success) {
       MOZ_ASSERT_UNREACHABLE("Failed initializing a known CT Log");

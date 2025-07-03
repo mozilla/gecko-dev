@@ -51,6 +51,12 @@ function add_tests_in_mode(mode) {
     Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT,
     true
   );
+  // This certificate has an embedded SCT from a tiled log.
+  add_ct_test(
+    "ct-tiled-valid.example.com",
+    Ci.nsITransportSecurityInfo.CERTIFICATE_TRANSPARENCY_POLICY_COMPLIANT,
+    true
+  );
   // This certificate has only 2 embedded SCTs, and so is not policy-compliant.
   add_ct_test(
     "ct-insufficient-scts.example.com",

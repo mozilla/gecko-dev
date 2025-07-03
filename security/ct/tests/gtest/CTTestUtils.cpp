@@ -87,6 +87,55 @@ const char kTestSignedCertificateTimestamp[] =
     "08dfbfe9ef536cf7f2022100beb29c72d7d06d61d06bdb38a069469aa86fe12e18bb7cc456"
     "89a2c0187ef5a5";
 
+// The signatures on the following "SCT"s are not actually valid. The intent is
+// to test the parsing of extensions.
+const char kTestSignedCertificateTimestampWithLeafIndexExtension[] =
+    "00df1c2ec11500945247a96168325ddc5c7959e8f7c6d388fc002e0bbd3f74d7640000013d"
+    "db27ded9"
+    "0008"              // 8 bytes of extensions
+    "0000050000000034"  // leaf_index of 52
+    "0403004730450220606e10ae5c2d5a1b0aed49dc4937f48de71a4e9784e9c2"
+    "08dfbfe9ef536cf7f2022100beb29c72d7d06d61d06bdb38a069469aa86fe12e18bb7cc456"
+    "89a2c0187ef5a5";
+
+const char kTestSignedCertificateTimestampWithTwoLeafIndexExtensions[] =
+    "00df1c2ec11500945247a96168325ddc5c7959e8f7c6d388fc002e0bbd3f74d7640000013d"
+    "db27ded9"
+    "0010"              // 16 bytes of extensions
+    "0000050000000034"  // leaf_index of 52
+    "0000050000000051"  // leaf_index of 81
+    "0403004730450220606e10ae5c2d5a1b0aed49dc4937f48de71a4e9784e9c2"
+    "08dfbfe9ef536cf7f2022100beb29c72d7d06d61d06bdb38a069469aa86fe12e18bb7cc456"
+    "89a2c0187ef5a5";
+
+const char kTestSignedCertificateTimestampWithUnknownExtension[] =
+    "00df1c2ec11500945247a96168325ddc5c7959e8f7c6d388fc002e0bbd3f74d7640000013d"
+    "db27ded9"
+    "0008"              // 8 bytes of extensions
+    "0100050000000034"  // an (unknown) extension with id 1
+    "0403004730450220606e10ae5c2d5a1b0aed49dc4937f48de71a4e9784e9c2"
+    "08dfbfe9ef536cf7f2022100beb29c72d7d06d61d06bdb38a069469aa86fe12e18bb7cc456"
+    "89a2c0187ef5a5";
+
+const char kTestSignedCertificateTimestampWithUnknownAndLeafIndexExtensions[] =
+    "00df1c2ec11500945247a96168325ddc5c7959e8f7c6d388fc002e0bbd3f74d7640000013d"
+    "db27ded9"
+    "0010"              // 16 bytes of extensions
+    "0100050000000034"  // an (unknown) extension with id 1
+    "0000050000000051"  // leaf_index of 81
+    "0403004730450220606e10ae5c2d5a1b0aed49dc4937f48de71a4e9784e9c2"
+    "08dfbfe9ef536cf7f2022100beb29c72d7d06d61d06bdb38a069469aa86fe12e18bb7cc456"
+    "89a2c0187ef5a5";
+
+const char kTestSignedCertificateTimestampWithTooShortExtension[] =
+    "00df1c2ec11500945247a96168325ddc5c7959e8f7c6d388fc002e0bbd3f74d7640000013d"
+    "db27ded9"
+    "0008"          // 8 bytes of extensions
+    "000005000034"  // 3 bytes of extension data when there should be 5
+    "0403004730450220606e10ae5c2d5a1b0aed49dc4937f48de71a4e9784e9c2"
+    "08dfbfe9ef536cf7f2022100beb29c72d7d06d61d06bdb38a069469aa86fe12e18bb7cc456"
+    "89a2c0187ef5a5";
+
 // ct-server-key-public.pem
 const char kEcP256PublicKey[] =
     "3059301306072a8648ce3d020106082a8648ce3d0301070342000499783cb14533c0161a5a"
@@ -525,6 +574,27 @@ Buffer GetTestDigitallySignedData() {
 
 Buffer GetTestSignedCertificateTimestamp() {
   return HexToBytes(kTestSignedCertificateTimestamp);
+}
+
+Buffer GetTestSignedCertificateTimestampWithLeafIndexExtension() {
+  return HexToBytes(kTestSignedCertificateTimestampWithLeafIndexExtension);
+}
+
+Buffer GetTestSignedCertificateTimestampWithTwoLeafIndexExtensions() {
+  return HexToBytes(kTestSignedCertificateTimestampWithTwoLeafIndexExtensions);
+}
+
+Buffer GetTestSignedCertificateTimestampWithUnknownExtension() {
+  return HexToBytes(kTestSignedCertificateTimestampWithUnknownExtension);
+}
+
+Buffer GetTestSignedCertificateTimestampWithUnknownAndLeafIndexExtensions() {
+  return HexToBytes(
+      kTestSignedCertificateTimestampWithUnknownAndLeafIndexExtensions);
+}
+
+Buffer GetTestSignedCertificateTimestampWithTooShortExtension() {
+  return HexToBytes(kTestSignedCertificateTimestampWithTooShortExtension);
 }
 
 Buffer GetTestInclusionProof() { return HexToBytes(kTestInclusionProof); }

@@ -39,8 +39,13 @@ Buffer GetTestDigitallySigned();
 // Returns the source data of the test DigitallySigned.
 Buffer GetTestDigitallySignedData();
 
-// Returns the binary representation of a test serialized SCT.
+// Returns the binary representation of various test SCTs.
 Buffer GetTestSignedCertificateTimestamp();
+Buffer GetTestSignedCertificateTimestampWithLeafIndexExtension();
+Buffer GetTestSignedCertificateTimestampWithTwoLeafIndexExtensions();
+Buffer GetTestSignedCertificateTimestampWithUnknownExtension();
+Buffer GetTestSignedCertificateTimestampWithUnknownAndLeafIndexExtensions();
+Buffer GetTestSignedCertificateTimestampWithTooShortExtension();
 
 // Returns the binary representation of a test serialized InclusionProof.
 Buffer GetTestInclusionProof();
