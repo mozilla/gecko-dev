@@ -38,7 +38,11 @@ function addUiaTask(doc, task, options = {}) {
   function addTask(shouldEnable) {
     async function uiaTask(browser, docAcc, topDocAcc) {
       await SpecialPowers.pushPrefEnv({
-        set: [["accessibility.uia.enable", shouldEnable ? 2 : 0]],
+        // 1 means enable unconditionally. 2 means enable only if NVDA or JAWS
+        // isn't detected. The user could be running a screen reader while
+        // running the tests, so use 1 to enable unconditionally lest the tests
+        // fail.
+        set: [["accessibility.uia.enable", shouldEnable ? 1 : 0]],
       });
       gIsUiaEnabled = shouldEnable;
       info(shouldEnable ? "Gecko UIA enabled" : "Gecko UIA disabled");
