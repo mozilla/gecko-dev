@@ -138,7 +138,7 @@ xpcshell:
             default:
                 by-test-platform:
                     windows.*-asan.*: 3
-                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 3
+                    android-em-7.0-x86_64(-qr)?/debug-isolated-process: 2
                     default: default
     mozharness:
         extra-options:
