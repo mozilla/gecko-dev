@@ -17,20 +17,20 @@
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/layers/WebRenderImageHost.h"
 #include "mozilla/layers/WebRenderTextureHost.h"
-#include "mozilla/webgpu/SharedTexture.h"
+#include "mozilla/webgpu/ExternalTexture.h"
 #include "mozilla/webgpu/ffi/wgpu.h"
 
 #if defined(XP_WIN)
 #  include "mozilla/gfx/DeviceManagerDx.h"
-#  include "mozilla/webgpu/SharedTextureD3D11.h"
+#  include "mozilla/webgpu/ExternalTextureD3D11.h"
 #endif
 
 #if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-#  include "mozilla/webgpu/SharedTextureDMABuf.h"
+#  include "mozilla/webgpu/ExternalTextureDMABuf.h"
 #endif
 
 #if defined(XP_MACOSX)
-#  include "mozilla/webgpu/SharedTextureMacIOSurface.h"
+#  include "mozilla/webgpu/ExternalTextureMacIOSurface.h"
 #endif
 
 namespace mozilla::webgpu {
@@ -41,45 +41,45 @@ static mozilla::LazyLogModule sLogger("WebGPU");
 
 namespace ffi {
 
-extern bool wgpu_server_use_shared_texture_for_swap_chain(
+extern bool wgpu_server_use_external_texture_for_swap_chain(
     void* aParam, WGPUSwapChainId aSwapChainId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  return parent->UseSharedTextureForSwapChain(aSwapChainId);
+  return parent->UseExternalTextureForSwapChain(aSwapChainId);
 }
 
-extern void wgpu_server_disable_shared_texture_for_swap_chain(
+extern void wgpu_server_disable_external_texture_for_swap_chain(
     void* aParam, WGPUSwapChainId aSwapChainId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  parent->DisableSharedTextureForSwapChain(aSwapChainId);
+  parent->DisableExternalTextureForSwapChain(aSwapChainId);
 }
 
-extern bool wgpu_server_ensure_shared_texture_for_swap_chain(
+extern bool wgpu_server_ensure_external_texture_for_swap_chain(
     void* aParam, WGPUSwapChainId aSwapChainId, WGPUDeviceId aDeviceId,
     WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
     struct WGPUTextureFormat aFormat, WGPUTextureUsages aUsage) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  return parent->EnsureSharedTextureForSwapChain(
+  return parent->EnsureExternalTextureForSwapChain(
       aSwapChainId, aDeviceId, aTextureId, aWidth, aHeight, aFormat, aUsage);
 }
 
-extern void wgpu_server_ensure_shared_texture_for_readback(
+extern void wgpu_server_ensure_external_texture_for_readback(
     void* aParam, WGPUSwapChainId aSwapChainId, WGPUDeviceId aDeviceId,
     WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
     struct WGPUTextureFormat aFormat, WGPUTextureUsages aUsage) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  parent->EnsureSharedTextureForReadBackPresent(
+  parent->EnsureExternalTextureForReadBackPresent(
       aSwapChainId, aDeviceId, aTextureId, aWidth, aHeight, aFormat, aUsage);
 }
 
-extern void* wgpu_server_get_shared_texture_handle(void* aParam,
-                                                   WGPUTextureId aId) {
+extern void* wgpu_server_get_external_texture_handle(void* aParam,
+                                                     WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  auto texture = parent->GetSharedTexture(aId);
+  auto texture = parent->GetExternalTexture(aId);
   if (!texture) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
@@ -87,12 +87,12 @@ extern void* wgpu_server_get_shared_texture_handle(void* aParam,
 
   void* sharedHandle = nullptr;
 #ifdef XP_WIN
-  auto* textureD3D11 = texture->AsSharedTextureD3D11();
+  auto* textureD3D11 = texture->AsExternalTextureD3D11();
   if (!textureD3D11) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
   }
-  sharedHandle = textureD3D11->GetSharedTextureHandle();
+  sharedHandle = textureD3D11->GetExternalTextureHandle();
   if (!sharedHandle) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     gfxCriticalNoteOnce << "Failed to get shared handle";
@@ -107,14 +107,14 @@ extern void* wgpu_server_get_shared_texture_handle(void* aParam,
 extern int32_t wgpu_server_get_dma_buf_fd(void* aParam, WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  auto texture = parent->GetSharedTexture(aId);
+  auto texture = parent->GetExternalTexture(aId);
   if (!texture) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return -1;
   }
 
 #if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-  auto* textureDMABuf = texture->AsSharedTextureDMABuf();
+  auto* textureDMABuf = texture->AsExternalTextureDMABuf();
   if (!textureDMABuf) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return -1;
@@ -133,14 +133,14 @@ extern const WGPUVkImageHandle* wgpu_server_get_vk_image_handle(
     void* aParam, WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  auto texture = parent->GetSharedTexture(aId);
+  auto texture = parent->GetExternalTexture(aId);
   if (!texture) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
   }
 
 #  if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-  auto* textureDMABuf = texture->AsSharedTextureDMABuf();
+  auto* textureDMABuf = texture->AsExternalTextureDMABuf();
   if (!textureDMABuf) {
     return nullptr;
   }
@@ -155,14 +155,14 @@ extern uint32_t wgpu_server_get_external_io_surface_id(void* aParam,
                                                        WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
 
-  auto texture = parent->GetSharedTexture(aId);
+  auto texture = parent->GetExternalTexture(aId);
   if (!texture) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return 0;
   }
 
 #if defined(XP_MACOSX)
-  auto* textureIOSurface = texture->AsSharedTextureMacIOSurface();
+  auto* textureIOSurface = texture->AsExternalTextureMacIOSurface();
   if (!textureIOSurface) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return 0;
@@ -174,9 +174,10 @@ extern uint32_t wgpu_server_get_external_io_surface_id(void* aParam,
 #endif
 }
 
-extern void wgpu_server_remove_shared_texture(void* aParam, WGPUTextureId aId) {
+extern void wgpu_server_remove_external_texture(void* aParam,
+                                                WGPUTextureId aId) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
-  parent->RemoveSharedTexture(aId);
+  parent->RemoveExternalTexture(aId);
 }
 
 extern void wgpu_server_dealloc_buffer_shmem(void* aParam, WGPUBufferId aId) {
@@ -243,7 +244,7 @@ extern void wgpu_parent_create_swap_chain(
     void* aParam, WGPUDeviceId aDeviceId, WGPUQueueId aQueueId, int32_t aWidth,
     int32_t aHeight, WGPUSurfaceFormat aFormat, const WGPUBufferId* aBufferIds,
     uintptr_t aBufferIdsLength, WGPURemoteTextureOwnerId aRemoteTextureOwnerId,
-    bool aUseSharedTextureInSwapChain) {
+    bool aUseExternalTextureInSwapChain) {
   auto* parent = static_cast<WebGPUParent*>(aParam);
   auto buffer_ids_span = Span(aBufferIds, aBufferIdsLength);
   auto buffer_ids = nsTArray<RawId>(aBufferIdsLength);
@@ -255,7 +256,7 @@ extern void wgpu_parent_create_swap_chain(
   auto desc = layers::RGBDescriptor(size, format);
   auto owner = layers::RemoteTextureOwnerId{aRemoteTextureOwnerId};
   parent->DeviceCreateSwapChain(aDeviceId, aQueueId, desc, buffer_ids, owner,
-                                aUseSharedTextureInSwapChain);
+                                aUseExternalTextureInSwapChain);
 }
 
 extern void wgpu_parent_swap_chain_present(
@@ -458,7 +459,7 @@ class PresentationData {
 
  public:
   WeakPtr<WebGPUParent> mParent;
-  bool mUseSharedTextureInSwapChain;
+  bool mUseExternalTextureInSwapChain;
   const RawId mDeviceId;
   const RawId mQueueId;
   Maybe<RawId> mLastSubmittedTextureId;
@@ -466,7 +467,7 @@ class PresentationData {
 
   uint64_t mSubmissionIndex = 0;
 
-  std::deque<std::shared_ptr<SharedTexture>> mRecycledSharedTextures;
+  std::deque<std::shared_ptr<ExternalTexture>> mRecycledExternalTextures;
 
   std::unordered_set<layers::RemoteTextureId, layers::RemoteTextureId::HashFn>
       mWaitingReadbackTexturesForPresent;
@@ -479,12 +480,12 @@ class PresentationData {
 
   bool mReadbackSnapshotCallbackCalled = false;
 
-  PresentationData(WebGPUParent* aParent, bool aUseSharedTextureInSwapChain,
+  PresentationData(WebGPUParent* aParent, bool aUseExternalTextureInSwapChain,
                    RawId aDeviceId, RawId aQueueId,
                    const layers::RGBDescriptor& aDesc, uint32_t aSourcePitch,
                    const nsTArray<RawId>& aBufferIds)
       : mParent(aParent),
-        mUseSharedTextureInSwapChain(aUseSharedTextureInSwapChain),
+        mUseExternalTextureInSwapChain(aUseExternalTextureInSwapChain),
         mDeviceId(aDeviceId),
         mQueueId(aQueueId),
         mDesc(aDesc),
@@ -807,10 +808,10 @@ void WebGPUParent::DeallocBufferShmem(RawId aBufferId) {
   }
 }
 
-void WebGPUParent::RemoveSharedTexture(RawId aTextureId) {
-  auto it = mSharedTextures.find(aTextureId);
-  if (it != mSharedTextures.end()) {
-    mSharedTextures.erase(it);
+void WebGPUParent::RemoveExternalTexture(RawId aTextureId) {
+  auto it = mExternalTextures.find(aTextureId);
+  if (it != mExternalTextures.end()) {
+    mExternalTextures.erase(it);
   }
 }
 
@@ -818,10 +819,10 @@ void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
                                Span<const RawId> aCommandBuffers,
                                Span<const RawId> aTextureIds) {
   for (const auto& textureId : aTextureIds) {
-    auto it = mSharedTextures.find(textureId);
-    if (it != mSharedTextures.end()) {
-      auto& sharedTexture = it->second;
-      sharedTexture->onBeforeQueueSubmit(aQueueId);
+    auto it = mExternalTextures.find(textureId);
+    if (it != mExternalTextures.end()) {
+      auto& externalTexture = it->second;
+      externalTexture->onBeforeQueueSubmit(aQueueId);
     }
   }
 
@@ -832,13 +833,13 @@ void WebGPUParent::QueueSubmit(RawId aQueueId, RawId aDeviceId,
   // Check if index is valid. 0 means error.
   if (index != 0) {
     for (const auto& textureId : aTextureIds) {
-      auto it = mSharedTextures.find(textureId);
-      if (it != mSharedTextures.end()) {
-        auto& sharedTexture = it->second;
+      auto it = mExternalTextures.find(textureId);
+      if (it != mExternalTextures.end()) {
+        auto& externalTexture = it->second;
 
-        sharedTexture->SetSubmissionIndex(index);
+        externalTexture->SetSubmissionIndex(index);
         // Update mLastSubmittedTextureId
-        auto ownerId = sharedTexture->GetOwnerId();
+        auto ownerId = externalTexture->GetOwnerId();
         const auto& lookup = mPresentationDataMap.find(ownerId);
         if (lookup != mPresentationDataMap.end()) {
           RefPtr<PresentationData> data = lookup->second.get();
@@ -873,7 +874,7 @@ void WebGPUParent::DeviceCreateSwapChain(
     RawId aDeviceId, RawId aQueueId, const RGBDescriptor& aDesc,
     const nsTArray<RawId>& aBufferIds,
     const layers::RemoteTextureOwnerId& aOwnerId,
-    bool aUseSharedTextureInSwapChain) {
+    bool aUseExternalTextureInSwapChain) {
   switch (aDesc.format()) {
     case gfx::SurfaceFormat::R8G8B8A8:
     case gfx::SurfaceFormat::B8G8R8A8:
@@ -906,7 +907,7 @@ void WebGPUParent::DeviceCreateSwapChain(
   }
   mRemoteTextureOwner->RegisterTextureOwner(aOwnerId);
 
-  auto data = MakeRefPtr<PresentationData>(this, aUseSharedTextureInSwapChain,
+  auto data = MakeRefPtr<PresentationData>(this, aUseExternalTextureInSwapChain,
                                            aDeviceId, aQueueId, aDesc,
                                            bufferStride, aBufferIds);
   if (!mPresentationDataMap.emplace(aOwnerId, data).second) {
@@ -1139,14 +1140,14 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
     return IPC_OK();
   }
 
-  auto it = mSharedTextures.find(data->mLastSubmittedTextureId.ref());
-  // Shared texture is already invalid and posted to RemoteTextureMap
-  if (it == mSharedTextures.end()) {
+  auto it = mExternalTextures.find(data->mLastSubmittedTextureId.ref());
+  // External texture is already invalid and posted to RemoteTextureMap
+  if (it == mExternalTextures.end()) {
     if (!mRemoteTextureOwner || !mRemoteTextureOwner->IsRegistered(aOwnerId)) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
       return IPC_OK();
     }
-    if (!data->mUseSharedTextureInSwapChain) {
+    if (!data->mUseExternalTextureInSwapChain) {
       ffi::wgpu_server_device_poll(mContext.get(), data->mDeviceId, true);
     }
     mRemoteTextureOwner->GetLatestBufferSnapshot(aOwnerId, shmem, aSize);
@@ -1278,8 +1279,8 @@ ipc::IPCResult WebGPUParent::GetFrontBufferSnapshot(
   return IPC_OK();
 }
 
-void WebGPUParent::PostSharedTexture(
-    const std::shared_ptr<SharedTexture>&& aSharedTexture,
+void WebGPUParent::PostExternalTexture(
+    const std::shared_ptr<ExternalTexture>&& aExternalTexture,
     const layers::RemoteTextureId aRemoteTextureId,
     const layers::RemoteTextureOwnerId aOwnerId) {
   const auto& lookup = mPresentationDataMap.find(aOwnerId);
@@ -1290,24 +1291,25 @@ void WebGPUParent::PostSharedTexture(
   }
 
   const auto surfaceFormat = gfx::SurfaceFormat::B8G8R8A8;
-  const auto size = aSharedTexture->GetSize();
+  const auto size = aExternalTexture->GetSize();
 
   RefPtr<PresentationData> data = lookup->second.get();
 
-  Maybe<layers::SurfaceDescriptor> desc = aSharedTexture->ToSurfaceDescriptor();
+  Maybe<layers::SurfaceDescriptor> desc =
+      aExternalTexture->ToSurfaceDescriptor();
   if (!desc) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return;
   }
 
-  mRemoteTextureOwner->PushTexture(aRemoteTextureId, aOwnerId, aSharedTexture,
+  mRemoteTextureOwner->PushTexture(aRemoteTextureId, aOwnerId, aExternalTexture,
                                    size, surfaceFormat, *desc);
 
-  auto recycledTexture = mRemoteTextureOwner->GetRecycledSharedTexture(
+  auto recycledTexture = mRemoteTextureOwner->GetRecycledExternalTexture(
       size, surfaceFormat, desc->type(), aOwnerId);
   if (recycledTexture) {
     recycledTexture->CleanForRecycling();
-    data->mRecycledSharedTextures.push_back(recycledTexture);
+    data->mRecycledExternalTextures.push_back(recycledTexture);
   }
 }
 
@@ -1334,18 +1336,18 @@ void WebGPUParent::SwapChainPresent(
 
   RefPtr<PresentationData> data = lookup->second.get();
 
-  if (data->mUseSharedTextureInSwapChain) {
-    auto it = mSharedTextures.find(aTextureId);
-    if (it == mSharedTextures.end()) {
+  if (data->mUseExternalTextureInSwapChain) {
+    auto it = mExternalTextures.find(aTextureId);
+    if (it == mExternalTextures.end()) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
       return;
     }
-    std::shared_ptr<SharedTexture> sharedTexture = it->second;
-    mSharedTextures.erase(it);
+    std::shared_ptr<ExternalTexture> externalTexture = it->second;
+    mExternalTextures.erase(it);
 
-    MOZ_ASSERT(sharedTexture->GetOwnerId() == aOwnerId);
+    MOZ_ASSERT(externalTexture->GetOwnerId() == aOwnerId);
 
-    PostSharedTexture(std::move(sharedTexture), aRemoteTextureId, aOwnerId);
+    PostExternalTexture(std::move(externalTexture), aRemoteTextureId, aOwnerId);
     return;
   }
 
@@ -1453,7 +1455,7 @@ void WebGPUParent::SwapChainPresent(
     waitingTextures.emplace(aRemoteTextureId);
   }
 
-  // step 4: request the pixels to be copied into the shared texture
+  // step 4: request the pixels to be copied into the external texture
   // TODO: this isn't strictly necessary. When WR wants to Lock() the external
   // texture,
   // we can just give it the contents of the last mapped buffer instead of the
@@ -1623,7 +1625,7 @@ PopErrorScopeResult WebGPUParent::DevicePopErrorScope(RawId aDeviceId) {
   return popResult;
 }
 
-bool WebGPUParent::UseSharedTextureForSwapChain(
+bool WebGPUParent::UseExternalTextureForSwapChain(
     ffi::WGPUSwapChainId aSwapChainId) {
   auto ownerId = layers::RemoteTextureOwnerId{aSwapChainId._0};
   const auto& lookup = mPresentationDataMap.find(ownerId);
@@ -1634,10 +1636,10 @@ bool WebGPUParent::UseSharedTextureForSwapChain(
 
   RefPtr<PresentationData> data = lookup->second.get();
 
-  return data->mUseSharedTextureInSwapChain;
+  return data->mUseExternalTextureInSwapChain;
 }
 
-void WebGPUParent::DisableSharedTextureForSwapChain(
+void WebGPUParent::DisableExternalTextureForSwapChain(
     ffi::WGPUSwapChainId aSwapChainId) {
   auto ownerId = layers::RemoteTextureOwnerId{aSwapChainId._0};
   const auto& lookup = mPresentationDataMap.find(ownerId);
@@ -1648,15 +1650,15 @@ void WebGPUParent::DisableSharedTextureForSwapChain(
 
   RefPtr<PresentationData> data = lookup->second.get();
 
-  if (data->mUseSharedTextureInSwapChain) {
-    gfxCriticalNote << "Disable SharedTexture for SwapChain:  "
+  if (data->mUseExternalTextureInSwapChain) {
+    gfxCriticalNote << "Disable ExternalTexture for SwapChain:  "
                     << aSwapChainId._0;
   }
 
-  data->mUseSharedTextureInSwapChain = false;
+  data->mUseExternalTextureInSwapChain = false;
 }
 
-bool WebGPUParent::EnsureSharedTextureForSwapChain(
+bool WebGPUParent::EnsureExternalTextureForSwapChain(
     ffi::WGPUSwapChainId aSwapChainId, ffi::WGPUDeviceId aDeviceId,
     ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
     struct ffi::WGPUTextureFormat aFormat, ffi::WGPUTextureUsages aUsage) {
@@ -1668,32 +1670,32 @@ bool WebGPUParent::EnsureSharedTextureForSwapChain(
   }
 
   RefPtr<PresentationData> data = lookup->second.get();
-  if (!data->mUseSharedTextureInSwapChain) {
+  if (!data->mUseExternalTextureInSwapChain) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return false;
   }
 
-  // Recycled SharedTexture if it exists.
-  if (!data->mRecycledSharedTextures.empty()) {
-    std::shared_ptr<SharedTexture> texture =
-        data->mRecycledSharedTextures.front();
+  // Recycled ExternalTexture if it exists.
+  if (!data->mRecycledExternalTextures.empty()) {
+    std::shared_ptr<ExternalTexture> texture =
+        data->mRecycledExternalTextures.front();
     // Check if the texture is recyclable.
     if (texture->mWidth == aWidth && texture->mHeight == aHeight &&
         texture->mFormat.tag == aFormat.tag && texture->mUsage == aUsage) {
       texture->SetOwnerId(ownerId);
-      data->mRecycledSharedTextures.pop_front();
-      mSharedTextures.emplace(aTextureId, texture);
+      data->mRecycledExternalTextures.pop_front();
+      mExternalTextures.emplace(aTextureId, texture);
       return true;
     }
-    data->mRecycledSharedTextures.clear();
+    data->mRecycledExternalTextures.clear();
   }
 
-  auto sharedTexture = CreateSharedTexture(ownerId, aDeviceId, aTextureId,
-                                           aWidth, aHeight, aFormat, aUsage);
-  return static_cast<bool>(sharedTexture);
+  auto externalTexture = CreateExternalTexture(
+      ownerId, aDeviceId, aTextureId, aWidth, aHeight, aFormat, aUsage);
+  return static_cast<bool>(externalTexture);
 }
 
-void WebGPUParent::EnsureSharedTextureForReadBackPresent(
+void WebGPUParent::EnsureExternalTextureForReadBackPresent(
     ffi::WGPUSwapChainId aSwapChainId, ffi::WGPUDeviceId aDeviceId,
     ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
     struct ffi::WGPUTextureFormat aFormat, ffi::WGPUTextureUsages aUsage) {
@@ -1705,47 +1707,48 @@ void WebGPUParent::EnsureSharedTextureForReadBackPresent(
   }
 
   RefPtr<PresentationData> data = lookup->second.get();
-  if (data->mUseSharedTextureInSwapChain) {
+  if (data->mUseExternalTextureInSwapChain) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return;
   }
 
-  UniquePtr<SharedTexture> texture =
-      SharedTextureReadBackPresent::Create(aWidth, aHeight, aFormat, aUsage);
+  UniquePtr<ExternalTexture> texture =
+      ExternalTextureReadBackPresent::Create(aWidth, aHeight, aFormat, aUsage);
   if (!texture) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return;
   }
 
   texture->SetOwnerId(ownerId);
-  std::shared_ptr<SharedTexture> shared(texture.release());
-  mSharedTextures[aTextureId] = shared;
+  std::shared_ptr<ExternalTexture> shared(texture.release());
+  mExternalTextures[aTextureId] = shared;
 }
 
-std::shared_ptr<SharedTexture> WebGPUParent::CreateSharedTexture(
+std::shared_ptr<ExternalTexture> WebGPUParent::CreateExternalTexture(
     const layers::RemoteTextureOwnerId& aOwnerId, ffi::WGPUDeviceId aDeviceId,
     ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
     ffi::WGPUTextureUsages aUsage) {
-  MOZ_RELEASE_ASSERT(mSharedTextures.find(aTextureId) == mSharedTextures.end());
+  MOZ_RELEASE_ASSERT(mExternalTextures.find(aTextureId) ==
+                     mExternalTextures.end());
 
-  UniquePtr<SharedTexture> texture =
-      SharedTexture::Create(this, aDeviceId, aWidth, aHeight, aFormat, aUsage);
+  UniquePtr<ExternalTexture> texture = ExternalTexture::Create(
+      this, aDeviceId, aWidth, aHeight, aFormat, aUsage);
   if (!texture) {
     return nullptr;
   }
 
   texture->SetOwnerId(aOwnerId);
-  std::shared_ptr<SharedTexture> shared(texture.release());
-  mSharedTextures.emplace(aTextureId, shared);
+  std::shared_ptr<ExternalTexture> shared(texture.release());
+  mExternalTextures.emplace(aTextureId, shared);
 
   return shared;
 }
 
-std::shared_ptr<SharedTexture> WebGPUParent::GetSharedTexture(
+std::shared_ptr<ExternalTexture> WebGPUParent::GetExternalTexture(
     ffi::WGPUTextureId aId) {
-  auto it = mSharedTextures.find(aId);
-  if (it == mSharedTextures.end()) {
+  auto it = mExternalTextures.find(aId);
+  if (it == mExternalTextures.end()) {
     return nullptr;
   }
   return it->second;

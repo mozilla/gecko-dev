@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "SharedTextureMacIOSurface.h"
+#include "ExternalTextureMacIOSurface.h"
 
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/gfx/MacIOSurface.h"
@@ -14,7 +14,7 @@
 namespace mozilla::webgpu {
 
 // static
-UniquePtr<SharedTextureMacIOSurface> SharedTextureMacIOSurface::Create(
+UniquePtr<ExternalTextureMacIOSurface> ExternalTextureMacIOSurface::Create(
     WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
@@ -39,28 +39,28 @@ UniquePtr<SharedTextureMacIOSurface> SharedTextureMacIOSurface::Create(
     return nullptr;
   }
 
-  return MakeUnique<SharedTextureMacIOSurface>(
+  return MakeUnique<ExternalTextureMacIOSurface>(
       aParent, aDeviceId, aWidth, aHeight, aFormat, aUsage, std::move(surface));
 }
 
-SharedTextureMacIOSurface::SharedTextureMacIOSurface(
+ExternalTextureMacIOSurface::ExternalTextureMacIOSurface(
     WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, RefPtr<MacIOSurface>&& aSurface)
-    : SharedTexture(aWidth, aHeight, aFormat, aUsage),
+    : ExternalTexture(aWidth, aHeight, aFormat, aUsage),
       mParent(aParent),
       mDeviceId(aDeviceId),
       mSurface(std::move(aSurface)) {}
 
-SharedTextureMacIOSurface::~SharedTextureMacIOSurface() {}
+ExternalTextureMacIOSurface::~ExternalTextureMacIOSurface() {}
 
-uint32_t SharedTextureMacIOSurface::GetIOSurfaceId() {
+uint32_t ExternalTextureMacIOSurface::GetIOSurfaceId() {
   return mSurface->GetIOSurfaceID();
 }
 
 Maybe<layers::SurfaceDescriptor>
-SharedTextureMacIOSurface::ToSurfaceDescriptor() {
+ExternalTextureMacIOSurface::ToSurfaceDescriptor() {
   MOZ_ASSERT(mSubmissionIndex > 0);
 
   RefPtr<layers::GpuFence> gpuFence;
@@ -79,8 +79,8 @@ SharedTextureMacIOSurface::ToSurfaceDescriptor() {
       mSurface->GetYUVColorSpace(), std::move(gpuFence)));
 }
 
-void SharedTextureMacIOSurface::GetSnapshot(const ipc::Shmem& aDestShmem,
-                                            const gfx::IntSize& aSize) {
+void ExternalTextureMacIOSurface::GetSnapshot(const ipc::Shmem& aDestShmem,
+                                              const gfx::IntSize& aSize) {
   if (!mSurface->Lock()) {
     gfxCriticalNoteOnce << "Failed to lock MacIOSurface";
     return;

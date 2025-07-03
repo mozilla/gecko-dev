@@ -49,7 +49,6 @@ h_and_cpp = [
     "RenderPipeline",
     "Sampler",
     "ShaderModule",
-    "SharedTexture",
     "SupportedFeatures",
     "SupportedLimits",
     "Texture",
@@ -79,27 +78,27 @@ UNIFIED_SOURCES += [
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
     EXPORTS.mozilla.webgpu += [
-        "SharedTextureD3D11.h",
+        "ExternalTextureD3D11.h",
     ]
     UNIFIED_SOURCES += [
-        "SharedTextureD3D11.cpp",
+        "ExternalTextureD3D11.cpp",
     ]
 
 if CONFIG["OS_TARGET"] == "Linux":
     EXPORTS.mozilla.webgpu += [
-        "SharedTextureDMABuf.h",
+        "ExternalTextureDMABuf.h",
     ]
     UNIFIED_SOURCES += [
-        "SharedTextureDMABuf.cpp",
+        "ExternalTextureDMABuf.cpp",
     ]
 
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
     EXPORTS.mozilla.webgpu += [
-        "SharedTextureMacIOSurface.h",
+        "ExternalTextureMacIOSurface.h",
     ]
     UNIFIED_SOURCES += [
-        "SharedTextureMacIOSurface.cpp",
+        "ExternalTextureMacIOSurface.cpp",
     ]
 
 if CONFIG["MOZ_DXCOMPILER"] and not CONFIG["MOZ_ARTIFACT_BUILDS"]:

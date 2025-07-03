@@ -135,39 +135,39 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
 
   mConfiguration.reset(new dom::GPUCanvasConfiguration(aConfig));
   mRemoteTextureOwnerId = Some(layers::RemoteTextureOwnerId::GetNext());
-  mUseSharedTextureInSwapChain =
-      aConfig.mDevice->mSupportSharedTextureInSwapChain;
-  if (mUseSharedTextureInSwapChain) {
-    bool client_can_use = wgpu_client_use_shared_texture_in_swapChain(
+  mUseExternalTextureInSwapChain =
+      aConfig.mDevice->mSupportExternalTextureInSwapChain;
+  if (mUseExternalTextureInSwapChain) {
+    bool client_can_use = wgpu_client_use_external_texture_in_swapChain(
         ConvertTextureFormat(aConfig.mFormat));
     if (!client_can_use) {
-      gfxCriticalNote << "WebGPU: disabling SharedTexture swapchain: \n"
+      gfxCriticalNote << "WebGPU: disabling ExternalTexture swapchain: \n"
                          "canvas configuration format not supported";
-      mUseSharedTextureInSwapChain = false;
+      mUseExternalTextureInSwapChain = false;
     }
   }
   if (!gfx::gfxVars::AllowWebGPUPresentWithoutReadback()) {
     gfxCriticalNote
-        << "WebGPU: disabling SharedTexture swapchain: \n"
+        << "WebGPU: disabling ExternalTexture swapchain: \n"
            "`dom.webgpu.allow-present-without-readback` pref is false";
-    mUseSharedTextureInSwapChain = false;
+    mUseExternalTextureInSwapChain = false;
   }
 #ifdef XP_WIN
-  // When WebRender does not use hardware acceleration, disable shared texture
+  // When WebRender does not use hardware acceleration, disable external texture
   // in swap chain. Since compositor device might not exist.
   if (gfx::gfxVars::UseSoftwareWebRender() &&
       !gfx::gfxVars::AllowSoftwareWebRenderD3D11()) {
-    gfxCriticalNote << "WebGPU: disabling SharedTexture swapchain: \n"
+    gfxCriticalNote << "WebGPU: disabling ExternalTexture swapchain: \n"
                        "WebRender is not using hardware acceleration";
-    mUseSharedTextureInSwapChain = false;
+    mUseExternalTextureInSwapChain = false;
   }
 #elif defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-  // When DMABufDevice is not enabled, disable shared texture in swap chain.
+  // When DMABufDevice is not enabled, disable external texture in swap chain.
   const auto& modifiers = gfx::gfxVars::DMABufModifiersARGB();
   if (modifiers.IsEmpty()) {
-    gfxCriticalNote << "WebGPU: disabling SharedTexture swapchain: \n"
+    gfxCriticalNote << "WebGPU: disabling ExternalTexture swapchain: \n"
                        "missing GBM_FORMAT_ARGB8888 dmabuf format";
-    mUseSharedTextureInSwapChain = false;
+    mUseExternalTextureInSwapChain = false;
   }
 #endif
 
@@ -180,7 +180,7 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
 
   mCurrentTexture = aConfig.mDevice->InitSwapChain(
       mConfiguration.get(), mRemoteTextureOwnerId.ref(), mBufferIds,
-      mUseSharedTextureInSwapChain, mGfxFormat, mCanvasSize);
+      mUseExternalTextureInSwapChain, mGfxFormat, mCanvasSize);
   if (!mCurrentTexture) {
     Unconfigure();
     return;
@@ -291,7 +291,7 @@ Maybe<layers::SurfaceDescriptor> CanvasContext::SwapChainPresent() {
   mLastRemoteTextureId = Some(layers::RemoteTextureId::GetNext());
   mBridge->SwapChainPresent(mCurrentTexture->mId, *mLastRemoteTextureId,
                             *mRemoteTextureOwnerId);
-  if (mUseSharedTextureInSwapChain) {
+  if (mUseExternalTextureInSwapChain) {
     mCurrentTexture->Destroy();
     mNewTextureRequested = true;
   }

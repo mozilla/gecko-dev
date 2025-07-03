@@ -118,7 +118,7 @@ pub struct AdapterInformation<S> {
     driver: S,
     driver_info: S,
     backend: wgt::Backend,
-    support_use_shared_texture_in_swap_chain: bool,
+    support_use_external_texture_in_swap_chain: bool,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -210,7 +210,7 @@ enum Message<'a> {
         format: SurfaceFormat,
         buffer_ids: Cow<'a, [id::BufferId]>,
         remote_texture_owner_id: RemoteTextureOwnerId,
-        use_shared_texture_in_swap_chain: bool,
+        use_external_texture_in_swap_chain: bool,
     },
     SwapChainPresent {
         texture_id: id::TextureId,

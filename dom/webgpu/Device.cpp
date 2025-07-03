@@ -67,8 +67,8 @@ Device::Device(Adapter* const aParent, RawId aDeviceId, RawId aQueueId,
       mFeatures(std::move(aFeatures)),
       mLimits(std::move(aLimits)),
       mAdapterInfo(std::move(aAdapterInfo)),
-      mSupportSharedTextureInSwapChain(
-          aParent->SupportSharedTextureInSwapChain()),
+      mSupportExternalTextureInSwapChain(
+          aParent->SupportExternalTextureInSwapChain()),
       mBridge(aParent->mBridge),
       mQueue(new class Queue(this, aParent->mBridge, aQueueId)) {
   mBridge->RegisterDevice(this);
@@ -944,7 +944,7 @@ already_AddRefed<dom::Promise> Device::CreateRenderPipelineAsync(
 already_AddRefed<Texture> Device::InitSwapChain(
     const dom::GPUCanvasConfiguration* const aConfig,
     const layers::RemoteTextureOwnerId aOwnerId,
-    mozilla::Span<RawId const> aBufferIds, bool aUseSharedTextureInSwapChain,
+    mozilla::Span<RawId const> aBufferIds, bool aUseExternalTextureInSwapChain,
     gfx::SurfaceFormat aFormat, gfx::IntSize aCanvasSize) {
   MOZ_ASSERT(aConfig);
 
@@ -960,7 +960,7 @@ already_AddRefed<Texture> Device::InitSwapChain(
   ffi::wgpu_client_create_swap_chain(
       mBridge->GetClient(), mId, mQueue->mId, rgbDesc.size().Width(),
       rgbDesc.size().Height(), (int8_t)rgbDesc.format(), aBufferIds.Elements(),
-      aBufferIds.Length(), aOwnerId.mId, aUseSharedTextureInSwapChain);
+      aBufferIds.Length(), aOwnerId.mId, aUseExternalTextureInSwapChain);
 
   // TODO: `mColorSpace`: <https://bugzilla.mozilla.org/show_bug.cgi?id=1846608>
   // TODO: `mAlphaMode`: <https://bugzilla.mozilla.org/show_bug.cgi?id=1846605>

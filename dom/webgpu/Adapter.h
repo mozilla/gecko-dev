@@ -106,7 +106,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
   const RefPtr<SupportedFeatures>& Features() const;
   const RefPtr<SupportedLimits>& Limits() const;
   const RefPtr<AdapterInfo>& Info() const;
-  bool SupportSharedTextureInSwapChain() const;
+  bool SupportExternalTextureInSwapChain() const;
   uint64_t MissingFeatures() const;
 
   nsCString LabelOrId() const {

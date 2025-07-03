@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "SharedTextureDMABuf.h"
+#include "ExternalTextureDMABuf.h"
 
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/ImageDataSerializer.h"
@@ -15,7 +15,7 @@
 namespace mozilla::webgpu {
 
 // static
-UniquePtr<SharedTextureDMABuf> SharedTextureDMABuf::Create(
+UniquePtr<ExternalTextureDMABuf> ExternalTextureDMABuf::Create(
     WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
@@ -77,32 +77,32 @@ UniquePtr<SharedTextureDMABuf> SharedTextureDMABuf::Create(
     return nullptr;
   }
 
-  return MakeUnique<SharedTextureDMABuf>(
+  return MakeUnique<ExternalTextureDMABuf>(
       aParent, aDeviceId, std::move(handle), aWidth, aHeight, aFormat, aUsage,
       std::move(surface), desc.get_SurfaceDescriptorDMABuf());
 }
 
-SharedTextureDMABuf::SharedTextureDMABuf(
+ExternalTextureDMABuf::ExternalTextureDMABuf(
     WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     UniquePtr<VkImageHandle>&& aVkImageHandle, const uint32_t aWidth,
     const uint32_t aHeight, const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, RefPtr<DMABufSurface>&& aSurface,
     const layers::SurfaceDescriptorDMABuf& aSurfaceDescriptor)
-    : SharedTexture(aWidth, aHeight, aFormat, aUsage),
+    : ExternalTexture(aWidth, aHeight, aFormat, aUsage),
       mParent(aParent),
       mDeviceId(aDeviceId),
       mVkImageHandle(std::move(aVkImageHandle)),
       mSurface(std::move(aSurface)),
       mSurfaceDescriptor(aSurfaceDescriptor) {}
 
-SharedTextureDMABuf::~SharedTextureDMABuf() {}
+ExternalTextureDMABuf::~ExternalTextureDMABuf() {}
 
-void SharedTextureDMABuf::CleanForRecycling() {
+void ExternalTextureDMABuf::CleanForRecycling() {
   mSemaphoreFds.Clear();
   mVkSemaphoreHandles.Clear();
 }
 
-Maybe<layers::SurfaceDescriptor> SharedTextureDMABuf::ToSurfaceDescriptor() {
+Maybe<layers::SurfaceDescriptor> ExternalTextureDMABuf::ToSurfaceDescriptor() {
   layers::SurfaceDescriptor sd;
   if (!mSurface->Serialize(sd)) {
     return Nothing();
@@ -118,8 +118,8 @@ Maybe<layers::SurfaceDescriptor> SharedTextureDMABuf::ToSurfaceDescriptor() {
   return Some(sd);
 }
 
-void SharedTextureDMABuf::GetSnapshot(const ipc::Shmem& aDestShmem,
-                                      const gfx::IntSize& aSize) {
+void ExternalTextureDMABuf::GetSnapshot(const ipc::Shmem& aDestShmem,
+                                        const gfx::IntSize& aSize) {
   const RefPtr<gfx::SourceSurface> surface = mSurface->GetAsSourceSurface();
   if (!surface) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
@@ -155,15 +155,15 @@ void SharedTextureDMABuf::GetSnapshot(const ipc::Shmem& aDestShmem,
   }
 }
 
-UniqueFileHandle SharedTextureDMABuf::CloneDmaBufFd() {
+UniqueFileHandle ExternalTextureDMABuf::CloneDmaBufFd() {
   return mSurfaceDescriptor.fds()[0]->ClonePlatformHandle();
 }
 
-const ffi::WGPUVkImageHandle* SharedTextureDMABuf::GetHandle() {
+const ffi::WGPUVkImageHandle* ExternalTextureDMABuf::GetHandle() {
   return mVkImageHandle->Get();
 }
 
-void SharedTextureDMABuf::onBeforeQueueSubmit(RawId aQueueId) {
+void ExternalTextureDMABuf::onBeforeQueueSubmit(RawId aQueueId) {
   if (!mParent) {
     return;
   }
