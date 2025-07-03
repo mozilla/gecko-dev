@@ -1123,10 +1123,10 @@
     <string name="preferences_daily_usage_ping_description">This helps Mozilla to estimate active users.</string>
     <string name="preferences_daily_usage_ping_learn_more">Learn more about daily usage ping</string>
     <!-- Preference switch title for automatically submitting crash reports -->
-    <string name="preferences_automatically_send_crashes_title">Automatically send crash reports</string>
+    <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Automatically send crash reports</string>
 
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_send_crashes_description">This helps us diagnose and fix issues with the browser. Reports may include personal or sensitive data.</string>
+    <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">This helps us diagnose and fix issues with the browser. Reports may include personal or sensitive data.</string>
     <!-- Text for sumo link to learn more about crash reports in data collection screen -->
     <string name="preferences_crashes_learn_more">Learn more about crash reports</string>
 
@@ -1150,7 +1150,7 @@
     <string name="preferences_marketing_data_learn_more">Learn more about marketing data</string>
 
     <!-- Learn more link for crash reporting preference -->
-    <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Learn more about crash reports</string>
+    <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Learn more about crash reports</string>
 
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studies</string>

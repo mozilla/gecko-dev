@@ -5,24 +5,24 @@
 package org.mozilla.fenix.ui.robots
 
 import android.util.Log
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
-import androidx.test.espresso.matcher.ViewMatchers.withClassName
 import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
-import org.hamcrest.CoreMatchers.allOf
-import org.hamcrest.CoreMatchers.endsWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.MatcherHelper.assertItemIsChecked
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
-import org.mozilla.fenix.helpers.TestHelper.hasCousin
 import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.click
 
@@ -32,89 +32,78 @@ import org.mozilla.fenix.helpers.click
 class SettingsSubMenuDataCollectionRobot {
 
     fun verifyDataCollectionView(
-        isUsageAndTechnicalDataEnabled: Boolean,
+        composeTestRule: ComposeTestRule,
+        isSendTechnicalDataEnabled: Boolean,
         isDailyUsagePingEnabled: Boolean,
         studiesSummary: String,
-        isAutomaticallySendCrashReportsEnabled: Boolean,
+        isAskBeforeSendingCrashReportsEnabled: Boolean = true,
+        isAutomaticallySendCrashReportsEnabled: Boolean = false,
+        isNeverSendCrashReportsEnabled: Boolean = false,
     ) {
+        Log.i(TAG, "verifyDataCollectionView: Waiting for compose test rule to be idle")
+        composeTestRule.waitForIdle()
+        Log.i(TAG, "verifyDataCollectionView: Waited for compose test rule to be idle")
         assertUIObjectExists(
+            // Toolbar items
             goBackButton(),
             itemContainingText(getStringResource(R.string.preferences_data_collection)),
+            // Technical Data section
+            itemContainingText(getStringResource(R.string.technical_data_category)),
             itemContainingText(getStringResource(R.string.preference_usage_data_2)),
             itemContainingText(getStringResource(R.string.preferences_usage_data_description_1)),
-            itemContainingText(getStringResource(R.string.preference_usage_data_learn_more)),
+            itemWithDescription("Learn more about technical data Links available"),
+            // Studies section
+            itemContainingText(getStringResource(R.string.studies_data_category)),
             itemContainingText(getStringResource(R.string.studies_title)),
             itemContainingText(studiesSummary),
+            // Usage data section
+            itemContainingText(getStringResource(R.string.usage_data_category)),
             itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_title)),
             itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_description)),
-            itemContainingText(getStringResource(R.string.preferences_daily_usage_ping_learn_more)),
-            itemContainingText(getStringResource(R.string.preferences_automatically_send_crashes_title)),
-            itemContainingText(getStringResource(R.string.preferences_automatically_send_crashes_description)),
-            itemContainingText(getStringResource(R.string.onboarding_preferences_dialog_crash_reporting_learn_more)),
+            itemWithDescription("Learn more about daily usage ping Links available"),
+            // Crash reports section
+            itemContainingText(getStringResource(R.string.crash_reporting_description)),
+            itemContainingText(getStringResource(R.string.crash_reporting_ask)),
+            itemContainingText(getStringResource(R.string.crash_reporting_auto)),
+            itemContainingText(getStringResource(R.string.crash_reporting_never)),
         )
-        verifyUsageAndTechnicalDataToggle(isUsageAndTechnicalDataEnabled)
-        verifyDailyUsagePingToggle(isDailyUsagePingEnabled)
-        verifyAutomaticallySendCrashReportsToggle(isAutomaticallySendCrashReportsEnabled)
+
+        // Technical Data toggle
+        verifyUsageAndTechnicalDataToggle(composeTestRule, isSendTechnicalDataEnabled)
+
+        // Daily ping toggle
+        verifyDailyUsagePingToggle(composeTestRule, isDailyUsagePingEnabled)
+
+        // Crash reports radio buttons
+        assertItemIsChecked(itemWithResId("data.collection.Ask.radio.button"), isChecked = isAskBeforeSendingCrashReportsEnabled)
+        assertItemIsChecked(itemWithResId("data.collection.Auto.radio.button"), isChecked = isAutomaticallySendCrashReportsEnabled)
+        assertItemIsChecked(itemWithResId("data.collection.Never.radio.button"), isChecked = isNeverSendCrashReportsEnabled)
     }
 
-    fun verifyUsageAndTechnicalDataToggle(enabled: Boolean) {
-        Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Trying to verify that the \"Technical and interaction data\" toggle is checked: $enabled")
-        onView(withText(R.string.preference_usage_data_2))
-            .check(
-                matches(
-                    hasCousin(
-                        allOf(
-                            withClassName(endsWith("Switch")),
-                            if (enabled) {
-                                isChecked()
-                            } else {
-                                isNotChecked()
-                            },
-                        ),
-                    ),
-                ),
-            )
-        Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Verified that the \"Usage and technical data\" toggle is checked: $enabled")
+    fun verifyUsageAndTechnicalDataToggle(composeTestRule: ComposeTestRule, isChecked: Boolean) {
+        Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Trying to verify that the \"Technical and interaction data\" toggle is checked: $isChecked")
+        if (isChecked) {
+            composeTestRule.onNodeWithTag("data.collection.Send technical and interaction data.toggle", useUnmergedTree = true)
+                .assertIsOn()
+            Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Verified that the \"Usage and technical data\" toggle is checked: $isChecked")
+        } else {
+            composeTestRule.onNodeWithTag("data.collection.Send technical and interaction data.toggle", useUnmergedTree = true)
+                .assertIsOff()
+            Log.i(TAG, "verifyUsageAndTechnicalDataToggle: Verified that the \"Usage and technical data\" toggle is checked: $isChecked")
+        }
     }
 
-    fun verifyDailyUsagePingToggle(enabled: Boolean) {
-        Log.i(TAG, "verifyDailyUsagePingToggle: Trying to verify that the \"Daily usage ping\" toggle is checked: $enabled")
-        onView(withText(R.string.preferences_daily_usage_ping_title))
-            .check(
-                matches(
-                    hasCousin(
-                        allOf(
-                            withClassName(endsWith("Switch")),
-                            if (enabled) {
-                                isChecked()
-                            } else {
-                                isNotChecked()
-                            },
-                        ),
-                    ),
-                ),
-            )
-        Log.i(TAG, "verifyDailyUsagePingToggle: Verified that the \"Daily usage ping\" toggle is checked: $enabled")
-    }
-
-    fun verifyAutomaticallySendCrashReportsToggle(enabled: Boolean) {
-        Log.i(TAG, "verifyDailyUsagePingToggle: Trying to verify that the \"Automatically send crash reports\" toggle is checked: $enabled")
-        onView(withText(R.string.preferences_automatically_send_crashes_title))
-            .check(
-                matches(
-                    hasCousin(
-                        allOf(
-                            withClassName(endsWith("Switch")),
-                            if (enabled) {
-                                isChecked()
-                            } else {
-                                isNotChecked()
-                            },
-                        ),
-                    ),
-                ),
-            )
-        Log.i(TAG, "verifyDailyUsagePingToggle: Verified that the \"Daily usage ping\" toggle is checked: $enabled")
+    fun verifyDailyUsagePingToggle(composeTestRule: ComposeTestRule, isChecked: Boolean) {
+        Log.i(TAG, "verifyDailyUsagePingToggle: Trying to verify that the \"Daily usage ping\" toggle is checked: $isChecked")
+        if (isChecked) {
+            composeTestRule.onNodeWithTag("data.collection.Daily usage ping.toggle", useUnmergedTree = true)
+                .assertIsOn()
+            Log.i(TAG, "verifyDailyUsagePingToggle: Verified that the \"Daily usage ping\" toggle is checked: $isChecked")
+        } else {
+            composeTestRule.onNodeWithTag("data.collection.Daily usage ping.toggle", useUnmergedTree = true)
+                .assertIsOff()
+            Log.i(TAG, "verifyDailyUsagePingToggle: Verified that the \"Daily usage ping\" toggle is checked: $isChecked")
+        }
     }
 
     fun verifyStudiesToggle(enabled: Boolean) {

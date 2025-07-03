@@ -21,8 +21,12 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -162,6 +166,7 @@ internal fun DataChoicesScreen(
  * @param onOptionSelected Callback invoked when the user selects a different crash report option.
  * @param onLearnMoreClicked Callback invoked when the "Learn More" link is clicked.
  * */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun CrashReportsSection(
     learnMoreText: String,
@@ -193,7 +198,11 @@ private fun CrashReportsSection(
                 RadioButtonListItem(
                     label = stringResource(crashReportOption.labelId),
                     selected = selectedOption == crashReportOption,
-                    modifier = Modifier,
+                    modifier = Modifier
+                        .semantics {
+                            testTag = "data.collection.$crashReportOption.radio.button"
+                            testTagsAsResourceId = true
+                        },
                     maxLabelLines = 1,
                     description = null,
                     maxDescriptionLines = 1,
@@ -237,6 +246,7 @@ private fun SectionBodyText(text: String, modifier: Modifier = Modifier) {
  * @param onToggleChanged Callback invoked when the toggle state changes.
  * @param onLearnMoreClicked Callback invoked when the "Learn More" link is clicked.
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun TogglePreferenceSection(
     categoryTitle: String,
@@ -281,13 +291,18 @@ private fun TogglePreferenceSection(
 
             Switch(
                 checked = isToggled,
-                onCheckedChange = null,
+                onCheckedChange = {},
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = FirefoxTheme.colors.formOn,
                     checkedTrackColor = FirefoxTheme.colors.formSurface,
                     uncheckedThumbColor = FirefoxTheme.colors.formOff,
                     uncheckedTrackColor = FirefoxTheme.colors.formSurface,
                 ),
+                modifier = Modifier
+                    .semantics {
+                        testTag = "data.collection.$preferenceTitle.toggle"
+                        testTagsAsResourceId = true
+                    },
             )
         }
         LearnMoreLink(onLearnMoreClicked, learnMoreText)

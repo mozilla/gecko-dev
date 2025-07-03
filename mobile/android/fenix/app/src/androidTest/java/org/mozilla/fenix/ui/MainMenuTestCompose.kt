@@ -886,7 +886,7 @@ class MainMenuTestCompose : TestSetup() {
         }.openSettings {
         }.openSettingsSubMenuDataCollection {
             clickUsageAndTechnicalDataToggle()
-            verifyUsageAndTechnicalDataToggle(enabled = false)
+            verifyUsageAndTechnicalDataToggle(composeTestRule, isChecked = false)
         }
 
         exitMenu()
@@ -1054,7 +1054,7 @@ class MainMenuTestCompose : TestSetup() {
         }.openSettings {
         }.openSettingsSubMenuDataCollection {
             clickUsageAndTechnicalDataToggle()
-            verifyUsageAndTechnicalDataToggle(enabled = false)
+            verifyUsageAndTechnicalDataToggle(composeTestRule, isChecked = false)
         }
         exitMenu()
         navigationToolbar {

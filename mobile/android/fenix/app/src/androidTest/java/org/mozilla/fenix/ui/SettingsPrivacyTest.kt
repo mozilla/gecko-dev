@@ -4,7 +4,7 @@
 
 package org.mozilla.fenix.ui
 
-import org.junit.Ignore
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.HomeActivityTestRule
@@ -25,7 +25,12 @@ import org.mozilla.fenix.utils.exitMenu
 
 class SettingsPrivacyTest : TestSetup() {
     @get:Rule
-    val activityTestRule = HomeActivityTestRule.withDefaultSettingsOverrides(skipOnboarding = true)
+    val composeTestRule =
+        AndroidComposeTestRule(
+            HomeActivityTestRule.withDefaultSettingsOverrides(
+                skipOnboarding = true,
+            ),
+        ) { it.activity }
 
     @get:Rule
     val memoryLeaksRule = DetectMemoryLeaksRule()
@@ -55,7 +60,6 @@ class SettingsPrivacyTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243362
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1974939")
     @Test
     fun verifyDataCollectionSettingsTest() {
         homeScreen {}.openThreeDotMenu {}.openSettings {}.openSettingsSubMenuDataCollection {
@@ -63,17 +67,17 @@ class SettingsPrivacyTest : TestSetup() {
             // turned off as well, and will require the app to be restarted.
             // Daily usage ping should default to telemetry pref value
             verifyDataCollectionView(
-                isUsageAndTechnicalDataEnabled = true,
+                composeTestRule,
+                isSendTechnicalDataEnabled = true,
                 isDailyUsagePingEnabled = true,
                 studiesSummary = "On",
-                isAutomaticallySendCrashReportsEnabled = false,
             )
             clickUsageAndTechnicalDataToggle()
             verifyDataCollectionView(
-                isUsageAndTechnicalDataEnabled = false,
+                composeTestRule,
+                isSendTechnicalDataEnabled = false,
                 isDailyUsagePingEnabled = true,
                 studiesSummary = "Off",
-                isAutomaticallySendCrashReportsEnabled = false,
             )
         }
     }
