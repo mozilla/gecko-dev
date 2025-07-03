@@ -592,6 +592,7 @@ skip-if = [
 tags = "vertical-tabs"
 skip-if = [
   "os == 'linux'&& os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1775653
+  "os == 'linux'&& os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1775653
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && vertical_tab", # Bug 1928146
