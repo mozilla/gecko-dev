@@ -501,11 +501,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             crashReporterBinding,
             TopSitesRefresher(
                 settings = settings(),
-                topSitesProvider = if (settings().marsAPIEnabled) {
-                    components.core.marsTopSitesProvider
-                } else {
-                    components.core.contileTopSitesProvider
-                },
+                topSitesProvider = components.core.marsTopSitesProvider,
             ),
             components.privateBrowsingLockFeature,
         )
@@ -550,21 +546,12 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 components.core.pocketStoriesService.startPeriodicContentRecommendationsRefresh()
             }
 
-            if (settings().marsAPIEnabled && !settings().hasPocketSponsoredStoriesProfileMigrated) {
+            if (!settings().hasPocketSponsoredStoriesProfileMigrated) {
                 migratePocketSponsoredStoriesProfile(components.core.pocketStoriesService)
             }
 
             if (settings().showPocketSponsoredStories) {
-                if (settings().marsAPIEnabled) {
-                    components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
-                } else {
-                    components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
-                    // If the secret setting for sponsored stories parameters is set,
-                    // force refresh the sponsored Pocket stories.
-                    if (settings().useCustomConfigurationForSponsoredStories) {
-                        components.core.pocketStoriesService.refreshSponsoredStories()
-                    }
-                }
+                components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
             }
         }
 

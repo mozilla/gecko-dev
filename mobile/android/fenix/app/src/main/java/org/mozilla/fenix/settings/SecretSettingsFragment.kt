@@ -115,16 +115,6 @@ class SecretSettingsFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
 
-        requirePreference<SwitchPreference>(R.string.pref_key_mars_api_enabled).apply {
-            isChecked = context.settings().marsAPIEnabled
-            onPreferenceChangeListener = object : SharedPreferenceUpdater() {
-                override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
-                    activity?.recreate()
-                    return super.onPreferenceChange(preference, newValue)
-                }
-            }
-        }
-
         requirePreference<SwitchPreference>(R.string.pref_key_enable_unified_trust_panel).apply {
             isVisible = Config.channel.isNightlyOrDebug
             isChecked = context.settings().enableUnifiedTrustPanel

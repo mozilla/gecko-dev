@@ -311,19 +311,11 @@ class HomeFragment : Fragment() {
             }
 
             if (showSponsoredStories) {
-                if (requireContext().settings().marsAPIEnabled) {
-                    components.appStore.dispatch(
-                        ContentRecommendationsAction.SponsoredContentsChange(
-                            sponsoredContents = components.core.pocketStoriesService.getSponsoredContents(),
-                        ),
-                    )
-                } else {
-                    components.appStore.dispatch(
-                        ContentRecommendationsAction.PocketSponsoredStoriesChange(
-                            sponsoredStories = components.core.pocketStoriesService.getSponsoredStories(),
-                        ),
-                    )
-                }
+                components.appStore.dispatch(
+                    ContentRecommendationsAction.SponsoredContentsChange(
+                        sponsoredContents = components.core.pocketStoriesService.getSponsoredContents(),
+                    ),
+                )
             }
         }
 

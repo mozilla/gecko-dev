@@ -128,30 +128,16 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                 override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
                     when (newValue) {
                         true -> {
-                            if (context.settings().marsAPIEnabled) {
-                                context.components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
-                            } else {
-                                context.components.core.pocketStoriesService.startPeriodicSponsoredStoriesRefresh()
-                            }
+                            context.components.core.pocketStoriesService.startPeriodicSponsoredContentsRefresh()
                         }
                         false -> {
-                            if (context.settings().marsAPIEnabled) {
-                                context.components.core.pocketStoriesService.deleteUser()
+                            context.components.core.pocketStoriesService.deleteUser()
 
-                                context.components.appStore.dispatch(
-                                    ContentRecommendationsAction.SponsoredContentsChange(
-                                        sponsoredContents = emptyList(),
-                                    ),
-                                )
-                            } else {
-                                context.components.core.pocketStoriesService.deleteProfile()
-
-                                context.components.appStore.dispatch(
-                                    ContentRecommendationsAction.PocketSponsoredStoriesChange(
-                                        sponsoredStories = emptyList(),
-                                    ),
-                                )
-                            }
+                            context.components.appStore.dispatch(
+                                ContentRecommendationsAction.SponsoredContentsChange(
+                                    sponsoredContents = emptyList(),
+                                ),
+                            )
                         }
                     }
 

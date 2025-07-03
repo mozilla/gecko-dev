@@ -419,9 +419,7 @@ class DefaultSessionControlController(
             is TopSite.Frecent -> TopSites.openFrecency.record(NoExtras())
             is TopSite.Pinned -> TopSites.openPinned.record(NoExtras())
             is TopSite.Provided -> {
-                if (settings.marsAPIEnabled) {
-                    sendMarsTopSiteCallback(topSite.clickUrl)
-                }
+                sendMarsTopSiteCallback(topSite.clickUrl)
 
                 TopSites.openContileTopSite.record(NoExtras()).also {
                     recordTopSitesClickTelemetry(topSite, position)
@@ -490,17 +488,11 @@ class DefaultSessionControlController(
         topSite.id?.let { TopSites.contileTileId.set(it) }
         topSite.title?.let { TopSites.contileAdvertiser.set(it.lowercase()) }
 
-        if (!settings.marsAPIEnabled) {
-            TopSites.contileReportingUrl.set(topSite.clickUrl)
-        }
-
         Pings.topsitesImpression.submit()
     }
 
     override fun handleTopSiteImpression(topSite: TopSite.Provided, position: Int) {
-        if (settings.marsAPIEnabled) {
-            sendMarsTopSiteCallback(topSite.impressionUrl)
-        }
+        sendMarsTopSiteCallback(topSite.impressionUrl)
 
         TopSites.contileImpression.record(
             TopSites.ContileImpressionExtra(
@@ -511,10 +503,6 @@ class DefaultSessionControlController(
 
         topSite.id?.let { TopSites.contileTileId.set(it) }
         topSite.title?.let { TopSites.contileAdvertiser.set(it.lowercase()) }
-
-        if (!settings.marsAPIEnabled) {
-            TopSites.contileReportingUrl.set(topSite.impressionUrl)
-        }
 
         Pings.topsitesImpression.submit()
     }
