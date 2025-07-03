@@ -321,7 +321,7 @@
 }
 
 :is(button, [role="button"]).open-inspector {
-  background: url("chrome://devtools/content/shared/components/reps/images/open-inspector.svg") no-repeat;
+  background: url("chrome://devtools/skin/images/open-inspector.svg") no-repeat;
 }
 
 :is(button, [role="button"]).highlight-node {

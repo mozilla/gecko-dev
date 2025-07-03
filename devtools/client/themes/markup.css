@@ -412,7 +412,7 @@ ul.children + .tag-line::before {
   margin-block-start: -2px;
   padding: 0;
   border: none;
-  background: url("chrome://devtools/content/shared/components/reps/images/open-inspector.svg") no-repeat;
+  background: url("chrome://devtools/skin/images/open-inspector.svg") no-repeat;
   fill: var(--theme-icon-color);
   -moz-context-properties: fill;
   /* consistenty with the other buttons in the markup view */
