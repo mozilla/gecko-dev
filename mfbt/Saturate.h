@@ -55,9 +55,6 @@ class SaturateOp {
   // Compound operators
 
   const T& operator+=(const T& aRhs) const {
-#if defined(__has_builtin) && __has_builtin(__builtin_elementwise_add_sat)
-    return mValue = __builtin_elementwise_add_sat(mValue, aRhs);
-#else
     const T min = std::numeric_limits<T>::min();
     const T max = std::numeric_limits<T>::max();
 
@@ -67,13 +64,9 @@ class SaturateOp {
       mValue = (min - aRhs) > mValue ? min : mValue + aRhs;
     }
     return mValue;
-#endif
   }
 
   const T& operator-=(const T& aRhs) const {
-#if defined(__has_builtin) && __has_builtin(__builtin_elementwise_sub_sat)
-    return mValue = __builtin_elementwise_sub_sat(mValue, aRhs);
-#else
     const T min = std::numeric_limits<T>::min();
     const T max = std::numeric_limits<T>::max();
 
@@ -83,7 +76,6 @@ class SaturateOp {
       mValue = (max + aRhs) < mValue ? max : mValue - aRhs;
     }
     return mValue;
-#endif
   }
 
   // Increment and decrement operators
