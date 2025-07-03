@@ -5,6 +5,7 @@
 package org.mozilla.fenix.tabstray
 
 import org.mozilla.fenix.Config
+import org.mozilla.fenix.nimbus.FxNimbus
 
 /**
  * Feature helper for managing the release of the Tabs Tray UI enhancements.
@@ -43,9 +44,8 @@ data object DefaultTabManagementFeatureHelper : TabManagementFeatureHelper {
     override val enhancementsEnabledBeta: Boolean
         get() = false
 
-    // todo in this stack: Bug 1971398 - add the experimentation flag for release
     override val enhancementsEnabledRelease: Boolean
-        get() = false
+        get() = FxNimbus.features.tabManagementEnhancements.value().enabled
 
     override val enhancementsEnabled: Boolean
         get() = when {
