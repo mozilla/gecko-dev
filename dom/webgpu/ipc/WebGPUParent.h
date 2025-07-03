@@ -25,7 +25,7 @@ class RemoteTextureOwnerClient;
 namespace webgpu {
 
 class ErrorBuffer;
-class ExternalTexture;
+class SharedTexture;
 class PresentationData;
 
 // Destroy/Drop messages:
@@ -60,7 +60,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                              const layers::RGBDescriptor& aDesc,
                              const nsTArray<RawId>& aBufferIds,
                              const layers::RemoteTextureOwnerId& aOwnerId,
-                             bool aUseExternalTextureInSwapChain);
+                             bool aUseSharedTextureInSwapChain);
 
   void SwapChainPresent(RawId aTextureId, RawId aCommandEncoderId,
                         const layers::RemoteTextureId& aRemoteTextureId,
@@ -90,34 +90,33 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   BufferMapData* GetBufferMapData(RawId aBufferId);
 
-  bool UseExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
+  bool UseSharedTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
 
-  void DisableExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
+  void DisableSharedTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId);
 
-  bool EnsureExternalTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId,
-                                         ffi::WGPUDeviceId aDeviceId,
-                                         ffi::WGPUTextureId aTextureId,
-                                         uint32_t aWidth, uint32_t aHeight,
-                                         struct ffi::WGPUTextureFormat aFormat,
-                                         ffi::WGPUTextureUsages aUsage);
+  bool EnsureSharedTextureForSwapChain(ffi::WGPUSwapChainId aSwapChainId,
+                                       ffi::WGPUDeviceId aDeviceId,
+                                       ffi::WGPUTextureId aTextureId,
+                                       uint32_t aWidth, uint32_t aHeight,
+                                       struct ffi::WGPUTextureFormat aFormat,
+                                       ffi::WGPUTextureUsages aUsage);
 
-  void EnsureExternalTextureForReadBackPresent(
+  void EnsureSharedTextureForReadBackPresent(
       ffi::WGPUSwapChainId aSwapChainId, ffi::WGPUDeviceId aDeviceId,
       ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
       struct ffi::WGPUTextureFormat aFormat, ffi::WGPUTextureUsages aUsage);
 
-  std::shared_ptr<ExternalTexture> CreateExternalTexture(
+  std::shared_ptr<SharedTexture> CreateSharedTexture(
       const layers::RemoteTextureOwnerId& aOwnerId, ffi::WGPUDeviceId aDeviceId,
       ffi::WGPUTextureId aTextureId, uint32_t aWidth, uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       ffi::WGPUTextureUsages aUsage);
 
-  std::shared_ptr<ExternalTexture> GetExternalTexture(ffi::WGPUTextureId aId);
+  std::shared_ptr<SharedTexture> GetSharedTexture(ffi::WGPUTextureId aId);
 
-  void PostExternalTexture(
-      const std::shared_ptr<ExternalTexture>&& aExternalTexture,
-      const layers::RemoteTextureId aRemoteTextureId,
-      const layers::RemoteTextureOwnerId aOwnerId);
+  void PostSharedTexture(const std::shared_ptr<SharedTexture>&& aSharedTexture,
+                         const layers::RemoteTextureId aRemoteTextureId,
+                         const layers::RemoteTextureOwnerId aOwnerId);
 
   bool ForwardError(ErrorBuffer& aError);
 
@@ -129,7 +128,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
 
   RefPtr<gfx::FileHandleWrapper> GetDeviceFenceHandle(const RawId aDeviceId);
 
-  void RemoveExternalTexture(RawId aTextureId);
+  void RemoveSharedTexture(RawId aTextureId);
   void DeallocBufferShmem(RawId aBufferId);
   void PreDeviceDrop(RawId aDeviceId);
   static Maybe<ffi::WGPUFfiLUID> GetCompositorDeviceLuid();
@@ -185,8 +184,8 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   std::unordered_map<uint64_t, std::vector<ErrorScope>>
       mErrorScopeStackByDevice;
 
-  std::unordered_map<ffi::WGPUTextureId, std::shared_ptr<ExternalTexture>>
-      mExternalTextures;
+  std::unordered_map<ffi::WGPUTextureId, std::shared_ptr<SharedTexture>>
+      mSharedTextures;
 
   // Store a set of DeviceIds that have been SendDeviceLost. We use this to
   // limit each Device to one DeviceLost message.

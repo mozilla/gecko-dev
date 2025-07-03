@@ -90,7 +90,7 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   RefPtr<SupportedFeatures> mFeatures;
   RefPtr<SupportedLimits> mLimits;
   RefPtr<AdapterInfo> mAdapterInfo;
-  const bool mSupportExternalTextureInSwapChain;
+  const bool mSupportSharedTextureInSwapChain;
 
   static CheckedInt<uint32_t> BufferStrideWithMask(
       const gfx::IntSize& aSize, const gfx::SurfaceFormat& aFormat);
@@ -104,9 +104,8 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
   already_AddRefed<Texture> InitSwapChain(
       const dom::GPUCanvasConfiguration* const aConfig,
       const layers::RemoteTextureOwnerId aOwnerId,
-      mozilla::Span<RawId const> aBufferIds,
-      bool aUseExternalTextureInSwapChain, gfx::SurfaceFormat aFormat,
-      gfx::IntSize aCanvasSize);
+      mozilla::Span<RawId const> aBufferIds, bool aUseSharedTextureInSwapChain,
+      gfx::SurfaceFormat aFormat, gfx::IntSize aCanvasSize);
   bool CheckNewWarning(const nsACString& aMessage);
 
   void CleanupUnregisteredInParent();

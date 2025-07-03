@@ -41,7 +41,7 @@ class SharedSurface;
 }
 
 namespace webgpu {
-class ExternalTexture;
+class SharedTexture;
 }
 
 namespace layers {
@@ -81,7 +81,7 @@ struct RemoteTextureInfoList {
 
 class SharedResourceWrapper {
  public:
-  enum class Tag { SharedSurface, ExternalTexture };
+  enum class Tag { SharedSurface, SharedTexture };
   const Tag mTag;
 
   static UniquePtr<SharedResourceWrapper> SharedSurface(
@@ -90,10 +90,10 @@ class SharedResourceWrapper {
                                              aSharedSurface);
   }
 
-  static UniquePtr<SharedResourceWrapper> ExternalTexture(
-      const std::shared_ptr<webgpu::ExternalTexture>& aExternalTexture) {
-    return MakeUnique<SharedResourceWrapper>(Tag::ExternalTexture,
-                                             aExternalTexture);
+  static UniquePtr<SharedResourceWrapper> SharedTexture(
+      const std::shared_ptr<webgpu::SharedTexture>& aSharedTexture) {
+    return MakeUnique<SharedResourceWrapper>(Tag::SharedTexture,
+                                             aSharedTexture);
   }
 
   SharedResourceWrapper(
@@ -103,13 +103,13 @@ class SharedResourceWrapper {
   }
   SharedResourceWrapper(
       const Tag aTag,
-      const std::shared_ptr<webgpu::ExternalTexture>& aExternalTexture)
-      : mTag(aTag), mExternalTexture(aExternalTexture) {
-    MOZ_ASSERT(mTag == Tag::ExternalTexture);
+      const std::shared_ptr<webgpu::SharedTexture>& aSharedTexture)
+      : mTag(aTag), mSharedTexture(aSharedTexture) {
+    MOZ_ASSERT(mTag == Tag::SharedTexture);
   }
 
   const std::shared_ptr<gl::SharedSurface> mSharedSurface;
-  const std::shared_ptr<webgpu::ExternalTexture> mExternalTexture;
+  const std::shared_ptr<webgpu::SharedTexture> mSharedTexture;
 
   std::shared_ptr<gl::SharedSurface> SharedSurface() {
     if (mTag == Tag::SharedSurface) {
@@ -119,9 +119,9 @@ class SharedResourceWrapper {
     return nullptr;
   }
 
-  std::shared_ptr<webgpu::ExternalTexture> ExternalTexture() {
-    if (mTag == Tag::ExternalTexture) {
-      return mExternalTexture;
+  std::shared_ptr<webgpu::SharedTexture> SharedTexture() {
+    if (mTag == Tag::SharedTexture) {
+      return mSharedTexture;
     }
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
     return nullptr;
@@ -231,11 +231,11 @@ class RemoteTextureOwnerClient final {
                    const std::shared_ptr<gl::SharedSurface>& aSharedSurface,
                    const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat,
                    const SurfaceDescriptor& aDesc);
-  void PushTexture(
-      const RemoteTextureId aTextureId, const RemoteTextureOwnerId aOwnerId,
-      const std::shared_ptr<webgpu::ExternalTexture>& aExternalTexture,
-      const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat,
-      const SurfaceDescriptor& aDesc);
+  void PushTexture(const RemoteTextureId aTextureId,
+                   const RemoteTextureOwnerId aOwnerId,
+                   const std::shared_ptr<webgpu::SharedTexture>& aSharedTexture,
+                   const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat,
+                   const SurfaceDescriptor& aDesc);
   void PushDummyTexture(const RemoteTextureId aTextureId,
                         const RemoteTextureOwnerId aOwnerId);
   void GetLatestBufferSnapshot(const RemoteTextureOwnerId aOwnerId,
@@ -252,7 +252,7 @@ class RemoteTextureOwnerClient final {
       const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat,
       SurfaceDescriptor::Type aType,
       RemoteTextureOwnerId aOwnerId = RemoteTextureOwnerId());
-  std::shared_ptr<webgpu::ExternalTexture> GetRecycledExternalTexture(
+  std::shared_ptr<webgpu::SharedTexture> GetRecycledSharedTexture(
       const gfx::IntSize& aSize, gfx::SurfaceFormat aFormat,
       SurfaceDescriptor::Type aType,
       RemoteTextureOwnerId aOwnerId = RemoteTextureOwnerId());

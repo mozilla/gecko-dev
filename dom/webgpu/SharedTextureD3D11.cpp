@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "ExternalTextureD3D11.h"
+#include "SharedTextureD3D11.h"
 
 #include <d3d11.h>
 
@@ -17,7 +17,7 @@
 namespace mozilla::webgpu {
 
 // static
-UniquePtr<ExternalTextureD3D11> ExternalTextureD3D11::Create(
+UniquePtr<SharedTextureD3D11> SharedTextureD3D11::Create(
     WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
@@ -96,19 +96,19 @@ UniquePtr<ExternalTextureD3D11> ExternalTextureD3D11::Create(
   auto fencesHolderId = layers::CompositeProcessFencesHolderId::GetNext();
   fencesHolderMap->Register(fencesHolderId);
 
-  return MakeUnique<ExternalTextureD3D11>(aWidth, aHeight, aFormat, aUsage,
-                                          texture, std::move(handle),
-                                          fencesHolderId, std::move(fence));
+  return MakeUnique<SharedTextureD3D11>(aWidth, aHeight, aFormat, aUsage,
+                                        texture, std::move(handle),
+                                        fencesHolderId, std::move(fence));
 }
 
-ExternalTextureD3D11::ExternalTextureD3D11(
+SharedTextureD3D11::SharedTextureD3D11(
     const uint32_t aWidth, const uint32_t aHeight,
     const struct ffi::WGPUTextureFormat aFormat,
     const ffi::WGPUTextureUsages aUsage, const RefPtr<ID3D11Texture2D> aTexture,
     RefPtr<gfx::FileHandleWrapper>&& aSharedHandle,
     const layers::CompositeProcessFencesHolderId aFencesHolderId,
     RefPtr<layers::FenceD3D11>&& aWriteFence)
-    : ExternalTexture(aWidth, aHeight, aFormat, aUsage),
+    : SharedTexture(aWidth, aHeight, aFormat, aUsage),
       mTexture(aTexture),
       mSharedHandle(std::move(aSharedHandle)),
       mFencesHolderId(aFencesHolderId),
@@ -116,7 +116,7 @@ ExternalTextureD3D11::ExternalTextureD3D11(
   MOZ_ASSERT(mTexture);
 }
 
-ExternalTextureD3D11::~ExternalTextureD3D11() {
+SharedTextureD3D11::~SharedTextureD3D11() {
   auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
   if (fencesHolderMap) {
     fencesHolderMap->Unregister(mFencesHolderId);
@@ -126,7 +126,7 @@ ExternalTextureD3D11::~ExternalTextureD3D11() {
   }
 }
 
-void* ExternalTextureD3D11::GetExternalTextureHandle() {
+void* SharedTextureD3D11::GetSharedTextureHandle() {
   RefPtr<ID3D11Device> device;
   mTexture->GetDevice(getter_AddRefs(device));
   auto* fencesHolderMap = layers::CompositeProcessD3D11FencesHolderMap::Get();
@@ -138,7 +138,7 @@ void* ExternalTextureD3D11::GetExternalTextureHandle() {
   return mSharedHandle->GetHandle();
 }
 
-Maybe<layers::SurfaceDescriptor> ExternalTextureD3D11::ToSurfaceDescriptor() {
+Maybe<layers::SurfaceDescriptor> SharedTextureD3D11::ToSurfaceDescriptor() {
   MOZ_ASSERT(mSubmissionIndex > 0);
 
   mWriteFence->Update(mSubmissionIndex);
@@ -156,8 +156,8 @@ Maybe<layers::SurfaceDescriptor> ExternalTextureD3D11::ToSurfaceDescriptor() {
       /* hasKeyedMutex */ false, Some(mFencesHolderId)));
 }
 
-void ExternalTextureD3D11::GetSnapshot(const ipc::Shmem& aDestShmem,
-                                       const gfx::IntSize& aSize) {
+void SharedTextureD3D11::GetSnapshot(const ipc::Shmem& aDestShmem,
+                                     const gfx::IntSize& aSize) {
   RefPtr<ID3D11Device> device;
   mTexture->GetDevice(getter_AddRefs(device));
   if (!device) {

@@ -3,12 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef GPU_ExternalTextureMacIOSurface_H_
-#define GPU_ExternalTextureMacIOSurface_H_
+#ifndef GPU_SharedTextureMacIOSurface_H_
+#define GPU_SharedTextureMacIOSurface_H_
 
 #include "mozilla/gfx/FileHandleWrapper.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/webgpu/ExternalTexture.h"
+#include "mozilla/webgpu/SharedTexture.h"
 
 class MacIOSurface;
 
@@ -16,28 +16,28 @@ namespace mozilla {
 
 namespace webgpu {
 
-class ExternalTextureMacIOSurface final : public ExternalTexture {
+class SharedTextureMacIOSurface final : public SharedTexture {
  public:
-  static UniquePtr<ExternalTextureMacIOSurface> Create(
+  static UniquePtr<SharedTextureMacIOSurface> Create(
       WebGPUParent* aParent, const ffi::WGPUDeviceId aDeviceId,
       const uint32_t aWidth, const uint32_t aHeight,
       const struct ffi::WGPUTextureFormat aFormat,
       const ffi::WGPUTextureUsages aUsage);
 
-  ExternalTextureMacIOSurface(WebGPUParent* aParent,
-                              const ffi::WGPUDeviceId aDeviceId,
-                              const uint32_t aWidth, const uint32_t aHeight,
-                              const struct ffi::WGPUTextureFormat aFormat,
-                              const ffi::WGPUTextureUsages aUsage,
-                              RefPtr<MacIOSurface>&& aSurface);
-  virtual ~ExternalTextureMacIOSurface();
+  SharedTextureMacIOSurface(WebGPUParent* aParent,
+                            const ffi::WGPUDeviceId aDeviceId,
+                            const uint32_t aWidth, const uint32_t aHeight,
+                            const struct ffi::WGPUTextureFormat aFormat,
+                            const ffi::WGPUTextureUsages aUsage,
+                            RefPtr<MacIOSurface>&& aSurface);
+  virtual ~SharedTextureMacIOSurface();
 
   Maybe<layers::SurfaceDescriptor> ToSurfaceDescriptor() override;
 
   void GetSnapshot(const ipc::Shmem& aDestShmem,
                    const gfx::IntSize& aSize) override;
 
-  ExternalTextureMacIOSurface* AsExternalTextureMacIOSurface() override {
+  SharedTextureMacIOSurface* AsSharedTextureMacIOSurface() override {
     return this;
   }
 

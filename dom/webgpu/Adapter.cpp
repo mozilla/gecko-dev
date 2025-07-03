@@ -391,8 +391,8 @@ const RefPtr<SupportedFeatures>& Adapter::Features() const { return mFeatures; }
 const RefPtr<SupportedLimits>& Adapter::Limits() const { return mLimits; }
 const RefPtr<AdapterInfo>& Adapter::Info() const { return mInfo; }
 
-bool Adapter::SupportExternalTextureInSwapChain() const {
-  return mInfoInner->support_use_external_texture_in_swap_chain;
+bool Adapter::SupportSharedTextureInSwapChain() const {
+  return mInfoInner->support_use_shared_texture_in_swap_chain;
 }
 
 static std::string_view ToJsKey(const Limit limit) {
