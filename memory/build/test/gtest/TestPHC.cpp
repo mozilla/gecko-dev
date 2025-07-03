@@ -7,6 +7,7 @@
 #include "mozmemory.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/mozalloc.h"
+#include "mozilla/StaticPrefs_memory.h"
 #include "PHC.h"
 
 using namespace mozilla;
@@ -369,10 +370,8 @@ TEST(PHC, TestPHCDisablingGlobal)
   free(s);
 }
 
-// This test is disabled for now, see Bug 1845017 and Bug 1845655.
-// TEST(PHC, TestPHCExhaustion)
-// {
-void DisabledPHCExhaustionTest() {
+TEST(PHC, TestPHCExhaustion)
+{
   // PHC hardcodes the amount of allocations to track.
 #if defined(XP_DARWIN) && defined(__aarch64__)
   const unsigned NUM_ALLOCATIONS = 1024;
@@ -381,6 +380,12 @@ void DisabledPHCExhaustionTest() {
 #endif
   uint8_t* allocations[NUM_ALLOCATIONS];
   const unsigned REQUIRED_ALLOCATIONS = NUM_ALLOCATIONS - 50;
+
+  // Disable the reuse delay to make the test more reliable.  At the same
+  // time lower the other probabilities to speed up this test, but much
+  // lower and the test runs more slowly maybe because of how PHC
+  // optimises for multithreading.
+  mozilla::phc::SetPHCProbabilities(64, 64, 0);
 
   unsigned last_allocation;
   for (unsigned i = 0; i < NUM_ALLOCATIONS; i++) {
@@ -412,4 +417,10 @@ void DisabledPHCExhaustionTest() {
   uint8_t* r = GetPHCAllocation(128);
   ASSERT_TRUE(!!r);
   free(r);
+
+  // Restore defaults.
+  mozilla::phc::SetPHCProbabilities(
+      StaticPrefs::memory_phc_avg_delay_first(),
+      StaticPrefs::memory_phc_avg_delay_normal(),
+      StaticPrefs::memory_phc_avg_delay_page_reuse());
 }
