@@ -35,8 +35,7 @@ const STANDARD_AVATARS = new Set([
   "star",
   "video-game-controller",
 ]);
-
-const STANDARD_AVATAR_SIZES = [16, 20, 48, 80];
+const STANDARD_AVATAR_SIZES = [16, 20, 24, 48, 60, 80];
 
 function standardAvatarURL(avatar, size = "80") {
   return `chrome://browser/content/profiles/assets/${size}_${avatar}.svg`;
@@ -283,65 +282,21 @@ export class SelectableProfile {
    */
   get avatarL10nId() {
     switch (this.avatar) {
-      case "barbell":
-        return "barbell-avatar-alt";
-      case "bike":
-        return "bike-avatar-alt";
       case "book":
         return "book-avatar-alt";
       case "briefcase":
         return "briefcase-avatar-alt";
-      case "canvas":
-        return "canvas-avatar-alt";
-      case "craft":
-        return "craft-avatar-alt";
-      case "default-favicon":
-        return "default-favicon-avatar-alt";
-      case "diamond":
-        return "diamond-avatar-alt";
       case "flower":
         return "flower-avatar-alt";
-      case "folder":
-        return "folder-avatar-alt";
-      case "hammer":
-        return "hammer-avatar-alt";
       case "heart":
         return "heart-avatar-alt";
-      case "heart-rate":
-        return "heart-rate-avatar-alt";
-      case "history":
-        return "history-avatar-alt";
-      case "leaf":
-        return "leaf-avatar-alt";
-      case "lightbulb":
-        return "lightbulb-avatar-alt";
-      case "makeup":
-        return "makeup-avatar-alt";
-      case "message":
-        return "message-avatar-alt";
-      case "musical-note":
-        return "musical-note-avatar-alt";
-      case "palette":
-        return "palette-avatar-alt";
-      case "paw-print":
-        return "paw-print-avatar-alt";
-      case "plane":
-        return "plane-avatar-alt";
-      case "present":
-        return "present-avatar-alt";
       case "shopping":
         return "shopping-avatar-alt";
-      case "soccer":
-        return "soccer-avatar-alt";
-      case "sparkle-single":
-        return "sparkle-single-avatar-alt";
       case "star":
         return "star-avatar-alt";
-      case "video-game-controller":
-        return "video-game-controller-avatar-alt";
-      default:
-        return "custom-avatar-alt";
     }
+
+    return "custom-avatar-alt";
   }
 
   // Note, theme properties are set and returned as a group.
