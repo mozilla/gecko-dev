@@ -1170,24 +1170,74 @@ const StyleLockedDeclarationBlock* ViewTransition::GetDynamicRuleFor(
   }
 }
 
-// FIXME(emilio): This should actually iterate in paint order.
+// This function collects frames in the same stacking context. We only put
+// the frames which may create a new create stacking context in the list because
+// they (and their descendants) are candidates for captured elements (i.e. with
+// a valid view-transition-name).
+static void CollectDescendantStackingContexts(nsIFrame* aStackingContextRoot,
+                                              nsTArray<nsIFrame*>& aList) {
+  for (auto& [list, id] : aStackingContextRoot->ChildLists()) {
+    for (nsIFrame* f : list) {
+      // FIXME: We probably can skip more frames, e.g. scrollbar or scrollcorner
+      // to save some time.
+
+      // We only want to sort the frames form a new stacking context in the
+      // current stacking context (including the root stacking context). If it
+      // creates a new stacking context, its descendants should be traversed
+      // (and sorted) independently. Also, if a frame has view-transition-name,
+      // it should create a stacking context as well, so this check must include
+      // frames with view-transition-name.
+      // Note: the root frame may not be the root element, so we still have to
+      // check if |f| is the root element.
+      if (f->Style()->IsRootElementStyle() || f->IsStackingContext()) {
+        aList.AppendElement(f);
+        // We will continue to traverse its descendants after we sort |aList|.
+        continue;
+      }
+
+      // If any flat tree ancestor of this element skips its contents, then
+      // continue.
+      if (f->IsHiddenByContentVisibilityOnAnyAncestor()) {
+        continue;
+      }
+
+      // If |insertionFrame| doesn't create stacking context, we have to check
+      // its descendants because they are still in the current stacking context.
+      CollectDescendantStackingContexts(f, aList);
+    }
+  }
+}
+
+struct ZOrderComparator {
+  bool LessThan(const nsIFrame* aLeft, const nsIFrame* aRight) const {
+    return aLeft->ZIndex().valueOr(0) < aRight->ZIndex().valueOr(0);
+  }
+};
+
 template <typename Callback>
-static bool ForEachChildFrame(nsIFrame* aFrame, const Callback& aCb) {
-  if (!aCb(aFrame)) {
+static bool ForEachDescendantWithViewTransitionNameInPaintOrder(
+    nsIFrame* aFrame, const Callback& aCb) {
+  // Call the callback if it specifies view-transition-name.
+  if (!aFrame->StyleUIReset()->mViewTransitionName.IsNone() && !aCb(aFrame)) {
     return false;
   }
-  for (auto& [list, id] : aFrame->ChildLists()) {
-    for (nsIFrame* f : list) {
-      if (!ForEachChildFrame(f, aCb)) {
-        return false;
-      }
+
+  nsTArray<nsIFrame*> descendantStackingContexts;
+  CollectDescendantStackingContexts(aFrame, descendantStackingContexts);
+  // Sort by z-index to make sure we call the callback in paint order.
+  descendantStackingContexts.StableSort(ZOrderComparator());
+
+  for (nsIFrame* f : descendantStackingContexts) {
+    if (!ForEachDescendantWithViewTransitionNameInPaintOrder(f, aCb)) {
+      return false;
     }
   }
   return true;
 }
 
 template <typename Callback>
-static void ForEachFrame(Document* aDoc, const Callback& aCb) {
+static void ForEachFrameWithViewTransitionName(Document* aDoc,
+                                               const Callback& aCb) {
   PresShell* ps = aDoc->GetPresShell();
   if (!ps) {
     return;
@@ -1196,7 +1246,7 @@ static void ForEachFrame(Document* aDoc, const Callback& aCb) {
   if (!root) {
     return;
   }
-  ForEachChildFrame(root, aCb);
+  ForEachDescendantWithViewTransitionNameInPaintOrder(root, aCb);
 }
 
 // https://drafts.csswg.org/css-view-transitions/#capture-the-old-state
@@ -1220,16 +1270,11 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
   // Step 7: For each element of every element that is connected, and has a node
   // document equal to document, in paint order:
   Maybe<SkipTransitionReason> result;
-  ForEachFrame(mDocument, [&](nsIFrame* aFrame) {
+  ForEachFrameWithViewTransitionName(mDocument, [&](nsIFrame* aFrame) {
     RefPtr<nsAtom> name = DocumentScopedTransitionNameFor(aFrame);
     if (!name) {
       // As a fast path we check for v-t-n first.
       // If transitionName is none, or element is not rendered, then continue.
-      return true;
-    }
-    if (aFrame->IsHiddenByContentVisibilityOnAnyAncestor()) {
-      // If any flat tree ancestor of this element skips its contents, then
-      // continue.
       return true;
     }
     if (aFrame->GetPrevContinuation() || aFrame->GetNextContinuation()) {
@@ -1297,15 +1342,10 @@ Maybe<SkipTransitionReason> ViewTransition::CaptureOldState() {
 Maybe<SkipTransitionReason> ViewTransition::CaptureNewState() {
   nsTHashSet<nsAtom*> usedTransitionNames;
   Maybe<SkipTransitionReason> result;
-  ForEachFrame(mDocument, [&](nsIFrame* aFrame) {
+  ForEachFrameWithViewTransitionName(mDocument, [&](nsIFrame* aFrame) {
     // As a fast path we check for v-t-n first.
     RefPtr<nsAtom> name = DocumentScopedTransitionNameFor(aFrame);
     if (!name) {
-      return true;
-    }
-    if (aFrame->IsHiddenByContentVisibilityOnAnyAncestor()) {
-      // If any flat tree ancestor of this element skips its contents, then
-      // continue.
       return true;
     }
     if (aFrame->GetPrevContinuation() || aFrame->GetNextContinuation()) {
