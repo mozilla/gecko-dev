@@ -1102,8 +1102,10 @@ bool Navigation::InnerFireNavigateEvent(
               self->mTransition = nullptr;
             },
         scope);
-  } else if (apiMethodTracker) {
-    // Step 35
+  }
+
+  // Step 35
+  if (apiMethodTracker) {
     apiMethodTracker->CleanUp();
   }
 
