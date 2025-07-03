@@ -69,7 +69,7 @@ add_task(async function test_sidebar_providers() {
   await SidebarController.show("viewGenaiChatSidebar");
 
   const origCount = countVisible();
-  Assert.equal(origCount, 5, "Rendered expected number of provider options");
+  Assert.equal(origCount, 4, "Rendered expected number of provider options");
 
   SidebarController.hide();
   await SpecialPowers.pushPrefEnv({
