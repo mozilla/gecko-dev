@@ -63,7 +63,7 @@ async function openAboutInference({
       ["browser.ml.enable", !disabled],
       ["browser.ml.logLevel", "Debug"],
       ["dom.webgpu.enabled", !disabled],
-      ["dom.webgpu.workers.enabled", !disabled],
+      ["dom.webgpu.service-workers.enabled", !disabled],
       ...(prefs ?? []),
     ],
   });
