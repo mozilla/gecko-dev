@@ -214,25 +214,9 @@ export class SearchService {
     return this._getEngineDefault(false);
   }
 
-  set defaultEngine(newEngine) {
-    this.#ensureInitialized();
-    this.#setEngineDefault(false, newEngine);
-  }
-
   get defaultPrivateEngine() {
     this.#ensureInitialized();
     return this._getEngineDefault(this.#separatePrivateDefault);
-  }
-
-  set defaultPrivateEngine(newEngine) {
-    this.#ensureInitialized();
-    if (!this.#lazyPrefs.separatePrivateDefaultPrefValue) {
-      Services.prefs.setBoolPref(
-        lazy.SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
-        true
-      );
-    }
-    this.#setEngineDefault(this.#separatePrivateDefault, newEngine);
   }
 
   async getDefault() {

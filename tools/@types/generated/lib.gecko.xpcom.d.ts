@@ -11645,10 +11645,10 @@ interface nsISearchService extends nsISupports, Enums<typeof nsISearchService_Op
   removeWebExtensionEngine(id: string): Promise<any>;
   readonly appDefaultEngine: nsISearchEngine;
   readonly appPrivateDefaultEngine: nsISearchEngine;
-  defaultEngine: nsISearchEngine;
+  readonly defaultEngine: nsISearchEngine;
   getDefault(): Promise<any>;
   setDefault(engine: nsISearchEngine, changeReason: u16): Promise<any>;
-  defaultPrivateEngine: nsISearchEngine;
+  readonly defaultPrivateEngine: nsISearchEngine;
   getDefaultPrivate(): Promise<any>;
   setDefaultPrivate(engine: nsISearchEngine, changeReason: u16): Promise<any>;
   readonly separatePrivateDefaultUrlbarResultEnabled: boolean;

@@ -126,7 +126,10 @@ for (const test of tests) {
 add_task(async function test_telemetry_reporting() {
   // Use an engine from the previous tests.
   let engine = Services.search.getEngineByName("simple");
-  Services.search.defaultEngine = engine;
+  await Services.search.setDefault(
+    engine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   await assertGleanDefaultEngine({
     normal: {

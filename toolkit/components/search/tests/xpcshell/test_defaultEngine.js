@@ -92,7 +92,10 @@ add_task(async function test_alternateAppDefaultEngine_with_partnerCode() {
   let promise = promiseDefaultNotification();
   let alternateEngine =
     Services.search.getEngineById("alternateEngine").wrappedJSObject;
-  Services.search.defaultEngine = alternateEngine;
+  await Services.search.setDefault(
+    alternateEngine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   Assert.equal((await promise).wrappedJSObject, alternateEngine);
   Assert.equal(Services.search.defaultEngine.wrappedJSObject, alternateEngine);
@@ -113,7 +116,10 @@ add_task(async function test_alternateAppDefaultEngine_with_partnerCode() {
 add_task(async function test_alternateAppDefaultEngine_with_override() {
   // Reset the engine back to the default engine.
   let promise = promiseDefaultNotification();
-  Services.search.defaultEngine = Services.search.getEngineById("appDefault");
+  await Services.search.setDefault(
+    Services.search.getEngineById("appDefault"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   await promise;
 
   // Set up our override allowlist.
@@ -186,7 +192,11 @@ add_task(async function test_alternateAppDefaultEngine_with_override() {
 
 add_task(async function test_thirdPartyDefaultEngine() {
   let promise = promiseDefaultNotification();
-  Services.search.defaultEngine = engine1;
+  await Services.search.setDefault(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+
   Assert.equal((await promise).wrappedJSObject, engine1);
   Assert.equal(Services.search.defaultEngine.wrappedJSObject, engine1);
 
@@ -203,7 +213,10 @@ add_task(async function test_thirdPartyDefaultEngine() {
   });
 
   promise = promiseDefaultNotification();
-  Services.search.defaultEngine = engine2;
+  await Services.search.setDefault(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal((await promise).wrappedJSObject, engine2);
   Assert.equal(Services.search.defaultEngine.wrappedJSObject, engine2);
 
@@ -220,7 +233,10 @@ add_task(async function test_thirdPartyDefaultEngine() {
   });
 
   promise = promiseDefaultNotification();
-  Services.search.defaultEngine = engine1;
+  await Services.search.setDefault(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal((await promise).wrappedJSObject, engine1);
   Assert.equal(Services.search.defaultEngine.wrappedJSObject, engine1);
 
@@ -273,7 +289,10 @@ add_task(async function test_switch_with_invalid_overriddenBy() {
   );
 
   let promise = promiseDefaultNotification();
-  Services.search.defaultEngine = engine2;
+  await Services.search.setDefault(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal((await promise).wrappedJSObject, engine2);
   Assert.equal(Services.search.defaultEngine.wrappedJSObject, engine2);
 });

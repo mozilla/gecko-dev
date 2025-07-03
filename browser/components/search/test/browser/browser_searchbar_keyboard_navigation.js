@@ -449,7 +449,10 @@ add_task(async function test_accel_down() {
     );
     is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   }
-  Services.search.defaultEngine = current;
+  await Services.search.setDefault(
+    current,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 });
 
 add_task(async function test_accel_up() {
@@ -479,7 +482,10 @@ add_task(async function test_accel_up() {
     );
     is(searchPopup.selectedIndex, -1, "no suggestion should be selected");
   }
-  Services.search.defaultEngine = current;
+  await Services.search.setDefault(
+    current,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 });
 
 add_task(async function test_tab_and_arrows() {

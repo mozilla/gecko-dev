@@ -153,7 +153,10 @@ add_task(async function test_experiment_setting() {
 });
 
 add_task(async function test_experiment_setting_to_same_as_user() {
-  Services.search.defaultEngine = Services.search.getEngineByName("engine2");
+  await Services.search.setDefault(
+    Services.search.getEngineByName("engine2"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   Assert.equal(
     Services.search.defaultEngine.name,
@@ -213,7 +216,10 @@ add_task(async function test_experiment_setting_to_same_as_user() {
 });
 
 add_task(async function test_experiment_setting_user_changed_back_during() {
-  Services.search.defaultEngine = Services.search.getEngineByName("engine1");
+  await Services.search.setDefault(
+    Services.search.getEngineByName("engine1"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   Assert.equal(
     Services.search.defaultEngine.name,
@@ -247,7 +253,10 @@ add_task(async function test_experiment_setting_user_changed_back_during() {
   );
 
   // User resets to the original default engine.
-  Services.search.defaultEngine = Services.search.getEngineByName("engine1");
+  await Services.search.setDefault(
+    Services.search.getEngineByName("engine1"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     Services.search.defaultEngine.name,
     "engine1",
@@ -286,8 +295,10 @@ add_task(async function test_experiment_setting_user_changed_back_during() {
 });
 
 add_task(async function test_experiment_setting_user_changed_back_private() {
-  Services.search.defaultPrivateEngine =
-    Services.search.getEngineByName("engine1");
+  await Services.search.setDefaultPrivate(
+    Services.search.getEngineByName("engine1"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   Assert.equal(
     Services.search.defaultPrivateEngine.name,
@@ -321,8 +332,10 @@ add_task(async function test_experiment_setting_user_changed_back_private() {
   );
 
   // User resets to the original default engine.
-  Services.search.defaultPrivateEngine =
-    Services.search.getEngineByName("engine1");
+  await Services.search.setDefaultPrivate(
+    Services.search.getEngineByName("engine1"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     Services.search.defaultPrivateEngine.name,
     "engine1",
@@ -357,7 +370,10 @@ add_task(async function test_experiment_setting_user_changed_back_private() {
 });
 
 add_task(async function test_experiment_setting_user_changed_to_other_during() {
-  Services.search.defaultEngine = Services.search.getEngineByName("engine1");
+  await Services.search.setDefault(
+    Services.search.getEngineByName("engine1"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   Assert.equal(
     Services.search.defaultEngine.name,
@@ -391,7 +407,10 @@ add_task(async function test_experiment_setting_user_changed_to_other_during() {
   );
 
   // User changes to a different default engine
-  Services.search.defaultEngine = Services.search.getEngineByName("engine2");
+  await Services.search.setDefault(
+    Services.search.getEngineByName("engine2"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     Services.search.defaultEngine.name,
     "engine2",
@@ -435,7 +454,10 @@ add_task(async function test_experiment_setting_user_hid_app_default_during() {
     SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
     false
   );
-  Services.search.defaultEngine = Services.search.getEngineByName("engine1");
+  await Services.search.setDefault(
+    Services.search.getEngineByName("engine1"),
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   Assert.equal(
     Services.search.defaultEngine.name,

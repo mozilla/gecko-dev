@@ -513,13 +513,13 @@ interface nsISearchService : nsISupports
 
   /**
    * The currently active search engine.
-   * Unless the application doesn't ship any search plugin, this should never
+   * Unless the application doesn't ship any search engine, this should never
    * be null. If the currently active engine is removed, this attribute will
    * fallback first to the application default engine if it's not hidden, then to
    * the first visible engine, and as a last resort it will unhide the app
    * default engine.
    */
-  attribute nsISearchEngine defaultEngine;
+  readonly attribute nsISearchEngine defaultEngine;
 
   Promise getDefault();
   Promise setDefault(in nsISearchEngine engine, in unsigned short changeReason);
@@ -528,7 +528,7 @@ interface nsISearchService : nsISupports
    * The currently active search engine for private browsing mode.
    * @see defaultEngine.
    */
-  attribute nsISearchEngine defaultPrivateEngine;
+  readonly attribute nsISearchEngine defaultPrivateEngine;
 
   Promise getDefaultPrivate();
   Promise setDefaultPrivate(

@@ -93,8 +93,11 @@ for (let engine of searchEngineDetails) {
   add_task(async function () {
     let previouslySelectedEngine = Services.search.defaultEngine;
 
-    registerCleanupFunction(function () {
-      Services.search.defaultEngine = previouslySelectedEngine;
+    registerCleanupFunction(async function () {
+      await Services.search.setDefault(
+        previouslySelectedEngine,
+        Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+      );
     });
 
     await testSearchEngine(engine);
@@ -105,7 +108,10 @@ async function testSearchEngine(engineDetails) {
   let engine = Services.search.getEngineByName(engineDetails.name);
   Assert.ok(engine, `${engineDetails.name} is installed`);
 
-  Services.search.defaultEngine = engine;
+  await Services.search.setDefault(
+    engine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   engine.alias = engineDetails.alias;
 
   // Test search URLs (including purposes).

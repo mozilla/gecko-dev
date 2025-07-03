@@ -138,7 +138,10 @@ add_task(async function test_defaultPrivateEngine() {
   });
 
   let promise = promiseDefaultNotification("private");
-  Services.search.defaultPrivateEngine = engine1;
+  await Services.search.setDefaultPrivate(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     await promise,
     engine1,
@@ -279,7 +282,10 @@ add_task(async function test_defaultPrivateEngine() {
   });
 
   engine1.hidden = false;
-  Services.search.defaultEngine = engine1;
+  await Services.search.setDefault(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     Services.search.defaultPrivateEngine,
     appPrivateDefault,
@@ -297,7 +303,10 @@ add_task(async function test_defaultPrivateEngine() {
     },
   });
 
-  Services.search.defaultEngine = appDefault;
+  await Services.search.setDefault(
+    appDefault,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 });
 
 add_task(async function test_telemetry_private_empty_submission_url() {
@@ -327,12 +336,21 @@ add_task(async function test_telemetry_private_empty_submission_url() {
     },
   });
 
-  Services.search.defaultEngine = appDefault;
+  await Services.search.setDefault(
+    appDefault,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 });
 
 add_task(async function test_defaultPrivateEngine_turned_off() {
-  Services.search.defaultEngine = appDefault;
-  Services.search.defaultPrivateEngine = engine1;
+  await Services.search.setDefault(
+    appDefault,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+  await Services.search.setDefaultPrivate(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   await assertGleanDefaultEngine({
     normal: {
@@ -369,7 +387,10 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
 
   promise = promiseDefaultNotification("normal");
   let privatePromise = promiseDefaultNotification("private");
-  Services.search.defaultEngine = engine1;
+  await Services.search.setDefault(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     await promise,
     engine1,
@@ -403,7 +424,10 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
   });
 
   promise = promiseDefaultNotification("private");
-  Services.search.defaultPrivateEngine = engine2;
+  await Services.search.setDefaultPrivate(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     await promise,
     engine2,
@@ -440,7 +464,10 @@ add_task(async function test_defaultPrivateEngine_turned_off() {
   });
 
   promise = promiseDefaultNotification("private");
-  Services.search.defaultPrivateEngine = engine1;
+  await Services.search.setDefaultPrivate(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     await promise,
     engine1,
@@ -477,8 +504,14 @@ add_task(async function test_defaultPrivateEngine_ui_turned_off() {
     true
   );
 
-  Services.search.defaultEngine = engine2;
-  Services.search.defaultPrivateEngine = engine1;
+  await Services.search.setDefault(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+  await Services.search.setDefaultPrivate(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   await assertGleanDefaultEngine({
     normal: {
@@ -514,7 +547,10 @@ add_task(async function test_defaultPrivateEngine_ui_turned_off() {
   });
 
   promise = promiseDefaultNotification("normal");
-  Services.search.defaultPrivateEngine = engine1;
+  await Services.search.setDefaultPrivate(
+    engine1,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   Assert.equal(
     await promise,
     engine1,
@@ -549,8 +585,14 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_pref() {
   );
 
   // Set the normal and private engines to be the same
-  Services.search.defaultEngine = engine2;
-  Services.search.defaultPrivateEngine = engine2;
+  await Services.search.setDefault(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+  await Services.search.setDefaultPrivate(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   await assertGleanDefaultEngine({
     normal: {
@@ -629,8 +671,14 @@ add_task(async function test_defaultPrivateEngine_same_engine_toggle_ui_pref() {
   );
 
   // Set the normal and private engines to be the same
-  Services.search.defaultEngine = engine2;
-  Services.search.defaultPrivateEngine = engine2;
+  await Services.search.setDefault(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+  await Services.search.setDefaultPrivate(
+    engine2,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   await assertGleanDefaultEngine({
     normal: {

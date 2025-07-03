@@ -45,8 +45,11 @@ add_setup(async () => {
 
   let oldCurrentEngine = Services.search.defaultEngine;
 
-  registerCleanupFunction(() => {
-    Services.search.defaultEngine = oldCurrentEngine;
+  registerCleanupFunction(async () => {
+    await Services.search.setDefault(
+      oldCurrentEngine,
+      Ci.nsISearchService.CHANGE_REASON_ADDON_INSTALL
+    );
     UrlbarPrefs.clear(ENABLED_PREF);
     UrlbarPrefs.clear(SUGGESTS_PREF);
   });

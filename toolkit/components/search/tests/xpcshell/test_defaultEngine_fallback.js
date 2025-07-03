@@ -236,7 +236,11 @@ add_task(async function test_default_fallback_when_no_others_visible() {
 
 add_task(async function test_default_fallback_remove_default_no_visible() {
   // Remove all but the default engine.
-  Services.search.defaultPrivateEngine = Services.search.defaultEngine;
+
+  await Services.search.setDefaultPrivate(
+    Services.search.defaultEngine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   let visibleEngines = await Services.search.getVisibleEngines();
   for (let engine of visibleEngines) {
     if (engine.name != appDefault.name) {
@@ -313,7 +317,10 @@ add_task(
 
     appPrivateDefault = await Services.search.getDefaultPrivate();
 
-    Services.search.defaultEngine = appPrivateDefault;
+    await Services.search.setDefault(
+      appPrivateDefault,
+      Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+    );
 
     // Remove all but the default engine.
     let visibleEngines = await Services.search.getVisibleEngines();

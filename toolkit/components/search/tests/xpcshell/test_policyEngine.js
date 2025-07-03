@@ -67,7 +67,10 @@ add_task(async function test_enterprise_policy_engine() {
     "Should have the correct suggest url"
   );
 
-  Services.search.defaultEngine = engine;
+  await Services.search.setDefault(
+    engine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
 
   await assertGleanDefaultEngine({
     normal: {

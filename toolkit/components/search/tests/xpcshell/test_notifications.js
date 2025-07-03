@@ -70,10 +70,10 @@ async function defaultNotificationTest(
       ? SearchUtils.MODIFIED_TYPE.DEFAULT_PRIVATE
       : SearchUtils.MODIFIED_TYPE.DEFAULT,
   ]);
-
-  Services.search[
-    setPrivateDefault ? "defaultPrivateEngine" : "defaultEngine"
-  ] = engine;
+  await Services.search[setPrivateDefault ? "setDefaultPrivate" : "setDefault"](
+    engine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
   await defaultObserver.promise;
 }
 
