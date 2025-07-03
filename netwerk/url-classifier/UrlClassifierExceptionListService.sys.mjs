@@ -168,24 +168,10 @@ UrlClassifierExceptionListService.prototype = {
   classID: Components.ID("{b9f4fd03-9d87-4bfd-9958-85a821750ddc}"),
   QueryInterface: ChromeUtils.generateQI([
     "nsIUrlClassifierExceptionListService",
-    "nsIObserver",
   ]),
 
   features: {},
   _initialized: false,
-
-  observe(subject, topic) {
-    if (topic === "idle-daily") {
-      const baseline = Services.prefs.getBoolPref(
-        "privacy.trackingprotection.allow_list.baseline.enabled"
-      );
-      const convenience = Services.prefs.getBoolPref(
-        "privacy.trackingprotection.allow_list.convenience.enabled"
-      );
-      Glean.contentblocking.tpAllowlistBaselineEnabled.set(baseline);
-      Glean.contentblocking.tpAllowlistConvenienceEnabled.set(convenience);
-    }
-  },
 
   async lazyInit() {
     if (this._initialized) {

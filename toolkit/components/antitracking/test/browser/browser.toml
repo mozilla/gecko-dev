@@ -68,8 +68,6 @@ support-files = [
 
 ["browser_allowListNotifications.js"]
 
-["browser_allowListPreference.js"]
-
 ["browser_allowListSeparationInPrivateAndNormalWindows.js"]
 
 ["browser_allowPermissionForTracker.js"]

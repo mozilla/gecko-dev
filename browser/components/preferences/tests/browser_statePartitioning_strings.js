@@ -29,7 +29,7 @@ async function testStrings() {
     let id = doc.l10n.getAttributes(elt).id;
     is(
       id,
-      "content-blocking-and-isolating-etp-warning-description-3",
+      "content-blocking-and-isolating-etp-warning-description-2",
       "The correct warning description string is in use"
     );
   }
