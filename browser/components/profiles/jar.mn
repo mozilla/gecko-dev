@@ -5,6 +5,7 @@
 browser.jar:
     content/browser/profiles/avatar.css           (content/avatar.css)
     content/browser/profiles/avatar.mjs           (content/avatar.mjs)
+    content/browser/profiles/avatarSelectionHelpers.mjs (content/avatarSelectionHelpers.mjs)
     content/browser/profiles/delete-profile-card.css (content/delete-profile-card.css)
     content/browser/profiles/delete-profile-card.mjs (content/delete-profile-card.mjs)
     content/browser/profiles/delete-profile.html    (content/delete-profile.html)
