@@ -202,20 +202,16 @@
     }
   }
 
-  &[dragtarget] {
-    z-index: 3 !important;
-    position: absolute !important;
-    pointer-events: none; /* avoid blocking dragover events on scroll buttons */
-  }
-
   &:not([pinned], [fadein]) {
     max-width: 0.1px;
     min-width: 0.1px;
     visibility: hidden;
   }
 
-  #tabbrowser-tabs[movingtab] & {
+  #tabbrowser-tabs[movingtab] &:is(:active, [multiselected]) {
     position: relative;
+    z-index: 2;
+    pointer-events: none; /* avoid blocking dragover events on scroll buttons */
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -1120,7 +1116,6 @@ tab-group {
     height: 24px;
     min-height: auto;
     line-height: 24px;
-    min-width: 24px;
 
     #tabbrowser-tabs:not([expanded]) & {
       width: 24px;
