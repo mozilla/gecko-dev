@@ -53,8 +53,6 @@ avatar-selector-save-button =
   .label = Save
 avatar-selector-upload-file = Upload a file
 avatar-selector-drag-file = Or drag a file here
-avatar-selector-add-image = Add an image
-avatar-selector-crop = Crop
 
 edit-profile-page-no-name = Name this profile to help you find it later. Rename it any time.
 edit-profile-page-duplicate-name = Profile name already in use. Try a new name.
