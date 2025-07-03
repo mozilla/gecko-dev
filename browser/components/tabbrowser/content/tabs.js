@@ -1193,10 +1193,14 @@
 
         let shouldPin =
           numPinned &&
-          this.pinnedTabsContainer.contains(event.target) &&
+          (event.target.hasAttribute("pinned") ||
+            event.target.id == "pinned-tabs-container") &&
           !draggedTab.pinned;
         let shouldUnpin =
-          this.arrowScrollbox.contains(event.target) && draggedTab.pinned;
+          (!event.target.hasAttribute("pinned") ||
+            event.target.id == "tabbrowser-arrowscrollbox") &&
+          event.target.id != "pinned-tabs-container" &&
+          draggedTab.pinned;
         let shouldTranslate =
           !gReduceMotion &&
           !shouldCreateGroupOnDrop &&
