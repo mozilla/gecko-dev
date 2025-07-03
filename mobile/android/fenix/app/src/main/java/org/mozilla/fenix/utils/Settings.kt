@@ -36,6 +36,7 @@ import mozilla.components.support.utils.BrowsersCache
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
+import org.mozilla.fenix.GleanMetrics.TopSites
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
@@ -365,7 +366,8 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     var contileContextId by stringPreference(
         appContext.getPreferenceKey(R.string.pref_key_contile_context_id),
-        default = "",
+        default = TopSites.contextId.generateAndSet().toString(),
+        persistDefaultIfNotExists = true,
     )
 
     var currentWallpaperName by stringPreference(
