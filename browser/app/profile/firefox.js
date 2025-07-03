@@ -1940,6 +1940,7 @@ pref("browser.newtabpage.activity-stream.discoverystream.shortcuts.personalizati
 // List of locales that use shortcuts personalization.
 pref("browser.newtabpage.activity-stream.discoverystream.shortcuts.personalization.locale-config", "en-US,en-GB,en-CA");
 
+
 // Override inferred personalization model JSON string that typically comes from rec API. Or "TEST" for a test model.
 pref("browser.newtabpage.activity-stream.discoverystream.sections.personalization.inferred.model.override", "");
 

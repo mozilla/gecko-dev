@@ -42,3 +42,5 @@ support-files = ["../schemas/*.schema.json"]
 tags = "remote-settings"
 
 ["test_WeatherFeed.js"]
+
+["test_ShortcutRanker.js"]

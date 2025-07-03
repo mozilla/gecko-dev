@@ -22,6 +22,7 @@ toolkit.jar:
     content/global/ml/transformers.js           	        (vendor/transformers.js)
     content/global/ml/wllama-module.mjs                   (vendor/wllama-module.mjs)
     content/global/ml/backends/LlamaPipeline.mjs          (content/backends/LlamaPipeline.mjs)
+    content/global/ml/ThomSample.sys.mjs                  (content/ThomSample.sys.mjs)
 #ifdef NIGHTLY_BUILD
     content/global/ml/HttpInference.sys.mjs     	        (content/HttpInference.sys.mjs)
     content/global/ml/ort.webgpu-dev.mjs        	        (vendor/ort.webgpu-dev.mjs)
