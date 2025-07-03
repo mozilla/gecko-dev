@@ -157,6 +157,7 @@ export class MegalistAlpha extends MozLitElement {
     }
 
     this.viewMode = VIEW_MODES.LIST;
+    this.notification = null;
   }
 
   #onSaveLoginForm(loginForm) {
