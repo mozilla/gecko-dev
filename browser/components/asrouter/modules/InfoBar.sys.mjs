@@ -20,6 +20,7 @@ const TYPES = {
 const FTL_FILES = [
   "browser/newtab/asrouter.ftl",
   "browser/defaultBrowserNotification.ftl",
+  "browser/termsofuse.ftl",
   "preview/termsOfUse.ftl",
 ];
 

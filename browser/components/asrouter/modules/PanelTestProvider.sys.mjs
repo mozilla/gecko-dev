@@ -1593,7 +1593,7 @@ const MESSAGES = () => [
       dismissable: false,
       buttons: [
         {
-          label: "Continue",
+          label: { string_id: "existing-user-tou-accept" },
           action: {
             type: "SET_PREF",
             data: {
