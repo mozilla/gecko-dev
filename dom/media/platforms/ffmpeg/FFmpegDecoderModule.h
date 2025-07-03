@@ -228,12 +228,19 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
         audioCodec != AV_CODEC_ID_NONE ? audioCodec : videoCodec;
 
     media::DecodeSupportSet supports;
-    if (FFmpegDataDecoder<V>::FindSoftwareAVCodec(mLib, codecId)) {
+    if (IsSWDecodingSupported(codecId)) {
       supports += media::DecodeSupport::SoftwareDecode;
     }
     if (IsHWDecodingSupported(mimeType)) {
       supports += media::DecodeSupport::HardwareDecode;
     }
+
+#ifdef XP_WIN
+    // TODO : add this for Android as well in bug 1974849.
+    MOZ_ASSERT_IF(XRE_IsGPUProcess() && IsVideoCodec(codecId),
+                  !supports.contains(media::DecodeSupport::SoftwareDecode));
+#endif
+
     MOZ_LOG(
         sPDMLog, LogLevel::Debug,
         ("FFmpeg decoder %s requested type '%s'",
@@ -249,6 +256,16 @@ class FFmpegDecoderModule : public PlatformDecoderModule {
     return aColorDepth == gfx::ColorDepth::COLOR_8;
 #endif
     return true;
+  }
+
+  bool IsSWDecodingSupported(const AVCodecID& aCodec) const {
+#ifdef XP_WIN
+    // SW video decoding is not allowed in the GPU process.
+    if (IsVideoCodec(aCodec) && XRE_IsGPUProcess()) {
+      return false;
+    }
+#endif
+    return FFmpegDataDecoder<V>::FindSoftwareAVCodec(mLib, aCodec);
   }
 
   bool IsHWDecodingSupported(const nsACString& aMimeType) const {
