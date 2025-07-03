@@ -203,10 +203,12 @@ class BrowserToolbarSearchMiddleware(
         store: Store<BrowserToolbarState, BrowserToolbarAction>,
         selectedSearchEngine: SearchEngine?,
     ) {
-        if (!settings.shouldAutocompleteInAwesomebar) return
-
-        val autocompleteProviders = buildAutocompleteProvidersList(selectedSearchEngine)
-        store.dispatch(AutocompleteProvidersUpdated(autocompleteProviders))
+        if (settings.shouldAutocompleteInAwesomebar) {
+            val autocompleteProviders = buildAutocompleteProvidersList(selectedSearchEngine)
+            store.dispatch(AutocompleteProvidersUpdated(autocompleteProviders))
+        } else {
+            store.dispatch(AutocompleteProvidersUpdated(emptyList()))
+        }
     }
 
     private fun buildAutocompleteProvidersList(selectedSearchEngine: SearchEngine?) = when (selectedSearchEngine?.id) {
