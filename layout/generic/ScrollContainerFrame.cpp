@@ -3667,7 +3667,7 @@ class MOZ_RAII AutoContainsBlendModeCapturer {
 
 void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
     nsDisplayListBuilder* aBuilder, nsDisplayListCollection& aSet,
-    bool aCreateAsyncZoom,
+    bool aCreateAsyncZoom, bool aCapturedByViewTransition,
     AutoContainsBlendModeCapturer* aAsyncZoomBlendCapture,
     const nsRect& aAsyncZoomClipRect, nscoord* aRadii) {
   if (!mIsRoot) {
@@ -3684,38 +3684,49 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
     }
   };
 
-  if (rootStyleFrame &&
-      rootStyleFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION)) {
-    SerializeList();
-    rootResultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
-        aBuilder, this, &rootResultList, nullptr, /* aIsRoot = */ true);
-  }
-
   // Create any required items for the 'top layer' and check if they'll be
   // opaque over the entire area of the viewport. If they are, then we can
   // skip building display items for the rest of the page.
-  if (ViewportFrame* viewport = do_QueryFrame(GetParent())) {
-    bool topLayerIsOpaque = false;
-    if (nsDisplayWrapList* topLayerWrapList =
-            viewport->BuildDisplayListForTopLayer(aBuilder,
-                                                  &topLayerIsOpaque)) {
-      // If the top layer content is opaque, and we're the root content document
-      // in the process, we can drop the display items behind it. We only
-      // support doing this for the root content document in the process, since
-      // the top layer content might have fixed position items that have a
-      // scrolltarget referencing the APZ data for the document. APZ builds this
-      // data implicitly for the root content document in the process, but
-      // subdocuments etc need their display items to generate it, so we can't
-      // cull those.
-      if (topLayerIsOpaque && !serializedList &&
-          PresContext()->IsRootContentDocumentInProcess()) {
-        aSet.DeleteAll(aBuilder);
+  ViewportFrame* viewportParent = do_QueryFrame(GetParent());
+  {
+    nsDisplayListBuilder::AutoEnterViewTransitionCapture
+        inViewTransitionCaptureSetter(aBuilder, aCapturedByViewTransition);
+    nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter asrSetter(
+        aBuilder);
+    DisplayListClipState::AutoSaveRestore clipState(aBuilder);
+    if (aBuilder->IsInViewTransitionCapture()) {
+      asrSetter.SetCurrentActiveScrolledRoot(nullptr);
+      clipState.Clear();
+    }
+    if (viewportParent) {
+      bool topLayerIsOpaque = false;
+      if (nsDisplayWrapList* topLayerWrapList =
+              viewportParent->BuildDisplayListForContentTopLayer(
+                  aBuilder, &topLayerIsOpaque)) {
+        // If the top layer content is opaque, and we're the root content
+        // document in the process, we can drop the display items behind it. We
+        // only support doing this for the root content document in the process,
+        // since the top layer content might have fixed position items that have
+        // a scrolltarget referencing the APZ data for the document. APZ builds
+        // this data implicitly for the root content document in the process,
+        // but subdocuments etc need their display items to generate it, so we
+        // can't cull those.
+        if (topLayerIsOpaque && !serializedList &&
+            PresContext()->IsRootContentDocumentInProcess()) {
+          aSet.DeleteAll(aBuilder);
+        }
+        if (serializedList) {
+          rootResultList.AppendToTop(topLayerWrapList);
+        } else {
+          aSet.PositionedDescendants()->AppendToTop(topLayerWrapList);
+        }
       }
-      if (serializedList) {
-        rootResultList.AppendToTop(topLayerWrapList);
-      } else {
-        aSet.PositionedDescendants()->AppendToTop(topLayerWrapList);
-      }
+    }
+
+    if (aCapturedByViewTransition) {
+      SerializeList();
+      rootResultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
+          aBuilder, this, &rootResultList, nullptr, /* aIsRoot = */ true);
     }
   }
 
@@ -3737,6 +3748,18 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
           GetRectRelativeToSelf() + aBuilder->ToReferenceFrame(this);
       rootResultList.AppendNewToTop<nsDisplayBackdropFilters>(
           aBuilder, this, &rootResultList, backdropRect, rootStyleFrame);
+    }
+  }
+
+  if (viewportParent) {
+    if (nsDisplayWrapList* topLayerWrapList =
+            viewportParent->BuildDisplayListForViewTransitionsAndNACTopLayer(
+                aBuilder)) {
+      if (serializedList) {
+        rootResultList.AppendToTop(topLayerWrapList);
+      } else {
+        aSet.PositionedDescendants()->AppendToTop(topLayerWrapList);
+      }
     }
   }
 
@@ -3893,8 +3916,9 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     }
 
     MaybeCreateTopLayerAndWrapRootItems(aBuilder, set,
-                                        /* aCreateAsyncZoom = */ false, nullptr,
-                                        nsRect(), nullptr);
+                                        /* aCreateAsyncZoom = */ false,
+                                        /* aCapturedByViewTransition = */ false,
+                                        nullptr, nsRect(), nullptr);
 
     if (addScrollBars) {
       // Add overlay scrollbars.
@@ -4233,8 +4257,8 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   }
 
   MaybeCreateTopLayerAndWrapRootItems(
-      aBuilder, set, willBuildAsyncZoomContainer, &blendCapture, clipRect,
-      haveRadii ? radii : nullptr);
+      aBuilder, set, willBuildAsyncZoomContainer, capturedByViewTransition,
+      &blendCapture, clipRect, haveRadii ? radii : nullptr);
 
   // We want to call SetContainsNonMinimalDisplayPort if
   // mWillBuildScrollableLayer is true for any reason other than having a

@@ -1108,6 +1108,7 @@ class ScrollContainerFrame : public nsContainerFrame,
   // top-layer items handle setting up their own ASRs.
   void MaybeCreateTopLayerAndWrapRootItems(
       nsDisplayListBuilder*, nsDisplayListCollection&, bool aCreateAsyncZoom,
+      bool aCapturedByViewTransition,
       AutoContainsBlendModeCapturer* aAsyncZoomBlendCapture,
       const nsRect& aAsyncZoomClipRect, nscoord* aRadii);
 

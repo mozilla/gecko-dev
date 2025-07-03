@@ -52,8 +52,11 @@ class ViewportFrame : public nsContainerFrame {
   void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                         const nsDisplayListSet& aLists) override;
 
-  nsDisplayWrapList* BuildDisplayListForTopLayer(nsDisplayListBuilder* aBuilder,
-                                                 bool* aIsOpaque = nullptr);
+  nsDisplayWrapList* BuildDisplayListForContentTopLayer(
+      nsDisplayListBuilder* aBuilder, bool* aIsOpaque = nullptr);
+
+  nsDisplayWrapList* BuildDisplayListForViewTransitionsAndNACTopLayer(
+      nsDisplayListBuilder* aBuilder);
 
   nscoord IntrinsicISize(const IntrinsicSizeInput& aInput,
                          IntrinsicISizeType aType) override;
@@ -108,6 +111,9 @@ class ViewportFrame : public nsContainerFrame {
   void SetViewInternal(nsView* aView) override { mView = aView; }
 
  private:
+  nsDisplayWrapList* MaybeWrapTopLayerList(nsDisplayListBuilder*,
+                                           uint16_t aIndex, nsDisplayList&);
+
   mozilla::FrameChildListID GetAbsoluteListID() const override {
     return FrameChildListID::Fixed;
   }
