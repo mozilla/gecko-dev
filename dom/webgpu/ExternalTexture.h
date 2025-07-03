@@ -13,19 +13,19 @@ namespace mozilla::webgpu {
 
 // NOTE: Incomplete. Follow-up to complete implementation is at
 // <https://bugzilla.mozilla.org/show_bug.cgi?id=1827116>.
-class ExtTex : public ObjectBase {
+class ExternalTexture : public ObjectBase {
  public:
-  GPU_DECL_CYCLE_COLLECTION(ExtTex)
-  GPU_DECL_JS_WRAP(ExtTex)
+  GPU_DECL_CYCLE_COLLECTION(ExternalTexture)
+  GPU_DECL_JS_WRAP(ExternalTexture)
 
-  explicit ExtTex(nsIGlobalObject* const aGlobal) : mGlobal(aGlobal) {}
+  explicit ExternalTexture(nsIGlobalObject* const aGlobal) : mGlobal(aGlobal) {}
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
  private:
   nsCOMPtr<nsIGlobalObject> mGlobal;
 
-  ~ExtTex() = default;
+  ~ExternalTexture() = default;
   void Cleanup() {}
 };
 
