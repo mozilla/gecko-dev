@@ -476,7 +476,7 @@ already_AddRefed<BrowsingContext> BrowsingContext::CreateDetached(
 
   fields.Get<IDX_IPAddressSpace>() = inherit
                                          ? inherit->GetIPAddressSpace()
-                                         : nsILoadInfo::IPAddressSpace::Public;
+                                         : nsILoadInfo::IPAddressSpace::Unknown;
 
   fields.Get<IDX_IsPopupRequested>() = aOptions.isPopupRequested;
 
