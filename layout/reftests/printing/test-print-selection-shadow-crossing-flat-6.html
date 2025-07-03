@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html reftest-print-range="selection">
+<head>
+  <meta charset="utf-8">
+  <link id="style" href="print.css" rel="stylesheet">
+  <script>
+    function selectNodesInShadowTree() {
+      // Test 6: start is in light DOM and end is a shadow node. There
+      // is a slot element in between them and the slot element has
+      // multiple assigned nodes.
+      window.getSelection()
+        .setBaseAndExtent(
+          lightContent1.firstChild,
+          3,
+          host.shadowRoot.getElementById("inner").firstChild,
+          4);
+    }
+  </script>
+</head>
+<body onload="selectNodesInShadowTree()">
+  <p id="lightContent1">LightContent1</p>
+  <div id="host">Shouldn't show up (in the shadows)
+    <template shadowrootmode="open">
+      <slot name="s1"></slot>
+      <span id="inner">Inner</span>
+    </template>
+    <span id="slotted1" slot="s1">Slotted1</span>
+    <span id="slotted2" slot="s1">Slotted2</span>
+  </div>
+</body>
+</html>

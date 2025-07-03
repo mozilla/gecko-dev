@@ -26,3 +26,12 @@ print 1900028-text-mask-pdf.html 1900028-text-mask-pdf-ref.html
 skip-if(release_or_beta) print test-print-selection-shadow-crossing-1.html test-print-selection-shadow-crossing-1-ref.html
 skip-if(release_or_beta) print test-print-selection-shadow-crossing-2.html test-print-selection-shadow-crossing-2-ref.html
 skip-if(release_or_beta) print test-print-selection-shadow-crossing-3.html test-print-selection-shadow-crossing-3-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-1.html test-print-selection-shadow-crossing-flat-1-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-2.html test-print-selection-shadow-crossing-flat-2-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-3.html test-print-selection-shadow-crossing-flat-3-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-4.html test-print-selection-shadow-crossing-flat-4-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-5.html test-print-selection-shadow-crossing-flat-5-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-6.html test-print-selection-shadow-crossing-flat-6-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-7.html test-print-selection-shadow-crossing-flat-7-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-8.html test-print-selection-shadow-crossing-flat-8-ref.html
+skip-if(release_or_beta) print test-print-selection-shadow-crossing-flat-9.html test-print-selection-shadow-crossing-flat-9-ref.html

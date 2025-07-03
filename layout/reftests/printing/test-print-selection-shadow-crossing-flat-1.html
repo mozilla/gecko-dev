@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html reftest-print-range="selection">
+<head>
+  <meta charset="utf-8">
+  <link id="style" href="print.css" rel="stylesheet">
+  <script>
+    function selectNodesInShadowTree() {
+      // Test1: Start is in Light DOM and end is a slotted node
+      window.getSelection()
+        .setBaseAndExtent(
+          lightContent1.firstChild,
+          3,
+          slotted.firstChild,
+          4);
+    }
+  </script>
+</head>
+<body onload="selectNodesInShadowTree()">
+  <p id="lightContent1">LightContent1</p>
+  <div id="host">Shouldn't show up (in the shadows)
+    <template shadowrootmode="open">
+      <slot name="s1"></slot>
+    </template>
+    <span id="slotted" slot="s1">Slotted</span>
+  </div>
+</body>
+</html>
