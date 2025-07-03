@@ -223,7 +223,7 @@ pub struct PictureTask {
     pub valid_rect: Option<DeviceIntRect>,
     pub cmd_buffer_index: CommandBufferIndex,
     pub resolve_op: Option<ResolveOp>,
-
+    pub content_size: DeviceIntSize,
     pub can_use_shared_surface: bool,
 }
 
@@ -262,7 +262,7 @@ impl BlurTask {
     // In order to do the blur down-scaling passes without introducing errors, we need the
     // source of each down-scale pass to be a multuple of two. If need be, this inflates
     // the source size so that each down-scale pass will sample correctly.
-    pub fn adjusted_blur_source_size(original_size: DeviceSize, mut std_dev: DeviceSize) -> DeviceIntSize {
+    pub fn adjusted_blur_source_size(original_size: DeviceSize, mut std_dev: DeviceSize) -> DeviceSize {
         let mut adjusted_size = original_size;
         let mut scale_factor = 1.0;
         while std_dev.width > MAX_BLUR_STD_DEVIATION && std_dev.height > MAX_BLUR_STD_DEVIATION {
@@ -275,7 +275,7 @@ impl BlurTask {
             adjusted_size = (original_size.to_f32() / scale_factor).ceil();
         }
 
-        (adjusted_size * scale_factor).round().to_i32()
+        (adjusted_size * scale_factor).round()
     }
 }
 
@@ -519,6 +519,7 @@ impl RenderTaskKind {
         clear_color: Option<ColorF>,
         cmd_buffer_index: CommandBufferIndex,
         can_use_shared_surface: bool,
+        content_size: Option<DeviceIntSize>,
     ) -> Self {
         render_task_sanity_check(&size);
 
@@ -534,6 +535,7 @@ impl RenderTaskKind {
             cmd_buffer_index,
             resolve_op: None,
             can_use_shared_surface,
+            content_size: content_size.unwrap_or(size),
         })
     }
 
@@ -2310,7 +2312,7 @@ impl RenderTask {
                         BlurTask::adjusted_blur_source_size(
                             blur_task_size,
                             adjusted_blur_std_deviation,
-                        ).to_f32().max(DeviceSize::new(1.0, 1.0));
+                        ).max(DeviceSize::new(1.0, 1.0));
                     // Now change the subregion to match the revised task size,
                     // keeping it centered should keep animated radius smooth.
                     let corner = LayoutPoint::new(
@@ -2432,7 +2434,7 @@ impl RenderTask {
                         BlurTask::adjusted_blur_source_size(
                             blur_task_size,
                             adjusted_blur_std_deviation,
-                        ).to_f32().max(DeviceSize::new(1.0, 1.0));
+                        ).max(DeviceSize::new(1.0, 1.0));
                     // Now change the subregion to match the revised task size,
                     // keeping it centered should keep animated radius smooth.
                     let corner = LayoutPoint::new(

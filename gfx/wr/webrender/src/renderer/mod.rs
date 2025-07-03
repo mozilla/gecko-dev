@@ -2690,6 +2690,16 @@ impl Renderer {
             };
             let dest_task_rect = dest_task.get_target_rect().to_f32();
 
+            // If the dest picture is going to a blur target, it may have been
+            // expanded in size so that the downsampling passes don't introduce
+            // sampling error. In this case, we need to ensure we use the
+            // content size rather than the render task size to work out
+            // the intersecting rect to use for the resolve copy.
+            let dest_task_rect = DeviceRect::from_origin_and_size(
+                dest_task_rect.min,
+                dest_info.content_size.to_f32(),
+            );
+
             // Get the rect that we ideally want, in space of the parent surface
             let wanted_rect = DeviceRect::from_origin_and_size(
                 dest_info.content_origin,
