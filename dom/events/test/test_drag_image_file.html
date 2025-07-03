@@ -12,45 +12,68 @@
 <img id="green-png" src="green.png">
 
 <script>
-async function runTest() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["dom.events.dataTransfer.imageAsFile.enabled", true]],
-  });
-
-  let dt = await synthesizePlainDragAndCancel({
-      srcElement: document.getElementById('green-png'),
+async function synthesizeDragAndCheck(aImgId, aImageAsFile) {
+  const img = document.getElementById(aImgId);
+  const dt = await synthesizePlainDragAndCancel({
+      srcElement: img,
       finalY: 20,
   }, null);
 
-  info(`DataTransfer types: ${dt.types}`);
-
+  info(`DataTransfer number of types: ${dt.types.length}`);
   for (let type of dt.types) {
-    info(`getData(${type}) = ${dt.getData(type)}`)
+    info(`  getData(${type}) = ${dt.getData(type)}`)
   }
 
-  ok(dt.types.includes("Files"), "types should contains 'Files'");
-  is(dt.files.length, 1, "files contains one File");
+  // Test common types.
+  [
+    "text/x-moz-url",
+    "text/x-moz-url-data",
+    "text/x-moz-url-desc",
+    "text/uri-list",
+    "text/_moz_htmlcontext",
+    "text/_moz_htmlinfo",
+    "text/html",
+    "text/plain",
+    "application/x-moz-file-promise",
+    "application/x-moz-file-promise-url",
+    "application/x-moz-file-promise-dest-filename",
+  ].forEach(type => {
+    ok(dt.types.includes(type), `types should contains '${type}'`);
+  });
 
-  let fileItem = null;
-  for (let item of dt.items) {
-    if (item.kind === "file") {
-      fileItem = item;
-      break;
+  if (aImageAsFile) {
+    ok(dt.types.includes("Files"), "types should contains 'Files'");
+    is(dt.files.length, 1, "files contains one File");
+
+    let fileItem = null;
+    for (let item of dt.items) {
+      if (item.kind === "file") {
+        fileItem = item;
+        break;
+      }
     }
+
+    is(fileItem.kind, "file", "Is a file");
+    is(fileItem.type, "image/png", "Is a PNG file");
+
+    let file = fileItem.getAsFile();
+    is(file.name, "image.png", "Has generic image name")
+    ok(file.size > 100, "Is not empty");
+  } else {
+    ok(dt.types.includes("application/x-moz-nativeimage"), "types should contains 'application/x-moz-nativeimage'");
   }
-
-  is(fileItem.kind, "file", "Is a file");
-  is(fileItem.type, "image/png", "Is a PNG file");
-
-  let file = fileItem.getAsFile();
-  is(file.name, "image.png", "Has generic image name")
-  ok(file.size > 100, "Is not empty");
-
-  SimpleTest.finish();
 }
 
-SimpleTest.waitForExplicitFinish();
-SimpleTest.waitForFocus(runTest);
+[true, false].forEach((pref) => {
+  add_task(async function test_drag_standard_image() {
+    info(`test with dom.events.dataTransfer.imageAsFile.enabled=${pref}`);
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.events.dataTransfer.imageAsFile.enabled", pref]],
+    });
+
+    await synthesizeDragAndCheck("green-png", pref);
+  });
+});
 </script>
 </body>
 </html>
