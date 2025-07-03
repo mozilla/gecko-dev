@@ -533,5 +533,45 @@ pub type MaxSize = GenericMaxSize<NonNegativeLengthPercentage>;
 /// A computed value for `anchor-size` runction.
 pub type AnchorSizeFunction = GenericAnchorSizeFunction<LengthPercentage>;
 
+#[cfg(feature="gecko")]
+use crate::{
+    gecko_bindings::structs::AnchorPosResolutionParams,
+    logical_geometry::PhysicalAxis,
+    values::DashedIdent,
+    values::generics::length::AnchorSizeKeyword,
+};
+
+impl AnchorSizeFunction {
+    /// Resolve the anchor function with the given resolver. Returns `Err()` if no anchor is found.
+    /// `prop_axis`, axis of the property (e.g. `margin-left` -> Horizontal axis), is used if the
+    /// anchor size keyword is not specified.
+    #[cfg(feature="gecko")]
+    pub fn resolve(
+        anchor_name: &DashedIdent,
+        prop_axis: PhysicalAxis,
+        anchor_size_keyword: AnchorSizeKeyword,
+        params: &AnchorPosResolutionParams,
+    ) -> Result<Length, ()> {
+        use crate::gecko_bindings::structs::Gecko_GetAnchorPosSize;
+
+        let mut offset = Length::zero();
+        let valid = unsafe {
+            Gecko_GetAnchorPosSize(
+                params,
+                anchor_name.0.as_ptr(),
+                prop_axis as u8,
+                anchor_size_keyword as u8,
+                &mut offset,
+            )
+        };
+
+        if !valid {
+            return Err(());
+        }
+
+        Ok(offset)
+    }
+}
+
 /// A computed type for `margin` properties.
 pub type Margin = generics::GenericMargin<LengthPercentage>;
