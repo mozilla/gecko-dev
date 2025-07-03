@@ -12,20 +12,17 @@ import {
   EngineURL,
   SearchEngine,
 } from "moz-src:///toolkit/components/search/SearchEngine.sys.mjs";
+import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   loadAndParseOpenSearchEngine:
     "moz-src:///toolkit/components/search/OpenSearchLoader.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
-  return console.createInstance({
-    prefix: "OpenSearchEngine",
-    maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
-  });
+  logConsole: () =>
+    console.createInstance({
+      prefix: "OpenSearchEngine",
+      maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
+    }),
 });
 
 // The default engine update interval, in days. This is only used if an engine

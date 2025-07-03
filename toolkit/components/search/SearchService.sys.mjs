@@ -6,9 +6,7 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AppProvidedSearchEngine:
     "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
@@ -35,21 +33,23 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/search/AppProvidedSearchEngine.sys.mjs",
   UserSearchEngine:
     "moz-src:///toolkit/components/search/UserSearchEngine.sys.mjs",
+  logConsole: () =>
+    console.createInstance({
+      prefix: "SearchService",
+      maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
+    }),
+  timerManager: {
+    service: "@mozilla.org/updates/timer-manager;1",
+    iid: Ci.nsIUpdateTimerManager,
+  },
+  idleService: {
+    service: "@mozilla.org/widget/useridleservice;1",
+    iid: Ci.nsIUserIdleService,
+  },
+  defaultOverrideAllowlist: () => {
+    return new SearchDefaultOverrideAllowlistHandler();
+  },
 });
-
-ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
-  return console.createInstance({
-    prefix: "SearchService",
-    maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
-  });
-});
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "timerManager",
-  "@mozilla.org/updates/timer-manager;1",
-  "nsIUpdateTimerManager"
-);
 
 /**
  * @typedef {import("AddonSearchEngine.sys.mjs").AddonSearchEngine} AddonSearchEngine
@@ -59,15 +59,6 @@ XPCOMUtils.defineLazyServiceGetter(
  * @typedef {import("SearchEngineSelector.sys.mjs").SearchEngineSelector} SearchEngineSelector
  * @typedef {import("UserSearchEngine.sys.mjs").FormInfo} FormInfo
  */
-
-/**
- * A reference to the handler for the default override allowlist.
- *
- * @type {SearchDefaultOverrideAllowlistHandler}
- */
-ChromeUtils.defineLazyGetter(lazy, "defaultOverrideAllowlist", () => {
-  return new SearchDefaultOverrideAllowlistHandler();
-});
 
 const TOPIC_LOCALES_CHANGE = "intl:app-locales-changed";
 const QUIT_APPLICATION_TOPIC = "quit-application";
@@ -214,8 +205,6 @@ export class SearchService {
     // a test.
     this._engines = new Map();
     this._settings = new lazy.SearchSettings(this);
-
-    this.#defineLazyPreferenceGetters();
   }
 
   classID = Components.ID("{7319788a-fe93-4db3-9f39-818cf08f4256}");
@@ -237,7 +226,7 @@ export class SearchService {
 
   set defaultPrivateEngine(newEngine) {
     this.#ensureInitialized();
-    if (!this._separatePrivateDefaultPrefValue) {
+    if (!this.#lazyPrefs.separatePrivateDefaultPrefValue) {
       Services.prefs.setBoolPref(
         lazy.SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
         true
@@ -263,7 +252,7 @@ export class SearchService {
 
   async setDefaultPrivate(engine, changeReason) {
     await this.init();
-    if (!this._separatePrivateDefaultPrefValue) {
+    if (!this.#lazyPrefs.separatePrivateDefaultPrefValue) {
       Services.prefs.setBoolPref(
         lazy.SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
         true
@@ -1057,6 +1046,13 @@ export class SearchService {
   }
 
   /**
+   * Whether to display the "Search in Private Window" result in the urlbar.
+   */
+  get separatePrivateDefaultUrlbarResultEnabled() {
+    return this.#lazyPrefs.separatePrivateDefaultUrlbarResultEnabled;
+  }
+
+  /**
    * This is a nsITimerCallback for the timerManager notification that is
    * registered for handling updates to search engines. Only OpenSearch engines
    * have these updates and hence, only those are handled here.
@@ -1260,8 +1256,8 @@ export class SearchService {
    */
   get #separatePrivateDefault() {
     return (
-      this._separatePrivateDefaultPrefValue &&
-      this._separatePrivateDefaultEnabledPrefValue
+      this.#lazyPrefs.separatePrivateDefaultPrefValue &&
+      this.#lazyPrefs.separatePrivateDefaultEnabledPrefValue
     );
   }
 
@@ -1381,47 +1377,29 @@ export class SearchService {
     throw err;
   }
 
-  /**
-   * Define lazy preference getters for separate private default engine in
-   * private browsing mode.
-   */
-  #defineLazyPreferenceGetters() {
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_separatePrivateDefaultPrefValue",
-      lazy.SearchUtils.BROWSER_SEARCH_PREF + "separatePrivateDefault",
-      false,
-      this.#onSeparateDefaultPrefChanged.bind(this)
-    );
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_separatePrivateDefaultEnabledPrefValue",
-      lazy.SearchUtils.BROWSER_SEARCH_PREF +
-        "separatePrivateDefault.ui.enabled",
-      false,
-      this.#onSeparateDefaultPrefChanged.bind(this)
-    );
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "separatePrivateDefaultUrlbarResultEnabled",
-      lazy.SearchUtils.BROWSER_SEARCH_PREF +
-        "separatePrivateDefault.urlbarResult.enabled",
-      false
+  #lazyPrefs = XPCOMUtils.declareLazy({
+    separatePrivateDefaultPrefValue: {
+      pref: "browser.search.separatePrivateDefault",
+      default: false,
+      onUpdate: this.#onSeparateDefaultPrefChanged.bind(this),
+    },
+    separatePrivateDefaultEnabledPrefValue: {
+      pref: "browser.search.separatePrivateDefault.ui.enabled",
+      default: false,
+      onUpdate: this.#onSeparateDefaultPrefChanged.bind(this),
+    },
+    separatePrivateDefaultUrlbarResultEnabled: {
+      pref: "browser.search.separatePrivateDefault.urlbarResult.enabled",
+      default: false,
       // No need to reload engines, as this only affects the Urlbar result list.
-    );
-
-    XPCOMUtils.defineLazyPreferenceGetter(
-      this,
-      "_experimentPrefValue",
-      lazy.SearchUtils.BROWSER_SEARCH_PREF + "experiment",
-      "",
-      () => {
-        this._maybeReloadEngines(Ci.nsISearchService.CHANGE_REASON_EXPERIMENT);
-      }
-    );
-  }
+    },
+    experimentPrefValue: {
+      pref: "browser.search.experiment",
+      default: "",
+      onUpdate: () =>
+        this._maybeReloadEngines(Ci.nsISearchService.CHANGE_REASON_EXPERIMENT),
+    },
+  });
 
   /**
    * This function adds observers, retrieves the search engine ignore list, and
@@ -1679,7 +1657,7 @@ export class SearchService {
 
     this.#queuedIdle = true;
 
-    this.idleService.addIdleObserver(this, RECONFIG_IDLE_TIME_SEC);
+    lazy.idleService.addIdleObserver(this, RECONFIG_IDLE_TIME_SEC);
   }
 
   /**
@@ -2645,7 +2623,7 @@ export class SearchService {
       locale: Services.locale.appLocaleAsBCP47,
       region: lazy.Region.home || "unknown",
       channel: lazy.SearchUtils.MODIFIED_APP_CHANNEL,
-      experiment: this._experimentPrefValue,
+      experiment: this.#lazyPrefs.experimentPrefValue,
       distroID: lazy.SearchUtils.distroID ?? "",
     };
 
@@ -3214,7 +3192,10 @@ export class SearchService {
     const appDefaultEngine = privateMode
       ? this.appPrivateDefaultEngine
       : this.appDefaultEngine;
-    if (newCurrentEngine == appDefaultEngine && !this._experimentPrefValue) {
+    if (
+      newCurrentEngine == appDefaultEngine &&
+      !this.#lazyPrefs.experimentPrefValue
+    ) {
       newId = "";
     }
 
@@ -3592,7 +3573,7 @@ export class SearchService {
       delete this.ignoreListListener;
     }
     if (this.#queuedIdle) {
-      this.idleService.removeIdleObserver(this, RECONFIG_IDLE_TIME_SEC);
+      lazy.idleService.removeIdleObserver(this, RECONFIG_IDLE_TIME_SEC);
       this.#queuedIdle = false;
     }
 
@@ -3641,7 +3622,7 @@ export class SearchService {
         break;
 
       case "idle": {
-        this.idleService.removeIdleObserver(this, RECONFIG_IDLE_TIME_SEC);
+        lazy.idleService.removeIdleObserver(this, RECONFIG_IDLE_TIME_SEC);
         this.#queuedIdle = false;
         lazy.logConsole.debug(
           "Reloading engines after idle due to configuration change"
@@ -3775,13 +3756,6 @@ export class SearchService {
     }
   }
 } // end SearchService class
-
-XPCOMUtils.defineLazyServiceGetter(
-  SearchService.prototype,
-  "idleService",
-  "@mozilla.org/widget/useridleservice;1",
-  "nsIUserIdleService"
-);
 
 /**
  * Handles getting and checking extensions against the allow list.

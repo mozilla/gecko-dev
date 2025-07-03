@@ -4,27 +4,46 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
-  FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
-  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
-});
-
-ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
-  return console.createInstance({
-    prefix: "SearchSuggestionController",
-    maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
-  });
-});
-
 const DEFAULT_FORM_HISTORY_PARAM = "searchbar-history";
 const HTTP_OK = 200;
-const BROWSER_SUGGEST_PREF = "browser.search.suggest.enabled";
-const BROWSER_SUGGEST_PRIVATE_PREF = "browser.search.suggest.enabled.private";
-const BROWSER_RICH_SUGGEST_PREF = "browser.urlbar.richSuggestions.featureGate";
-const REMOTE_TIMEOUT_PREF = "browser.search.suggest.timeout";
-const REMOTE_TIMEOUT_DEFAULT = 500; // maximum time (ms) to wait before giving up on a remote suggestions
+const REMOTE_TIMEOUT_DEFAULT = 500;
+
+const lazy = XPCOMUtils.declareLazy({
+  FormHistory: "resource://gre/modules/FormHistory.sys.mjs",
+  SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
+  logConsole: () =>
+    console.createInstance({
+      prefix: "SearchSuggestionController",
+      maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
+    }),
+  /** Whether or not remote suggestions are turned on. */
+  suggestionsEnabled: { pref: "browser.search.suggest.enabled", default: true },
+  /** Whether or not remote suggestions are turned on in private browsing mode. */
+  suggestionsInPrivateBrowsingEnabled: {
+    pref: "browser.search.suggest.enabled.private",
+    default: false,
+  },
+  /** Whether or not rich suggestions are turned on. */
+  richSuggestionsEnabled: {
+    pref: "browser.urlbar.richSuggestions.featureGate",
+    default: false,
+  },
+  /** The maximum time (ms) to wait before giving up on a remote suggestions. */
+  remoteTimeout: {
+    pref: "browser.search.suggest.timeout",
+    default: REMOTE_TIMEOUT_DEFAULT,
+  },
+});
+
+/**
+ * @typedef {Awaited<ReturnType<typeof lazy.FormHistory.getAutoCompleteResults>>} FormHistoryResultType
+ */
+
+/**
+ * @typedef {[
+ *   suggestions: string[], descriptions:string[], richResultInformation: object[]
+ * ]} SuggestionRemoteResult
+ */
 
 /**
  * Generates an UUID.
@@ -243,6 +262,8 @@ export class SearchSuggestionController {
 
   /**
    * @typedef {object} FetchResult
+   * @property {string} term
+   * @property {FormHistoryResultType} [formHistoryResults]
    * @property {Array<SearchSuggestionEntry>} local
    *   Contains local search suggestions.
    * @property {Array<SearchSuggestionEntry>} remote
@@ -330,8 +351,8 @@ export class SearchSuggestionController {
     // Fetch remote results from Search Service, if requested.
     if (
       (searchTerm || fetchTrending) &&
-      this.suggestionsEnabled &&
-      (!privateMode || this.suggestionsInPrivateBrowsingEnabled) &&
+      lazy.suggestionsEnabled &&
+      (!privateMode || lazy.suggestionsInPrivateBrowsingEnabled) &&
       this.maxRemoteResults &&
       SearchSuggestionController.engineOffersSuggestions(engine, fetchTrending)
     ) {
@@ -489,7 +510,7 @@ export class SearchSuggestionController {
           deferredResponse.resolve("HTTP request timeout");
         }
       },
-      this.remoteTimeout,
+      lazy.remoteTimeout,
       Ci.nsITimer.TYPE_ONE_SHOT
     );
 
@@ -605,15 +626,20 @@ export class SearchSuggestionController {
   /**
    * @param {object} context
    *   The search context.
-   * @param {Array} suggestResults - an array of result objects from different
+   * @param {{
+   *   localResults?:FormHistoryResultType, result:SuggestionRemoteResult
+   * }[]} suggestResults - an array of result objects from different
    *   sources (local or remote).
-   * @returns {object}
+   * @returns {FetchResult?}
    */
   #dedupeAndReturnResults(context, suggestResults) {
     if (context.abort) {
       return null;
     }
 
+    /**
+     * @type {FetchResult}
+     */
     let results = {
       term: context.searchString,
       remote: [],
@@ -729,7 +755,7 @@ export class SearchSuggestionController {
    * @returns {SearchSuggestionEntry}
    */
   #newSearchSuggestionEntry(suggestion, richSuggestionData, trending) {
-    if (richSuggestionData && (!trending || this.richSuggestionsEnabled)) {
+    if (richSuggestionData && (!trending || lazy.richSuggestionsEnabled)) {
       // We have valid rich suggestions.
       let args = { trending };
 
@@ -737,7 +763,7 @@ export class SearchSuggestionController {
       if (!richSuggestionData?.i) {
         args.matchPrefix = richSuggestionData?.mp;
         args.tail = richSuggestionData?.t;
-      } else if (this.richSuggestionsEnabled) {
+      } else if (lazy.richSuggestionsEnabled) {
         args.icon = richSuggestionData?.i;
         args.description = richSuggestionData?.a;
       }
@@ -748,43 +774,3 @@ export class SearchSuggestionController {
     return new SearchSuggestionEntry(suggestion, { trending });
   }
 }
-
-/**
- * The maximum time (ms) to wait before giving up on a remote suggestions.
- */
-XPCOMUtils.defineLazyPreferenceGetter(
-  SearchSuggestionController.prototype,
-  "remoteTimeout",
-  REMOTE_TIMEOUT_PREF,
-  REMOTE_TIMEOUT_DEFAULT
-);
-
-/**
- * Whether or not remote suggestions are turned on.
- */
-XPCOMUtils.defineLazyPreferenceGetter(
-  SearchSuggestionController.prototype,
-  "suggestionsEnabled",
-  BROWSER_SUGGEST_PREF,
-  true
-);
-
-/**
- * Whether or not remote suggestions are turned on in private browsing mode.
- */
-XPCOMUtils.defineLazyPreferenceGetter(
-  SearchSuggestionController.prototype,
-  "suggestionsInPrivateBrowsingEnabled",
-  BROWSER_SUGGEST_PRIVATE_PREF,
-  false
-);
-
-/**
- * Whether or not rich suggestions are turned on.
- */
-XPCOMUtils.defineLazyPreferenceGetter(
-  SearchSuggestionController.prototype,
-  "richSuggestionsEnabled",
-  BROWSER_RICH_SUGGEST_PREF,
-  false
-);

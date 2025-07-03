@@ -19,29 +19,22 @@ import {
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
+const lazy = XPCOMUtils.declareLazy({
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   SearchEngineClassification:
     "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSearch.sys.mjs",
   SearchUtils: "moz-src:///toolkit/components/search/SearchUtils.sys.mjs",
-});
-
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "idleService",
-  "@mozilla.org/widget/useridleservice;1",
-  "nsIUserIdleService"
-);
-
-ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
-  return console.createInstance({
-    prefix: "SearchEngine",
-    maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
-  });
+  idleService: {
+    service: "@mozilla.org/widget/useridleservice;1",
+    iid: Ci.nsIUserIdleService,
+  },
+  logConsole: () =>
+    console.createInstance({
+      prefix: "SearchEngine",
+      maxLogLevel: lazy.SearchUtils.loggingEnabled ? "Debug" : "Warn",
+    }),
 });
 
 // After the user has been idle for 30s, we'll update icons if we need to.
