@@ -896,7 +896,7 @@
         tab._dragData.movingTabs.reverse();
       }
 
-      this.#updateTabStylesOnDrag(tab, event);
+      this.#updateTabStylesOnDrag(tab);
 
       event.stopPropagation();
 
@@ -2159,9 +2159,8 @@
       This function updates the position and widths of elements affected by this layout shift
       when the tab is first selected to be dragged.
     */
-    #updateTabStylesOnDrag(tab, event) {
+    #updateTabStylesOnDrag(tab) {
       let isPinned = tab.pinned;
-      let numPinned = gBrowser.pinnedTabCount;
       let allTabs = this.ariaFocusableItems;
       let isGrid = this.#isContainerVerticalPinnedGrid(tab);
 
@@ -2187,18 +2186,13 @@
       this.arrowScrollbox.scrollbox.style.width = unpinnedRect.width + "px";
 
       for (let t of allTabs) {
-        if (isTabGroupLabel(t)) {
-          t = t.parentElement;
-        }
         let tabRect = window.windowUtils.getBoundsWithoutFlushing(t);
         // Prevent flex rules from resizing non dragged tabs while the dragged
         // tabs are positioned absolutely
         t.style.maxWidth = tabRect.width + "px";
       }
 
-      let rect = window.windowUtils.getBoundsWithoutFlushing(
-        isTabGroupLabel(tab) ? tab.parentElement : tab
-      );
+      let rect = window.windowUtils.getBoundsWithoutFlushing(tab);
       let { movingTabs } = tab._dragData;
 
       let movingTabsIndex = movingTabs.findIndex(t => t._tPos == tab._tPos);
@@ -2208,22 +2202,11 @@
       let position = 0;
       // Position moving tabs after dragged tab
       for (let movingTab of movingTabs.slice(movingTabsIndex)) {
-        if (isTabGroupLabel(tab)) {
-          movingTab = movingTab.parentElement;
-        }
         movingTab.style.width = rect.width + "px";
         // "dragtarget" contains the following rules which must only be set AFTER the above
         // elements have been adjusted. {z-index: 3 !important, position: absolute !important}
         movingTab.setAttribute("dragtarget", "");
-        if (isTabGroupLabel(tab)) {
-          if (this.verticalMode) {
-            // Vertical tab groups require more precise positioning, hence 2.5 to center the mouse
-            movingTab.style.top = event.clientY - rect.height * 2.5 + "px";
-          } else {
-            movingTab.style.left = rect.left + "px";
-            movingTab.style.height = rect.height + "px";
-          }
-        } else if (isGrid) {
+        if (isGrid) {
           movingTab.style.top = rect.top - rect.height + "px";
           movingTab.style.left = rect.left + position + "px";
           position += rect.width;
@@ -2261,31 +2244,6 @@
           movingTab.style.left = rect.left + position + "px";
           position -= rect.width;
         }
-      }
-
-      if (!isPinned && this.arrowScrollbox.hasAttribute("overflowing")) {
-        let periphery = document.getElementById(
-          "tabbrowser-arrowscrollbox-periphery"
-        );
-        if (this.verticalMode) {
-          periphery.style.marginBlockStart =
-            rect.height * movingTabs.length + "px";
-        } else {
-          periphery.style.marginInlineStart =
-            rect.width * movingTabs.length + "px";
-        }
-      } else if (
-        isPinned &&
-        this.pinnedTabsContainer.hasAttribute("overflowing")
-      ) {
-        let pinnedPeriphery = document.createXULElement("hbox");
-        pinnedPeriphery.id = "pinned-tabs-container-periphery";
-        pinnedPeriphery.style.width = "100%";
-        pinnedPeriphery.style.marginBlockStart =
-          (isGrid && numPinned % this.#maxTabsPerRow == 1
-            ? rect.height
-            : rect.height * movingTabs.length) + "px";
-        this.pinnedTabsContainer.appendChild(pinnedPeriphery);
       }
 
       let setElPosition = el => {
@@ -2329,13 +2287,20 @@
         }
       };
 
+      // Update group label positions so as not to fill the space
+      // when the dragged tabs become absolute
+      if (!isPinned) {
+        for (let groupLabel of document.getElementsByClassName(
+          "tab-group-label-container"
+        )) {
+          setElPosition(groupLabel);
+        }
+      }
+
       // Update tabs in the same container as the dragged tabs so as not
       // to fill the space when the dragged tabs become absolute
       for (let t of allTabs) {
         let tabIsPinned = t.hasAttribute("pinned");
-        if (isTabGroupLabel(t)) {
-          t = t.parentElement;
-        }
         if (!t.hasAttribute("dragtarget")) {
           if (
             (!isPinned && !tabIsPinned) ||
@@ -3100,21 +3065,6 @@
         tab.style.maxWidth = "";
         tab.removeAttribute("dragtarget");
       }
-      for (let label of draggedTabDocument.getElementsByClassName(
-        "tab-group-label-container"
-      )) {
-        label.style.width = "";
-        label.style.height = "";
-        label.style.left = "";
-        label.style.top = "";
-        label.style.maxWidth = "";
-        label.removeAttribute("dragtarget");
-      }
-      let periphery = draggedTabDocument.getElementById(
-        "tabbrowser-arrowscrollbox-periphery"
-      );
-      periphery.style.marginBlockStart = "";
-      periphery.style.marginInlineStart = "";
       let newTabButton = draggedTabDocument.getElementById(
         "tabbrowser-arrowscrollbox-periphery"
       );
@@ -3122,10 +3072,6 @@
       let pinnedTabsContainer = draggedTabDocument.getElementById(
         "pinned-tabs-container"
       );
-      let pinnedPeriphery = draggedTabDocument.getElementById(
-        "pinned-tabs-container-periphery"
-      );
-      pinnedPeriphery && pinnedTabsContainer.removeChild(pinnedPeriphery);
       pinnedTabsContainer.removeAttribute("dragActive");
       draggedTabDocument.defaultView.SidebarController.updatePinnedTabsHeightOnResize();
       pinnedTabsContainer.scrollbox.style.height = "";
