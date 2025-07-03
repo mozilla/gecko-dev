@@ -109,7 +109,9 @@ import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.settings.quicksettings.protections.cookiebanners.getCookieBannerUIMode
+import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
 import org.mozilla.fenix.utils.Settings
 import mozilla.components.lib.state.Action as MVIAction
@@ -172,6 +174,7 @@ internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
  * @param publicSuffixList [PublicSuffixList] used to obtain the base domain of the current site.
  * @param settings [Settings] for accessing user preferences.
  * @param sessionUseCases [SessionUseCases] for interacting with the current session.
+ * @param tabManagementFeatureHelper Feature flag helper for the tab management UI.
  */
 @Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 class BrowserToolbarMiddleware(
@@ -187,6 +190,7 @@ class BrowserToolbarMiddleware(
     private val publicSuffixList: PublicSuffixList,
     private val settings: Settings,
     private val sessionUseCases: SessionUseCases = SessionUseCases(browserStore),
+    private val tabManagementFeatureHelper: TabManagementFeatureHelper = DefaultTabManagementFeatureHelper,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction> {
     @VisibleForTesting
     internal var environment: BrowserToolbarEnvironment? = null
@@ -251,15 +255,27 @@ class BrowserToolbarMiddleware(
                 runWithinEnvironment {
                     thumbnailsFeature?.requestScreenshot()
 
-                    navController.nav(
-                        R.id.browserFragment,
-                        BrowserFragmentDirections.actionGlobalTabsTrayFragment(
-                            page = when (browsingModeManager.mode) {
-                                Normal -> Page.NormalTabs
-                                Private -> Page.PrivateTabs
-                            },
-                        ),
-                    )
+                    if (tabManagementFeatureHelper.enhancementsEnabled) {
+                        navController.nav(
+                            R.id.browserFragment,
+                            BrowserFragmentDirections.actionGlobalTabManagementFragment(
+                                page = when (browsingModeManager.mode) {
+                                    Normal -> Page.NormalTabs
+                                    Private -> Page.PrivateTabs
+                                },
+                            ),
+                        )
+                    } else {
+                        navController.nav(
+                            R.id.browserFragment,
+                            BrowserFragmentDirections.actionGlobalTabsTrayFragment(
+                                page = when (browsingModeManager.mode) {
+                                    Normal -> Page.NormalTabs
+                                    Private -> Page.PrivateTabs
+                                },
+                            ),
+                        )
+                    }
                 }
             }
             is TabCounterLongClicked -> {

@@ -20,7 +20,9 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.components.toolbar.FenixTabCounterMenu
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 
 /**
  * Helper class for building the [FenixTabCounterMenu].
@@ -30,6 +32,7 @@ import org.mozilla.fenix.tabstray.Page
  * @param navController [NavController] used for navigation.
  * @param tabCounter The [TabCounterView] that will be setup with event handlers.
  * @param showLongPressMenu Whether a popup menu should be shown when long pressing on this or not.
+ * @param tabManagementFeatureHelper Feature flag helper for the tab management UI.
  */
 class TabCounterView(
     private val context: Context,
@@ -37,6 +40,7 @@ class TabCounterView(
     private val navController: NavController,
     private val tabCounter: TabCounterView,
     private val showLongPressMenu: Boolean,
+    private val tabManagementFeatureHelper: TabManagementFeatureHelper = DefaultTabManagementFeatureHelper,
 ) {
 
     init {
@@ -45,15 +49,27 @@ class TabCounterView(
         tabCounter.setOnClickListener {
             StartOnHome.openTabsTray.record(NoExtras())
 
-            navController.nav(
-                navController.currentDestination?.id,
-                NavGraphDirections.actionGlobalTabsTrayFragment(
-                    page = when (browsingModeManager.mode) {
-                        BrowsingMode.Normal -> Page.NormalTabs
-                        BrowsingMode.Private -> Page.PrivateTabs
-                    },
-                ),
-            )
+            if (tabManagementFeatureHelper.enhancementsEnabled) {
+                navController.nav(
+                    navController.currentDestination?.id,
+                    NavGraphDirections.actionGlobalTabManagementFragment(
+                        page = when (browsingModeManager.mode) {
+                            BrowsingMode.Normal -> Page.NormalTabs
+                            BrowsingMode.Private -> Page.PrivateTabs
+                        },
+                    ),
+                )
+            } else {
+                navController.nav(
+                    navController.currentDestination?.id,
+                    NavGraphDirections.actionGlobalTabsTrayFragment(
+                        page = when (browsingModeManager.mode) {
+                            BrowsingMode.Normal -> Page.NormalTabs
+                            BrowsingMode.Private -> Page.PrivateTabs
+                        },
+                    ),
+                )
+            }
         }
     }
 

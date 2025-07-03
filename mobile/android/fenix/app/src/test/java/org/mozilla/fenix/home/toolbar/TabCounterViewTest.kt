@@ -32,6 +32,7 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
+import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 import org.mozilla.fenix.utils.Settings
 import org.robolectric.RobolectricTestRunner
 import mozilla.components.ui.tabcounter.TabCounterView as MozacTabCounter
@@ -196,6 +197,16 @@ class TabCounterViewTest {
             navController = navController,
             tabCounter = tabCounter,
             showLongPressMenu = showLongPressMenu,
+            tabManagementFeatureHelper = object : TabManagementFeatureHelper {
+                override val enhancementsEnabledNightly: Boolean
+                    get() = false
+                override val enhancementsEnabledBeta: Boolean
+                    get() = false
+                override val enhancementsEnabledRelease: Boolean
+                    get() = false
+                override val enhancementsEnabled: Boolean
+                    get() = false
+            },
         )
     }
 }
