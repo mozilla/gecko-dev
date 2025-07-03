@@ -64,6 +64,8 @@ import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.messaging.MessageController
 import org.mozilla.fenix.onboarding.WallpaperOnboardingDialogFragment.Companion.THUMBNAILS_SELECTION_COUNT
 import org.mozilla.fenix.settings.SupportUtils
+import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
+import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.maybeShowAddSearchWidgetPrompt
 import org.mozilla.fenix.wallpapers.Wallpaper
@@ -214,6 +216,7 @@ class DefaultSessionControlController(
     private val appStore: AppStore,
     private val navController: NavController,
     private val viewLifecycleScope: CoroutineScope,
+    private val tabManagementFeatureHelper: TabManagementFeatureHelper = DefaultTabManagementFeatureHelper,
     private val registerCollectionStorageObserver: () -> Unit,
     private val removeCollectionWithUndo: (tabCollection: TabCollection) -> Unit,
     private val showUndoSnackbarForTopSite: (topSite: TopSite) -> Unit,
@@ -592,9 +595,15 @@ class DefaultSessionControlController(
     }
 
     private fun showTabTrayCollectionCreation() {
-        val directions = HomeFragmentDirections.actionGlobalTabsTrayFragment(
-            enterMultiselect = true,
-        )
+        val directions = if (tabManagementFeatureHelper.enhancementsEnabled) {
+            HomeFragmentDirections.actionGlobalTabManagementFragment(
+                enterMultiselect = true,
+            )
+        } else {
+            HomeFragmentDirections.actionGlobalTabsTrayFragment(
+                enterMultiselect = true,
+            )
+        }
         navController.nav(R.id.homeFragment, directions)
     }
 
