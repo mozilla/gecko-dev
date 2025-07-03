@@ -5988,7 +5988,6 @@ static nscoord ContentContribution(const GridItemInfo& aGridItem,
       size = 0;
     } else {
       // We need to reflow the child to find its BSize contribution.
-      // XXX this will give mostly correct results for now (until bug 1300366).
       nscoord availISize = INFINITE_ISIZE_COORD;
       nscoord availBSize = NS_UNCONSTRAINEDSIZE;
       // The next two variables are MinSizeClamp values in the child's axes.
