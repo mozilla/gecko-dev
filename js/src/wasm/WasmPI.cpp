@@ -153,15 +153,41 @@ void SuspenderContext::trace(JSTracer* trc) {
   }
 }
 
+static JitActivation* FindSuspendableStackActivation(
+    JSTracer* trc, const SuspenderObjectData& data) {
+  // The jitActivation.refNoCheck() can be used since during trace/marking
+  // the main thread will be paused.
+  JitActivation* activation =
+      trc->runtime()->mainContextFromAnyThread()->jitActivation.refNoCheck();
+  while (activation) {
+    // Scan all JitActivations to find one that starts with suspended stack
+    // frame pointer.
+    WasmFrameIter iter(activation);
+    if (!iter.done() && data.hasFramePointer(iter.frame())) {
+      return activation;
+    }
+    activation = activation->prevJitActivation();
+  }
+  MOZ_CRASH("Suspendable stack activation not found");
+}
+
 static void TraceSuspendableStack(JSTracer* trc,
                                   const SuspenderObjectData& data) {
-  void* startFP = data.suspendableFP();
-  void* returnAddress = data.suspendedReturnAddress();
   void* exitFP = data.suspendableExitFP();
-  MOZ_ASSERT(startFP != exitFP);
+  MOZ_ASSERT(data.traceable());
 
-  WasmFrameIter iter(static_cast<FrameWithInstances*>(startFP), returnAddress);
-  MOZ_ASSERT(iter.currentFrameStackSwitched());
+  // Create and iterator for wasm frames:
+  //  - If a stack entry for suspended stack exists, the data.suspendableFP()
+  //    and data.suspendedReturnAddress() provide start of the frames.
+  //  - Otherwise, the stack is the part of the main stack, the context
+  //    JitActivation frames will be used to trace.
+  WasmFrameIter iter =
+      data.hasStackEntry()
+          ? WasmFrameIter(
+                static_cast<FrameWithInstances*>(data.suspendableFP()),
+                data.suspendedReturnAddress())
+          : WasmFrameIter(FindSuspendableStackActivation(trc, data));
+  MOZ_ASSERT_IF(data.hasStackEntry(), iter.currentFrameStackSwitched());
   uintptr_t highestByteVisitedInPrevWasmFrame = 0;
   while (true) {
     MOZ_ASSERT(!iter.done());
@@ -367,8 +393,7 @@ void SuspenderObject::trace(JSTracer* trc, JSObject* obj) {
   SuspenderObjectData& data = *suspender.data();
   // The SuspenderObjectData refers stacks frames that need to be traced
   // only during major GC to determine if SuspenderObject content is
-  // reachable from JS. The frames must be suspended -- non-suspended
-  // stack frames are traced as part of TraceJitActivations.
+  // reachable from JS.
   if (!data.traceable() || trc->isTenuringTracer()) {
     return;
   }
@@ -445,6 +470,9 @@ void SuspenderObject::resume(JSContext* cx) {
   cx->wasm().promiseIntegration.setActiveSuspender(this);
   setActive(cx);
   data()->setSuspendedBy(nullptr);
+  // Use barrier because object is being removed from the suspendable stack
+  // from roots.
+  gc::PreWriteBarrier(this);
   cx->wasm().promiseIntegration.suspendedStacks_.remove(data());
 #  ifdef DEBUG
   cx->runtime()->jitRuntime()->disallowArbitraryCode();
@@ -504,6 +532,9 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
 
   MOZ_ASSERT(suspender->state() == SuspenderState::Active);
   suspender->setSuspended(cx);
+  // Keep suspendedBy not set -- the stack has no defined entry.
+  // See TraceSuspendableStack for details.
+  MOZ_RELEASE_ASSERT(suspender->data()->suspendedBy() == nullptr);
 
 #  ifdef JS_SIMULATOR
 #    if defined(JS_SIMULATOR_ARM64) || defined(JS_SIMULATOR_ARM)
