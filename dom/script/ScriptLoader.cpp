@@ -3639,7 +3639,8 @@ void ScriptLoader::GiveUpBytecodeEncoding() {
   }
 
   while (!mBytecodeEncodableDependencyModules.isEmpty()) {
-    (void)mBytecodeEncodableDependencyModules.StealFirst();
+    RefPtr<ScriptLoadRequest> request =
+        mBytecodeEncodableDependencyModules.StealFirst();
   }
 }
 
