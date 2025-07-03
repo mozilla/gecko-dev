@@ -206,7 +206,7 @@ TextAttrsMgr::BGColorTextAttr::BGColorTextAttr(nsIFrame* aRootFrame,
 
 void TextAttrsMgr::BGColorTextAttr::ExposeValue(AccAttributes* aAttributes,
                                                 const nscolor& aValue) {
-  aAttributes->SetAttribute(nsGkAtoms::backgroundColor, Color{aValue});
+  aAttributes->SetAttribute(nsGkAtoms::background_color, Color{aValue});
 }
 
 bool TextAttrsMgr::BGColorTextAttr::GetColor(nsIFrame* aFrame,
@@ -368,7 +368,7 @@ TextAttrsMgr::FontWeightTextAttr::FontWeightTextAttr(nsIFrame* aRootFrame,
 void TextAttrsMgr::FontWeightTextAttr::ExposeValue(AccAttributes* aAttributes,
                                                    const FontWeight& aValue) {
   int value = aValue.ToIntRounded();
-  aAttributes->SetAttribute(nsGkAtoms::fontWeight, value);
+  aAttributes->SetAttribute(nsGkAtoms::font_weight, value);
 }
 
 FontWeight TextAttrsMgr::FontWeightTextAttr::GetFontWeight(nsIFrame* aFrame) {

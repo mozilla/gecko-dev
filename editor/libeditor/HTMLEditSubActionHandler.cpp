@@ -10822,7 +10822,7 @@ nsresult HTMLEditor::GetInlineStyles(
                                  nsGkAtoms::cite,
                                  nsGkAtoms::abbr,
                                  nsGkAtoms::acronym,
-                                 nsGkAtoms::backgroundColor,
+                                 nsGkAtoms::background_color,
                                  nsGkAtoms::sub,
                                  nsGkAtoms::sup}) {
     const EditorInlineStyle style =

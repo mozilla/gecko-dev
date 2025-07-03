@@ -64,7 +64,7 @@ static AtkAttributeSet* ConvertToAtkTextAttributeSet(
     if (name == nsGkAtoms::color) {
       atkName(ATK_TEXT_ATTR_FG_COLOR);
       colorValue();
-    } else if (name == nsGkAtoms::backgroundColor) {
+    } else if (name == nsGkAtoms::background_color) {
       atkName(ATK_TEXT_ATTR_BG_COLOR);
       colorValue();
     } else if (name == nsGkAtoms::font_family) {
@@ -76,7 +76,7 @@ static AtkAttributeSet* ConvertToAtkTextAttributeSet(
       auto fontSize = iter.Value<FontSize>();
       MOZ_ASSERT(fontSize);
       value.AppendInt(fontSize->mValue);
-    } else if (name == nsGkAtoms::fontWeight) {
+    } else if (name == nsGkAtoms::font_weight) {
       atkName(ATK_TEXT_ATTR_WEIGHT);
       iter.ValueAsString(value);
     } else if (name == nsGkAtoms::invalid) {

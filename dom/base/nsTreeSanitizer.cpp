@@ -322,7 +322,7 @@ const nsStaticAtom* const kElementsSVG[] = {
     nsGkAtoms::a,                    // a
     nsGkAtoms::circle,               // circle
     nsGkAtoms::clipPath,             // clipPath
-    nsGkAtoms::colorProfile,         // color-profile
+    nsGkAtoms::color_profile,        // color-profile
     nsGkAtoms::cursor,               // cursor
     nsGkAtoms::defs,                 // defs
     nsGkAtoms::desc,                 // desc
@@ -418,17 +418,17 @@ constexpr const nsStaticAtom* const kAttributesSVG[] = {
     nsGkAtoms::by,        // by
     nsGkAtoms::calcMode,  // calcMode
     // cap-height
-    nsGkAtoms::_class,                     // class
-    nsGkAtoms::clip_path,                  // clip-path
-    nsGkAtoms::clip_rule,                  // clip-rule
-    nsGkAtoms::clipPathUnits,              // clipPathUnits
-    nsGkAtoms::color,                      // color
-    nsGkAtoms::colorInterpolation,         // color-interpolation
-    nsGkAtoms::colorInterpolationFilters,  // color-interpolation-filters
-    nsGkAtoms::cursor,                     // cursor
-    nsGkAtoms::cx,                         // cx
-    nsGkAtoms::cy,                         // cy
-    nsGkAtoms::d,                          // d
+    nsGkAtoms::_class,                       // class
+    nsGkAtoms::clip_path,                    // clip-path
+    nsGkAtoms::clip_rule,                    // clip-rule
+    nsGkAtoms::clipPathUnits,                // clipPathUnits
+    nsGkAtoms::color,                        // color
+    nsGkAtoms::color_interpolation,          // color-interpolation
+    nsGkAtoms::color_interpolation_filters,  // color-interpolation-filters
+    nsGkAtoms::cursor,                       // cursor
+    nsGkAtoms::cx,                           // cx
+    nsGkAtoms::cy,                           // cy
+    nsGkAtoms::d,                            // d
     // descent
     nsGkAtoms::diffuseConstant,    // diffuseConstant
     nsGkAtoms::direction,          // direction
@@ -457,7 +457,7 @@ constexpr const nsStaticAtom* const kAttributesSVG[] = {
     nsGkAtoms::font_stretch,      // font-stretch
     nsGkAtoms::font_style,        // font-style
     nsGkAtoms::font_variant,      // font-variant
-    nsGkAtoms::fontWeight,        // font-weight
+    nsGkAtoms::font_weight,       // font-weight
     nsGkAtoms::format,            // format
     nsGkAtoms::from,              // from
     nsGkAtoms::fx,                // fx

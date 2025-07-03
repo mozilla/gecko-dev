@@ -1672,21 +1672,21 @@ void nsHtml5AttributeName::initializeStatics() {
                                           nsGkAtoms::bgcolor,
                                           nsGkAtoms::bgcolor, ALL_NO_PREFIX);
   ATTR_COLOR_PROFILE = new nsHtml5AttributeName(
-      ALL_NO_NS, nsGkAtoms::colorProfile, nsGkAtoms::colorProfile,
-      nsGkAtoms::colorProfile, ALL_NO_PREFIX);
+      ALL_NO_NS, nsGkAtoms::color_profile, nsGkAtoms::color_profile,
+      nsGkAtoms::color_profile, ALL_NO_PREFIX);
   ATTR_COLOR_RENDERING = new nsHtml5AttributeName(
       ALL_NO_NS, nsGkAtoms::color_rendering, nsGkAtoms::color_rendering,
       nsGkAtoms::color_rendering, ALL_NO_PREFIX);
   ATTR_COLOR_INTERPOLATION = new nsHtml5AttributeName(
-      ALL_NO_NS, nsGkAtoms::colorInterpolation, nsGkAtoms::colorInterpolation,
-      nsGkAtoms::colorInterpolation, ALL_NO_PREFIX);
+      ALL_NO_NS, nsGkAtoms::color_interpolation, nsGkAtoms::color_interpolation,
+      nsGkAtoms::color_interpolation, ALL_NO_PREFIX);
   ATTR_COLOR =
       new nsHtml5AttributeName(ALL_NO_NS, nsGkAtoms::color, nsGkAtoms::color,
                                nsGkAtoms::color, ALL_NO_PREFIX);
   ATTR_COLOR_INTERPOLATION_FILTERS = new nsHtml5AttributeName(
-      ALL_NO_NS, nsGkAtoms::colorInterpolationFilters,
-      nsGkAtoms::colorInterpolationFilters,
-      nsGkAtoms::colorInterpolationFilters, ALL_NO_PREFIX);
+      ALL_NO_NS, nsGkAtoms::color_interpolation_filters,
+      nsGkAtoms::color_interpolation_filters,
+      nsGkAtoms::color_interpolation_filters, ALL_NO_PREFIX);
   ATTR_ENCODING = new nsHtml5AttributeName(ALL_NO_NS, nsGkAtoms::encoding,
                                            nsGkAtoms::encoding,
                                            nsGkAtoms::encoding, ALL_NO_PREFIX);
@@ -2032,8 +2032,8 @@ void nsHtml5AttributeName::initializeStatics() {
       ALL_NO_NS, nsGkAtoms::fontweight, nsGkAtoms::fontweight,
       nsGkAtoms::fontweight, ALL_NO_PREFIX);
   ATTR_FONT_WEIGHT = new nsHtml5AttributeName(
-      ALL_NO_NS, nsGkAtoms::fontWeight, nsGkAtoms::fontWeight,
-      nsGkAtoms::fontWeight, ALL_NO_PREFIX);
+      ALL_NO_NS, nsGkAtoms::font_weight, nsGkAtoms::font_weight,
+      nsGkAtoms::font_weight, ALL_NO_PREFIX);
   ATTR_FONTSTYLE = new nsHtml5AttributeName(
       ALL_NO_NS, nsGkAtoms::fontstyle, nsGkAtoms::fontstyle,
       nsGkAtoms::fontstyle, ALL_NO_PREFIX);

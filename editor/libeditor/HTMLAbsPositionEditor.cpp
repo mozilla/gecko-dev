@@ -965,11 +965,11 @@ nsresult HTMLEditor::GetTemporaryStyleForFocusedPositionedElement(
   }
 
   nsAutoString backgroundColorValue;
-  rv = CSSEditUtils::GetComputedProperty(aElement, *nsGkAtoms::backgroundColor,
+  rv = CSSEditUtils::GetComputedProperty(aElement, *nsGkAtoms::background_color,
                                          backgroundColorValue);
   if (NS_FAILED(rv)) {
     NS_WARNING(
-        "CSSEditUtils::GetComputedProperty(nsGkAtoms::backgroundColor) "
+        "CSSEditUtils::GetComputedProperty(nsGkAtoms::background_color) "
         "failed");
     return rv;
   }

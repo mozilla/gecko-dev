@@ -689,7 +689,7 @@ nsStaticAtom* CSSEditUtils::GetCSSPropertyAtom(
     nsCSSEditableProperty aProperty) {
   switch (aProperty) {
     case eCSSEditableProperty_background_color:
-      return nsGkAtoms::backgroundColor;
+      return nsGkAtoms::background_color;
     case eCSSEditableProperty_background_image:
       return nsGkAtoms::background_image;
     case eCSSEditableProperty_border:
@@ -707,7 +707,7 @@ nsStaticAtom* CSSEditUtils::GetCSSPropertyAtom(
     case eCSSEditableProperty_font_style:
       return nsGkAtoms::font_style;
     case eCSSEditableProperty_font_weight:
-      return nsGkAtoms::fontWeight;
+      return nsGkAtoms::font_weight;
     case eCSSEditableProperty_height:
       return nsGkAtoms::height;
     case eCSSEditableProperty_list_style_type:

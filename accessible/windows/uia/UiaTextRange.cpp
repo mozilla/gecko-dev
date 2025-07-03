@@ -1116,7 +1116,7 @@ struct AttributeTraits<UIA_FontWeightAttributeId> {
     if (!attrs) {
       return {};
     }
-    return attrs->GetAttribute<AttrType>(nsGkAtoms::fontWeight);
+    return attrs->GetAttribute<AttrType>(nsGkAtoms::font_weight);
   }
 
   static AttrType DefaultValue() {

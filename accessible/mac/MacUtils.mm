@@ -98,7 +98,7 @@ NSDictionary* StringAttributesFromAccAttributes(AccAttributes* aAttributes,
   NSMutableDictionary* fontAttrDict = [[NSMutableDictionary alloc] init];
   [attrDict setObject:fontAttrDict forKey:@"AXFont"];
   for (auto iter : *aAttributes) {
-    if (iter.Name() == nsGkAtoms::backgroundColor) {
+    if (iter.Name() == nsGkAtoms::background_color) {
       if (Maybe<Color> value = iter.Value<Color>()) {
         NSColor* color = ColorFromColor(*value);
         [attrDict setObject:(__bridge id)color.CGColor
