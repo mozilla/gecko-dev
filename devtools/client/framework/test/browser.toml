@@ -130,7 +130,10 @@ skip-if = [
 ["browser_target_loading.js"]
 
 ["browser_target_parents.js"]
-skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan"] # Bug 1897912
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1897912
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1897912
+]
 
 ["browser_target_remote.js"]
 
