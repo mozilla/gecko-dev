@@ -239,6 +239,46 @@ add_task(async function test_tabGroupCollapseWhileSelected() {
   await removeTabGroup(group);
 });
 
+add_task(async function test_groupHasActiveTab() {
+  let [tab1, tab2, tab3] = createManyTabs(3);
+  let group1 = gBrowser.addTabGroup([tab1]);
+  let group2 = gBrowser.addTabGroup([tab2]);
+
+  function activeTabTest(tabsMode) {
+    info(`hasactivetab test for ${tabsMode} tabs mode`);
+    gBrowser.selectedTab = tab3;
+    Assert.ok(!group1.hasActiveTab, "group1 hasactivetab=false");
+    Assert.ok(!group2.hasActiveTab, "group2 hasactivetab=false");
+    gBrowser.selectedTab = tab1;
+    Assert.ok(group1.hasActiveTab, "group1 hasactivetab=true");
+    Assert.ok(!group2.hasActiveTab, "group2 hasactivetab=false");
+    gBrowser.selectedTab = tab2;
+    Assert.ok(!group1.hasActiveTab, "group1 hasactivetab=false");
+    Assert.ok(group2.hasActiveTab, "group2 hasactivetab=true");
+  }
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+    ],
+  });
+  activeTabTest("vertical");
+  await SpecialPowers.popPrefEnv();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", false],
+    ],
+  });
+  activeTabTest("horizontal");
+  await SpecialPowers.popPrefEnv();
+
+  await removeTabGroup(group1);
+  await removeTabGroup(group2);
+  BrowserTestUtils.removeTab(tab3);
+});
+
 add_task(async function test_closingLastTabBeforeCollapsedTabGroup() {
   // If there is one standalone tab that's active and there is a collapsed
   // tab group, and the user closes the standalone tab, the first tab of
