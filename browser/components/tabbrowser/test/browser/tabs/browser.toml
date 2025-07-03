@@ -521,6 +521,9 @@ tags = "vertical-tabs"
 ["browser_tab_groups_a11y.js"]
 tags = "vertical-tabs"
 
+["browser_tab_groups_insertAfterCurrent.js"]
+tags = "vertical-tabs"
+
 ["browser_tab_groups_keyboard_focus.js"]
 tags = "vertical-tabs"
 
