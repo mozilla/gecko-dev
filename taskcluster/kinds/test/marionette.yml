@@ -75,14 +75,7 @@ marionette:
                     .*-wayland.*: []
                     .*/debug: built-projects
                     default: []
-            inc-origin-init:
-                by-test-platform:
-                    .*-asan.*: []
-                    .*-ccov.*: []
-                    linux.*64(-shippable)?(-qr)?/.*: built-projects
-                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
-                    windows1.*64.*(-shippable)?(-qr)?/.*: built-projects
-                    default: []
+            inc-origin-init: []
             default:
                 by-test-platform:
                     .*-wayland.*: []

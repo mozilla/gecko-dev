@@ -107,18 +107,8 @@ web-platform-tests:
                     android.*: []
                     .*-wayland.*: []
                     default: built-projects
-            inc-origin-init:
-                by-test-platform:
-                    linux.*64(-shippable)?(-qr)?/.*: built-projects
-                    macosx.*64(-shippable)?/.*: built-projects
-                    windows11.*64.*(-shippable)?/.*: built-projects
-                    default: []
-            privatebrowsing-inc-origin-init:
-                by-test-platform:
-                    linux.*64(-shippable)?(-qr)?/.*: built-projects
-                    macosx.*64(-shippable)?/.*: built-projects
-                    windows11.*64.*(-shippable)?/.*: built-projects
-                    default: []
+            inc-origin-init: []
+            privatebrowsing-inc-origin-init: []
             default:
                 by-test-platform:
                     android.*: []

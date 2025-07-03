@@ -136,15 +136,7 @@ mochitest-plain:
                     android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
                     android-em.*: built-projects
                     default: []
-            inc-origin-init:
-                by-test-platform:
-                    .*-asan.*: []
-                    .*-ccov.*: []
-                    linux.*64(-shippable)?(-qr)?/.*: built-projects
-                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
-                    windows11-64-24h2(-shippable)?(-qr)?/.*: built-projects
-                    windows10-64-2009(-shippable)?(-qr)?/.*: built-projects
-                    default: []
+            inc-origin-init: []
             default:
                 by-test-platform:
                     android-em-7.0-x86_64(-qr)?/debug-isolated-process: []
@@ -299,14 +291,7 @@ mochitest-browser-chrome:
                     macosx.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
                     windows1.*-64.*(-shippable)?/.*: ['autoland', 'mozilla-central']
                     default: []
-            inc-origin-init:
-                by-test-platform:
-                    .*-asan.*: []
-                    .*-ccov.*: []
-                    linux.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
-                    macosx.*64(-shippable)?(-qr)?/.*: ['autoland', 'mozilla-central']
-                    windows1.*-64.*(-shippable)?/.*: ['autoland', 'mozilla-central']
-                    default: []
+            inc-origin-init: []
             default:
                 by-test-platform:
                     android.*: []
@@ -542,14 +527,7 @@ mochitest-chrome:
                 by-test-platform:
                     .*-wayland.*: []
                     default: built-projects
-            inc-origin-init:
-                by-test-platform:
-                    .*-asan.*: []
-                    .*-ccov.*: []
-                    linux.*64(-shippable)?(-qr)?/.*: built-projects
-                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
-                    windows1.*64.*(-shippable)?(-qr)?/.*: built-projects
-                    default: []
+            inc-origin-init: []
     chunks:
         by-variant:
             inc-origin-init: dynamic

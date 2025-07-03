@@ -66,14 +66,7 @@ gtest:
                     linux2404-32/debug: ['mozilla-central']  # try and m-c
                     linux2404-32-shippable/opt: ['mozilla-central']  # try and m-c
                     default: built-projects
-            inc-origin-init:
-                by-test-platform:
-                    .*-asan.*: []
-                    .*-ccov.*: []
-                    linux.*64(-shippable)?(-qr)?/.*: built-projects
-                    macosx.*64(-shippable)?(-qr)?/.*: built-projects
-                    windows1.*64.*(-shippable)?(-qr)?/.*: built-projects
-                    default: []
+            inc-origin-init: []
             default: []
     mozharness:
         extra-options:
