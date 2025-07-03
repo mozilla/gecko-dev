@@ -4,6 +4,7 @@
 
 package org.mozilla.geckoview.test
 
+import androidx.annotation.OptIn
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import junit.framework.TestCase.assertEquals
@@ -13,6 +14,7 @@ import junit.framework.TestCase.fail
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.gecko.EventDispatcher.QueryException
+import org.mozilla.geckoview.ExperimentalGeckoViewApi
 import org.mozilla.geckoview.GeckoPreferenceController
 import org.mozilla.geckoview.GeckoPreferenceController.GeckoPreference
 import org.mozilla.geckoview.GeckoPreferenceController.PREF_BRANCH_DEFAULT
@@ -24,6 +26,7 @@ import org.mozilla.geckoview.GeckoPreferenceController.PREF_TYPE_STRING
 
 @RunWith(AndroidJUnit4::class)
 @MediumTest
+@OptIn(ExperimentalGeckoViewApi::class)
 class PreferencesTest : BaseSessionTest() {
     /**
      * Checking if delegate getter and setter behave as expected.

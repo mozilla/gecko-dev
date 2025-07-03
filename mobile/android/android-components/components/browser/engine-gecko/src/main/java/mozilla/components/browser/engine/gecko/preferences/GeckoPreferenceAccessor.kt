@@ -4,6 +4,8 @@
 
 package mozilla.components.browser.engine.gecko.preferences
 
+import androidx.annotation.OptIn
+import org.mozilla.geckoview.ExperimentalGeckoViewApi
 import org.mozilla.geckoview.GeckoPreferenceController
 import org.mozilla.geckoview.GeckoPreferenceController.GeckoPreference
 import org.mozilla.geckoview.GeckoResult
@@ -25,6 +27,7 @@ interface GeckoPreferenceAccessor {
      * @param pref The name of the preference to get.
      * @return A [GeckoResult] object containing the value of the preference, or null if the preference does not exist.
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     fun getGeckoPref(pref: String): GeckoResult<GeckoPreference<*>?>
 
     /**
@@ -74,6 +77,7 @@ internal class DefaultGeckoPreferenceAccessor : GeckoPreferenceAccessor {
      * @return A [GeckoResult] containing the [GeckoPreference] for the given preference, or null if the
      * preference does not exist. The [GeckoResult] will contain an error if the operation fails.
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     override fun getGeckoPref(pref: String): GeckoResult<GeckoPreference<*>?> {
         return GeckoPreferenceController.getGeckoPref(pref)
     }
@@ -86,6 +90,7 @@ internal class DefaultGeckoPreferenceAccessor : GeckoPreferenceAccessor {
      * @param branch The preference branch to operate on.
      * @return A [GeckoResult] object indicating whether the operation was successful.
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     override fun setGeckoPref(
         pref: String,
         value: String,
@@ -102,6 +107,7 @@ internal class DefaultGeckoPreferenceAccessor : GeckoPreferenceAccessor {
      * @param branch The preference branch to operate on.
      * @return A [GeckoResult] object that can be used to check if the operation was successful.
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     override fun setGeckoPref(
         pref: String,
         value: Int,
@@ -118,6 +124,7 @@ internal class DefaultGeckoPreferenceAccessor : GeckoPreferenceAccessor {
      * @param branch The preference branch to operate on.
      * @return A [GeckoResult] object indicating whether the operation was successful.
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     override fun setGeckoPref(
         pref: String,
         value: Boolean,
@@ -132,6 +139,7 @@ internal class DefaultGeckoPreferenceAccessor : GeckoPreferenceAccessor {
      * @param pref The name of the preference to clear.
      * @return A [GeckoResult] object, which can be used to check if the operation was successful.
      */
+    @OptIn(ExperimentalGeckoViewApi::class)
     override fun clearGeckoUserPref(pref: String): GeckoResult<Void> {
         return GeckoPreferenceController.clearGeckoUserPref(pref)
     }

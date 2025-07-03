@@ -9,6 +9,7 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Looper.getMainLooper
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.ExperimentalAndroidComponentsApi
 import mozilla.components.browser.engine.gecko.ext.getAntiTrackingPolicy
 import mozilla.components.browser.engine.gecko.mediaquery.toGeckoValue
 import mozilla.components.browser.engine.gecko.preferences.GeckoPreferenceAccessor
@@ -4065,6 +4066,7 @@ class GeckoEngineTest {
             geckoPreferenceAccessor = geckoPreferenceAccessor,
         )
 
+        @OptIn(ExperimentalAndroidComponentsApi::class)
         engine.getBrowserPref(
             geckoPref,
             onSuccess = {
@@ -4101,6 +4103,7 @@ class GeckoEngineTest {
             geckoPreferenceAccessor = geckoPreferenceAccessor,
         )
 
+        @OptIn(ExperimentalAndroidComponentsApi::class)
         engine.setBrowserPref(
             "test.test.test",
             1,
@@ -4139,6 +4142,7 @@ class GeckoEngineTest {
             geckoPreferenceAccessor = geckoPreferenceAccessor,
         )
 
+        @OptIn(ExperimentalAndroidComponentsApi::class)
         engine.clearBrowserUserPref(
             "test.test.test",
 

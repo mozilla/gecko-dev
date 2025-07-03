@@ -20,7 +20,13 @@ import java.util.Objects;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.util.GeckoBundle;
 
-/** Used to access and manipulate Gecko preferences through GeckoView. */
+/**
+ * Class is used to access and manipulate Gecko preferences through GeckoView.
+ *
+ * <p>This API is experimental because manipulating Gecko preferences is risky and can interfere
+ * with browser operation without special care.
+ */
+@ExperimentalGeckoViewApi
 public class GeckoPreferenceController {
   private static final String LOGTAG = "GeckoPreference";
   private static final boolean DEBUG = false;
