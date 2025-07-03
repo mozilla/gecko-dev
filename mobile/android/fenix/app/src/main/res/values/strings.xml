@@ -1564,6 +1564,8 @@
     <string name="webcompat_reporter_success_snackbar_text">Your report was sent</string>
     <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
     <string name="webcompat_reporter_dismiss_success_snackbar_text">Close</string>
+    <!-- Placeholder text for the description field to prompt the user on what they should type. -->
+    <string name="webcompat_reporter_problem_description_placeholder_text">What happened? What should have happened?</string>
 
     <!-- These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site. -->
     <!-- Broken site reason text for site slow or not working -->

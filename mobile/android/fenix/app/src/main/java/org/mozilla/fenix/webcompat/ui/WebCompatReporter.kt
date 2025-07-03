@@ -159,7 +159,7 @@ fun WebCompatReporter(
                 onValueChange = {
                     store.dispatch(WebCompatReporterAction.ProblemDescriptionChanged(newProblemDescription = it))
                 },
-                placeholder = "",
+                placeholder = stringResource(id = R.string.webcompat_reporter_problem_description_placeholder_text),
                 errorText = "",
                 label = stringResource(id = R.string.webcompat_reporter_label_description),
                 singleLine = false,
