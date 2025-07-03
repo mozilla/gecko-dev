@@ -53,6 +53,7 @@ case ${target_platform} in
                 extra_args="--x86"
                 ;;
         esac
+        extra_args="$extra_args --cmake_extra_defines CMAKE_SHARED_LINKER_FLAGS=/MANIFEST:NO"
         . $GECKO_PATH/taskcluster/scripts/misc/vs-setup.sh
         sed -i -e 's/ProgramDatabase//' "$MOZ_FETCHES_DIR/onnxruntime/tools/ci_build/build.py"
         export CC=cl.exe
