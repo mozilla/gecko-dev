@@ -801,6 +801,7 @@ scheme = "https"
 tags = "os_integration"
 skip-if = [
   "!mda_gpu",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan && swgl", # Bug 1862181
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1862181
   "os == 'mac' && os_version == '15.00' && processor == 'aarch64' && opt && socketprocess_networking", # Bug 1862181
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1862181

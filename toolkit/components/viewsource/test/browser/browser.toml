@@ -8,6 +8,10 @@ support-files = [
 https_first_disabled = true
 
 ["browser_bug713810.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1775668
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1775668
+]
 
 ["browser_contextmenu.js"]
 skip-if = ["os == 'mac' && !debug"] # Bug 1713913 - new Fission platform triage

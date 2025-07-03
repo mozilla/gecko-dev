@@ -19,6 +19,10 @@ skip-if = [
 ["browser_non_popup_from_popup.js"]
 
 ["browser_popup_condition_current.js"]
+skip-if = [
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1970457
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1970457
+]
 
 ["browser_popup_condition_tab.js"]
 
