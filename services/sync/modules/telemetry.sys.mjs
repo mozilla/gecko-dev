@@ -380,7 +380,7 @@ class EngineRecord {
 
   finished(error) {
     let took = timeDeltaFrom(this.startTime);
-    if (took > 0) {
+    if (took >= 0) {
       this.took = took;
     }
     if (error) {
@@ -425,7 +425,7 @@ class EngineRecord {
     let step = {
       name: stepResult.name,
     };
-    if (stepResult.took > 0) {
+    if (stepResult.took >= 0) {
       step.took = Math.round(stepResult.took);
     }
     if (stepResult.counts) {
@@ -451,7 +451,7 @@ class EngineRecord {
       version: version || 0,
       checked: checked || 0,
     };
-    if (took > 0) {
+    if (took >= 0) {
       validation.took = Math.round(took);
     }
     let summarized = problems.filter(({ count }) => count > 0);

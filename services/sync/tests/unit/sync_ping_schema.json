@@ -100,7 +100,7 @@
       "properties": {
         "failureReason": { "$ref": "#/definitions/error" },
         "name": { "type": "string" },
-        "took": { "type": "integer", "minimum": 1 },
+        "took": { "type": "integer", "minimum": 0 },
         "status": { "type": "string" },
         "incoming": {
           "type": "object",
@@ -243,7 +243,7 @@
       "required": ["name"],
       "properties": {
         "name": { "type": "string" },
-        "took": { "type": "integer", "minimum": 1 },
+        "took": { "type": "integer", "minimum": 0 },
         "counts": {
           "type": "array",
           "minItems": 1,

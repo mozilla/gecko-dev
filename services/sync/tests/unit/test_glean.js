@@ -690,6 +690,7 @@ add_task(async function test_overrideTelemetryName() {
         ok(!sync.engines.find(e => e.name === "steam"));
         const eng = sync.engines.find(e => e.name === "steam-but-better");
         ok(eng);
+        delete eng.validation.took; // can't compare real times.
         deepEqual(
           eng.validation,
           {
@@ -943,7 +944,7 @@ add_task(async function test_initial_sync_engines() {
         sync.engines
           .filter(e => telemetryEngineNames.includes(e.name))
           .forEach(e => {
-            greaterOrEqual(e.took, 1);
+            greaterOrEqual(e.took, 0);
             ok(!!e.outgoing);
             equal(e.outgoing.length, 1);
             notEqual(e.outgoing[0].sent, undefined);
