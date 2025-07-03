@@ -45,8 +45,14 @@ static constexpr nsAttrValue::EnumTableEntry kButtonTypeTable[] = {
     {"submit", FormControlType::ButtonSubmit},
 };
 
-// Default type is 'submit'.
-static constexpr const nsAttrValue::EnumTableEntry* kButtonDefaultType =
+// The default type is "button" when the command & commandfor attributes are
+// present.
+static constexpr const nsAttrValue::EnumTableEntry* kButtonButtonType =
+    &kButtonTypeTable[0];
+
+// Default type is 'submit' when the `command` or `commandfor` attributes are
+// not present.
+static constexpr const nsAttrValue::EnumTableEntry* kButtonSubmitType =
     &kButtonTypeTable[2];
 
 // Construction, destruction
@@ -55,7 +61,7 @@ HTMLButtonElement::HTMLButtonElement(
     FromParser aFromParser)
     : nsGenericHTMLFormControlElementWithState(
           std::move(aNodeInfo), aFromParser,
-          FormControlType(kButtonDefaultType->value)),
+          FormControlType(kButtonSubmitType->value)),
       mDisabledChanged(false),
       mInInternalActivate(false),
       mInhibitStateRestoration(aFromParser & FROM_PARSER_FRAGMENT) {
@@ -108,8 +114,28 @@ void HTMLButtonElement::GetFormMethod(nsAString& aFormMethod) {
   GetEnumAttr(nsGkAtoms::formmethod, "", kFormDefaultMethod->tag, aFormMethod);
 }
 
+bool HTMLButtonElement::InAutoState() const {
+  const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::type);
+  return (!attr || attr->Type() != nsAttrValue::eEnum);
+}
+
+// https://html.spec.whatwg.org/multipage/#the-button-element%3Aconcept-submit-button
+const nsAttrValue::EnumTableEntry* HTMLButtonElement::ResolveAutoState() const {
+  // A button element is said to be a submit button if any of the following are
+  // true: the type attribute is in the Auto state and both the command and
+  // commandfor content attributes are not present; or
+  // the type attribute is in the Submit Button state.
+  if (StaticPrefs::dom_element_commandfor_enabled() &&
+      (HasAttr(nsGkAtoms::commandfor) || HasAttr(nsGkAtoms::command))) {
+    return kButtonButtonType;
+  }
+  return kButtonSubmitType;
+}
+
 void HTMLButtonElement::GetType(nsAString& aType) {
-  GetEnumAttr(nsGkAtoms::type, kButtonDefaultType->tag, aType);
+  aType.Truncate();
+  GetEnumAttr(nsGkAtoms::type, ResolveAutoState()->tag, aType);
+  MOZ_ASSERT(aType.Length() > 0);
 }
 
 int32_t HTMLButtonElement::TabIndexDefault() { return 0; }
@@ -131,8 +157,7 @@ bool HTMLButtonElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                        nsAttrValue& aResult) {
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::type) {
-      return aResult.ParseEnumValue(aValue, kButtonTypeTable, false,
-                                    kButtonDefaultType);
+      return aResult.ParseEnumValue(aValue, kButtonTypeTable, false);
     }
 
     if (aAttribute == nsGkAtoms::formmethod) {
@@ -303,9 +328,7 @@ void HTMLButtonElement::ActivationBehavior(EventChainPostVisitor& aVisitor) {
       return;
     }
     // 3.3. If element's type attribute is in the Auto state, then return.
-    //
-    // (Auto state is only possible if the content attribute is not present)
-    if (!HasAttr(nsGkAtoms::type)) {
+    if (InAutoState()) {
       return;
     }
   }
@@ -456,14 +479,28 @@ void HTMLButtonElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                      bool aNotify) {
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::type) {
-      if (aValue) {
+      if (aValue && aValue->Type() == nsAttrValue::eEnum) {
         mType = FormControlType(aValue->GetEnumValue());
       } else {
-        mType = FormControlType(kButtonDefaultType->value);
+        mType = FormControlType(ResolveAutoState()->value);
       }
     }
 
-    if (aName == nsGkAtoms::type || aName == nsGkAtoms::disabled) {
+    // If the command/commandfor attributes are added and Type is auto, it may
+    // need to be recalculated:
+    if (StaticPrefs::dom_element_commandfor_enabled() &&
+        (aName == nsGkAtoms::command || aName == nsGkAtoms::commandfor)) {
+      if (InAutoState()) {
+        mType = FormControlType(ResolveAutoState()->value);
+      }
+    }
+
+    MOZ_ASSERT(mType == FormControlType::ButtonButton ||
+               mType == FormControlType::ButtonSubmit ||
+               mType == FormControlType::ButtonReset);
+
+    if (aName == nsGkAtoms::type || aName == nsGkAtoms::disabled ||
+        aName == nsGkAtoms::command || aName == nsGkAtoms::commandfor) {
       if (aName == nsGkAtoms::disabled) {
         // This *has* to be called *before* validity state check because
         // UpdateBarredFromConstraintValidation depends on our disabled state.
