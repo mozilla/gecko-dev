@@ -12,6 +12,7 @@
 #include "nsCOMPtr.h"
 #include "nsIObserver.h"
 #include "nsIWeakReferenceUtils.h"
+#include "nsILoadInfo.h"
 #include "nsINetUtil.h"
 #include "nsIChannelEventSink.h"
 #include "nsCategoryCache.h"
@@ -40,7 +41,6 @@ class nsIPrefBranch;
 class nsIProtocolProxyService2;
 class nsIProxyInfo;
 class nsPISocketTransportService;
-
 namespace mozilla {
 class MemoryReportingProcess;
 namespace net {
@@ -48,6 +48,7 @@ class NeckoChild;
 class nsAsyncRedirectVerifyHelper;
 class SocketProcessHost;
 class SocketProcessMemoryReporter;
+union NetAddr;
 
 class nsIOService final : public nsIIOService,
                           public nsIObserver,
@@ -154,6 +155,9 @@ class nsIOService final : public nsIIOService,
   bool GetFallbackDomain(const nsACString& aDomain,
                          nsACString& aFallbackDomain);
 
+  NS_IMETHODIMP GetOverridenIpAddressSpace(
+      nsILoadInfo::IPAddressSpace* aIpAddressSpace, const NetAddr& aAddr);
+
  private:
   // These shouldn't be called directly:
   // - construct using GetInstance
@@ -207,6 +211,9 @@ class nsIOService final : public nsIIOService,
   bool UsesExternalProtocolHandler(const nsACString& aScheme)
       MOZ_REQUIRES_SHARED(mLock);
 
+  void UpdateAddressSpaceOverrideList(const char* aPrefName,
+                                      nsTArray<nsCString>& aTargetList);
+
  private:
   mozilla::Atomic<bool, mozilla::Relaxed> mOffline{true};
   mozilla::Atomic<bool, mozilla::Relaxed> mOfflineForProfileChange{false};
@@ -236,6 +243,11 @@ class nsIOService final : public nsIIOService,
   RWLock mLock{"nsIOService::mLock"};
   nsTArray<int32_t> mRestrictedPortList MOZ_GUARDED_BY(mLock);
   nsTArray<nsCString> mForceExternalSchemes MOZ_GUARDED_BY(mLock);
+
+  nsTArray<nsCString> mPublicAddressSpaceOverridesList MOZ_GUARDED_BY(mLock);
+  nsTArray<nsCString> mPrivateAddressSpaceOverridesList MOZ_GUARDED_BY(mLock);
+  nsTArray<nsCString> mLocalAddressSpaceOverrideList MOZ_GUARDED_BY(mLock);
+
   nsTHashMap<nsCString, RuntimeProtocolHandler> mRuntimeProtocolHandlers
       MOZ_GUARDED_BY(mLock);
 

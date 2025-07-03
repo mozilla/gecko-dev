@@ -82,3 +82,67 @@ TEST(TestNetAddrLNAUtil, IPAddressSpaceCategorization)
     }
   }
 }
+
+TEST(TestNetAddrLNAUtil, DefaultAndOverrideTransitions)
+{
+  using mozilla::Preferences;
+  using mozilla::net::NetAddr;
+  using IPAddressSpace = nsILoadInfo::IPAddressSpace;
+  struct TestCase {
+    const char* ip;
+    uint16_t port;
+    IPAddressSpace defaultSpace;
+    IPAddressSpace overrideSpace;
+    const char* prefName;
+  };
+
+  std::vector<TestCase> testCases = {
+      // Public -> Private
+      {"8.8.8.8", 80, IPAddressSpace::Public, IPAddressSpace::Private,
+       "network.lna.address_space.private.override"},
+
+      // Public -> Local
+      {"8.8.4.4", 53, IPAddressSpace::Public, IPAddressSpace::Local,
+       "network.lna.address_space.local.override"},
+
+      // Private -> Public
+      {"192.168.0.1", 8080, IPAddressSpace::Private, IPAddressSpace::Public,
+       "network.lna.address_space.public.override"},
+
+      // Private -> Local
+      {"10.0.0.1", 1234, IPAddressSpace::Private, IPAddressSpace::Local,
+       "network.lna.address_space.local.override"},
+
+      // Local -> Public
+      {"127.0.0.1", 4444, IPAddressSpace::Local, IPAddressSpace::Public,
+       "network.lna.address_space.public.override"},
+
+      // Local -> Private
+      {"198.18.0.1", 9999, IPAddressSpace::Local, IPAddressSpace::Private,
+       "network.lna.address_space.private.override"},
+  };
+
+  for (const auto& tc : testCases) {
+    NetAddr addr;
+    addr.InitFromString(nsCString(tc.ip), tc.port);
+    ASSERT_EQ(addr.GetIpAddressSpace(), tc.defaultSpace)
+        << "Expected default space for " << tc.ip << ":" << tc.port;
+
+    std::string overrideStr =
+        std::string(tc.ip) + ":" + std::to_string(tc.port);
+    Preferences::SetCString(tc.prefName, overrideStr.c_str());
+
+    NetAddr overriddenAddr;
+    overriddenAddr.InitFromString(nsCString(tc.ip), tc.port);
+    ASSERT_EQ(overriddenAddr.GetIpAddressSpace(), tc.overrideSpace)
+        << "Expected override to " << tc.overrideSpace << " for "
+        << overrideStr;
+
+    // Reset preference and confirm classification returns to default
+    Preferences::SetCString(tc.prefName, ""_ns);
+    NetAddr resetAddr;
+    resetAddr.InitFromString(nsCString(tc.ip), tc.port);
+    ASSERT_EQ(resetAddr.GetIpAddressSpace(), tc.defaultSpace)
+        << "Expected reset back to default space for " << tc.ip;
+  }
+}

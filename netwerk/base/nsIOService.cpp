@@ -99,6 +99,12 @@ using mozilla::dom::ServiceWorkerDescriptor;
 #define WEBRTC_PREF_PREFIX "media.peerconnection."
 #define NETWORK_DNS_PREF "network.dns."
 #define FORCE_EXTERNAL_PREF_PREFIX "network.protocol-handler.external."
+// prefs for overriding IPAddress->IpAddressSpace mapping
+#define PREF_LNA_IP_ADDR_SPACE_PUBLIC \
+  "network.lna.address_space.public.override"
+#define PREF_LNA_IP_ADDR_SPACE_PRIVATE \
+  "network.lna.address_space.private.override"
+#define PREF_LNA_IP_ADDR_SPACE_LOCAL "network.lna.address_space.local.override"
 
 nsIOService* gIOService;
 static bool gHasWarnedUploadChannel2;
@@ -226,6 +232,9 @@ static const char* gCallbackPrefs[] = {
     NETWORK_CAPTIVE_PORTAL_PREF,
     FORCE_EXTERNAL_PREF_PREFIX,
     SIMPLE_URI_SCHEMES_PREF,
+    PREF_LNA_IP_ADDR_SPACE_PUBLIC,
+    PREF_LNA_IP_ADDR_SPACE_PRIVATE,
+    PREF_LNA_IP_ADDR_SPACE_LOCAL,
     nullptr,
 };
 
@@ -1663,6 +1672,42 @@ void nsIOService::PrefsChanged(const char* pref) {
     mSimpleURIUnknownSchemes.ParseAndMergePrefSchemes();
     // runs on parent and child, no need to broadcast
   }
+
+  if (!pref || strncmp(pref, PREF_LNA_IP_ADDR_SPACE_PUBLIC,
+                       strlen(PREF_LNA_IP_ADDR_SPACE_PUBLIC)) == 0) {
+    AutoWriteLock lock(mLock);
+    UpdateAddressSpaceOverrideList(PREF_LNA_IP_ADDR_SPACE_PUBLIC,
+                                   mPublicAddressSpaceOverridesList);
+  }
+
+  if (!pref || strncmp(pref, PREF_LNA_IP_ADDR_SPACE_PRIVATE,
+                       strlen(PREF_LNA_IP_ADDR_SPACE_PRIVATE)) == 0) {
+    AutoWriteLock lock(mLock);
+    UpdateAddressSpaceOverrideList(PREF_LNA_IP_ADDR_SPACE_PRIVATE,
+                                   mPrivateAddressSpaceOverridesList);
+  }
+  if (!pref || strncmp(pref, PREF_LNA_IP_ADDR_SPACE_LOCAL,
+                       strlen(PREF_LNA_IP_ADDR_SPACE_LOCAL)) == 0) {
+    AutoWriteLock lock(mLock);
+    UpdateAddressSpaceOverrideList(PREF_LNA_IP_ADDR_SPACE_LOCAL,
+                                   mLocalAddressSpaceOverrideList);
+  }
+}
+
+void nsIOService::UpdateAddressSpaceOverrideList(
+    const char* aPrefName, nsTArray<nsCString>& aTargetList) {
+  nsAutoCString aAddressSpaceOverrides;
+  Preferences::GetCString(aPrefName, aAddressSpaceOverrides);
+
+  nsTArray<nsCString> addressSpaceOverridesArray;
+  nsCCharSeparatedTokenizer tokenizer(aAddressSpaceOverrides, ',');
+  while (tokenizer.hasMoreTokens()) {
+    nsAutoCString token(tokenizer.nextToken());
+    token.StripWhitespace();
+    addressSpaceOverridesArray.AppendElement(token);
+  }
+
+  aTargetList = std::move(addressSpaceOverridesArray);
 }
 
 void nsIOService::ParsePortList(const char* pref, bool remove) {
@@ -2362,6 +2407,56 @@ nsIOService::SetSimpleURIUnknownRemoteSchemes(
     }
   }
   return NS_OK;
+}
+
+// Check for any address space overrides for Local Network Access Checks
+// The override prefs should be set only for tests (controlled by
+// network_lna_blocking pref).
+NS_IMETHODIMP
+nsIOService::GetOverridenIpAddressSpace(
+    nsILoadInfo::IPAddressSpace* aIpAddressSpace, const NetAddr& aAddr) {
+  nsAutoCString addrPortString;
+
+  if (!StaticPrefs::network_lna_enabled()) {
+    return NS_ERROR_FAILURE;
+  }
+
+  {
+    AutoReadLock lock(mLock);
+    if (mPublicAddressSpaceOverridesList.IsEmpty() &&
+        mPrivateAddressSpaceOverridesList.IsEmpty() &&
+        mLocalAddressSpaceOverrideList.IsEmpty()) {
+      return NS_ERROR_FAILURE;
+    }
+  }
+
+  aAddr.ToAddrPortString(addrPortString);
+  addrPortString.StripWhitespace();
+  AutoReadLock lock(mLock);
+
+  for (const auto& ipAddr : mPublicAddressSpaceOverridesList) {
+    if (addrPortString.Equals(ipAddr)) {
+      *aIpAddressSpace = nsILoadInfo::IPAddressSpace::Public;
+      return NS_OK;
+    }
+  }
+
+  for (const auto& ipAddr : mPrivateAddressSpaceOverridesList) {
+    if (addrPortString.Equals(ipAddr)) {
+      *aIpAddressSpace = nsILoadInfo::IPAddressSpace::Private;
+      return NS_OK;
+    }
+  }
+
+  for (const auto& ipAddr : mLocalAddressSpaceOverrideList) {
+    if (addrPortString.Equals(ipAddr)) {
+      *aIpAddressSpace = nsILoadInfo::IPAddressSpace::Local;
+      return NS_OK;
+    }
+  }
+
+  *aIpAddressSpace = nsILoadInfo::IPAddressSpace::Unknown;
+  return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
