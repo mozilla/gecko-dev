@@ -1955,6 +1955,15 @@ export var Policies = {
         );
         setDefaultPermission("xr", param.VirtualReality);
       }
+
+      if ("ScreenShare" in param) {
+        addAllowDenyPermissions(
+          "screen",
+          param.ScreenShare.Allow,
+          param.ScreenShare.Block
+        );
+        setDefaultPermission("screen", param.ScreenShare);
+      }
     },
   },
 

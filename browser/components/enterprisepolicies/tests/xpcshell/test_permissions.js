@@ -120,6 +120,10 @@ add_task(async function test_setup_activate_policies() {
           Allow: ["https://www.allow.com", "https://www.pre-existing-deny.com"],
           Block: ["https://www.deny.com", "https://www.pre-existing-allow.com"],
         },
+        ScreenShare: {
+          Allow: ["https://www.allow.com", "https://www.pre-existing-deny.com"],
+          Block: ["https://www.deny.com", "https://www.pre-existing-allow.com"],
+        },
       },
     },
   });
@@ -229,6 +233,12 @@ add_task(async function test_change_permission() {
     Ci.nsIPermissionManager.DENY_ACTION,
     Ci.nsIPermissionManager.EXPIRE_SESSION
   );
+  PermissionTestUtils.add(
+    "https://www.allow.com",
+    "screen",
+    Ci.nsIPermissionManager.DENY_ACTION,
+    Ci.nsIPermissionManager.EXPIRE_SESSION
+  );
 
   checkPermission("allow.com", "ALLOW", "camera");
   checkPermission("allow.com", "ALLOW", "microphone");
@@ -236,6 +246,7 @@ add_task(async function test_change_permission() {
   checkPermission("allow.com", "ALLOW", "desktop-notification");
   checkPermission("allow.com", "ALLOW", "autoplay-media");
   checkPermission("allow.com", "ALLOW", "xr");
+  checkPermission("allow.com", "ALLOW", "screen");
 
   // Also change one un-managed permission to make sure it doesn't
   // cause any problems to the policy engine or the permission manager.
@@ -272,6 +283,12 @@ add_task(async function test_change_permission() {
   PermissionTestUtils.add(
     "https://www.unmanaged.com",
     "xr",
+    Ci.nsIPermissionManager.DENY_ACTION,
+    Ci.nsIPermissionManager.EXPIRE_SESSION
+  );
+  PermissionTestUtils.add(
+    "https://www.unmanaged.com",
+    "screen",
     Ci.nsIPermissionManager.DENY_ACTION,
     Ci.nsIPermissionManager.EXPIRE_SESSION
   );

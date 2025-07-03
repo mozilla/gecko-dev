@@ -141,6 +141,7 @@ function initRow(aPartId) {
     case "camera":
     case "microphone":
     case "xr":
+    case "screen":
       checkbox.disabled = Services.prefs.prefIsLocked(
         "permissions.default." + aPartId
       );

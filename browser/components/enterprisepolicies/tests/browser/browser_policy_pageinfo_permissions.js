@@ -33,6 +33,10 @@ add_task(async function test_pageinfo_permissions() {
           Default: "block-audio",
           Locked: true,
         },
+        ScreenShare: {
+          BlockNewRequests: true,
+          Locked: true,
+        },
       },
       InstallAddonsPermission: {
         Default: false,
@@ -56,6 +60,7 @@ add_task(async function test_pageinfo_permissions() {
     "camera",
     "microphone",
     "xr",
+    "screen",
   ];
 
   await BrowserTestUtils.withNewTab(TEST_ORIGIN, async function () {
