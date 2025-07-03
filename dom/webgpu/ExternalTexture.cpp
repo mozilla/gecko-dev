@@ -9,9 +9,10 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(ExtTex, mGlobal)
+GPU_IMPL_CYCLE_COLLECTION(ExternalTexture, mGlobal)
 
-JSObject* ExtTex::WrapObject(JSContext* cx, JS ::Handle<JSObject*> givenProto) {
+JSObject* ExternalTexture::WrapObject(JSContext* cx,
+                                      JS ::Handle<JSObject*> givenProto) {
   return dom::GPUExternalTexture_Binding::Wrap(cx, this, givenProto);
 }
 
