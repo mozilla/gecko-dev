@@ -10,17 +10,24 @@
 
 :host(.anonymous-content-host),
 :root {
-  --in-content-page-color: rgb(21, 20, 26);
+  /* Keep these in sync with:
+   *
+   *  * nsXPLookAndFeel::GenericDarkColor
+   *  * The default value of browser.display.foreground_color.dark and
+   *    browser.display.background_color.dark
+   */
+  --in-content-page-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
   --in-content-page-background: var(--background-color-canvas);
   --in-content-text-color: var(--in-content-page-color);
   --in-content-box-border-color: color-mix(in srgb, currentColor 41%, transparent);
-  --in-content-box-info-background: #f0f0f4;
+  --in-content-box-info-background: light-dark(#f0f0f4, rgba(249, 249, 250, 0.15));
   --in-content-item-hover: color-mix(in srgb, var(--in-content-primary-button-background) 20%, transparent);
   --in-content-item-hover-text: var(--in-content-page-color);
   --in-content-item-selected: var(--in-content-primary-button-background);
   --in-content-item-selected-text: var(--in-content-primary-button-text-color);
-  --in-content-border-invalid: var(--red-50);
-  --in-content-border-color: #d7d7db;
+  --in-content-border-invalid: light-dark(var(--red-50), rgb(255, 132, 139));
+  --in-content-border-color: light-dark(#d7d7db, rgba(249, 249, 250, 0.2));
+
   --in-content-button-text-color: var(--in-content-text-color);
   --in-content-button-text-color-hover: var(--in-content-text-color);
   --in-content-button-text-color-active: var(--in-content-button-text-color-hover);
@@ -30,7 +37,7 @@
   --in-content-button-border-color: transparent;
   --in-content-button-border-color-hover: transparent;
   --in-content-button-border-color-active: var(--in-content-button-border-color-hover);
-  --in-content-primary-button-text-color: rgb(251, 251, 254);
+  --in-content-primary-button-text-color: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
   --in-content-primary-button-text-color-hover: var(--in-content-primary-button-text-color);
   --in-content-primary-button-text-color-active: var(--in-content-primary-button-text-color);
   --in-content-primary-button-background: var(--button-background-color-primary);
@@ -48,13 +55,13 @@
   --in-content-focus-outline-inset: var(--focus-outline-inset);
   --in-content-focus-outline: var(--focus-outline);
 
-  --in-content-table-background: #f8f8fa;
+  --in-content-table-background: light-dark(#f8f8fa, rgb(35, 34, 43));
   --in-content-table-border-color: var(--in-content-box-border-color);
   --in-content-table-header-background: var(--in-content-primary-button-background);
   --in-content-table-header-color: var(--in-content-primary-button-text-color);
   --in-content-sidebar-width: 280px;
 
-  --dialog-warning-text-color: var(--red-60);
+  --dialog-warning-text-color: light-dark(var(--red-60), var(--red-40));
 
   --blue-40: #45a1ff;
   --blue-50: #0a84ff;
@@ -84,42 +91,12 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :host(.anonymous-content-host),
-  :root {
-    /* Keep these in sync with:
-     *
-     *  * nsXPLookAndFeel::GenericDarkColor
-     *  * The default value of browser.display.foreground_color.dark and
-     *    browser.display.background_color.dark
-     *
-     * TODO (emilio): Once color-scheme support is complete, perhaps we can
-     * just replace most of these for system colors and remove all this
-     * duplication (assuming we honor the preferred color scheme for
-     * in-content privileged pages and plain-text documents). */
-    --in-content-page-color: rgb(251, 251, 254);
-
-    --in-content-box-info-background: rgba(249, 249, 250, 0.15);
-
-    --in-content-border-color: rgba(249, 249, 250, 0.2);
-    --in-content-border-invalid: rgb(255, 132, 139);
-
-    --in-content-primary-button-text-color: rgb(43, 42, 51);
-
-    --in-content-table-background: rgb(35, 34, 43);
-
-    --dialog-warning-text-color: var(--red-40);
-
-    scrollbar-color: rgba(249, 249, 250, 0.4) rgba(20, 20, 25, 0.3);
-  }
-
+@media (prefers-color-scheme: dark) and (not (forced-colors)) {
   /* For dialogs, use a different background colour. We don't do
    * this in forced colors mode, as we should be using system colours then.
    */
-  @media not (forced-colors) {
-    :root[dialogroot] {
-      --in-content-page-background: #42414d;
-    }
+  :root[dialogroot] {
+    --in-content-page-background: #42414d;
   }
 }
 
