@@ -722,6 +722,13 @@ const Preferences = (window.Preferences = (function () {
       return this.config.visible ? this.config.visible() : true;
     }
 
+    getControlConfig(config) {
+      if (this.config.getControlConfig) {
+        return this.config.getControlConfig(config);
+      }
+      return config;
+    }
+
     userChange(val) {
       this.value = val;
       if (this.config.onUserChange) {

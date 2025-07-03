@@ -82,20 +82,20 @@
         let setting = Preferences.getSetting(SETTING);
         let control = await renderTemplate(itemConfig, setting);
         is(
-          control.inputEl.localName,
+          control.controlEl.localName,
           "moz-checkbox",
           "The control rendered a checkbox"
         );
-        is(control.inputEl.dataset.l10nId, LABEL_L10N_ID, "Label is set");
-        is(control.inputEl.checked, true, "checkbox is checked");
-        is(control.inputEl.disabled, false, "checkbox is enabled");
+        is(control.controlEl.dataset.l10nId, LABEL_L10N_ID, "Label is set");
+        is(control.controlEl.checked, true, "checkbox is checked");
+        is(control.controlEl.disabled, false, "checkbox is enabled");
         is(Services.prefs.getBoolPref(PREF), true, "pref is true");
 
         let settingChanged = waitForSettingChange(setting);
-        synthesizeMouseAtCenter(control.inputEl, {});
+        synthesizeMouseAtCenter(control.controlEl, {});
         await settingChanged;
         is(
-          control.inputEl.checked,
+          control.controlEl.checked,
           false,
           "checkbox becomes unchecked after click"
         );
@@ -105,7 +105,7 @@
         Services.prefs.setBoolPref(PREF, true);
         await settingChanged;
         is(
-          control.inputEl.checked,
+          control.controlEl.checked,
           true,
           "checkbox becomes checked after pref change"
         );
@@ -115,13 +115,17 @@
         settingChanged = waitForSettingChange(setting);
         Services.prefs.lockPref(PREF);
         await settingChanged;
-        is(control.inputEl.disabled, true, "checkbox is disabled when locked");
+        is(
+          control.controlEl.disabled,
+          true,
+          "checkbox is disabled when locked"
+        );
 
         settingChanged = waitForSettingChange(setting);
         Services.prefs.unlockPref(PREF);
         await settingChanged;
         is(
-          control.inputEl.disabled,
+          control.controlEl.disabled,
           false,
           "checkbox is enabled when unlocked"
         );
@@ -143,7 +147,7 @@
           Preferences.getSetting(SETTING)
         );
         ok(control, "Got a control");
-        let checkbox = control.inputEl;
+        let checkbox = control.controlEl;
         is(checkbox.localName, "moz-checkbox", "moz-checkbox is rendered");
         is(
           checkbox.supportPage,
@@ -170,7 +174,7 @@
         );
         ok(control, "Got the control");
         is(
-          control.inputEl.dataset.subcategory,
+          control.controlEl.dataset.subcategory,
           "exsubcategory",
           "Subcategory is set"
         );
@@ -187,12 +191,12 @@
         );
         ok(control, "Got the control");
         is(
-          control.inputEl.dataset.subcategory,
+          control.controlEl.dataset.subcategory,
           "exsubcategory2",
           "Subcategory is set"
         );
 
-        is(control.inputEl.supportPage, "foo", "Input got the supportPage");
+        is(control.controlEl.supportPage, "foo", "Input got the supportPage");
       });
 
       add_task(async function testNestedCheckboxes() {
@@ -230,42 +234,50 @@
           SETTING_PARENT,
           "Parent control id is set"
         );
-        let nestedControl = parentControl.inputEl.firstElementChild;
+        let nestedControl = parentControl.controlEl.firstElementChild;
         info("Nested: " + nestedControl.localName);
         is(
           nestedControl.setting.id,
           SETTING_NESTED,
           "Nested control id is set"
         );
-        is(parentControl.inputEl.checked, false, "Parent is unchecked");
-        is(parentControl.inputEl.inputEl.disabled, false, "Parent is enabled");
-        is(nestedControl.inputEl.checked, true, "Nested is checked");
-        is(nestedControl.inputEl.inputEl.disabled, true, "Nested is disabled");
+        is(parentControl.controlEl.checked, false, "Parent is unchecked");
+        is(
+          parentControl.controlEl.inputEl.disabled,
+          false,
+          "Parent is enabled"
+        );
+        is(nestedControl.controlEl.checked, true, "Nested is checked");
+        is(
+          nestedControl.controlEl.inputEl.disabled,
+          true,
+          "Nested is disabled"
+        );
 
         let settingChanged = waitForSettingChange(parentSetting);
         // Click the label since the center of the entire <moz-checkbox> would
         // be the space between the parent and nested checkboxes.
-        synthesizeMouseAtCenter(parentControl.inputEl.labelEl, {});
+        synthesizeMouseAtCenter(parentControl.controlEl.labelEl, {});
         await settingChanged;
         await parentControl.updateComplete;
 
         is(
-          parentControl.inputEl.checked,
+          parentControl.controlEl.checked,
           true,
           "Parent is checked after click"
         );
         is(
-          parentControl.inputEl.inputEl.disabled,
+          parentControl.controlEl.inputEl.disabled,
           false,
           "Parent is enabled after click"
         );
         is(
-          nestedControl.inputEl.checked,
+          nestedControl.controlEl.checked,
           true,
           "Nested is checked after click"
         );
         is(
-          nestedControl.inputEl.inputEl.disabled,
+          nestedControl.controlEl.inputEl.disabled,
           false,
           "Nested is enabled after click"
         );
@@ -276,22 +288,22 @@
         await parentControl.updateComplete;
 
         is(
-          parentControl.inputEl.checked,
+          parentControl.controlEl.checked,
           false,
           "Parent is unchecked after pref change"
         );
         is(
-          parentControl.inputEl.inputEl.disabled,
+          parentControl.controlEl.inputEl.disabled,
           false,
           "Parent is enabled after pref change"
         );
         is(
-          nestedControl.inputEl.checked,
+          nestedControl.controlEl.checked,
           true,
           "Nested is checked after pref change"
         );
         is(
-          nestedControl.inputEl.inputEl.disabled,
+          nestedControl.controlEl.inputEl.disabled,
           true,
           "Nested is disabled after pref change"
         );

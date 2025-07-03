@@ -15,6 +15,15 @@ export default {
 checkbox-example-input =
   .label = Checkbox example of setting-control
   .description = Could have a description like moz-checkbox.
+select-example-input =
+  .label = Select example of setting-control
+  .description = Could have a description like moz-select.
+select-option-0 =
+  .label = Option 0
+select-option-1 =
+  .label = Option 1
+select-option-2 =
+  .label = Option 2
 `,
   },
 };
@@ -34,5 +43,37 @@ Checkbox.args = {
     on() {},
     off() {},
     userChange() {},
+    getControlConfig: c => c,
+  },
+};
+
+export const Select = Template.bind({});
+Select.args = {
+  config: {
+    id: "select-example",
+    l10nId: "select-example-input",
+    control: "moz-select",
+    supportPage: "example-support",
+    options: [
+      {
+        value: "0",
+        l10nId: "select-option-0",
+      },
+      {
+        value: "1",
+        l10nId: "select-option-1",
+      },
+      {
+        value: "2",
+        l10nId: "select-option-2",
+      },
+    ],
+  },
+  setting: {
+    value: "1",
+    on() {},
+    off() {},
+    userChange() {},
+    getControlConfig: c => c,
   },
 };

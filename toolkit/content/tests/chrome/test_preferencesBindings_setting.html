@@ -181,6 +181,37 @@
         ok(noPrefSetting, "Got a setting not backed by prefs");
         is(noPrefSetting.locked, false, "Non-pref setting is not locked");
       });
+
+      add_task(async function testGetControlConfig() {
+        const SETTING_ID = "getControlConfigSetting";
+        const NO_CONFIG_ID = "noGetControlConfigSetting";
+        const BASE_CONFIG = { original: "settings" };
+
+        Preferences.addSetting({
+          id: SETTING_ID,
+          getControlConfig: config => ({ ...config, added: "config" }),
+        });
+        Preferences.addSetting({ id: NO_CONFIG_ID });
+
+        let setting = Preferences.getSetting(SETTING_ID);
+        let controlConfig = setting.getControlConfig(BASE_CONFIG);
+        is(Object.keys(controlConfig).length, 2, "There are now 2 config keys");
+        is(
+          controlConfig.original,
+          "settings",
+          "The original config is passed in"
+        );
+        is(controlConfig.added, "config", "The config was updated");
+
+        let noConfigSetting = Preferences.getSetting(NO_CONFIG_ID);
+        let noConfigControlConfig =
+          noConfigSetting.getControlConfig(BASE_CONFIG);
+        is(
+          noConfigControlConfig,
+          BASE_CONFIG,
+          "There's a default implementation"
+        );
+      });
     </script>
   </head>
   <body>

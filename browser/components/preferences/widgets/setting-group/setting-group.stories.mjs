@@ -31,6 +31,7 @@ function getSetting() {
     off() {},
     userChange() {},
     visible: () => true,
+    getControlConfig: c => c,
   };
 }
 

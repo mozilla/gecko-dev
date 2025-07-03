@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>setting-control select tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <link rel="stylesheet" href="chrome://global/skin/global.css" />
+    <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"></script>
+    <script src="../../../../../toolkit/content/tests/widgets/lit-test-helpers.js"></script>
+    <script
+      type="module"
+      src="chrome://browser/content/preferences/widgets/setting-group.mjs"
+    ></script>
+    <script
+      type="module"
+      src="chrome://browser/content/preferences/widgets/setting-control.mjs"
+    ></script>
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-support-link.mjs"
+    ></script>
+    <script
+      type="application/javascript"
+      src="chrome://global/content/preferencesBindings.js"
+    ></script>
+    <script>
+      const { Assert } = ChromeUtils.importESModule(
+        "resource://testing-common/Assert.sys.mjs"
+      );
+      /* import-globals-from /toolkit/content/preferencesBindings.js */
+      let html, testHelpers;
+
+      const LABEL_L10N_ID = "browsing-use-autoscroll";
+      const GROUP_L10N_ID = "pane-experimental-reset";
+
+      async function renderTemplate(itemConfig) {
+        let config = {
+          items: [itemConfig],
+        };
+        let result = await testHelpers.renderTemplate(html`
+          <setting-group
+            .config=${config}
+            .getSetting=${(...args) => Preferences.getSetting(...args)}
+          ></setting-group>
+        `);
+        await result.firstElementChild.updateComplete;
+        if (document.hasPendingL10nMutations) {
+          await BrowserTestUtils.waitForEvent(
+            document,
+            "L10nMutationsFinished"
+          );
+        }
+        return result.querySelector("setting-control");
+      }
+
+      function waitForSettingChange(setting) {
+        return new Promise(resolve => {
+          setting.on("change", function handler() {
+            setting.off("change", handler);
+            resolve();
+          });
+        });
+      }
+
+      add_setup(async function setup() {
+        testHelpers = new InputTestHelpers();
+        ({ html } = await testHelpers.setupLit());
+        testHelpers.setupTests({
+          templateFn: () => html`<setting-group></setting-group>`,
+        });
+        MozXULElement.insertFTLIfNeeded("branding/brand.ftl");
+        MozXULElement.insertFTLIfNeeded("browser/preferences/preferences.ftl");
+      });
+
+      add_task(async function testConfigBasedSelect() {
+        const PREF = "test.setting-control-select.one";
+        const SETTING = "setting-control-select-one";
+        await SpecialPowers.pushPrefEnv({
+          set: [[PREF, 1]],
+        });
+        Preferences.addAll([{ id: PREF, type: "int" }]);
+        Preferences.addSetting({
+          id: SETTING,
+          pref: PREF,
+        });
+        let itemConfig = {
+          control: "moz-select",
+          l10nId: LABEL_L10N_ID,
+          id: SETTING,
+          options: [
+            {
+              l10nId: LABEL_L10N_ID,
+              value: 0,
+            },
+            {
+              l10nId: LABEL_L10N_ID,
+              value: 1,
+            },
+            {
+              l10nId: LABEL_L10N_ID,
+              value: 2,
+            },
+          ],
+        };
+        let setting = Preferences.getSetting(SETTING);
+        let control = await renderTemplate(itemConfig, setting);
+
+        is(
+          control.controlEl.localName,
+          "moz-select",
+          "The control rendered a select"
+        );
+        is(control.controlEl.dataset.l10nId, LABEL_L10N_ID, "Label is set");
+        is(control.controlEl.value, "1", "select value is correct");
+        is(control.controlEl.disabled, false, "select is enabled");
+        is(setting.value, 1, "setting is 1");
+        is(Services.prefs.getIntPref(PREF), 1, "pref is 1");
+
+        let inputEl = control.controlEl.inputEl;
+        is(inputEl.localName, "select", "it's a select under the hood");
+        let options = [...inputEl.children];
+        is(options.length, 3, "There are 3 options");
+        ok(
+          options.every(opt => opt.localName == "option"),
+          "All children are options"
+        );
+        options.forEach((option, i) => {
+          is(option.value, i.toString(), `Option ${i} value is correct`);
+          is(option.selected, i == 1, `Option ${i} selected is correct`);
+        });
+
+        let settingChanged = waitForSettingChange(setting);
+        let topWindow = window.docShell.chromeEventHandler.ownerGlobal;
+        let pickerOpened = BrowserTestUtils.waitForSelectPopupShown(topWindow);
+        control.controlEl.focus();
+        synthesizeKey(" ");
+        await pickerOpened;
+        synthesizeKey("KEY_ArrowDown");
+        synthesizeKey("KEY_Enter");
+        await settingChanged;
+
+        is(Services.prefs.getIntPref(PREF), 2, "pref is 2");
+        is(setting.value, 2, "setting is 2");
+      });
+    </script>
+  </head>
+  <body>
+    <p id="display"></p>
+    <div id="content" style="display: none"></div>
+    <pre id="test"></pre>
+  </body>
+</html>
