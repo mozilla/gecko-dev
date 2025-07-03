@@ -50,7 +50,6 @@ add_setup(async function () {
       ["network.websocket.delay-failed-reconnects", false],
       ["network.websocket.max-connections", 1000],
       ["network.lna.block_trackers", true],
-      ["network.lna.address_space.public.override", "127.0.0.1:4443"],
     ],
   });
 

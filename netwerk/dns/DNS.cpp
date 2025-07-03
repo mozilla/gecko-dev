@@ -11,7 +11,6 @@
 #include "mozilla/mozalloc.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "nsContentUtils.h"
-#include "nsIOService.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
 #include <string.h>
@@ -239,12 +238,6 @@ NetAddr::NetAddr(const PRNetAddr* prAddr) { PRNetAddrToNetAddr(prAddr, this); }
 
 nsILoadInfo::IPAddressSpace NetAddr::GetIpAddressSpace() const {
   const NetAddr* addr = this;
-  nsILoadInfo::IPAddressSpace overriddenIpAddressSpace;
-
-  if (NS_SUCCEEDED(gIOService->GetOverridenIpAddressSpace(
-          &overriddenIpAddressSpace, *this))) {
-    return overriddenIpAddressSpace;
-  }
 
   if (addr->IsBenchMarkingAddress() || addr->IsLoopbackAddr() ||
       addr->IsIPAddrAny()) {
