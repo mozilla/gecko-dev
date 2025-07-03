@@ -28,7 +28,6 @@ import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
-import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.theme.FirefoxTheme
 
@@ -116,19 +115,11 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
 
                 val hasNormalTabs = requireComponents.core.store.state.normalTabs.isNotEmpty()
                 if (hasNormalTabs) {
-                    if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-                        findNavController().navigate(
-                            HomeFragmentDirections.actionGlobalTabManagementFragment(
-                                page = Page.NormalTabs,
-                            ),
-                        )
-                    } else {
-                        findNavController().navigate(
-                            HomeFragmentDirections.actionGlobalTabsTrayFragment(
-                                page = Page.NormalTabs,
-                            ),
-                        )
-                    }
+                    findNavController().navigate(
+                        HomeFragmentDirections.actionGlobalTabsTrayFragment(
+                            page = Page.NormalTabs,
+                        ),
+                    )
                 }
             }
             // If we locked private mode while the user had the tabs tray private page opened, then
@@ -137,19 +128,11 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
             NavigationOrigin.TABS_TRAY -> {
                 findNavController().popBackStack()
 
-                if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-                    findNavController().navigate(
-                        HomeFragmentDirections.actionGlobalTabManagementFragment(
-                            page = Page.NormalTabs,
-                        ),
-                    )
-                } else {
-                    findNavController().navigate(
-                        HomeFragmentDirections.actionGlobalTabsTrayFragment(
-                            page = Page.NormalTabs,
-                        ),
-                    )
-                }
+                findNavController().navigate(
+                    HomeFragmentDirections.actionGlobalTabsTrayFragment(
+                        page = Page.NormalTabs,
+                    ),
+                )
             }
         }
     }
@@ -162,19 +145,11 @@ class UnlockPrivateTabsFragment : Fragment(), UserInteractionHandler {
         findNavController().popBackStack()
 
         if (navigationOrigin == NavigationOrigin.TABS_TRAY) {
-            if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-                findNavController().navigate(
-                    HomeFragmentDirections.actionGlobalTabManagementFragment(
-                        page = Page.PrivateTabs,
-                    ),
-                )
-            } else {
-                findNavController().navigate(
-                    HomeFragmentDirections.actionGlobalTabsTrayFragment(
-                        page = Page.PrivateTabs,
-                    ),
-                )
-            }
+            findNavController().navigate(
+                HomeFragmentDirections.actionGlobalTabsTrayFragment(
+                    page = Page.PrivateTabs,
+                ),
+            )
         }
     }
 

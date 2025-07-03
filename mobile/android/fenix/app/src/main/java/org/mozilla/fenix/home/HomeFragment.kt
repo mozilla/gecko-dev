@@ -154,7 +154,6 @@ import org.mozilla.fenix.search.toolbar.DefaultSearchSelectorController
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
-import org.mozilla.fenix.tabstray.DefaultTabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.theme.FirefoxTheme
@@ -1237,27 +1236,15 @@ class HomeFragment : Fragment() {
     }
 
     private fun openTabsTray() {
-        if (DefaultTabManagementFeatureHelper.enhancementsEnabled) {
-            findNavController().nav(
-                R.id.homeFragment,
-                HomeFragmentDirections.actionGlobalTabManagementFragment(
-                    page = when (browsingModeManager.mode) {
-                        BrowsingMode.Normal -> Page.NormalTabs
-                        BrowsingMode.Private -> Page.PrivateTabs
-                    },
-                ),
-            )
-        } else {
-            findNavController().nav(
-                R.id.homeFragment,
-                HomeFragmentDirections.actionGlobalTabsTrayFragment(
-                    page = when (browsingModeManager.mode) {
-                        BrowsingMode.Normal -> Page.NormalTabs
-                        BrowsingMode.Private -> Page.PrivateTabs
-                    },
-                ),
-            )
-        }
+        findNavController().nav(
+            R.id.homeFragment,
+            HomeFragmentDirections.actionGlobalTabsTrayFragment(
+                page = when (browsingModeManager.mode) {
+                    BrowsingMode.Normal -> Page.NormalTabs
+                    BrowsingMode.Private -> Page.PrivateTabs
+                },
+            ),
+        )
     }
 
     private fun showCollectionsPlaceholder(browserState: BrowserState) {
