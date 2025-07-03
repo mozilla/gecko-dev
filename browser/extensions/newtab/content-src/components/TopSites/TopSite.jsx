@@ -333,6 +333,8 @@ export class TopSiteLink extends React.PureComponent {
           tile={{
             position: this.props.index,
             source: NEWTAB_SOURCE,
+            isPinned: this.props.link.isPinned,
+            guid: this.props.link.guid,
           }}
           // For testing.
           IntersectionObserver={this.props.IntersectionObserver}
@@ -562,6 +564,8 @@ export class TopSite extends React.PureComponent {
               type: "click",
               position: this.props.index,
               source: NEWTAB_SOURCE,
+              isPinned: this.props.link.isPinned,
+              guid: this.props.link.guid,
             },
           })
         );

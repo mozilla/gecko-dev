@@ -1269,6 +1269,16 @@ newtabAdsReporting:
       description: >-
         Enable reporting for ads
 
+newtabSmartShortcuts:
+  description: about:newtab personalized shortcuts
+  owner: rhamoui@mozilla.com, sdowne@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      description: >-
+        Enable personalized shortcuts
+
 newTabSectionsExperiment:
   description: about:newtab section UI update
   owner: nbarrett@mozilla.com, mcrawford@mozilla.com
