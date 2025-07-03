@@ -233,16 +233,16 @@ async function testCopyPasteShadowDOM() {
     document.getElementById("slotted1").firstChild,
     8
   );
-  testSelectionToString("ht Content\nShadow Content2 slotted1");
+  testSelectionToString("ht Content\nslotted1");
   testClipboardValue(
     false,
     "text/plain",
-    "ht Content\nShadow Content2 slotted1"
+    "ht Content\nslotted1"
   );
   testHtmlClipboardValue(
     false,
     "text/html",
-    '<span id="light-content2">ht Content</span>\n  <div id="host3">\n      <slot name="slot1"></slot>\n      <span id="shadow-content">Shadow Content2</span>\n      <slot name="slot2"></slot>\n    <span slot="slot1" id="slotted1">slotted1</span></div>'
+    '<span id=\"light-content2\">ht Content</span>\n  <div id=\"host3\">\n      <slot name=\"slot1\"><span slot=\"slot1\" id=\"slotted1\">slotted1</span></slot></div>'
   );
 
   info(
@@ -254,16 +254,16 @@ async function testCopyPasteShadowDOM() {
     document.getElementById("slotted2").firstChild,
     8
   );
-  testSelectionToString("ht Content\nShadow Content2 slotted1slotted2");
+  testSelectionToString("ht Content\nslotted1 Shadow Content2 slotted2");
   testClipboardValue(
     false,
     "text/plain",
-    "ht Content\nShadow Content2 slotted1slotted2"
+    "ht Content\nslotted1 Shadow Content2 slotted2"
   );
   testHtmlClipboardValue(
     false,
     "text/html",
-    '<span id="light-content2">ht Content</span>\n  <div id="host3">\n      <slot name="slot1"></slot>\n      <span id="shadow-content">Shadow Content2</span>\n      <slot name="slot2"></slot>\n    <span slot="slot1" id="slotted1">slotted1</span><span slot="slot2" id="slotted2">slotted2</span></div>'
+    '<span id=\"light-content2\">ht Content</span>\n  <div id=\"host3\">\n      <slot name=\"slot1\"><span slot=\"slot1\" id=\"slotted1\">slotted1</span></slot>\n      <span id=\"shadow-content\">Shadow Content2</span>\n      <slot name=\"slot2\"><span slot=\"slot2\" id=\"slotted2\">slotted2</span></slot></div>'
   );
 
   info(
@@ -276,20 +276,19 @@ async function testCopyPasteShadowDOM() {
     8
   );
   testSelectionToString(
-    " Shadow Content2\nShadowNested Nested Slotted\ntted1slotted2"
+    "tted1 Shadow Content2\nNested Slotted ShadowNested\nslotted2"
   );
   testClipboardValue(
     false,
     "text/plain",
-    " Shadow Content2\nShadowNested Nested Slotted\ntted1slotted2"
+    "tted1 Shadow Content2\nNested Slotted ShadowNested\nslotted2"
   );
   testHtmlClipboardValue(
     false,
     "text/html",
-    '\n      <slot name="slot1"></slot>\n      <span id="shadow-content">Shadow Content2</span>\n      <div id="nestedHost">\n          <slot></slot>\n          <span>ShadowNested</span>\n        \n        \n        <span>Nested Slotted</span>\n      </div>\n      <slot name="slot2"></slot>\n    <span slot="slot1" id="slotted3">tted1</span><span slot="slot2" id="slotted4">slotted2</span>'
+    '<slot name=\"slot1\"><span slot=\"slot1\" id=\"slotted3\">tted1</span></slot>\n      <span id=\"shadow-content\">Shadow Content2</span>\n      <div id=\"nestedHost\">\n          <slot>\n        \n        <span>Nested Slotted</span>\n      </slot>\n          <span>ShadowNested</span>\n        </div>\n      <slot name=\"slot2\"><span slot=\"slot2\" id=\"slotted4\">slotted2</span></slot>'
   );
 
-  // FIXME: This behaviour is not expected and we'll fix it in bug 1901053
   info("Test 10: Slot element is always serialized even if it's not visible");
   await copySelectionToClipboardShadow(
     document.getElementById("light-content3").firstChild,
@@ -298,15 +297,15 @@ async function testCopyPasteShadowDOM() {
       .firstChild,
     5
   );
-  testSelectionToString("Light Content\ndefault value Shado Slotted ");
+  testSelectionToString("Light Content\nSlotted Shado");
   testClipboardValue(
     false,
     "text/plain",
-    "Light Content\ndefault value Shado Slotted "
+    "Light Content\nSlotted Shado"
   );
   testHtmlClipboardValue(
     false,
     "text/html",
-    '<span id="light-content3">Light Content</span>\n  \n  <div id="host5">\n      <slot>default value</slot>\n      <span>Shado</span>\n    \n    <span>Slotted</span>\n  </div>'
+    '<span id=\"light-content3\">Light Content</span>\n  \n  <div id=\"host5\">\n      <slot>\n    \n    <span>Slotted</span>\n  </slot>\n      <span>Shado</span></div>'
   );
 }

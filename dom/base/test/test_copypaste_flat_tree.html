@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+This test is copied from test_copypaste.html, and the main purpose of it is
+to test copy pasting works when the selected contents have slotted nodes involved.
+-->
+<head>
+  <title>Test for copy/paste</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="/tests/SimpleTest/EventUtils.js"></script>
+  <script type="text/javascript" src="copypaste_flat_tree.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<p id="display"></p>
+<div id="content" style="display: none">
+</div>
+<pre id="test">
+<script class="testbody" type="text/javascript">
+
+SimpleTest.waitForExplicitFinish();
+
+SimpleTest.registerCleanupFunction(function() {
+  // SpecialPowers would reset the pref after the
+  // test is done, and this might to lead some
+  // inconsistent behaviours if we keep the selection
+  // there.
+  window.getSelection().removeAllRanges();
+});
+
+addLoadEvent(() => {
+  add_task(async function test_copyhtml() {
+    await SpecialPowers.pushPrefEnv({
+      set: [["dom.shadowdom.selection_across_boundary.enabled", true]],
+    });
+    await testCopyPasteShadowDOM();
+  });
+});
+
+</script>
+</pre>
+<div>
+  <textarea id="input" cols="40" rows="10"></textarea>
+
+  <!--test 1 - 3-->
+  <span id="start1">Start</span>
+  <div id="host1">
+    <template shadowrootmode="open">
+      <slot></slot>
+      <span id="inner1">Inner</span>
+    </template>
+    <span id="end1">End</span>
+  </div>
+
+  <!--test 4 - 7 -->
+  <span id="start2">Start</span>
+  <div id="host2">
+    <template shadowrootmode="open">
+      <slot name="slot1"></slot>
+      <span id="inner2">Inner</span>
+      <slot name="slot2"></slot>
+    </template>
+    <span id="host2_slot1" slot="slot1">Slotted1</span>
+    <span id="host2_slot2" slot="slot1">Slotted2</span>
+
+    <span slot="slot2">Slotted3</span>
+    <span id="host2_slot4" slot="slot2">Slotted4</span>
+  </div>
+
+  <!-- test 8 -->
+  <div id="host3">
+    <template shadowrootmode="open">
+      <slot name="slot1"></slot>
+      <slot name="slot2"></slot>
+      <span id="inner2">Inner</span>
+      <slot name="slot3"></slot>
+      <slot name="slot4"></slot>
+    </template>
+    <span id="host3_slot2" slot="slot2">Slotted2</span>
+    <span id="host3_slot1" slot="slot1">Slotted1</span>
+
+    <span id="host3_slot4" slot="slot4">Slotted4</span>
+    <span id="host3_slot3" slot="slot3">Slotted3</span>
+  </div>
+</div>
+</body>
+</html>
