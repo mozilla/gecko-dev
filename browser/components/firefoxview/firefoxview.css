@@ -8,15 +8,21 @@
   /* override --in-content-page-background from common-shared.css */
   background-color: transparent;
   --fxview-background-color: var(--newtab-background-color, var(--in-content-page-background));
-  --fxview-background-color-secondary: var(--newtab-background-color-secondary, #ffffff);
-  --fxview-element-background-hover: color-mix(in srgb, var(--fxview-background-color) 90%, currentColor);
-  --fxview-element-background-active: color-mix(in srgb, var(--fxview-background-color) 80%, currentColor);
+  --fxview-background-color-secondary: var(--newtab-background-color-secondary, light-dark(#ffffff, #42414d));
+  --fxview-element-background-hover: light-dark(
+    color-mix(in srgb, var(--fxview-background-color) 90%, currentColor),
+    color-mix(in srgb, var(--fxview-background-color) 80%, white)
+  );
+  --fxview-element-background-active: light-dark(
+    color-mix(in srgb, var(--fxview-background-color) 80%, currentColor),
+    color-mix(in srgb, var(--fxview-background-color) 60%, white)
+  );
   --fxview-text-primary-color: var(--newtab-text-primary-color, var(--in-content-page-color));
   --fxview-text-secondary-color: color-mix(in srgb, currentColor 70%, transparent);
   --fxview-text-color-hover: var(--newtab-text-primary-color);
-  --fxview-primary-action-background: var(--newtab-primary-action-background, #0061e0);
+  --fxview-primary-action-background: var(--newtab-primary-action-background, light-dark(#0061e0, #00ddff));
   --fxview-border: var(--border-color-transparent);
-  --fxview-indicator-stroke-color-hover: #deddde;
+  --fxview-indicator-stroke-color-hover: light-dark(#deddde, #5d5c66);
 
   /* ensure utility button hover states match those of the rest of the page */
   --in-content-button-background-hover: var(--fxview-element-background-hover);
@@ -28,21 +34,14 @@
   --fxview-card-padding-inline: 4px;
 
   /* copy over newtab background color from activity-stream-[os].css files */
-  --newtab-background-color: #f9f9fb;
-
+  --newtab-background-color: light-dark(#f9f9fb, #2b2a33);
   --fxview-card-header-font-weight: 500;
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --fxview-element-background-hover: color-mix(in srgb, var(--fxview-background-color) 80%, white);
-    --fxview-element-background-active: color-mix(in srgb, var(--fxview-background-color) 60%, white);
-    --fxview-indicator-stroke-color-hover: #5d5c66;
-
-    /* copy over newtab colors from activity-stream-[os].css files */
-    --newtab-background-color: #2b2a33;
-    --newtab-background-color-secondary: #42414d;
-    --newtab-primary-action-background: #00ddff;
+  &[lwt-newtab] {
+    color-scheme: light;
+  }
+  &[lwt-newtab-brighttext] {
+    color-scheme: dark;
   }
 }
 
