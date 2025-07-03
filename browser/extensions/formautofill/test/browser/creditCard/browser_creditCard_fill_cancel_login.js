@@ -11,7 +11,10 @@ add_task(async function test_fill_creditCard_but_cancel_login() {
     !OSKeyStore.canReauth() ||
     !OSKeyStoreTestUtils.canTestOSKeyStoreLogin()
   ) {
-    info("Cannot test login cancel.");
+    todo(
+      OSKeyStore.canReauth() && OSKeyStoreTestUtils.canTestOSKeyStoreLogin(),
+      "Cannot test login cancel."
+    );
     return;
   }
 
