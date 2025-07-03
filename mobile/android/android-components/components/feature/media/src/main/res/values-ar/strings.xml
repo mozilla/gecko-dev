@@ -7,7 +7,7 @@
   <!-- Title of notification shown when the device's microphone is shared with a website (WebRTC) -->
   <string name="mozac_feature_media_sharing_microphone">الميكروفون مُشغّل</string>
   <!-- Title of notification shown when the device's camera and microphone is shared with a website (WebRTC) -->
-  <string name="mozac_feature_media_sharing_camera_and_microphone">الكمرة و الميكروفون مُشغّلان</string>
+  <string name="mozac_feature_media_sharing_camera_and_microphone">الكمرة و\u00a0الميكروفون مُشغّلان</string>
   <!-- Text of notification shown when the device's camera is shared with a website (WebRTC) -->
   <string name="mozac_feature_media_sharing_camera_text">انقر لفتح اللسان التي يستخدم كاميرتك.</string>
   <!-- Text of notification shown when the device's microphone is shared with a website (WebRTC) -->

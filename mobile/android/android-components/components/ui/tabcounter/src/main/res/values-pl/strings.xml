@@ -19,5 +19,5 @@
   <!-- Menu option to duplicate the current tab -->
   <string name="mozac_ui_tabcounter_duplicate_tab">Duplikuj kartę</string>
   <!-- Content description of the tab counter toolbar button -->
-  <string name="mozac_tab_counter_content_description">Przycisk paska narzędzi z liczbą kart.</string>
+  <string name="mozac_tab_counter_content_description">Przycisk paska narzędzi z\u00a0liczbą kart.</string>
 </resources>

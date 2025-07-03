@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
-  <string name="mozac_feature_sitepermissions_notification_title">Autoriser %1$s à envoyer des notifications ?</string>
+  <string name="mozac_feature_sitepermissions_notification_title">Autoriser %1$s à envoyer des notifications\u00a0?</string>
   <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
-  <string name="mozac_feature_sitepermissions_camera_title">Autoriser %1$s à utiliser votre appareil photo ?</string>
+  <string name="mozac_feature_sitepermissions_camera_title">Autoriser %1$s à utiliser votre appareil photo\u00a0?</string>
   <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->
-  <string name="mozac_feature_sitepermissions_microfone_title">Autoriser %1$s à utiliser votre microphone ?</string>
+  <string name="mozac_feature_sitepermissions_microfone_title">Autoriser %1$s à utiliser votre microphone\u00a0?</string>
   <!-- Title of a dialog for a location permission request. %1$s is the domain name of the website. -->
-  <string name="mozac_feature_sitepermissions_location_title">Autoriser %1$s à accéder à votre localisation ?</string>
+  <string name="mozac_feature_sitepermissions_location_title">Autoriser %1$s à accéder à votre localisation\u00a0?</string>
   <!-- Title of a dialog for a camera and microphone permission request. %1$s is the domain name of the website. -->
-  <string name="mozac_feature_sitepermissions_camera_and_microphone">Autoriser %1$s à utiliser votre appareil photo et votre microphone ?</string>
+  <string name="mozac_feature_sitepermissions_camera_and_microphone">Autoriser %1$s à utiliser votre appareil photo et votre microphone\u00a0?</string>
   <!--
     Option in a dialog for requesting a microphone permission, this option will give access to
     the first microphone
@@ -42,14 +42,14 @@
   <!-- Text for a negative button in a permission request dialog. This will never allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
   <string name="mozac_feature_sitepermissions_never_allow">Jamais</string>
   <!-- Title of a dialog to require to save data in persistent storage. %1$s will be replaced with the URL of the current page -->
-  <string name="mozac_feature_sitepermissions_persistent_storage_title">Autoriser %1$s à conserver des données dans le stockage persistant ?</string>
+  <string name="mozac_feature_sitepermissions_persistent_storage_title">Autoriser %1$s à conserver des données dans le stockage persistant\u00a0?</string>
   <!-- Title of a dialog to use EME. %1$s will be replaced with the URL of the current page -->
-  <string name="mozac_feature_sitepermissions_media_key_system_access_title">Autoriser %1$s à lire du contenu contrôlé par DRM ?</string>
+  <string name="mozac_feature_sitepermissions_media_key_system_access_title">Autoriser %1$s à lire du contenu contrôlé par DRM\u00a0?</string>
   <!--
     Title of a dialog to use cross origin storage permission. %1$s is the name of the site URL (www.site1.example) trying to track the user's activity.
     %2$s is the name of the site URL (www.site2.example) that the user is visiting.  This is the same domain name displayed in the address bar
   -->
-  <string name="mozac_feature_sitepermissions_storage_access_title">Autoriser %1$s à utiliser ses cookies sur %2$s ?</string>
+  <string name="mozac_feature_sitepermissions_storage_access_title">Autoriser %1$s à utiliser ses cookies sur %2$s\u00a0?</string>
   <!--
     Message of a dialog offering more context about the cross origin storage permission.
     %s is the name of the site URL (www.site1.example) trying to track the user's activity.

@@ -7,7 +7,7 @@
   <!-- Label of the button closing the crash reporter dialog. -->
   <string name="mozac_lib_crash_dialog_button_close">تاقاش</string>
   <!-- Label of the button closing the crash reporter dialog and restarting the app. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="mozac_lib_crash_dialog_button_restart"> %1$s نى قايتا قوزغات</string>
+  <string name="mozac_lib_crash_dialog_button_restart">%1$s نى قايتا قوزغات</string>
   <!-- Name of the "notification channel" used for displaying a notification when the app crashed and we can't show a prompt. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_lib_crash_channel">يىمىرىلىش</string>
   <!-- Title of the crash reporter notification for background process crashes. %1$s is the name of the app (for example "Firefox"). -->

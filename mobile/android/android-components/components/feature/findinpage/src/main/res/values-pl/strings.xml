@@ -11,7 +11,7 @@
     String to be read by the accessibility service presenting the number of results found in the page
     and the position the user is at. %1$d is the position, %2$d is the total number of results.
   -->
-  <string name="mozac_feature_findindpage_accessibility_result" tools:ignore="PluralsCandidate">%1$d z %2$d</string>
+  <string name="mozac_feature_findindpage_accessibility_result" tools:ignore="PluralsCandidate">%1$d z\u00a0%2$d</string>
   <!-- String to be read by the accessibility service when focusing the next result button. -->
   <string name="mozac_feature_findindpage_next_result">Znajdź następny wynik</string>
   <!-- String to be read by the accessibility service when focusing the previous result button. -->

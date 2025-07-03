@@ -20,7 +20,7 @@
     The message of the prompt to confirm with users that they want to open the link in another app
     %s is a placeholder that will be replaced by the app name
   -->
-  <string name="mozac_feature_applinks_normal_confirm_dialog_message">ᱟᱢ ᱫᱚ ᱱᱚᱶᱟ ᱧᱮᱞ ᱞᱟᱹᱜᱤᱫ  %s ᱟᱲᱟᱜ ᱥᱟᱱᱟᱢ ᱠᱟᱱᱟ ᱥᱮ ?</string>
+  <string name="mozac_feature_applinks_normal_confirm_dialog_message">ᱟᱢ ᱫᱚ ᱱᱚᱶᱟ ᱧᱮᱞ ᱞᱟᱹᱜᱤᱫ %s ᱟᱲᱟᱜ ᱥᱟᱱᱟᱢ ᱠᱟᱱᱟ ᱥᱮ ?</string>
   <!-- Opens the selected time -->
   <string name="mozac_feature_applinks_confirm_dialog_confirm">ᱡᱷᱤᱡᱽ ᱢᱮ</string>
   <!-- Cancels the prompt -->

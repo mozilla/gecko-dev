@@ -8,7 +8,7 @@
     The description to warn users that their private browsing session changes
     %s is a placeholder that will be replaced by an app name
   -->
-  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">Apre cù %s ? A vostra attività puderia ùn esse più privata.</string>
+  <string name="mozac_feature_applinks_confirm_dialog_title_with_app_name">Apre cù %s\u00a0? A vostra attività puderia ùn esse più privata.</string>
   <!-- The title of the prompt that warns users their normal browsing session is trying to open another app -->
   <string name="mozac_feature_applinks_normal_confirm_dialog_title">Apre in un’altra appiecazione</string>
   <!--
@@ -20,7 +20,7 @@
     The message of the prompt to confirm with users that they want to open the link in another app
     %s is a placeholder that will be replaced by the app name
   -->
-  <string name="mozac_feature_applinks_normal_confirm_dialog_message">Vulete lascià %s per affissà stu cuntenutu ?</string>
+  <string name="mozac_feature_applinks_normal_confirm_dialog_message">Vulete lascià %s per affissà stu cuntenutu\u00a0?</string>
   <!-- Opens the selected time -->
   <string name="mozac_feature_applinks_confirm_dialog_confirm">Apre</string>
   <!-- Cancels the prompt -->

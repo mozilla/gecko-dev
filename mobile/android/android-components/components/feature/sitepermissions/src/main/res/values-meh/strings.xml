@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <!-- Title of a dialog for a notification permission request. %1$s is the domain name of the website. -->
-  <string name="mozac_feature_sitepermissions_notification_title">¿Kua\'a  %1$s chu\'un íchi notificaciones?</string>
+  <string name="mozac_feature_sitepermissions_notification_title">¿Kua\'a %1$s chu\'un íchi notificaciones?</string>
   <!-- Title of a dialog for a camera permission request. %1$s is the domain name of the website. -->
   <string name="mozac_feature_sitepermissions_camera_title">¿Kua\'a %1$s ni\'i ka̱a̱ natava?</string>
   <!-- Title of a dialog for a microphone permission request. %1$s is the domain name of the website. -->

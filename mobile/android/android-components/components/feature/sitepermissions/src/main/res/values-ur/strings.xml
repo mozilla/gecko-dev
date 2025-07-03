@@ -14,7 +14,7 @@
     Option in a dialog for requesting a microphone permission, this option will give access to
     the first microphone
   -->
-  <string name="mozac_feature_sitepermissions_option_microphone_one">  1مائیکروفون</string>
+  <string name="mozac_feature_sitepermissions_option_microphone_one">1مائیکروفون</string>
   <!--
     Option in a dialog for requesting a camera permission, this option will give access to
     back facing camera
@@ -42,7 +42,7 @@
   <!-- Text for a negative button in a permission request dialog. This will never allow and remember the decision of the user, this is the special case of the notification permission, that is only ask one time -->
   <string name="mozac_feature_sitepermissions_never_allow">کبھی نہیں</string>
   <!-- Title of a dialog to use EME. %1$s will be replaced with the URL of the current page -->
-  <string name="mozac_feature_sitepermissions_media_key_system_access_title">%1$s  کو DRM کے زیر کنٹرول شدہ مواد چلانے کی اجازت دیں؟</string>
+  <string name="mozac_feature_sitepermissions_media_key_system_access_title">%1$s کو DRM کے زیر کنٹرول شدہ مواد چلانے کی اجازت دیں؟</string>
   <!-- Clickable text that will open a new tab navigating the user to online documentation about specific features. -->
   <string name="mozac_feature_sitepermissions_learn_more_title">مزید سیکھیں</string>
 </resources>

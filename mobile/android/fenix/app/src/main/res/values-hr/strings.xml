@@ -1272,7 +1272,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2"><![CDATA[Skenirajte QR kôd prikazan na <b>firefox.com/pair</b>]]></string>
+  <string name="pair_instructions_2"><![CDATA[Snimi QR kod prikazan na <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -2318,7 +2318,7 @@
   <!-- Instructions on how to access pairing -->
   <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Na računalu otvori Firefox i idi na <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
-  <string name="sign_in_ready_for_scan">Spremno za skeniranje</string>
+  <string name="sign_in_ready_for_scan">Spremno za snimanje</string>
   <!-- Text shown for settings option for sign with pairing -->
   <string name="sign_in_with_camera">Prijavi se pomoću kamere</string>
   <!-- Text shown for settings option for sign with email -->
@@ -2484,7 +2484,7 @@
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">Koristi svog odabranog pružatelja usluge</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
-  <string name="preference_doh_default_protection_info_2">Koristi svog standarnog DNS prevoditelja, ako postoji problem sa sigurnim pružateljem DNS-a</string>
+  <string name="preference_doh_default_protection_info_2">Koristi svoj standarni DNS pretvarač, ako postoji problem s pružateljem sigurnog DNS-a</string>
   <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
   <string name="preference_doh_default_protection_info_3">Koristi lokalnog pružatelja usluga, ukoliko je moguće. %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
@@ -2498,7 +2498,7 @@
   <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_1">Koristi svog odabranog pružatelja usluge</string>
   <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
-  <string name="preference_doh_increased_protection_info_2">Koristi tvog standarnog DNS prevoditelja, samo ako postoji problem sa sigurnim DNS-om</string>
+  <string name="preference_doh_increased_protection_info_2">Koristi svoj standarni DNS pretvarač samo ako postoji problem sa sigurnim DNS-om</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">Maksimalna zaštita</string>
   <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
@@ -2512,7 +2512,7 @@
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Isključeno</string>
   <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
-  <string name="preference_doh_off_summary">Koristi svog standarnog DNS prevoditelja</string>
+  <string name="preference_doh_off_summary">Koristi svoj standarni DNS pretvarač</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
   <string name="preference_doh_choose_provider">Odaberi pružatelja usluge</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->

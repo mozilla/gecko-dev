@@ -988,6 +988,8 @@
   <string name="download_item_status_failed">kama jo li pakala</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">o alasa e jo lipu</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">o wile e lipu ale</string>
   <!--
     Downloads Content Type Filters
 
@@ -1044,12 +1046,18 @@
   <string name="bookmark_delete_folder_confirmation_dialog">sina wile ala wile weka e poki ni?</string>
   <!-- Text for the cancel button on delete bookmark dialog -->
   <string name="bookmark_delete_negative">wile ala</string>
+  <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
+  <string name="bookmark_saved_in_folder_snackbar">mi pana e lipu tawa kulupu “%s”</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">o ante</string>
   <!-- Bookmark overflow menu edit button -->
   <string name="bookmark_menu_edit_button">o ante</string>
+  <!-- Bookmark overflow menu copy button -->
+  <string name="bookmark_menu_copy_button">o jo</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">o pana</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">o kule ale</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">o pana e lipu tawa poki sin</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1171,6 +1179,8 @@
   <string name="create_collection_name_collection">o nimi e kulupu poki</string>
   <!-- Button to add new collection for the "select collection" step of the collection creator -->
   <string name="create_collection_add_new_collection">o pali e kulupu poki sin</string>
+  <!-- Button to select all tabs in the "select tabs" step of the collection creator -->
+  <string name="create_collection_select_all">o wile e lipu ale</string>
   <!-- Text shown in snackbar when multiple tabs have been saved in a collection -->
   <string name="create_collection_tabs_saved">mi pana e poki tawa kulupu!</string>
   <!-- Text shown in snackbar when one or multiple tabs have been saved in a new collection -->
@@ -1276,7 +1286,7 @@
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
   <string name="snackbar_num_tabs_closed">poki %1$s li pini</string>
   <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
-  <string name="snackbar_message_bookmarks_saved_in">mi awen e lipu lon kulupu “%s”!</string>
+  <string name="snackbar_message_bookmarks_saved_in">mi pana e lipu tawa kulupu “%s”!</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">O NI ALA</string>
   <!-- Message for copying the URL via long press on the toolbar -->
@@ -1400,6 +1410,8 @@
   <string name="logins_username_copied">mi pana e nimi sijelo tawa poki ilo</string>
   <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins -->
   <string name="saved_logins_copy_password">o jo e nimi open ni</string>
+  <!-- Content Description (for screenreaders etc) read for the button to copy a username in logins -->
+  <string name="saved_login_copy_username">o jo e nimi ni</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
   <string name="saved_login_clear_username">o weka e nimi sijelo</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
@@ -1504,6 +1516,10 @@
   <string name="quick_settings_sheet_secure_connection_2">linja toki li len</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">linja toki li len ala</string>
+  <!-- Browser menu button that adds a shortcut to the home fragment -->
+  <string name="browser_menu_add_to_shortcuts">o awen lon lipu open</string>
+  <!-- Browser menu button that removes a shortcut from the home fragment -->
+  <string name="browser_menu_remove_from_shortcuts">o awen ala lon lipu open</string>
   <!-- Error text displayed underneath the password field when it is in an error case. -->
   <string name="saved_login_password_required_2">o pana e nimi open</string>
   <!-- The error message in add login view when username field is blank. -->

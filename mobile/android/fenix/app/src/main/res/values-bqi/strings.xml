@@ -984,15 +984,15 @@
   <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
   <string name="addons_permissions_required_data_collection_description_2">برنومه نویس اگو ای وردنی مووردا لمی ن جم اکونه: %1$s</string>
   <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
-  <string name="addons_permissions_none_required_data_collection_description">برنومه نویس اگو ای وردنی لنگ جم کردن داده یل نؽ.</string>
+  <string name="addons_permissions_none_required_data_collection_description">برنومه نویس اگو ای وردنی لنگ کتن کردن داده یل نؽ.</string>
   <!-- The title of the required permissions section from addon's permissions screen. -->
   <string name="addons_permissions_heading_required_permissions">موجوزا خاستنی:</string>
   <!-- The title of the optional permissions section from addon's permissions screen. -->
   <string name="addons_permissions_heading_optional_permissions">هشتنا اختیاری</string>
   <!-- The title of the required data collection permissions section from addon's permissions screen. -->
-  <string name="addons_permissions_heading_required_data_collection">جم کردن داده یل خاستنی:</string>
+  <string name="addons_permissions_heading_required_data_collection">کتن کردن داده یل خاستنی:</string>
   <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
-  <string name="addons_permissions_heading_optional_data_collection">جم کردن داده یل اختیاری:</string>
+  <string name="addons_permissions_heading_optional_data_collection">کتن کردن داده یل اختیاری:</string>
   <!--
     Add-on Preferences
 
@@ -2019,7 +2019,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">نومگه کتن</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">چیایی ک سیتووݩ موهم هڌن ن جمع کۊنین.\nپیتینیڌنا جۊر یک، وبگه یل وو بلگه یل ن وا هوم بونکۊ کۊنین تا دیندا دسرسی زی تری داشته بۊین.</string>
+  <string name="no_collections_description2">چیایی ک سیتووݩ موهم هڌن ن کتن کۊنین.\nپیتینیڌنا جۊر یک، وبگه یل وو بلگه یل ن وا یک بونکۊ کۊنین تا دیندا دسرسی زی تری داشته بۊین.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">پسند بلگه یل</string>
   <!-- Title for the "select collection" step of the collection creator -->

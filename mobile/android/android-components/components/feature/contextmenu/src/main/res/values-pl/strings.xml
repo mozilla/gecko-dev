@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
   <!-- Text for context menu item to open the link in a new tab. -->
-  <string name="mozac_feature_contextmenu_open_link_in_new_tab">Otwórz odnośnik w nowej karcie</string>
+  <string name="mozac_feature_contextmenu_open_link_in_new_tab">Otwórz odnośnik w\u00a0nowej karcie</string>
   <!-- Text for context menu item to open the link in a private tab. -->
-  <string name="mozac_feature_contextmenu_open_link_in_private_tab">Otwórz odnośnik w prywatnej karcie</string>
+  <string name="mozac_feature_contextmenu_open_link_in_private_tab">Otwórz odnośnik w\u00a0prywatnej karcie</string>
   <!-- Text for context menu item to open the image in a new tab. -->
-  <string name="mozac_feature_contextmenu_open_image_in_new_tab">Otwórz obraz w nowej karcie</string>
+  <string name="mozac_feature_contextmenu_open_image_in_new_tab">Otwórz obraz w\u00a0nowej karcie</string>
   <!-- Text for context menu item to save / download the link. -->
   <string name="mozac_feature_contextmenu_download_link">Pobierz odnośnik</string>
   <!-- Text for context menu item to share the link with an other app. -->
@@ -31,7 +31,7 @@
   <!-- Action shown in a "snacbkar" after opening a new/private tab. Clicking this action will switch to the newly opened tab. -->
   <string name="mozac_feature_contextmenu_snackbar_action_switch">Przejdź</string>
   <!-- Text for context menu item to open the link in an external app. -->
-  <string name="mozac_feature_contextmenu_open_link_in_external_app">Otwórz odnośnik w zewnętrznej aplikacji</string>
+  <string name="mozac_feature_contextmenu_open_link_in_external_app">Otwórz odnośnik w\u00a0zewnętrznej aplikacji</string>
   <!-- Text for context menu item to share the email with another app. -->
   <string name="mozac_feature_contextmenu_share_email_address">Udostępnij adres e-mail</string>
   <!-- Text for context menu item to copy the email address to the clipboard. -->
