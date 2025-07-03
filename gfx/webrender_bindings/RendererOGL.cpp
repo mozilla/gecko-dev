@@ -205,6 +205,9 @@ RenderedFrameId RendererOGL::UpdateAndRender(
          layers::ProfilerScreenshots::IsEnabled())) {
       fullRender = true;
     }
+  } else if (!mCompositor->MakeCurrent()) {
+    // MakeCurrent is otherwise called by mCompositor->BeginFrame above.
+    return RenderedFrameId();
   }
 
   if (!beginFrame) {
