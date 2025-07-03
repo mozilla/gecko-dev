@@ -661,7 +661,6 @@ sealed class WebExtensionInstallException(
     open val extensionName: String? = null,
     open val extensionVersion: String? = null,
     throwable: Throwable,
-    override val isRecoverable: Boolean = true,
 ) : WebExtensionException(throwable) {
     /**
      * The extension install was canceled by the user.
