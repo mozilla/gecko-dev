@@ -234,11 +234,7 @@ async function testCopyPasteShadowDOM() {
     8
   );
   testSelectionToString("ht Content\nslotted1");
-  testClipboardValue(
-    false,
-    "text/plain",
-    "ht Content\nslotted1"
-  );
+  testClipboardValue(false, "text/plain", "ht Content\nslotted1");
   testHtmlClipboardValue(
     false,
     "text/html",
@@ -298,11 +294,7 @@ async function testCopyPasteShadowDOM() {
     5
   );
   testSelectionToString("Light Content\nSlotted Shado");
-  testClipboardValue(
-    false,
-    "text/plain",
-    "Light Content\nSlotted Shado"
-  );
+  testClipboardValue(false, "text/plain", "Light Content\nSlotted Shado");
   testHtmlClipboardValue(
     false,
     "text/html",
