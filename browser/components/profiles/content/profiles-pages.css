@@ -80,3 +80,7 @@ new-profile-card {
   font-size: var(--font-size-large);
   color: var(--text-color-deemphasized);
 }
+
+.disable-text-selection {
+  user-select: none;
+}

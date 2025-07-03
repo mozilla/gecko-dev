@@ -224,9 +224,19 @@ export class EditProfileCard extends MozLitElement {
         break;
       }
       case "click": {
-        if (event.originalTarget.closest("#avatar-selector")) {
+        if (this.avatarSelector.view === "crop") {
           return;
         }
+
+        let element = event.originalTarget;
+        while (element && element !== this.avatarSelector) {
+          element = element?.getRootNode()?.host;
+        }
+
+        if (element === this.avatarSelector) {
+          return;
+        }
+
         this.avatarSelector.hidden = true;
         break;
       }
