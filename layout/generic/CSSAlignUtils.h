@@ -9,6 +9,7 @@
 #ifndef mozilla_CSSAlignUtils_h
 #define mozilla_CSSAlignUtils_h
 
+#include "mozilla/EnumSet.h"
 #include "mozilla/WritingModes.h"
 
 namespace mozilla {
@@ -21,25 +22,29 @@ class CSSAlignUtils {
   /**
    * Flags to customize the behavior of AlignJustifySelf:
    */
-  enum class AlignJustifyFlags {
-    NoFlags = 0,
+  enum class AlignJustifyFlag {
     // Indicates that we have <overflow-position> = safe.
-    OverflowSafe = 1 << 0,
+    OverflowSafe,
+
     // Indicates that the container's start side in aAxis is the same
     // as the child's start side in the child's parallel axis.
-    SameSide = 1 << 1,
+    SameSide,
+
     // Indicates that AlignJustifySelf() shouldn't expand "auto" margins.
     // (By default, AlignJustifySelf() *will* expand such margins, to fill the
     // available space before any alignment is done.)
-    IgnoreAutoMargins = 1 << 2,
+    IgnoreAutoMargins,
+
     // We're aligning a margin box - the margin is already included in the
     // size. Implies `IgnoreAutoMargins`.
-    AligningMarginBox = 1 << 3,
+    AligningMarginBox,
+
     // If the item is baseline-aligned, this flag indicates that the item is in
     // the last baseline sharing group of the container, otherwise the item is
     // in the container's first baseline sharing group.
-    LastBaselineSharingGroup = 1 << 4,
+    LastBaselineSharingGroup,
   };
+  using AlignJustifyFlags = EnumSet<AlignJustifyFlag>;
 
   /**
    * This computes the aligned offset of a CSS-aligned child within its
@@ -64,8 +69,6 @@ class CSSAlignUtils {
                                   const ReflowInput& aRI,
                                   const LogicalSize& aChildSize);
 };
-
-MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(CSSAlignUtils::AlignJustifyFlags)
 
 }  // namespace mozilla
 

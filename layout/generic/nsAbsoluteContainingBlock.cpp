@@ -42,8 +42,6 @@ static void PrettyUC(nscoord aSize, char* aBuf, int aBufSize) {
 
 using namespace mozilla;
 
-typedef mozilla::CSSAlignUtils::AlignJustifyFlags AlignJustifyFlags;
-
 void nsAbsoluteContainingBlock::SetInitialChildList(nsIFrame* aDelegatingFrame,
                                                     FrameChildListID aListID,
                                                     nsFrameList&& aChildList) {
@@ -590,7 +588,8 @@ static nscoord OffsetToAlignedStaticPos(
                                        : alignAreaSize.BSize(pcWM)) -
       existingOffset;
 
-  AlignJustifyFlags flags = AlignJustifyFlags::IgnoreAutoMargins;
+  using AlignJustifyFlag = CSSAlignUtils::AlignJustifyFlag;
+  CSSAlignUtils::AlignJustifyFlags flags(AlignJustifyFlag::IgnoreAutoMargins);
   // Given that scenario 2 ignores the parent container type, special handling
   // of absolutely-positioned child is also ignored.
   StyleAlignFlags alignConst =
@@ -605,18 +604,18 @@ static nscoord OffsetToAlignedStaticPos(
       alignConst & (StyleAlignFlags::SAFE | StyleAlignFlags::UNSAFE);
   alignConst &= ~StyleAlignFlags::FLAG_BITS;
   if (safetyBits & StyleAlignFlags::SAFE) {
-    flags |= AlignJustifyFlags::OverflowSafe;
+    flags += AlignJustifyFlag::OverflowSafe;
   }
 
   // Find out if placeholder-container & the OOF child have the same start-sides
   // in the placeholder-container's pcAxis.
   WritingMode kidWM = aKidReflowInput.GetWritingMode();
   if (pcWM.ParallelAxisStartsOnSameSide(pcAxis, kidWM)) {
-    flags |= AlignJustifyFlags::SameSide;
+    flags += AlignJustifyFlag::SameSide;
   }
 
   if (aNonAutoAlignParams) {
-    flags |= AlignJustifyFlags::AligningMarginBox;
+    flags += AlignJustifyFlag::AligningMarginBox;
   }
 
   // (baselineAdjust is unused. CSSAlignmentForAbsPosChild() should've
