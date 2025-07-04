@@ -35,7 +35,7 @@ class IntegrityPolicy : public nsIIntegrityPolicy {
   enum class SourceType : uint8_t { Inline };
 
   // Trimmed down version of dom::RequestDestination
-  enum class DestinationType : uint8_t { Script };
+  enum class DestinationType : uint8_t { Script, Style };
 
   using Sources = EnumSet<SourceType>;
   using Destinations = EnumSet<DestinationType>;

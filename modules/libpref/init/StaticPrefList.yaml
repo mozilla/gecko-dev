@@ -17295,6 +17295,11 @@
   value: false
   mirror: always
 
+- name: security.integrity_policy.stylesheet.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Which mechanism the secret decoder ring should use for encryption. Decryption
 # can always happen with all mechanisms.
 # 0 - DES3_CBC

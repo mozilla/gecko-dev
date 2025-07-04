@@ -39,6 +39,11 @@ RequestDestination ContentTypeToDestination(nsContentPolicyType aType) {
     case nsIContentPolicy::TYPE_SCRIPT:
       return RequestDestination::Script;
 
+    case nsIContentPolicy::TYPE_STYLESHEET:
+    case nsIContentPolicy::TYPE_INTERNAL_STYLESHEET:
+    case nsIContentPolicy::TYPE_INTERNAL_STYLESHEET_PRELOAD:
+      return RequestDestination::Style;
+
     default:
       return RequestDestination::_empty;
   }
@@ -49,6 +54,10 @@ Maybe<IntegrityPolicy::DestinationType> DOMRequestDestinationToDestinationType(
   switch (aDestination) {
     case RequestDestination::Script:
       return Some(IntegrityPolicy::DestinationType::Script);
+    case RequestDestination::Style:
+      return StaticPrefs::security_integrity_policy_stylesheet_enabled()
+                 ? Some(IntegrityPolicy::DestinationType::Style)
+                 : Nothing{};
 
     default:
       return Nothing{};
@@ -151,6 +160,10 @@ Result<IntegrityPolicy::Destinations, nsresult> ParseDestinations(
   for (const auto& destination : destinations) {
     if (destination.EqualsLiteral("script")) {
       result += IntegrityPolicy::DestinationType::Script;
+    } else if (destination.EqualsLiteral("style")) {
+      if (StaticPrefs::security_integrity_policy_stylesheet_enabled()) {
+        result += IntegrityPolicy::DestinationType::Style;
+      }
     } else {
       LOG("ParseDestinations: Unknown destination: {}", destination.get());
       // Unknown destination, we don't know how to handle it

@@ -519,7 +519,8 @@ class Loader final {
   nsresult CheckContentPolicy(nsIPrincipal* aLoadingPrincipal,
                               nsIPrincipal* aTriggeringPrincipal,
                               nsIURI* aTargetURI, nsINode* aRequestingNode,
-                              const nsAString& aNonce, StylePreloadKind);
+                              const nsAString& aNonce, StylePreloadKind,
+                              CORSMode aCORSMode, const nsAString& aIntegrity);
 
   bool MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData);
 

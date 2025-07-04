@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Test messages logged to console</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+<iframe id="embeddingFrame"></iframe>
+
+<script class="testbody" type="text/javascript">
+SimpleTest.waitForExplicitFinish();
+
+function cleanup() {
+  SpecialPowers.postConsoleSentinel();
+  SimpleTest.finish();
+}
+
+const TEST_CASES = [
+  {
+    headers: [
+      ["Integrity-Policy", "blocked-destinations=(script style)"],
+    ],
+    expected: {
+      blockedScript: 1,
+      blockedStylesheet: 1,
+      blockedScriptRO: 0,
+      blockedStylesheetRO: 0,
+    },
+  },
+  {
+    headers: [
+      [
+        "Integrity-Policy-Report-Only",
+        "blocked-destinations=(script style)",
+      ],
+    ],
+    expected: {
+      blockedScript: 0,
+      blockedStylesheet: 0,
+      blockedScriptRO: 1,
+      blockedStylesheetRO: 1,
+    },
+  },
+  {
+    headers: [
+      ["Integrity-Policy", "blocked-destinations=(script style)"],
+      [
+        "Integrity-Policy-Report-Only",
+        "blocked-destinations=(script style)",
+      ],
+    ],
+    expected: {
+      blockedScript: 1,
+      blockedStylesheet: 1,
+      blockedScriptRO: 0,
+      blockedStylesheetRO: 0,
+    },
+  },
+];
+
+const messageRegex =
+  /^(?<reportonly>\(Report-Only policy\) )?The page’s settings (?<would>would block|blocked) a (?<destination>script|stylesheet) at (.+) from being loaded because it is missing integrity metadata\.$/;
+
+function isTestCaseZeroed(testCase) {
+  return Object.keys(testCase.expected).every(
+    key => testCase.expected[key] === 0
+  );
+}
+
+function loadTestCase(testCase) {
+  document.getElementById("embeddingFrame").src =
+    "file_console_messages.sjs?" +
+    encodeURIComponent(
+      JSON.stringify({
+        res: "html",
+        headers: testCase.headers,
+      })
+    );
+}
+
+let currentTestI = 0;
+SpecialPowers.registerConsoleListener(msg => {
+  const { errorMessage } = msg;
+  if (!errorMessage) {
+    return;
+  }
+
+  const testCase = TEST_CASES[currentTestI];
+  const match = messageRegex.exec(errorMessage);
+  if (!match) {
+    // Blocked script loads log `Loading failed for the <script> with source “...".`
+    if (
+      errorMessage.startsWith(
+        "Loading failed for the <script> with source"
+      )
+    ) {
+      return;
+    }
+    ok(false, `Unexpected message: "${errorMessage}"`);
+    return;
+  }
+
+  const { reportonly, would, destination } = match.groups;
+  const isReportOnly = !!reportonly;
+
+  is(would, isReportOnly ? "would block" : "blocked");
+
+  const key =
+    "blocked" +
+    destination.charAt(0).toUpperCase() +
+    destination.slice(1) +
+    (isReportOnly ? "RO" : "");
+  testCase.expected[key]--;
+
+  if (isTestCaseZeroed(testCase)) {
+    currentTestI++;
+    if (currentTestI < TEST_CASES.length) {
+      // Load the next test case.
+      loadTestCase(TEST_CASES[currentTestI]);
+    } else {
+      cleanup();
+    }
+  }
+});
+
+// Start with the first test case.
+loadTestCase(TEST_CASES[currentTestI]);
+</script>
+</body>
+</html>
