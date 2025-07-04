@@ -23,6 +23,11 @@ interface FeatureSettingsHelper {
     var isWallpaperOnboardingEnabled: Boolean
 
     /**
+     * Whether the homepage header should be shown or not.
+     */
+    var isHomepageHeaderEnabled: Boolean
+
+    /**
      * Whether the "Jump back in" homescreen section is enabled or not.
      * It shows the last visited tab on this device and on other synced devices.
      */
