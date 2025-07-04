@@ -34,19 +34,51 @@ CompositeProcessD3D11FencesHolderMap::~CompositeProcessD3D11FencesHolderMap() {}
 
 void CompositeProcessD3D11FencesHolderMap::Register(
     CompositeProcessFencesHolderId aHolderId) {
+  MOZ_ASSERT(aHolderId.IsValid());
+
   MonitorAutoLock lock(mMonitor);
 
-  mFencesHolderById[aHolderId] = MakeUnique<FencesHolder>();
+  DebugOnly<bool> inserted =
+      mFencesHolderById.emplace(aHolderId, MakeUnique<FencesHolder>()).second;
+  MOZ_ASSERT(inserted, "Map already contained FencesHolder for id!");
 }
-void CompositeProcessD3D11FencesHolderMap::Unregister(
+
+void CompositeProcessD3D11FencesHolderMap::RegisterReference(
     CompositeProcessFencesHolderId aHolderId) {
+  if (!aHolderId.IsValid()) {
+    return;
+  }
+
   MonitorAutoLock lock(mMonitor);
 
   auto it = mFencesHolderById.find(aHolderId);
   if (it == mFencesHolderById.end()) {
+    MOZ_ASSERT_UNREACHABLE("Map missing FencesHolder for id!");
     return;
   }
-  mFencesHolderById.erase(it);
+
+  MOZ_ASSERT(it->second->mOwners > 0);
+  ++it->second->mOwners;
+}
+
+void CompositeProcessD3D11FencesHolderMap::Unregister(
+    CompositeProcessFencesHolderId aHolderId) {
+  if (!aHolderId.IsValid()) {
+    return;
+  }
+
+  MonitorAutoLock lock(mMonitor);
+
+  auto it = mFencesHolderById.find(aHolderId);
+  if (it == mFencesHolderById.end()) {
+    MOZ_ASSERT_UNREACHABLE("Map missing FencesHolder for id!");
+    return;
+  }
+
+  MOZ_ASSERT(it->second->mOwners > 0);
+  if (--it->second->mOwners == 0) {
+    mFencesHolderById.erase(it);
+  }
 }
 
 void CompositeProcessD3D11FencesHolderMap::SetWriteFence(
@@ -59,6 +91,7 @@ void CompositeProcessD3D11FencesHolderMap::SetWriteFence(
 
   MonitorAutoLock lock(mMonitor);
 
+  MOZ_ASSERT(aHolderId.IsValid());
   auto it = mFencesHolderById.find(aHolderId);
   if (it == mFencesHolderById.end()) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
@@ -87,6 +120,7 @@ void CompositeProcessD3D11FencesHolderMap::SetReadFence(
 
   MonitorAutoLock lock(mMonitor);
 
+  MOZ_ASSERT(aHolderId.IsValid());
   auto it = mFencesHolderById.find(aHolderId);
   if (it == mFencesHolderById.end()) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
@@ -114,6 +148,7 @@ bool CompositeProcessD3D11FencesHolderMap::WaitWriteFence(
   {
     MonitorAutoLock lock(mMonitor);
 
+    MOZ_ASSERT(aHolderId.IsValid());
     auto it = mFencesHolderById.find(aHolderId);
     if (it == mFencesHolderById.end()) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");
@@ -142,6 +177,7 @@ bool CompositeProcessD3D11FencesHolderMap::WaitAllFencesAndForget(
   {
     MonitorAutoLock lock(mMonitor);
 
+    MOZ_ASSERT(aHolderId.IsValid());
     auto it = mFencesHolderById.find(aHolderId);
     if (it == mFencesHolderById.end()) {
       MOZ_ASSERT_UNREACHABLE("unexpected to be called");

@@ -359,6 +359,7 @@ D3D11TextureData::~D3D11TextureData() {
     }
   }
   if (mFencesHolderId.isSome()) {
+    MOZ_ASSERT(mFencesHolderId->IsValid());
     auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
     if (fencesHolderMap) {
       fencesHolderMap->Unregister(mFencesHolderId.ref());
@@ -371,6 +372,7 @@ D3D11TextureData::~D3D11TextureData() {
 
 bool D3D11TextureData::Lock(OpenMode aMode) {
   if (mFencesHolderId.isSome()) {
+    MOZ_ASSERT(mFencesHolderId->IsValid());
     auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
     fencesHolderMap->WaitAllFencesAndForget(mFencesHolderId.ref(), mDevice);
   }
@@ -414,6 +416,7 @@ bool D3D11TextureData::PrepareDrawTargetInLock(OpenMode aMode) {
 void D3D11TextureData::Unlock() {
   IncrementAndSignalWriteFence();
   if (mFencesHolderId.isSome()) {
+    MOZ_ASSERT(mFencesHolderId->IsValid());
     auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
     fencesHolderMap->SetWriteFence(mFencesHolderId.ref(), mWriteFence);
   }
@@ -719,6 +722,9 @@ void D3D11TextureData::IncrementAndSignalWriteFence() {
   if (mFencesHolderId.isNothing() || !mWriteFence) {
     return;
   }
+
+  MOZ_ASSERT(mFencesHolderId->IsValid());
+
   auto* fencesHolderMap = CompositeProcessD3D11FencesHolderMap::Get();
   if (!fencesHolderMap) {
     MOZ_ASSERT_UNREACHABLE("unexpected to be called");
@@ -993,7 +999,28 @@ DXGITextureHostD3D11::DXGITextureHostD3D11(
       mHasKeyedMutex(aDescriptor.hasKeyedMutex()),
       mFencesHolderId(aDescriptor.fencesHolderId()),
       mColorSpace(aDescriptor.colorSpace()),
-      mColorRange(aDescriptor.colorRange()) {}
+      mColorRange(aDescriptor.colorRange()) {
+  if (!mFencesHolderId) {
+    return;
+  }
+  MOZ_ASSERT(mFencesHolderId->IsValid());
+  if (auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get()) {
+    fenceHolderMap->RegisterReference(mFencesHolderId.ref());
+  } else {
+    MOZ_ASSERT_UNREACHABLE("FencesHolderMap not available");
+  }
+}
+
+DXGITextureHostD3D11::~DXGITextureHostD3D11() {
+  if (!mFencesHolderId) {
+    return;
+  }
+  if (auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get()) {
+    fenceHolderMap->Unregister(mFencesHolderId.ref());
+  } else {
+    MOZ_ASSERT_UNREACHABLE("FencesHolderMap not available");
+  }
+}
 
 already_AddRefed<gfx::DataSourceSurface> DXGITextureHostD3D11::GetAsSurface(
     gfx::DataSourceSurface* aSurface) {
@@ -1445,9 +1472,22 @@ DXGIYCbCrTextureHostD3D11::DXGIYCbCrTextureHostD3D11(
       mYUVColorSpace(aDescriptor.yUVColorSpace()),
       mColorRange(aDescriptor.colorRange()),
       mFencesHolderId(aDescriptor.fencesHolderId()) {
+  if (auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get()) {
+    fenceHolderMap->RegisterReference(mFencesHolderId);
+  } else {
+    MOZ_ASSERT_UNREACHABLE("FencesHolderMap not available");
+  }
   mHandles[0] = aDescriptor.handleY();
   mHandles[1] = aDescriptor.handleCb();
   mHandles[2] = aDescriptor.handleCr();
+}
+
+DXGIYCbCrTextureHostD3D11::~DXGIYCbCrTextureHostD3D11() {
+  if (auto* fenceHolderMap = CompositeProcessD3D11FencesHolderMap::Get()) {
+    fenceHolderMap->Unregister(mFencesHolderId);
+  } else {
+    MOZ_ASSERT_UNREACHABLE("FencesHolderMap not available");
+  }
 }
 
 void DXGIYCbCrTextureHostD3D11::CreateRenderTexture(

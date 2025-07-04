@@ -364,6 +364,7 @@ class DXGITextureHostD3D11 : public TextureHost {
  public:
   DXGITextureHostD3D11(TextureFlags aFlags,
                        const SurfaceDescriptorD3D10& aDescriptor);
+  ~DXGITextureHostD3D11() override;
 
   void DeallocateDeviceData() override {}
 
@@ -415,6 +416,7 @@ class DXGIYCbCrTextureHostD3D11 : public TextureHost {
  public:
   DXGIYCbCrTextureHostD3D11(TextureFlags aFlags,
                             const SurfaceDescriptorDXGIYCbCr& aDescriptor);
+  ~DXGIYCbCrTextureHostD3D11() override;
 
   void DeallocateDeviceData() override {}
 

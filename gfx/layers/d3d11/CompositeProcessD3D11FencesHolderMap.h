@@ -33,6 +33,7 @@ class CompositeProcessD3D11FencesHolderMap {
   ~CompositeProcessD3D11FencesHolderMap();
 
   void Register(CompositeProcessFencesHolderId aHolderId);
+  void RegisterReference(CompositeProcessFencesHolderId aHolderId);
   void Unregister(CompositeProcessFencesHolderId aHolderId);
 
   void SetWriteFence(CompositeProcessFencesHolderId aHolderId,
@@ -51,13 +52,14 @@ class CompositeProcessD3D11FencesHolderMap {
 
     RefPtr<FenceD3D11> mWriteFence;
     std::vector<RefPtr<FenceD3D11>> mReadFences;
+    uint32_t mOwners = 1;
   };
 
-  mutable Monitor mMonitor MOZ_UNANNOTATED;
+  mutable Monitor mMonitor;
 
   std::unordered_map<CompositeProcessFencesHolderId, UniquePtr<FencesHolder>,
                      CompositeProcessFencesHolderId::HashFn>
-      mFencesHolderById;
+      mFencesHolderById MOZ_GUARDED_BY(mMonitor);
 
   static StaticAutoPtr<CompositeProcessD3D11FencesHolderMap> sInstance;
 };
