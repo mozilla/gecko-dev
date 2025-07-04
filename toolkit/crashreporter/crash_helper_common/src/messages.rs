@@ -42,6 +42,14 @@ pub enum Kind {
     RegisterAuxvInfo = 8,
     #[cfg(any(target_os = "android", target_os = "linux"))]
     UnregisterAuxvInfo = 9,
+    /// Register a new child process and carry over the IPC channel it will use
+    /// to talk to the crash helper. This is sent from the main process to the
+    /// crash helper.
+    RegisterChildProcess = 10,
+    /// Reply sent by the crash helper to a newly registered child process.
+    /// Note that this won't be sent back to the main process, it's sent from
+    /// the crash helper to the newly launched child process.
+    ChildProcessRegistered = 11,
 }
 
 pub trait Message {
@@ -614,5 +622,110 @@ impl Message for UnregisterAuxvInfo {
         let pid = Pid::from_ne_bytes(bytes);
 
         Ok(UnregisterAuxvInfo { pid })
+    }
+}
+
+/* Message sent from the main process to the crash helper to register a new
+ * child process which is about to be spawned. This message contains the IPC
+ * endpoint which the crash helper will use to talk to the child. */
+
+pub struct RegisterChildProcess {
+    pub ipc_endpoint: AncillaryData,
+}
+
+impl RegisterChildProcess {
+    pub fn new(ipc_endpoint: AncillaryData) -> RegisterChildProcess {
+        RegisterChildProcess { ipc_endpoint }
+    }
+
+    fn payload_size(&self) -> usize {
+        0
+    }
+}
+
+impl Message for RegisterChildProcess {
+    fn kind() -> Kind {
+        Kind::RegisterChildProcess
+    }
+
+    fn header(&self) -> Vec<u8> {
+        Header {
+            kind: Self::kind(),
+            size: self.payload_size(),
+        }
+        .encode()
+    }
+
+    fn payload(&self) -> Vec<u8> {
+        Vec::<u8>::new()
+    }
+
+    fn ancillary_payload(&self) -> Option<AncillaryData> {
+        Some(self.ipc_endpoint)
+    }
+
+    fn decode(
+        _data: &[u8],
+        ancillary_data: Option<AncillaryData>,
+    ) -> Result<RegisterChildProcess, MessageError> {
+        let Some(ipc_endpoint) = ancillary_data else {
+            return Err(MessageError::MissingAncillary);
+        };
+
+        Ok(RegisterChildProcess { ipc_endpoint })
+    }
+}
+
+/* Reply sent from the crash helper process to a newly registered child. It
+ * contains platform-dependent information which is required for the child
+ * process to prepare itself for crash generation. */
+
+pub struct ChildProcessRegistered {
+    pub crash_helper_pid: Pid,
+}
+
+impl ChildProcessRegistered {
+    pub fn new(pid: Pid) -> ChildProcessRegistered {
+        ChildProcessRegistered {
+            crash_helper_pid: pid,
+        }
+    }
+}
+
+impl Message for ChildProcessRegistered {
+    fn kind() -> Kind {
+        Kind::ChildProcessRegistered
+    }
+
+    fn header(&self) -> Vec<u8> {
+        Header {
+            kind: Self::kind(),
+            size: size_of::<Pid>(),
+        }
+        .encode()
+    }
+
+    fn payload(&self) -> Vec<u8> {
+        self.crash_helper_pid.to_ne_bytes().to_vec()
+    }
+
+    fn ancillary_payload(&self) -> Option<AncillaryData> {
+        None
+    }
+
+    fn decode(
+        data: &[u8],
+        ancillary_data: Option<AncillaryData>,
+    ) -> Result<ChildProcessRegistered, MessageError> {
+        debug_assert!(
+            ancillary_data.is_none(),
+            "ChildProcessRegistered messages cannot carry ancillary data"
+        );
+        let bytes: [u8; size_of::<Pid>()] = data[0..size_of::<Pid>()].try_into()?;
+        let pid = Pid::from_ne_bytes(bytes);
+
+        Ok(ChildProcessRegistered {
+            crash_helper_pid: pid,
+        })
     }
 }

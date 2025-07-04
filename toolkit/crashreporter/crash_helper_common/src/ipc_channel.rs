@@ -7,7 +7,7 @@
  *****************************************************************************/
 
 #[cfg(target_os = "windows")]
-pub use windows::IPCChannel;
+pub use windows::{IPCChannel, IPCClientChannel};
 
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
@@ -17,7 +17,7 @@ pub(crate) mod windows;
 *****************************************************************************/
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "macos"))]
-pub use unix::IPCChannel;
+pub use unix::{IPCChannel, IPCClientChannel};
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "macos"))]
 pub(crate) mod unix;

@@ -1131,14 +1131,15 @@ Result<Ok, LaunchError> BaseProcessLauncher::DoSetup() {
       return Err(LaunchError("DuplicateFileHandle failed"));
     }
     geckoargs::sCrashReporter.Put(std::move(childCrashFd), mChildArgs);
+#endif  // XP_UNIX && !XP_IOS
 
-#  if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-    CrashReporter::ProcessId pid = CrashReporter::GetCrashHelperPid();
-    if (pid != base::kInvalidProcessId) {
-      geckoargs::sCrashHelperPid.Put(pid, mChildArgs);
+    UniqueFileHandle crashHelperClientFd =
+        CrashReporter::RegisterChildIPCChannel();
+    if (!crashHelperClientFd) {
+      return Err(
+          LaunchError("Could not create an IPC channel to the crash helper"));
     }
-#  endif  // defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-#endif    // XP_UNIX && !XP_IOS
+    geckoargs::sCrashHelper.Put(std::move(crashHelperClientFd), mChildArgs);
   }
 
   return Ok();

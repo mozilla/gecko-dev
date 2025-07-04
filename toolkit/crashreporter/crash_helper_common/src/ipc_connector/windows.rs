@@ -5,10 +5,8 @@
 use crate::{
     errors::IPCError,
     messages::{self, Message},
-    platform::windows::{
-        create_manual_reset_event, get_last_error, server_name, OverlappedOperation,
-    },
-    Pid, ProcessHandle, IO_TIMEOUT,
+    platform::windows::{create_manual_reset_event, get_last_error, OverlappedOperation},
+    ProcessHandle, IO_TIMEOUT,
 };
 
 use std::{
@@ -89,8 +87,7 @@ impl IPCConnector {
         self.event.as_raw_handle() as HANDLE
     }
 
-    pub fn connect(pid: Pid) -> Result<IPCConnector, IPCError> {
-        let server_name = server_name(pid);
+    pub fn connect(server_addr: &CStr) -> Result<IPCConnector, IPCError> {
         let now = Instant::now();
         let timeout = Duration::from_millis(IO_TIMEOUT.into());
         let mut pipe;
@@ -102,11 +99,11 @@ impl IPCConnector {
                 bInheritHandle: FALSE,
             };
 
-            // SAFETY: The `server_name` is guaranteed to be valid, all other
-            // pointer arguments are null.
+            // SAFETY: The `server_addr` pointer is guaranteed to be valid,
+            // all other pointer arguments are null.
             pipe = unsafe {
                 CreateFileA(
-                    server_name.as_ptr(),
+                    server_addr.as_ptr() as *const _,
                     FILE_READ_DATA | FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES,
                     FILE_SHARE_READ | FILE_SHARE_WRITE,
                     &security_attributes,
@@ -130,9 +127,12 @@ impl IPCConnector {
 
             // The pipe might have not been created yet or it might be busy.
             if (error == ERROR_FILE_NOT_FOUND) || (error == ERROR_PIPE_BUSY) {
-                // SAFETY: The `server_name` pointer is guaranteed to be valid.
+                // SAFETY: The `server_addr` pointer is guaranteed to be valid.
                 let res = unsafe {
-                    WaitNamedPipeA(server_name.as_ptr(), (timeout - elapsed).as_millis() as u32)
+                    WaitNamedPipeA(
+                        server_addr.as_ptr() as *const _,
+                        (timeout - elapsed).as_millis() as u32,
+                    )
                 };
                 let error = unsafe { GetLastError() };
 
@@ -292,7 +292,7 @@ impl IPCConnector {
     }
 }
 
-// SAFETY: The connector can be transferred across threads in spite of the
-// raw pointer contained in the OVERLAPPED structure because it is only
-// used internally and never visible externally.
+// SAFETY: The connector can be transferred across threads in spite of the raw
+// pointer contained in the OVERLAPPED structure because it is only used
+// internally and never visible externally.
 unsafe impl Send for IPCConnector {}

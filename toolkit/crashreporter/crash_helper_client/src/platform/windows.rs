@@ -4,12 +4,15 @@
 
 use anyhow::{bail, Result};
 use crash_helper_common::{
-    BreakpadChar, BreakpadData, BreakpadString, IPCChannel, IPCConnector, IPCListener,
+    BreakpadChar, BreakpadData, BreakpadString, IPCChannel, IPCConnector, IPCListener, Pid,
 };
 use std::{
     ffi::{OsStr, OsString},
     mem::{size_of, zeroed},
-    os::windows::ffi::{OsStrExt, OsStringExt},
+    os::windows::{
+        ffi::{OsStrExt, OsStringExt},
+        io::{FromRawHandle, OwnedHandle, RawHandle},
+    },
     ptr::{null, null_mut},
 };
 use windows_sys::Win32::{
@@ -36,20 +39,20 @@ impl CrashHelperClient {
         let channel = IPCChannel::new()?;
         let (listener, server_endpoint, client_endpoint) = channel.deconstruct();
 
-        let _ = std::thread::spawn(move || {
-            // If this fails we have no way to tell, but the IPC won't work so
-            // it's fine to ignore the return value.
-            let _ = CrashHelperClient::spawn_crash_helper(
+        let spawner_thread = std::thread::spawn(move || {
+            CrashHelperClient::spawn_crash_helper(
                 program,
                 breakpad_data,
                 minidump_path,
                 listener,
                 server_endpoint,
-            );
+            )
         });
 
         Ok(CrashHelperClient {
             connector: client_endpoint,
+            spawner_thread: Some(spawner_thread),
+            helper_process: None,
         })
     }
 
@@ -59,7 +62,7 @@ impl CrashHelperClient {
         minidump_path: OsString,
         listener: IPCListener,
         endpoint: IPCConnector,
-    ) -> Result<()> {
+    ) -> Result<OwnedHandle> {
         // SAFETY: `GetCurrentProcessId()` takes no arguments and should always work
         let pid = OsString::from(unsafe { GetCurrentProcessId() }.to_string());
 
@@ -102,10 +105,19 @@ impl CrashHelperClient {
             bail!("Could not create the crash helper process");
         }
 
-        // SAFETY: We just successfully populated the `PROCESS_INFORMATION`
-        // structure and the `hProcess` field contains a valid handle.
-        unsafe { CloseHandle(pi.hProcess) };
-        Ok(())
+        // SAFETY: We've verified that this value had been properly populated
+        // in the lines above.
+        unsafe {
+            CloseHandle(pi.hThread);
+        }
+
+        // SAFETY: We've already checked that `pi.hProcess` contains a
+        // valid process handle.
+        Ok(unsafe { OwnedHandle::from_raw_handle(pi.hProcess as RawHandle) })
+    }
+
+    pub(crate) fn prepare_for_minidump(_crash_helper_pid: Pid) {
+        // On Windows this is currently a no-op
     }
 }
 

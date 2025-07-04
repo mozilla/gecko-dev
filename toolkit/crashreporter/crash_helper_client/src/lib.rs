@@ -5,7 +5,8 @@
 use anyhow::{bail, Result};
 use crash_helper_common::{
     messages::{self},
-    BreakpadString, IPCConnector,
+    AncillaryData, BreakpadString, IPCClientChannel, IPCConnector, ProcessHandle,
+    INVALID_ANCILLARY_DATA,
 };
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use minidump_writer::minidump_writer::{AuxvType, DirectAuxvDumpInfo};
@@ -13,7 +14,13 @@ use minidump_writer::minidump_writer::{AuxvType, DirectAuxvDumpInfo};
 use std::os::fd::RawFd;
 use std::{
     ffi::{c_char, CString, OsString},
+    hint::spin_loop,
     ptr::null_mut,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        OnceLock,
+    },
+    thread::{self, JoinHandle},
 };
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Diagnostics::Debug::{CONTEXT, EXCEPTION_RECORD};
@@ -26,6 +33,8 @@ mod platform;
 
 pub struct CrashHelperClient {
     connector: IPCConnector,
+    spawner_thread: Option<JoinHandle<Result<ProcessHandle>>>,
+    helper_process: Option<ProcessHandle>,
 }
 
 impl CrashHelperClient {
@@ -33,6 +42,39 @@ impl CrashHelperClient {
         let message = messages::SetCrashReportPath::new(path);
         self.connector.send_message(&message)?;
         Ok(())
+    }
+
+    fn register_child_process(&mut self) -> Result<AncillaryData> {
+        let ipc_channel = IPCClientChannel::new()?;
+        let (server_endpoint, client_endpoint) = ipc_channel.deconstruct();
+
+        if let Some(join_handle) = self.spawner_thread.take() {
+            let Ok(process_handle) = join_handle.join() else {
+                bail!("The spawner thread failed to execute");
+            };
+
+            let Ok(process_handle) = process_handle else {
+                bail!("The crash helper process failed to launch");
+            };
+
+            self.helper_process = Some(process_handle);
+        }
+
+        if self.helper_process.is_none() {
+            bail!("The crash helper process is not available");
+        };
+
+        let Ok(ancillary_data) = server_endpoint.into_ancillary(&self.helper_process) else {
+            bail!("Could not convert the server IPC endpoint");
+        };
+
+        let message = messages::RegisterChildProcess::new(ancillary_data);
+        self.connector.send_message(&message)?;
+        let Ok(ancillary_data) = client_endpoint.into_ancillary(/* dst_process */ &None) else {
+            bail!("Could not convert the local IPC endpoint");
+        };
+
+        Ok(ancillary_data)
     }
 
     #[cfg(any(target_os = "android", target_os = "linux"))]
@@ -73,6 +115,10 @@ impl CrashHelperClient {
         })
     }
 }
+
+/******************************************************************************
+ * Main process interface                                                     *
+ ******************************************************************************/
 
 /// Launch the crash helper process, initialize it and connect to it. Returns
 /// a pointer to the client connection or `null` upon failure.
@@ -166,6 +212,30 @@ pub unsafe extern "C" fn set_crash_report_path(
     client.set_crash_report_path(path).is_ok()
 }
 
+/// Creates a new IPC channel to connect a soon-to-be-created child process
+/// with the crash helper client. The server-side endpoint of this channel
+/// will be sent to the crash helper, and the client-side endpoint will be
+/// returned.
+///
+/// This function will return an invalid file handle if creation failed.
+///
+/// # Safety
+///
+/// The `client` parameter must be a valid pointer to the crash helper client
+/// object returned by the [`crash_helper_launch()`] or
+/// [`crash_helper_connect()`] functions.
+#[no_mangle]
+pub unsafe extern "C" fn register_child_ipc_channel(
+    client: *mut CrashHelperClient,
+) -> AncillaryData {
+    let client = client.as_mut().unwrap();
+    if let Ok(client_endpoint) = client.register_child_process() {
+        client_endpoint
+    } else {
+        INVALID_ANCILLARY_DATA
+    }
+}
+
 /// Request the crash report generated for the process associated with `pid`.
 /// If the crash report is found an object holding a pointer to the minidump
 /// and a potential error message will be returned. Otherwise the function will
@@ -230,8 +300,11 @@ pub unsafe fn report_external_exception(
     let message =
         messages::WindowsErrorReportingMinidump::new(pid, thread, exception_records, context);
 
-    // In the code below we connect to the crash helper, send our message and wait for a reply before returning, but we ignore errors because we can't do anything about them in the calling code
-    if let Ok(connector) = IPCConnector::connect(main_process_pid) {
+    // In the code below we connect to the crash helper, send our message and
+    // wait for a reply before returning, but we ignore errors because we
+    // can't do anything about them in the calling code.
+    let server_addr = crash_helper_common::server_addr(main_process_pid);
+    if let Ok(connector) = IPCConnector::connect(&server_addr) {
         let _ = connector
             .send_message(&message)
             .and_then(|_| connector.recv_reply::<messages::WindowsErrorReportingMinidumpReply>());
@@ -299,4 +372,74 @@ pub unsafe extern "C" fn unregister_child_auxv_info(
 ) -> bool {
     let client = client.as_mut().unwrap();
     client.unregister_auxv_info(pid).is_ok()
+}
+
+/******************************************************************************
+ * Child process interface                                                    *
+ ******************************************************************************/
+
+// This contains the raw IPC endpoint that a child will use to reach out to
+// the crash helper process. We explicitly store it in its raw form rather
+// than as an IPCConnector because the latter is neither thread-safe nor
+// signal/exception-safe. We will access this endpoint only from within the
+// exception handler with bare syscalls so we can leave the `IPCConnector`
+// object behind.
+static CHILD_IPC_ENDPOINT: OnceLock<Box<AncillaryData>> = OnceLock::new();
+static RENDEZVOUS_FAILED: AtomicBool = AtomicBool::new(false);
+
+/// Let a client rendez-vous with the crash helper process. This step ensures
+/// the crash helper will be able to dump the calling child. This will also
+/// serve additional functionality in the future.
+///
+/// # Safety
+///
+/// This function is safe to use if the `client_endpoint` parameter contains
+/// a valid pipe handle (on Windows) or a valid file descriptor (on all other
+/// platforms).
+#[no_mangle]
+pub unsafe extern "C" fn crash_helper_rendezvous(client_endpoint: AncillaryData) {
+    let Ok(connector) = IPCConnector::from_ancillary(client_endpoint) else {
+        RENDEZVOUS_FAILED.store(true, Ordering::Relaxed);
+        return;
+    };
+
+    let join_handle = thread::spawn(move || {
+        if let Ok(message) = connector.recv_reply::<messages::ChildProcessRegistered>() {
+            CrashHelperClient::prepare_for_minidump(message.crash_helper_pid);
+            assert!(
+                CHILD_IPC_ENDPOINT
+                    .set(Box::new(connector.into_ancillary(&None).unwrap()))
+                    .is_ok(),
+                "The crash_helper_rendezvous() function must only be called once"
+            );
+        }
+
+        RENDEZVOUS_FAILED.store(true, Ordering::Relaxed);
+    });
+
+    // If we couldn't spawn a thread the join handle will be already marked as
+    // finished, check for this and flag the rendez-vous as failed. Don't wait
+    // for the thread though, other failures will be dealt with within the
+    // thread itself.
+    if join_handle.is_finished() && join_handle.join().is_err() {
+        RENDEZVOUS_FAILED.store(true, Ordering::Relaxed);
+    }
+}
+
+/// Ensure that the rendez-vous with the crash helper has happened. This method
+/// can be called safely from within an exception handler.
+///
+/// # Safety
+///
+/// It is always safe to call this function. It's safe even from within an
+/// exception handler.
+#[no_mangle]
+pub unsafe extern "C" fn crash_helper_wait_for_rendezvous() {
+    while CHILD_IPC_ENDPOINT.get().is_none() {
+        if RENDEZVOUS_FAILED.load(Ordering::Relaxed) {
+            break;
+        }
+
+        spin_loop();
+    }
 }

@@ -15,7 +15,7 @@ use crash_annotations::{
 };
 use crash_helper_common::{
     messages::{self, Message},
-    AncillaryData, BreakpadChar, BreakpadData, BreakpadString, Pid,
+    AncillaryData, BreakpadChar, BreakpadData, BreakpadString, IPCConnector, Pid,
 };
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use minidump_writer::minidump_writer::DirectAuxvDumpInfo;
@@ -30,6 +30,7 @@ use std::{
     io::{Seek, SeekFrom, Write},
     mem::size_of,
     path::{Path, PathBuf},
+    process,
     sync::Mutex,
 };
 #[cfg(target_os = "windows")]
@@ -75,6 +76,12 @@ enum MinidumpOrigin {
     WindowsErrorReporting,
 }
 
+pub(crate) enum MessageResult {
+    None,
+    Reply(Box<dyn Message>),
+    Connection(IPCConnector),
+}
+
 pub(crate) struct CrashGenerator {
     // This will be used for generating hangs
     _minidump_path: OsString,
@@ -107,16 +114,18 @@ impl CrashGenerator {
         kind: messages::Kind,
         data: &[u8],
         ancillary_data: Option<AncillaryData>,
-    ) -> Result<Option<Box<dyn Message>>> {
+    ) -> Result<MessageResult> {
         match kind {
             messages::Kind::SetCrashReportPath => {
                 let message = messages::SetCrashReportPath::decode(data, ancillary_data)?;
                 self.set_path(message.path);
-                Ok(None)
+                Ok(MessageResult::None)
             }
             messages::Kind::TransferMinidump => {
                 let message = messages::TransferMinidump::decode(data, ancillary_data)?;
-                Ok(Some(Box::new(self.transfer_minidump(message.pid))))
+                Ok(MessageResult::Reply(Box::new(
+                    self.transfer_minidump(message.pid),
+                )))
             }
             messages::Kind::GenerateMinidump => {
                 todo!("Implement all messages");
@@ -127,7 +136,7 @@ impl CrashGenerator {
                 let map = &mut AUXV_INFO_MAP.lock().unwrap();
                 map.insert(message.pid, message.auxv_info);
 
-                Ok(None)
+                Ok(MessageResult::None)
             }
             #[cfg(any(target_os = "android", target_os = "linux"))]
             messages::Kind::UnregisterAuxvInfo => {
@@ -135,7 +144,14 @@ impl CrashGenerator {
                 let map = &mut AUXV_INFO_MAP.lock().unwrap();
                 map.remove(&message.pid);
 
-                Ok(None)
+                Ok(MessageResult::None)
+            }
+            messages::Kind::RegisterChildProcess => {
+                let message = messages::RegisterChildProcess::decode(data, ancillary_data)?;
+                let connector = IPCConnector::from_ancillary(message.ipc_endpoint)?;
+                connector
+                    .send_message(&messages::ChildProcessRegistered::new(process::id() as Pid))?;
+                Ok(MessageResult::Connection(connector))
             }
             kind => {
                 bail!("Unexpected message {kind:?} from parent process");
@@ -150,7 +166,7 @@ impl CrashGenerator {
         kind: messages::Kind,
         _data: &[u8],
         _ancillary_data: Option<AncillaryData>,
-    ) -> Result<Option<Box<dyn Message>>> {
+    ) -> Result<MessageResult> {
         bail!("Unexpected message {kind:?} from child process");
     }
 
@@ -161,14 +177,14 @@ impl CrashGenerator {
         kind: messages::Kind,
         #[allow(unused_variables)] data: &[u8],
         #[allow(unused_variables)] ancillary_data: Option<AncillaryData>,
-    ) -> Result<Option<Box<dyn Message>>> {
+    ) -> Result<MessageResult> {
         match kind {
             #[cfg(target_os = "windows")]
             messages::Kind::WindowsErrorReporting => {
                 let message =
                     messages::WindowsErrorReportingMinidump::decode(data, ancillary_data)?;
                 let _ = self.generate_wer_minidump(message);
-                Ok(Some(Box::new(
+                Ok(MessageResult::Reply(Box::new(
                     messages::WindowsErrorReportingMinidumpReply::new(),
                 )))
             }

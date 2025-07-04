@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use anyhow::Result;
-use crash_helper_common::IPCConnector;
+use crash_helper_common::{IPCConnector, Pid};
 use std::os::fd::{FromRawFd, OwnedFd, RawFd};
 
 use crate::CrashHelperClient;
@@ -14,6 +14,14 @@ impl CrashHelperClient {
         let server_socket = unsafe { OwnedFd::from_raw_fd(server_socket) };
         let connector = IPCConnector::from_fd(server_socket)?;
 
-        Ok(CrashHelperClient { connector })
+        Ok(CrashHelperClient {
+            connector,
+            spawner_thread: None,
+            helper_process: Some(()),
+        })
+    }
+
+    pub(crate) fn prepare_for_minidump(_crash_helper_pid: Pid) {
+        // On Android this is currently a no-op
     }
 }

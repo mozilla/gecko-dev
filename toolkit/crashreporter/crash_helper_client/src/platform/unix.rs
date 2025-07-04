@@ -32,6 +32,8 @@ impl CrashHelperClient {
 
         Ok(CrashHelperClient {
             connector: client_endpoint,
+            spawner_thread: None,
+            helper_process: Some(()),
         })
     }
 
@@ -100,5 +102,10 @@ impl CrashHelperClient {
                 Ok(())
             }
         }
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    pub(crate) fn prepare_for_minidump(_pid: crash_helper_common::Pid) {
+        // This is a no-op on platforms that don't need it
     }
 }

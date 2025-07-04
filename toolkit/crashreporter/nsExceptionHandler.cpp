@@ -258,8 +258,6 @@ static char* androidUserSerial = nullptr;
 static const char* androidStartServiceCommand = nullptr;
 #endif
 
-static Maybe<ProcessId> gCrashHelperPid;
-
 // this holds additional data sent via the API
 static Mutex* notesFieldLock;
 static nsCString* notesField = nullptr;
@@ -1719,22 +1717,18 @@ static bool IsCrashingException(EXCEPTION_POINTERS* exinfo) {
 // Do various actions to prepare the child process for minidump generation.
 // This includes disabling the I/O interposer and DLL blocklist which both
 // would get in the way. We also free the resources we have reserved, such as
-// address space on 32-bit Windows builds and file descriptors on Linux so that
-// they're available to the minidump generation code.
-static void PrepareForMinidump() {
+// address space on 32-bit Windows builds, so that they're available to the
+// minidump generation code.
+static void PrepareForMinidump(bool isChildProcess = true) {
   mozilla::IOInterposer::Disable();
   ReleaseResources();
-#if defined(XP_WIN)
-#  if defined(DEBUG) && defined(HAS_DLL_BLOCKLIST)
-  DllBlocklist_Shutdown();
-#  endif
-#elif defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-  if (gCrashHelperPid.isSome()) {
-    // Ignore the return value because we're in the exception handler, so
-    // there's not much we can do safely, not even log the error.
-    Unused << prctl(PR_SET_PTRACER, gCrashHelperPid.value());
+
+  if (isChildProcess) {
+    crash_helper_wait_for_rendezvous();
   }
-#endif
+#if defined(XP_WIN) && defined(DEBUG) && defined(HAS_DLL_BLOCKLIST)
+  DllBlocklist_Shutdown();
+#endif  // defined(XP_WIN) && defined(DEBUG) && defined(HAS_DLL_BLOCKLIST)
 }
 
 #ifdef XP_WIN
@@ -1750,7 +1744,7 @@ static ExceptionHandler::FilterResult Filter(void* context,
     return ExceptionHandler::FilterResult::ContinueSearch;
   }
 
-  PrepareForMinidump();
+  PrepareForMinidump(/* isChildProcess */ false);
   return ExceptionHandler::FilterResult::HandleException;
 }
 
@@ -1795,7 +1789,7 @@ static MINIDUMP_TYPE GetMinidumpType() {
 #else
 
 static bool Filter(void* context) {
-  PrepareForMinidump();
+  PrepareForMinidump(/* isChildProcess */ false);
   return true;
 }
 
@@ -3343,18 +3337,19 @@ CrashPipeType GetChildNotificationPipe() {
 #endif
 }
 
-#if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
+UniqueFileHandle RegisterChildIPCChannel() {
+  if (gCrashHelperClient) {
+    AncillaryData ipc_endpoint = register_child_ipc_channel(gCrashHelperClient);
+    return UniqueFileHandle{ipc_endpoint};
+  }
 
-ProcessId GetCrashHelperPid() {
-  return base::kInvalidProcessId;
+  return UniqueFileHandle();
 }
 
-#endif  // defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
-
 bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe,
-                               Maybe<ProcessId> aCrashHelperPid) {
+                               UniqueFileHandle aCrashHelperPipe) {
   MOZ_ASSERT(!gExceptionHandler, "crash client already init'd");
-  gCrashHelperPid = aCrashHelperPid;
+  crash_helper_rendezvous(aCrashHelperPipe.release());
   RegisterRuntimeExceptionModule();
   InitializeAppNotes();
   RegisterAnnotations();

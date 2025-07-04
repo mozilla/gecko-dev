@@ -5,7 +5,7 @@
 use anyhow::Result;
 use crash_helper_common::{errors::IPCError, messages, IPCConnector, IPCEvent, IPCListener};
 
-use crate::crash_generation::CrashGenerator;
+use crate::crash_generation::{CrashGenerator, MessageResult};
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "macos"))]
 mod unix;
@@ -65,11 +65,7 @@ impl IPCServer {
                     });
                 }
                 IPCEvent::Header(index, header) => {
-                    let connection = self
-                        .connections
-                        .get_mut(index)
-                        .expect("Invalid connector index");
-                    let res = Self::handle_message(connection, &header, generator);
+                    let res = self.handle_message(index, &header, generator);
                     if let Err(error) = res {
                         log::error!(
                             "Error {error} while handling a message of {:?} kind",
@@ -91,10 +87,15 @@ impl IPCServer {
     }
 
     fn handle_message(
-        connection: &mut IPCConnection,
+        &mut self,
+        index: usize,
         header: &messages::Header,
         generator: &mut CrashGenerator,
     ) -> Result<()> {
+        let connection = self
+            .connections
+            .get_mut(index)
+            .expect("Invalid connector index");
         let connector = &mut connection.connector;
         let (data, ancillary_data) = connector.recv(header.size)?;
 
@@ -104,8 +105,16 @@ impl IPCServer {
             IPCEndpoint::External => generator.external_message(header.kind, &data, ancillary_data),
         }?;
 
-        if let Some(reply) = reply {
-            connector.send_message(reply.as_ref())?;
+        match reply {
+            MessageResult::Reply(reply) => connector.send_message(reply.as_ref())?,
+            MessageResult::Connection(connector) => {
+                self.connections.push(IPCConnection {
+                    connector,
+                    endpoint: IPCEndpoint::Child,
+                });
+            }
+
+            MessageResult::None => {}
         }
 
         Ok(())

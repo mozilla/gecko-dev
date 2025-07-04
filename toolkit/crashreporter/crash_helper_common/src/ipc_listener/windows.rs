@@ -4,12 +4,12 @@
 
 use crate::{
     errors::IPCError,
-    platform::windows::{create_manual_reset_event, server_name, OverlappedOperation},
+    platform::windows::{create_manual_reset_event, server_addr, OverlappedOperation},
     IPCConnector, Pid,
 };
 
 use std::{
-    ffi::{c_void, CStr, OsString},
+    ffi::{c_void, CStr, CString, OsString},
     os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle},
     ptr::null_mut,
     str::FromStr,
@@ -27,20 +27,19 @@ use windows_sys::Win32::{
 };
 
 pub struct IPCListener {
-    server_name: String,
+    server_addr: CString,
     handle: OwnedHandle,
     overlapped: Option<OverlappedOperation>,
     event: OwnedHandle,
 }
 
 impl IPCListener {
-    pub fn new(pid: Pid) -> Result<IPCListener, IPCError> {
-        let server_name = server_name(pid);
-        let pipe = create_named_pipe(&server_name, /* first_instance */ true)?;
+    pub fn new(server_addr: CString) -> Result<IPCListener, IPCError> {
+        let pipe = create_named_pipe(&server_addr, /* first_instance */ true)?;
         let event = create_manual_reset_event()?;
 
         Ok(IPCListener {
-            server_name,
+            server_addr,
             handle: pipe,
             overlapped: None,
             event,
@@ -49,6 +48,10 @@ impl IPCListener {
 
     pub fn event_raw_handle(&self) -> HANDLE {
         self.event.as_raw_handle() as HANDLE
+    }
+
+    pub fn address(&self) -> &CStr {
+        &self.server_addr
     }
 
     pub fn listen(&mut self) -> Result<(), IPCError> {
@@ -66,7 +69,7 @@ impl IPCListener {
         // already waiting, so panic in that scenario.
         let overlapped = self.overlapped.take().unwrap();
         overlapped.accept(self.handle.as_raw_handle() as HANDLE)?;
-        let new_pipe = create_named_pipe(&self.server_name, /* first_instance */ false)?;
+        let new_pipe = create_named_pipe(&self.server_addr, /* first_instance */ false)?;
         let connected_pipe = std::mem::replace(&mut self.handle, new_pipe);
 
         // Once we've accepted a new connection and replaced the listener's
@@ -88,7 +91,7 @@ impl IPCListener {
     /// Deserialize a listener from an argument passed on the command-line.
     /// The resulting listener is ready to accept new connections.
     pub fn deserialize(string: &CStr, pid: Pid) -> Result<IPCListener, IPCError> {
-        let server_name = server_name(pid);
+        let server_addr = server_addr(pid);
         let string = string.to_str().map_err(|_e| IPCError::ParseError)?;
         let handle = usize::from_str(string).map_err(|_e| IPCError::ParseError)?;
         let handle = handle as *mut c_void;
@@ -97,7 +100,7 @@ impl IPCListener {
         let event = create_manual_reset_event()?;
 
         let mut listener = IPCListener {
-            server_name,
+            server_addr,
             handle,
             overlapped: None,
             event,
@@ -116,7 +119,7 @@ impl IPCListener {
 // used internally and never visible externally.
 unsafe impl Send for IPCListener {}
 
-fn create_named_pipe(server_name: &str, first_instance: bool) -> Result<OwnedHandle, IPCError> {
+fn create_named_pipe(server_addr: &CStr, first_instance: bool) -> Result<OwnedHandle, IPCError> {
     const PIPE_BUFFER_SIZE: u32 = 4096;
 
     let open_mode = PIPE_ACCESS_DUPLEX
@@ -137,7 +140,7 @@ fn create_named_pipe(server_name: &str, first_instance: bool) -> Result<OwnedHan
     // valid, and null for all the other pointer arguments.
     let pipe = unsafe {
         CreateNamedPipeA(
-            server_name.as_ptr(),
+            server_addr.as_ptr() as *const _,
             open_mode,
             PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
             PIPE_UNLIMITED_INSTANCES,
