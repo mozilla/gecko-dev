@@ -169,9 +169,8 @@ class nsTimerImpl {
   mozilla::TimeDuration mDelay MOZ_GUARDED_BY(mMutex);
   // Never updated while in the TimerThread's timer list.  Only updated
   // before adding to that list or during nsTimerImpl::Fire(), when it has
-  // been removed from the TimerThread's list.  TimerThread can access
-  // mTimeout of any timer in the list safely
-  mozilla::TimeStamp mTimeout;
+  // been removed from the TimerThread's list.
+  mozilla::TimeStamp mTimeout MOZ_GUARDED_BY(mMutex);
 
   RefPtr<nsITimer> mITimer MOZ_GUARDED_BY(mMutex);
   mozilla::Mutex mMutex;
