@@ -4,7 +4,7 @@
 
 use std::cell::RefCell;
 use std::ffi::OsString;
-use std::fs::{create_dir_all, read_dir, read_to_string, File, remove_dir_all};
+use std::fs::{create_dir_all, read_dir, read_to_string, File};
 use std::io::{Error, ErrorKind};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -345,7 +345,7 @@ pub fn remove_disk_cache(prof_path: &nsAString) -> Result<(), Error> {
     if let Some(cache_path) = get_cache_path_from_prof_path(prof_path) {
         if cache_path.exists() {
             let start = Instant::now();
-            remove_dir_all(&cache_path)?;
+            remove_dir_all::remove_dir_all(&cache_path)?;
             info!("removed all disk cache shaders in {:?}", start.elapsed());
         }
     }
