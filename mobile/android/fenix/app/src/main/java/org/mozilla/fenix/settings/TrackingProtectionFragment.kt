@@ -63,12 +63,25 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
     @VisibleForTesting
     internal lateinit var customSuspectedFingerprintersSelect: DropDownPreference
 
+    @VisibleForTesting
+    internal lateinit var customAllowListBaselineTrackingProtection: CheckBoxPreference
+
+    @VisibleForTesting
+    internal lateinit var customAllowListConvenienceTrackingProtection: CheckBoxPreference
+
+    @VisibleForTesting
+    internal lateinit var strictAllowListBaselineTrackingProtection: CheckBoxPreference
+
+    @VisibleForTesting
+    internal lateinit var strictAllowListConvenienceTrackingProtection: CheckBoxPreference
+
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.tracking_protection_preferences, rootKey)
-        val radioStrict = bindTrackingProtectionRadio(TrackingProtectionMode.STRICT)
+        val radioStrict = bindStrict()
         val radioStandard = bindTrackingProtectionRadio(TrackingProtectionMode.STANDARD)
         val radioCustom = bindCustom()
         addToRadioGroup(radioStrict, radioStandard, radioCustom)
+        updateStrictOptionsVisibility()
         updateCustomOptionsVisibility()
     }
 
@@ -107,6 +120,22 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
             getString(R.string.app_name),
         )
 
+        val strictAllowListBaseline =
+            requirePreference<Preference>(R.string.pref_key_tracking_protection_strict_allow_list_baseline)
+
+        strictAllowListBaseline.summary = getString(
+            R.string.preference_enhanced_tracking_protection_allow_list_baseline,
+            getString(R.string.app_name),
+        )
+
+        val customAllowListBaseline =
+            requirePreference<Preference>(R.string.pref_key_tracking_protection_custom_allow_list_baseline)
+
+        customAllowListBaseline.summary = getString(
+            R.string.preference_enhanced_tracking_protection_allow_list_baseline,
+            getString(R.string.app_name),
+        )
+
         val preferenceExceptions =
             requirePreference<Preference>(R.string.pref_key_tracking_protection_exceptions)
         preferenceExceptions.onPreferenceClickListener = exceptionsClickListener
@@ -129,6 +158,7 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
         radio.contentDescription = getString(mode.contentDescriptionRes)
 
         radio.onClickListener {
+            updateStrictOptionsVisibility()
             updateCustomOptionsVisibility()
             updateTrackingProtectionPolicy()
             TrackingProtection.etpSettingChanged.record(TrackingProtection.EtpSettingChangedExtra(mode.name))
@@ -141,6 +171,39 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
                     .actionTrackingProtectionFragmentToTrackingProtectionBlockingFragment(mode),
             )
         }
+
+        return radio
+    }
+
+    private fun bindStrict(): RadioButtonInfoPreference {
+        val radio = bindTrackingProtectionRadio(TrackingProtectionMode.STRICT)
+
+        strictAllowListBaselineTrackingProtection =
+            requirePreference(R.string.pref_key_tracking_protection_strict_allow_list_baseline)
+
+        strictAllowListConvenienceTrackingProtection =
+            requirePreference(R.string.pref_key_tracking_protection_strict_allow_list_convenience)
+
+        strictAllowListBaselineTrackingProtection.onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+            override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                if (!(newValue as Boolean)) {
+                    strictAllowListConvenienceTrackingProtection.isChecked = false
+                }
+                return super.onPreferenceChange(preference, newValue).also {
+                    updateTrackingProtectionPolicy()
+                }
+            }
+        }
+
+        strictAllowListConvenienceTrackingProtection.onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+            override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                return super.onPreferenceChange(preference, newValue).also {
+                    updateTrackingProtectionPolicy()
+                }
+            }
+        }
+
+        updateStrictOptionsVisibility()
 
         return radio
     }
@@ -174,6 +237,12 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
 
         customSuspectedFingerprintersSelect =
             requirePreference(R.string.pref_key_tracking_protection_suspected_fingerprinters_select)
+
+        customAllowListBaselineTrackingProtection =
+            requirePreference(R.string.pref_key_tracking_protection_custom_allow_list_baseline)
+
+        customAllowListConvenienceTrackingProtection =
+            requirePreference(R.string.pref_key_tracking_protection_custom_allow_list_convenience)
 
         customCookies.onPreferenceChangeListener = object : SharedPreferenceUpdater() {
             override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
@@ -250,6 +319,25 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
             }
         }
 
+        customAllowListBaselineTrackingProtection.onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+            override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                if (!(newValue as Boolean)) {
+                    customAllowListConvenienceTrackingProtection.isChecked = false
+                }
+                return super.onPreferenceChange(preference, newValue).also {
+                    updateTrackingProtectionPolicy()
+                }
+            }
+        }
+
+        customAllowListConvenienceTrackingProtection.onPreferenceChangeListener = object : SharedPreferenceUpdater() {
+            override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                return super.onPreferenceChange(preference, newValue).also {
+                    updateTrackingProtectionPolicy()
+                }
+            }
+        }
+
         updateCustomOptionsVisibility()
 
         return radio
@@ -265,6 +353,12 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
         }
     }
 
+    private fun updateStrictOptionsVisibility() {
+        val isStrictSelected = requireContext().settings().useStrictTrackingProtection
+        strictAllowListBaselineTrackingProtection.isVisible = isStrictSelected
+        strictAllowListConvenienceTrackingProtection.isVisible = isStrictSelected
+    }
+
     private fun updateCustomOptionsVisibility() {
         val isCustomSelected = requireContext().settings().useCustomTrackingProtection
         customCookies.isVisible = isCustomSelected
@@ -276,6 +370,8 @@ class TrackingProtectionFragment : PreferenceFragmentCompat() {
         customRedirectTrackers.isVisible = isCustomSelected
         customSuspectedFingerprinters.isVisible = isCustomSelected
         customSuspectedFingerprintersSelect.isVisible = isCustomSelected && customSuspectedFingerprinters.isChecked
+        customAllowListBaselineTrackingProtection.isVisible = isCustomSelected
+        customAllowListConvenienceTrackingProtection.isVisible = isCustomSelected
     }
 
     private fun updateFingerprintingProtection() {
