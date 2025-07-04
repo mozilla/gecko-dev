@@ -27,7 +27,7 @@ async def test_partition_context(
 
     cookie_name = "foo"
     cookie_value = "bar"
-    await add_cookie(new_tab["context"], cookie_name, cookie_value)
+    await add_cookie(new_tab["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right context.
     cookies = await bidi_session.storage.get_cookies(
@@ -43,7 +43,7 @@ async def test_partition_context(
                     "name": cookie_name,
                     "path": "/webdriver/tests/support",
                     "sameSite": "none",
-                    "secure": False,
+                    "secure": True,
                     "size": 6,
                     "value": {"type": "string", "value": cookie_value},
                 }
@@ -84,7 +84,7 @@ async def test_partition_context_same_origin_iframe(
 
     cookie_name = "foo"
     cookie_value = "bar"
-    await add_cookie(iframe_context["context"], cookie_name, cookie_value)
+    await add_cookie(iframe_context["context"], cookie_name, cookie_value, secure=True)
 
     # Check that added cookies are present on the right context
     cookies = await bidi_session.storage.get_cookies(
@@ -98,7 +98,7 @@ async def test_partition_context_same_origin_iframe(
             "name": cookie_name,
             "path": "/webdriver/tests/support",
             "sameSite": "none",
-            "secure": False,
+            "secure": True,
             "size": 6,
             "value": {"type": "string", "value": cookie_value},
         }
