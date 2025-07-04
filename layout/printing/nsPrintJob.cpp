@@ -1645,7 +1645,10 @@ void SelectionRangeState::RemoveSelectionFromDocument() {
             : AllowRangeCrossShadowBoundary::No);
     SelectRange(range);
   }
-  mSelection->DeleteFromDocument(IgnoreErrors());
+  for (uint32_t i = 0; i < mSelection->RangeCount(); i++) {
+    auto* range = mSelection->GetRangeAt(i);
+    range->SuppressContentsForPrintSelection(IgnoreErrors());
+  }
 }
 
 /**

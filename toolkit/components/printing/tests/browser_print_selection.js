@@ -11,7 +11,11 @@ const sources = [
 
 async function getPreviewText(previewBrowser) {
   return SpecialPowers.spawn(previewBrowser, [], function () {
-    return content.document.body.textContent;
+    // We don't delete elements complete outside of the selection, instead applying
+    // `display: none` to them. Need to use `innerText` to take this into account.
+    // This can cause a layout flush that hides issues, but they should be covered
+    // by reftests with `reftest-print-range`.
+    return content.document.body.innerText;
   });
 }
 
