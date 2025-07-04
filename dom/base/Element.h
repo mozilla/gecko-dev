@@ -1164,6 +1164,7 @@ class Element : public FragmentOrElement {
     ShowPopover,
     HidePopover,
     ShowModal,
+    RequestClose,
     Toggle,
     Close,
     Open,

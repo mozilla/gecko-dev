@@ -53,6 +53,7 @@ static constexpr nsAttrValue::EnumTableEntry kButtonCommandTable[] = {
     // https://open-ui.org/components/future-invokers.explainer/
     {"open", Element::Command::Open},
 
+    {"request-close", Element::Command::RequestClose},
     {"show-modal", Element::Command::ShowModal},
     {"show-popover", Element::Command::ShowPopover},
 

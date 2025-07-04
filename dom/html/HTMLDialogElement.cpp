@@ -561,14 +561,17 @@ void HTMLDialogElement::RunCancelDialogSteps() {
   // refactored when the CloseWatcher specifications settle.
   if (defaultAction) {
     Optional<nsAString> retValue;
-    retValue = &RequestCloseReturnValue();
+    if (!RequestCloseReturnValue().IsEmpty()) {
+      retValue = &RequestCloseReturnValue();
+    }
     Close(retValue);
   }
 }
 
 bool HTMLDialogElement::IsValidCommandAction(Command aCommand) const {
   return nsGenericHTMLElement::IsValidCommandAction(aCommand) ||
-         aCommand == Command::ShowModal || aCommand == Command::Close;
+         aCommand == Command::ShowModal || aCommand == Command::Close ||
+         aCommand == Command::RequestClose;
 }
 
 bool HTMLDialogElement::HandleCommandInternal(Element* aSource,
@@ -580,7 +583,8 @@ bool HTMLDialogElement::HandleCommandInternal(Element* aSource,
 
   MOZ_ASSERT(IsValidCommandAction(aCommand));
 
-  if (aCommand == Command::Close && Open()) {
+  if ((aCommand == Command::Close || aCommand == Command::RequestClose) &&
+      Open()) {
     Optional<nsAString> retValueOpt;
     nsString retValue;
     if (aSource->HasAttr(nsGkAtoms::value)) {
@@ -589,7 +593,15 @@ bool HTMLDialogElement::HandleCommandInternal(Element* aSource,
         retValueOpt = &retValue;
       }
     }
-    Close(retValueOpt);
+    if (aCommand == Command::Close) {
+      Close(retValueOpt);
+    } else {
+      MOZ_ASSERT(aCommand == Command::RequestClose);
+      if (retValueOpt.WasPassed()) {
+        SetReturnValue(retValueOpt.Value());
+      }
+      RequestClose(retValueOpt);
+    }
     return true;
   }
 
