@@ -152,7 +152,7 @@ private fun ShortcutsMenuItem(
             stringResource(id = R.string.browser_menu_add_to_shortcuts)
         },
         beforeIconPainter = if (isPinned) {
-            painterResource(id = R.drawable.mozac_ic_pin_slash_fill_24)
+            painterResource(id = R.drawable.mozac_ic_pin_fill_24)
         } else {
             painterResource(id = R.drawable.mozac_ic_pin_24)
         },
