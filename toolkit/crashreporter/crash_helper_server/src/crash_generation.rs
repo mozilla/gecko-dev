@@ -100,9 +100,9 @@ impl CrashGenerator {
         })
     }
 
-    // Process a message received from the client. Return an optional reply
-    // that will be sent back to the client.
-    pub(crate) fn client_message(
+    // Process a message received from the parent process. Return an optional
+    // reply that will be sent back to the parent.
+    pub(crate) fn parent_message(
         &mut self,
         kind: messages::Kind,
         data: &[u8],
@@ -121,15 +121,6 @@ impl CrashGenerator {
             messages::Kind::GenerateMinidump => {
                 todo!("Implement all messages");
             }
-            #[cfg(target_os = "windows")]
-            messages::Kind::WindowsErrorReporting => {
-                let message =
-                    messages::WindowsErrorReportingMinidump::decode(data, ancillary_data)?;
-                let _ = self.generate_wer_minidump(message);
-                Ok(Some(Box::new(
-                    messages::WindowsErrorReportingMinidumpReply::new(),
-                )))
-            }
             #[cfg(any(target_os = "android", target_os = "linux"))]
             messages::Kind::RegisterAuxvInfo => {
                 let message = messages::RegisterAuxvInfo::decode(data, ancillary_data)?;
@@ -147,7 +138,42 @@ impl CrashGenerator {
                 Ok(None)
             }
             kind => {
-                bail!("Unexpected message {:?}", kind);
+                bail!("Unexpected message {kind:?} from parent process");
+            }
+        }
+    }
+
+    // Process a message received from a child process. Return an optional
+    // reply that will be sent back to the child.
+    pub(crate) fn child_message(
+        &mut self,
+        kind: messages::Kind,
+        _data: &[u8],
+        _ancillary_data: Option<AncillaryData>,
+    ) -> Result<Option<Box<dyn Message>>> {
+        bail!("Unexpected message {kind:?} from child process");
+    }
+
+    // Process a message received from an external process. Return an optional
+    // reply that will be sent back.
+    pub(crate) fn external_message(
+        &mut self,
+        kind: messages::Kind,
+        #[allow(unused_variables)] data: &[u8],
+        #[allow(unused_variables)] ancillary_data: Option<AncillaryData>,
+    ) -> Result<Option<Box<dyn Message>>> {
+        match kind {
+            #[cfg(target_os = "windows")]
+            messages::Kind::WindowsErrorReporting => {
+                let message =
+                    messages::WindowsErrorReportingMinidump::decode(data, ancillary_data)?;
+                let _ = self.generate_wer_minidump(message);
+                Ok(Some(Box::new(
+                    messages::WindowsErrorReportingMinidumpReply::new(),
+                )))
+            }
+            kind => {
+                bail!("Unexpected message {kind:?} from external process");
             }
         }
     }
