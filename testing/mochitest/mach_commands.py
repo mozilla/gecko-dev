@@ -207,6 +207,7 @@ def setup_argument_parser():
 
     global parser
     parser = MochitestArgumentParser()
+    parser.build_args()
     return parser
 
 
