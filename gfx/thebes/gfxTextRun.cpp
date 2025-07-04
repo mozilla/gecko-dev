@@ -1852,15 +1852,10 @@ gfxFontGroup::gfxFontGroup(nsPresContext* aPresContext,
       mFamilyList(aFontFamilyList),
       mStyle(*aStyle),
       mLanguage(aLanguage),
-      mUnderlineOffset(UNDERLINE_OFFSET_NOT_SET),
-      mHyphenWidth(-1),
       mDevToCssSize(aDevToCssSize),
       mUserFontSet(aUserFontSet),
       mTextPerf(aTextPerf),
-      mLastPrefLang(eFontPrefLang_Western),
       mPageLang(gfxPlatformFontList::GetFontPrefLangFor(aLanguage)),
-      mLastPrefFirstFont(false),
-      mSkipDrawing(false),
       mExplicitLanguage(aExplicitLanguage) {
   switch (aVariantEmoji) {
     case StyleFontVariantEmoji::Normal:
@@ -1875,7 +1870,6 @@ gfxFontGroup::gfxFontGroup(nsPresContext* aPresContext,
   }
   // We don't use SetUserFontSet() here, as we want to unconditionally call
   // EnsureFontList() rather than only do UpdateUserFonts() if it changed.
-  mCurrGeneration = 0;
 }
 
 gfxFontGroup::~gfxFontGroup() {
