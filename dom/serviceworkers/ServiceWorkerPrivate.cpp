@@ -370,7 +370,7 @@ Result<IPCInternalRequest, nsresult> GetIPCInternalRequest(
   }
 
   nsAutoString integrity;
-  MOZ_TRY(internalChannel->GetIntegrityMetadata(integrity));
+  MOZ_TRY(loadInfo->GetIntegrityMetadata(integrity));
 
   RefPtr<HeaderFiller> headerFiller =
       MakeRefPtr<HeaderFiller>(HeadersGuardEnum::Request);

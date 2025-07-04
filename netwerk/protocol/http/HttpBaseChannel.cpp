@@ -4144,18 +4144,6 @@ HttpBaseChannel::SetFetchCacheMode(uint32_t aFetchCacheMode) {
   return NS_OK;
 }
 
-NS_IMETHODIMP
-HttpBaseChannel::SetIntegrityMetadata(const nsAString& aIntegrityMetadata) {
-  mIntegrityMetadata = aIntegrityMetadata;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HttpBaseChannel::GetIntegrityMetadata(nsAString& aIntegrityMetadata) {
-  aIntegrityMetadata = mIntegrityMetadata;
-  return NS_OK;
-}
-
 //-----------------------------------------------------------------------------
 // HttpBaseChannel::nsISupportsPriority
 //-----------------------------------------------------------------------------
@@ -5207,10 +5195,6 @@ nsresult HttpBaseChannel::SetupReplacementChannel(nsIURI* newURI,
 
     // Preserve Redirect mode flag.
     rv = httpInternal->SetRedirectMode(mRedirectMode);
-    MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-    // Preserve Integrity metadata.
-    rv = httpInternal->SetIntegrityMetadata(mIntegrityMetadata);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     httpInternal->SetAltDataForChild(LoadAltDataForChild());

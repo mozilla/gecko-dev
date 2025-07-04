@@ -815,7 +815,8 @@ nsresult FetchDriver::HttpFetch(
     rv = internalChan->SetFetchCacheMode(
         static_cast<uint32_t>(mRequest->GetCacheMode()));
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-    rv = internalChan->SetIntegrityMetadata(mRequest->GetIntegrity());
+    nsCOMPtr<nsILoadInfo> loadInfo = chan->LoadInfo();
+    rv = loadInfo->SetIntegrityMetadata(mRequest->GetIntegrity());
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     // Set the initiator type

@@ -1390,6 +1390,7 @@ nsresult Loader::LoadSheetAsyncInternal(SheetLoadData& aLoadData,
 
   nsCOMPtr<nsILoadInfo> loadInfo = channel->LoadInfo();
   loadInfo->SetCspNonce(aLoadData.Nonce());
+  loadInfo->SetIntegrityMetadata(sriMetadata.GetIntegrityString());
 
   if (!aLoadData.ShouldDefer()) {
     if (nsCOMPtr<nsIClassOfService> cos = do_QueryInterface(channel)) {
@@ -1407,14 +1408,6 @@ nsresult Loader::LoadSheetAsyncInternal(SheetLoadData& aLoadData,
     if (nsCOMPtr<nsIReferrerInfo> referrerInfo = aLoadData.ReferrerInfo()) {
       rv = httpChannel->SetReferrerInfo(referrerInfo);
       Unused << NS_WARN_IF(NS_FAILED(rv));
-    }
-
-    nsCOMPtr<nsIHttpChannelInternal> internalChannel =
-        do_QueryInterface(httpChannel);
-    if (internalChannel) {
-      rv = internalChannel->SetIntegrityMetadata(
-          sriMetadata.GetIntegrityString());
-      NS_ENSURE_SUCCESS(rv, rv);
     }
 
     // Set the initiator type

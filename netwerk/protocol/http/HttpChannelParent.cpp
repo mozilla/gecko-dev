@@ -171,8 +171,8 @@ bool HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs) {
           a.requestContextID(), a.preflightArgs(), a.initialRwin(),
           a.blockAuthPrompt(), a.allowStaleCacheContent(),
           a.preferCacheLoadOverBypass(), a.contentTypeHint(), a.requestMode(),
-          a.redirectMode(), a.channelId(), a.integrityMetadata(),
-          a.contentWindowId(), a.preferredAlternativeTypes(), a.browserId(),
+          a.redirectMode(), a.channelId(), a.contentWindowId(),
+          a.preferredAlternativeTypes(), a.browserId(),
           a.launchServiceWorkerStart(), a.launchServiceWorkerEnd(),
           a.dispatchFetchEventStart(), a.dispatchFetchEventEnd(),
           a.handleFetchEventStart(), a.handleFetchEventEnd(),
@@ -433,7 +433,7 @@ bool HttpChannelParent::DoAsyncOpen(
     const bool& aAllowStaleCacheContent, const bool& aPreferCacheLoadOverBypass,
     const nsCString& aContentTypeHint, const dom::RequestMode& aRequestMode,
     const uint32_t& aRedirectMode, const uint64_t& aChannelId,
-    const nsString& aIntegrityMetadata, const uint64_t& aContentWindowId,
+    const uint64_t& aContentWindowId,
     const nsTArray<PreferredAlternativeDataTypeParams>&
         aPreferredAlternativeTypes,
     const uint64_t& aBrowserId, const TimeStamp& aLaunchServiceWorkerStart,
@@ -523,8 +523,6 @@ bool HttpChannelParent::DoAsyncOpen(
   httpChannel->SetChannelId(aChannelId);
   httpChannel->SetTopLevelContentWindowId(aContentWindowId);
   httpChannel->SetBrowserId(aBrowserId);
-
-  httpChannel->SetIntegrityMetadata(aIntegrityMetadata);
 
   RefPtr<nsHttpChannel> httpChannelImpl = do_QueryObject(httpChannel);
   if (httpChannelImpl) {

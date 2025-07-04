@@ -500,11 +500,8 @@ nsresult ScriptLoader::CheckContentPolicy(nsIScriptElement* aElement,
   // Use nonce of the current element, instead of the preload, because those
   // are allowed to differ.
   secCheckLoadInfo->SetCspNonce(aNonce);
-  if (aRequest->mIntegrity.IsValid()) {
-    MOZ_ASSERT(!aRequest->mIntegrity.IsEmpty());
-    secCheckLoadInfo->SetIntegrityMetadata(
-        aRequest->mIntegrity.GetIntegrityString());
-  }
+  secCheckLoadInfo->SetIntegrityMetadata(
+      aRequest->mIntegrity.GetIntegrityString());
 
   int16_t shouldLoad = nsIContentPolicy::ACCEPT;
   nsresult rv =
@@ -720,10 +717,7 @@ static void PrepareLoadInfoForScriptLoading(nsIChannel* aChannel,
   loadInfo->SetParserCreatedScript(aRequest->ParserMetadata() ==
                                    ParserMetadata::ParserInserted);
   loadInfo->SetCspNonce(aRequest->Nonce());
-  if (aRequest->mIntegrity.IsValid()) {
-    MOZ_ASSERT(!aRequest->mIntegrity.IsEmpty());
-    loadInfo->SetIntegrityMetadata(aRequest->mIntegrity.GetIntegrityString());
-  }
+  loadInfo->SetIntegrityMetadata(aRequest->mIntegrity.GetIntegrityString());
 }
 
 // static
@@ -922,14 +916,6 @@ nsresult ScriptLoader::PrepareHttpRequestAndInitiatorType(
         new ReferrerInfo(aRequest->mReferrer, aRequest->ReferrerPolicy());
     rv = httpChannel->SetReferrerInfoWithoutClone(referrerInfo);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-
-    nsCOMPtr<nsIHttpChannelInternal> internalChannel(
-        do_QueryInterface(httpChannel));
-    if (internalChannel) {
-      rv = internalChannel->SetIntegrityMetadata(
-          aRequest->mIntegrity.GetIntegrityString());
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
-    }
 
     nsAutoString hintCharset;
     if (!aRequest->GetScriptLoadContext()->IsPreload() &&

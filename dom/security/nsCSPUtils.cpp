@@ -1275,11 +1275,6 @@ bool nsCSPDirective::permits(CSPDirective aDirective, nsILoadInfo* aLoadInfo,
 
         nsTArray<SRIMetadata> integritySources =
             ParseSRIMetadata(integrityMetadata);
-        MOZ_ASSERT(
-            integritySources.IsEmpty() == integrityMetadata.IsEmpty(),
-            "The integrity metadata should be only be empty, "
-            "when the parsed string was completely empty, otherwise it should "
-            "include at least one valid hash");
 
         // Step 1.3.2. If integrity sources is "no metadata" or an empty set,
         // skip the remaining substeps.

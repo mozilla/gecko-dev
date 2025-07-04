@@ -376,7 +376,6 @@ struct HttpChannelOpenArgs
   nsCString                   appCacheClientID;
   CorsPreflightArgs?          preflightArgs;
   nsCString                   contentTypeHint;
-  nsString                    integrityMetadata;
   IPCStream?                  uploadStream;
   LoadInfoArgs                loadInfo;
   uint32_t                    loadFlags;

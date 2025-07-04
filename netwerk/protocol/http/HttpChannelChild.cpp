@@ -2452,8 +2452,6 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
 
   openArgs.channelId() = mChannelId;
 
-  openArgs.integrityMetadata() = mIntegrityMetadata;
-
   openArgs.contentWindowId() = contentWindowId;
   openArgs.browserId() = mBrowserId;
 

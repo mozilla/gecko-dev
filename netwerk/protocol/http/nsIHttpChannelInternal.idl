@@ -409,11 +409,6 @@ interface nsIHttpChannelInternal : nsISupports
     attribute boolean blockAuthPrompt;
 
     /**
-     * Set to indicate Request.integrity.
-     */
-    [must_use] attribute AString integrityMetadata;
-
-    /**
      * The connection info's hash key. We use it to test connection separation.
      */
     [must_use] readonly attribute ACString connectionInfoHashKey;
