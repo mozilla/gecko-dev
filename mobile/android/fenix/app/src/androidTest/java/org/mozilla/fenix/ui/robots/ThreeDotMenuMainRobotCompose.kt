@@ -99,7 +99,7 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
     @OptIn(ExperimentalTestApi::class)
     fun verifySwitchToDesktopSiteButtonIsEnabled(isEnabled: Boolean) {
         Log.i(TAG, "verifySuggestedUserName: Waiting for the \"Desktop site\" button to exist")
-        composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(getStringResource(R.string.browser_menu_desktop_site)))
+        composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(getStringResource(R.string.browser_menu_desktop_site), substring = true))
         Log.i(TAG, "verifySuggestedUserName: Waited for the \"Desktop site\" button to exist")
         Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Trying to verify the Switch to Desktop Site button from the new main menu design is enabled.")
         if (isEnabled) {
@@ -482,7 +482,7 @@ private fun ComposeTestRule.refreshButton() = onNodeWithText("Refresh")
 
 private fun ComposeTestRule.shareButton() = onNodeWithText("Share")
 
-private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign inSync passwords, bookmarks, and more")
+private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign in Sync passwords, bookmarks, and more")
 
 private fun ComposeTestRule.customizeHomeButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_customize_home_1))
 
@@ -490,21 +490,21 @@ private fun ComposeTestRule.settingsButton() = onNodeWithContentDescription("Set
 
 private fun ComposeTestRule.extensionsButton() = onNodeWithTag(EXTENSIONS)
 
-private fun ComposeTestRule.tryRecommendedExtensionButton() = onNodeWithContentDescription("ExtensionsTry a recommended extension")
+private fun ComposeTestRule.tryRecommendedExtensionButton() = onNodeWithContentDescription("Extensions Try a recommended extension", substring = true)
 
-private fun ComposeTestRule.noExtensionsButton() = onNodeWithContentDescription("ExtensionsNo extensions enabled")
+private fun ComposeTestRule.noExtensionsButton() = onNodeWithContentDescription("Extensions No extensions enabled", substring = true)
 
-private fun ComposeTestRule.noExtensionsEnabledButton() = onNodeWithContentDescription("ExtensionsNo extensions enabled")
+private fun ComposeTestRule.noExtensionsEnabledButton() = onNodeWithContentDescription("Extensions No extensions enabled", substring = true)
 
-private fun ComposeTestRule.moreButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_more_settings))
+private fun ComposeTestRule.moreButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_more_settings), substring = true)
 
-private fun ComposeTestRule.bookmarksButton() = onNodeWithContentDescription(getStringResource(R.string.library_bookmarks))
+private fun ComposeTestRule.bookmarksButton() = onNodeWithContentDescription(getStringResource(R.string.library_bookmarks), substring = true)
 
-private fun ComposeTestRule.historyButton() = onNodeWithContentDescription(getStringResource(R.string.library_history))
+private fun ComposeTestRule.historyButton() = onNodeWithContentDescription(getStringResource(R.string.library_history), substring = true)
 
-private fun ComposeTestRule.downloadsButton() = onNodeWithContentDescription(getStringResource(R.string.library_downloads))
+private fun ComposeTestRule.downloadsButton() = onNodeWithContentDescription(getStringResource(R.string.library_downloads), substring = true)
 
-private fun ComposeTestRule.passwordsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_passwords))
+private fun ComposeTestRule.passwordsButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_passwords), substring = true)
 
 private fun ComposeTestRule.backToMainMenuButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_back_button_content_description))
 
@@ -512,7 +512,7 @@ private fun ComposeTestRule.quitFirefoxButton() = onNodeWithContentDescription("
 
 // Page main menu items
 
-private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page))
+private fun ComposeTestRule.findInPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_find_in_page), substring = true)
 
 private fun ComposeTestRule.toolsMenuButton() = onNodeWithTag("mainMenu.tools")
 
@@ -520,7 +520,7 @@ private fun ComposeTestRule.saveMenuButton() = onNodeWithTag("mainMenu.save")
 
 private fun ComposeTestRule.bookmarkPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_bookmark_this_page_2))
 
-private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_desktop_site))
+private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_desktop_site), substring = true)
 
 private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
 

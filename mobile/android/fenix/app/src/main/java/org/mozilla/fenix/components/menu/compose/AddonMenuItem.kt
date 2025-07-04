@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.menu.compose
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,6 +20,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.collectionItemInfo
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import mozilla.components.feature.addons.Addon
@@ -39,9 +46,11 @@ import org.mozilla.fenix.translations.rotationAnimation
  * @param iconPainter [Painter] used to display an [Icon] after the list item.
  * @param iconDescription Content description of the icon.
  * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
+ * @param index The index of the item within the column.
  * @param onClick Invoked when the user clicks on the item.
  * @param onIconClick Invoked when the user clicks on the icon button.
  */
+@Suppress("LongMethod")
 @Composable
 internal fun AddonMenuItem(
     addon: Addon,
@@ -49,6 +58,7 @@ internal fun AddonMenuItem(
     iconPainter: Painter? = painterResource(id = R.drawable.mozac_ic_plus_24),
     iconDescription: String? = null,
     showDivider: Boolean = true,
+    index: Int = 0,
     onClick: () -> Unit,
     onIconClick: () -> Unit,
 ) {
@@ -57,6 +67,7 @@ internal fun AddonMenuItem(
     val description = addon.summary(context)
     val addonIcon = addon.provideIcon()
     val isInstallAddonInProgress = addon == addonInstallationInProgress
+    val stateDescription = stringResource(R.string.browser_menu_recommended_extensions_content_description)
 
     if (addonIcon != null) {
         FaviconListItem(
@@ -67,7 +78,19 @@ internal fun AddonMenuItem(
                 .clip(shape = RoundedCornerShape(4.dp))
                 .background(
                     color = FirefoxTheme.colors.layer3,
-                ),
+                )
+                .clickable {}
+                .semantics {
+                    role = Role.Button
+                    collectionItemInfo =
+                        CollectionItemInfo(
+                            rowIndex = index,
+                            rowSpan = 1,
+                            columnIndex = 0,
+                            columnSpan = 1,
+                        )
+                    this.stateDescription = stateDescription
+                },
             labelModifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM_TITLE),
             description = description,
             faviconPainter = BitmapPainter(image = addonIcon.asImageBitmap()),
@@ -103,6 +126,13 @@ internal fun AddonMenuItem(
                 label,
             ),
             modifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM),
+            collectionItemInfo = CollectionItemInfo(
+                rowIndex = index,
+                rowSpan = 1,
+                columnIndex = 0,
+                columnSpan = 1,
+            ),
+            stateDescription = stateDescription,
             labelModifier = Modifier.testTag(RECOMMENDED_ADDON_ITEM_TITLE),
             onAfterIconClick = onIconClick,
         )

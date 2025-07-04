@@ -29,6 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +60,9 @@ internal fun MenuNavHeader(
     isExtensionsExpanded: Boolean,
     isMoreMenuExpanded: Boolean,
 ) {
+    val navigationHeaderContentDescription =
+        stringResource(id = R.string.browser_main_menu_content_description_navigation_header)
+
     Spacer(
         modifier = Modifier
             .fillMaxWidth()
@@ -82,7 +88,10 @@ internal fun MenuNavHeader(
                 },
             )
             .padding(horizontal = 8.dp, vertical = 12.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .semantics(mergeDescendants = true) {
+                contentDescription = navigationHeaderContentDescription
+            },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,
     ) {
@@ -147,6 +156,7 @@ private fun MenuNavItem(
                 enabled = state != MenuItemState.DISABLED,
                 onClick = onClick,
                 onLongClick = onLongClick,
+                role = Role.Button,
             ),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally,

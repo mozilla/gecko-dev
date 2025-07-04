@@ -304,7 +304,11 @@
     <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Back to main menu</string>
     <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-    <string name="browser_main_menu_handlebar_content_description">Close main menu sheet</string>
+    <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Close main menu sheet</string>
+    <!-- Content description (not visible, for screen readers etc.) for the handle used to drag the main menu at the bottom of the screen. -->
+    <string name="browser_close_main_menu_handlebar_content_description">Close menu</string>
+    <!-- Content description (not visible, for screen readers etc.) for main menu navigation header. -->
+    <string name="browser_main_menu_content_description_navigation_header">Navigation</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
     <string name="browser_main_menu_content_description_help_button">Help</string>
     <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -372,7 +376,11 @@
     <!-- Label text within the set as default banner  -->
     <string name="browser_menu_default_banner_subtitle">Takes seconds. Change anytime.</string>
     <!-- Content description for the button that dismisses the set as default banner in the menu -->
-    <string name="browser_menu_default_banner_dismiss">Dismiss</string>
+    <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Dismiss</string>
+    <!-- Content description (not visible, for screen readers etc.) for the button that dismisses the set as default banner in the menu -->
+    <string name="browser_menu_default_banner_dismiss_promotion">Dismiss promotion</string>
+    <!-- Content description (not visible, for screen readers etc.) for recommended extensions in main menu -->
+    <string name="browser_menu_recommended_extensions_content_description">More info</string>
 
     <!-- Menu "contextual feature recommendation" (CFR) -->
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->

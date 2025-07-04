@@ -104,7 +104,7 @@ fun MenuBanner(
 
             Icon(
                 painter = painterResource(id = R.drawable.mozac_ic_cross_24),
-                contentDescription = stringResource(id = R.string.browser_menu_default_banner_dismiss),
+                contentDescription = stringResource(id = R.string.browser_menu_default_banner_dismiss_promotion),
                 modifier = Modifier
                     .padding(top = 12.dp, end = 18.dp)
                     .size(20.dp)

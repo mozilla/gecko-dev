@@ -30,10 +30,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CollectionItemInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
@@ -61,6 +64,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
  * @param labelModifier [Modifier] to be applied to the label.
  * @param beforeIconDescription Content description of the icon.
  * @param description An optional description text below the label.
+ * @param stateDescription Extra content description about state to be added after the label
+ * and description.
  * @param state The state of the menu item to display.
  * @param descriptionState The state of menu item description to display.
  * @param onClick Invoked when the user clicks on the item.
@@ -68,6 +73,7 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
  * at the end.
  * @param afterIconPainter [Painter] used to display an [IconButton] after the list item.
  * @param afterIconDescription Content description of the icon.
+ * @param collectionItemInfo [CollectionItemInfo] to be applied to the MenuItem.
  * @param onAfterIconClick Invoked when the user clicks on the icon. An [IconButton] will be
  * displayed if this is provided. Otherwise, an [Icon] will be displayed.
  * @param afterContent Optional Composable for adding UI to the end of the list item.
@@ -80,12 +86,14 @@ internal fun MenuItem(
     labelModifier: Modifier = Modifier,
     beforeIconDescription: String? = null,
     description: String? = null,
+    stateDescription: String = "",
     state: MenuItemState = MenuItemState.ENABLED,
     descriptionState: MenuItemState = MenuItemState.ENABLED,
     onClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
     afterIconPainter: Painter? = null,
     afterIconDescription: String? = null,
+    collectionItemInfo: CollectionItemInfo? = null,
     onAfterIconClick: (() -> Unit)? = null,
     afterContent: (@Composable RowScope.() -> Unit)? = null,
 ) {
@@ -93,6 +101,16 @@ internal fun MenuItem(
     val descriptionTextColor = getDescriptionTextColor(state = descriptionState)
     val iconTint = getIconTint(state = state)
     val enabled = state != MenuItemState.DISABLED
+
+    var contentDescription = label
+
+    if (description != null) {
+        contentDescription = "$contentDescription $description"
+    }
+
+    if (stateDescription.isNotEmpty()) {
+        contentDescription = "$contentDescription $stateDescription"
+    }
 
     IconListItem(
         label = label,
@@ -104,10 +122,9 @@ internal fun MenuItem(
             ) { onClick?.invoke() }
             .clearAndSetSemantics {
                 role = Role.Button
-                if (description != null) {
-                    this.contentDescription = label + description
-                } else {
-                    this.contentDescription = label
+                this.contentDescription = contentDescription
+                if (collectionItemInfo != null) {
+                    this.collectionItemInfo = collectionItemInfo
                 }
             }
             .wrapContentSize()
@@ -183,6 +200,7 @@ internal fun MenuTextItem(
  * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
  * be clickable.
  * @param badgeText WebExtension badge text.
+ * @param index The index of the item within the column.
  * @param onClick Called when the user clicks on the item.
  * @param onSettingsClick Called when the user clicks on the settings icon.
  */
@@ -192,6 +210,7 @@ internal fun WebExtensionMenuItem(
     iconPainter: Painter,
     enabled: Boolean?,
     badgeText: String?,
+    index: Int = 0,
     onClick: (() -> Unit)? = null,
     onSettingsClick: (() -> Unit)? = null,
 ) {
@@ -207,7 +226,14 @@ internal fun WebExtensionMenuItem(
         ) { onClick?.invoke() }
             .clearAndSetSemantics {
                 role = Role.Button
-                this.contentDescription = label
+                contentDescription = label
+                collectionItemInfo =
+                    CollectionItemInfo(
+                        rowIndex = index,
+                        rowSpan = 1,
+                        columnIndex = 0,
+                        columnSpan = 1,
+                    )
             }
             .wrapContentSize()
             .clip(shape = ROUNDED_CORNER_SHAPE)
