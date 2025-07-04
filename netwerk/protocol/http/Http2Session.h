@@ -11,6 +11,7 @@
 
 #include "ASpdySession.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Queue.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WeakPtr.h"
 #include "nsAHttpConnection.h"
@@ -37,6 +38,33 @@ class nsHttpConnection;
 
 enum Http2StreamBaseType { Normal, WebSocket, Tunnel, ServerPush };
 enum class ExtendedCONNECTType : uint8_t { Proxy, WebSocket, WebTransport };
+enum class Http2StreamQueueType {
+  ReadyForWrite = 0,
+  QueuedStreams,
+  SlowConsumersReadyForRead
+};
+
+class Http2StreamQueueManager final {
+ public:
+  void AddStreamToQueue(Http2StreamQueueType aType, Http2StreamBase* aStream);
+  void RemoveStreamFromAllQueue(Http2StreamBase* aStream);
+  already_AddRefed<Http2StreamBase> GetNextStreamFromQueue(
+      Http2StreamQueueType aType);
+
+  uint32_t GetWriteQueueSize() const { return mReadyForWrite.Count(); }
+
+ private:
+  using StreamQueue = mozilla::Queue<WeakPtr<Http2StreamBase>>;
+
+  StreamQueue& GetQueue(Http2StreamQueueType aType);
+  bool GetQueueFlag(Http2StreamQueueType aType, Http2StreamBase* aStream);
+  void SetQueueFlag(Http2StreamQueueType aType, Http2StreamBase* aStream,
+                    bool value);
+
+  StreamQueue mReadyForWrite;
+  StreamQueue mQueuedStreams;
+  StreamQueue mSlowConsumersReadyForRead;
+};
 
 // b23b147c-c4f8-4d6e-841a-09f29a010de7
 #define NS_HTTP2SESSION_IID \
@@ -424,15 +452,12 @@ class Http2Session final : public ASpdySession,
   // There are also several lists of streams: ready to write, queued due to
   // max parallelism, streams that need to force a read for push, and the full
   // set of pushed streams.
-  nsTHashMap<nsUint32HashKey, Http2StreamBase*> mStreamIDHash;
+  nsTHashMap<nsUint32HashKey, WeakPtr<Http2StreamBase>> mStreamIDHash;
   nsRefPtrHashtable<nsPtrHashKey<nsAHttpTransaction>, Http2StreamBase>
       mStreamTransactionHash;
   nsTArray<RefPtr<Http2StreamTunnel>> mTunnelStreams;
 
-  nsTArray<WeakPtr<Http2StreamBase>> mReadyForWrite;
-  nsTArray<WeakPtr<Http2StreamBase>> mQueuedStreams;
-  nsTArray<WeakPtr<Http2StreamBase>> mPushesReadyForRead;
-  nsTArray<WeakPtr<Http2StreamBase>> mSlowConsumersReadyForRead;
+  Http2StreamQueueManager mQueueManager;
 
   // Compression contexts for header transport.
   // HTTP/2 compresses only HTTP headers and does not reset the context in
@@ -466,14 +491,14 @@ class Http2Session final : public ASpdySession,
   // When a frame has been received that is addressed to a particular stream
   // (e.g. a data frame after the stream-id has been decoded), this points
   // to the stream.
-  Http2StreamBase* mInputFrameDataStream;
+  WeakPtr<Http2StreamBase> mInputFrameDataStream;
 
   // mNeedsCleanup is a state variable to defer cleanup of a closed stream
   // If needed, It is set in session::OnWriteSegments() and acted on and
   // cleared when the stack returns to session::WriteSegments(). The stream
   // cannot be destroyed directly out of OnWriteSegments because
   // stream::writeSegments() is on the stack at that time.
-  Http2StreamBase* mNeedsCleanup;
+  WeakPtr<Http2StreamBase> mNeedsCleanup;
 
   // This reason code in the last processed RESET frame
   uint32_t mDownstreamRstReason;
