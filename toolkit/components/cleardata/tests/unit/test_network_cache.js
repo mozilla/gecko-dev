@@ -7,6 +7,10 @@
 
 "use strict";
 
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+
 function getPartitionedLoadContextInfo(
   { scheme, topLevelBaseDomain, port },
   originAttributes = {}
@@ -18,6 +22,40 @@ function getPartitionedLoadContextInfo(
       originAttributes
     )
   );
+}
+
+/**
+ * Until bug 1839340 is resolved, the clearDataService does not know when the cache is finished with clearing.
+ * For now, we need to actively wait for the cache to be cleared before we can proceed.
+ * This needs to be removed once bug 1839340 is resolved.
+ *
+ *
+ * @param {String} url - Waiting until there is no entry of this url in the cache anymore
+ * @param {string[]} cacheTypes - The caches that should be chacked, e.g ["disk", "memory"]
+ * @param {Object[]} partitionContexts - Defines which partitions should be checked in addition.
+ *        The objects hold a url and a base domain, for each cacheType it will be checked if there is still data
+ *        of the url under the base domain.
+ */
+async function waitForCacheClearing(url, cacheTypes, partitionContexts) {
+  await TestUtils.waitForCondition(() => {
+    return cacheTypes.every(cache => {
+      if (partitionContexts) {
+        return (
+          !SiteDataTestUtils.hasCacheEntry(url, cache) &&
+          partitionContexts.every(context => {
+            return !SiteDataTestUtils.hasCacheEntry(
+              context.url,
+              cache,
+              getPartitionedLoadContextInfo({
+                topLevelBaseDomain: context.baseDomain,
+              })
+            );
+          })
+        );
+      }
+      return !SiteDataTestUtils.hasCacheEntry(url, cache);
+    });
+  }, "Waiting for the cache to be cleared before continuing");
 }
 
 add_task(async function test_deleteFromHost() {
@@ -54,6 +92,11 @@ add_task(async function test_deleteFromHost() {
       }
     );
   });
+
+  // Until bug 1839340 is resolved, the clearDataService does not know when the cache is finished with clearing.
+  // For now, we need to actively wait for the cache to be cleared before we can proceed.
+  // This needs to be removed once bug 1839340 is resolved.
+  await waitForCacheClearing("http://example.com/", ["disk", "memory"]);
 
   Assert.ok(
     !SiteDataTestUtils.hasCacheEntry("http://example.com/", "disk"),
@@ -114,6 +157,11 @@ add_task(async function test_deleteFromPrincipal() {
       }
     );
   });
+
+  // Until bug 1839340 is resolved, the clearDataService does not know when the cache is finished with clearing.
+  // For now, we need to actively wait for the cache to be cleared before we can proceed.
+  // This needs to be removed once bug 1839340 is resolved.
+  await waitForCacheClearing("http://example.com/", ["disk", "memory"]);
 
   Assert.ok(
     !SiteDataTestUtils.hasCacheEntry("http://example.com/", "disk"),
@@ -232,6 +280,18 @@ add_task(async function test_deleteFromBaseDomain() {
       );
     });
 
+    // Until bug 1839340 is resolved, the clearDataService does not know when the cache is finished with clearing.
+    // For now, we need to actively wait for the cache to be cleared before we can proceed.
+    // This needs to be removed once bug 1839340 is resolved.
+    await waitForCacheClearing(
+      "http://example.com/",
+      [cacheType],
+      [
+        { url: "http://example.com/", baseDomain: "example.org" },
+        { url: "http://example.org/", baseDomain: "example.com" },
+      ]
+    );
+
     Assert.ok(
       !SiteDataTestUtils.hasCacheEntry("http://example.com/", cacheType),
       `The ${cacheType} cache is cleared.`
@@ -296,6 +356,11 @@ add_task(async function test_deleteAll() {
     );
   });
 
+  // Until bug 1839340 is resolved, the clearDataService does not know when the cache is finished with clearing.
+  // For now, we need to actively wait for the cache to be cleared before we can proceed.
+  // This needs to be removed once bug 1839340 is resolved.
+  await waitForCacheClearing("http://example.com/", ["disk", "memory"]);
+  await waitForCacheClearing("http://example.org/", ["disk", "memory"]);
   Assert.ok(
     !SiteDataTestUtils.hasCacheEntry("http://example.com/", "disk"),
     "The disk cache is cleared"
