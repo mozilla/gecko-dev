@@ -2348,6 +2348,12 @@ bool gfxFcPlatformFontList::FindAndAddFamiliesLocked(
     cacheKey.Append(':');
   }
 
+  // Include the generic family in the cache key, to maintain the distinction
+  // between fonts explicitly requested by name and the results of resolving
+  // CSS generics.
+  cacheKey.AppendInt(int(aGeneric));
+  cacheKey.Append(':');
+
   cacheKey.Append(familyName);
   auto vis =
       aPresContext ? aPresContext->GetFontVisibility() : FontVisibility::User;
