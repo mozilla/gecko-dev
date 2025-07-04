@@ -456,6 +456,88 @@ def mips64_simulator_dispatch(func_types):
     return contents
 
 
+def riscv64_args(func_type):
+    # This must match ABIArgGenerator::next() in Assembler-riscv64.cpp
+    contents = ""
+    numIntArgRegs = 8
+    numFloatArgRegs = 8
+    regIndex = 0
+    floatRegIndex = 0
+    stackOffset = 0
+    for i, arg in enumerate(func_type["args"]):
+        if i != 0:
+            contents += ", "
+
+        if arg == "General":
+            if regIndex == numIntArgRegs:
+                contents += f"sp_[{stackOffset}]"
+                stackOffset += 1
+            else:
+                contents += f"arg{regIndex}"
+                regIndex += 1
+        elif arg == "Int32":
+            if regIndex == numIntArgRegs:
+                contents += f"I32(sp_[{stackOffset}])"
+                stackOffset += 1
+            else:
+                contents += f"I32(arg{regIndex})"
+                regIndex += 1
+        elif arg == "Int64":
+            if regIndex == numIntArgRegs:
+                contents += f"sp_[{stackOffset}]"
+                stackOffset += 1
+            else:
+                contents += f"arg{regIndex}"
+                regIndex += 1
+        elif arg == "Float32":
+            if floatRegIndex == numFloatArgRegs:
+                contents += f"mozilla::BitwiseCast<float>(static_cast<uint32_t>(sp_[{stackOffset}]))"
+                stackOffset += 1
+            else:
+                contents += f"getFpuRegisterFloat(fa{floatRegIndex})"
+                floatRegIndex += 1
+        elif arg == "Float64":
+            if floatRegIndex == numFloatArgRegs:
+                contents += f"mozilla::BitwiseCast<double>(static_cast<uint64_t>(sp_[{stackOffset}]))"
+                stackOffset += 1
+            else:
+                contents += f"getFpuRegisterDouble(fa{floatRegIndex})"
+                floatRegIndex += 1
+        else:
+            raise ValueError(f"Unknown arg type: {arg}")
+    return contents
+
+
+def riscv64_simulator_dispatch(func_types):
+    contents = ""
+    for func_type in func_types:
+        args = riscv64_args(func_type)
+        contents += f"case js::jit::Args_{func_type_name(func_type)}: {{\\\n"
+        contents += f"  auto target = reinterpret_cast<Prototype_{func_type_name(func_type)}>(nativeFn);\\\n"
+        ret = func_type["ret"]
+        if ret == "Void":
+            contents += f"  target({args});\\\n"
+        else:
+            contents += f"  auto ret = target({args});\\\n"
+        if ret == "Void":
+            pass
+        elif ret == "General":
+            contents += "  setCallResult(ret);\\\n"
+        elif ret == "Int32":
+            contents += "  setCallResult(I64(ret));\\\n"
+        elif ret == "Int64":
+            contents += "  setCallResult(ret);\\\n"
+        elif ret == "Float32":
+            contents += "  setCallResultFloat(ret);\\\n"
+        elif ret == "Float64":
+            contents += "  setCallResultDouble(ret);\\\n"
+        else:
+            raise ValueError(f"Unknown ret type: {ret}")
+        contents += "  break;\\\n"
+        contents += "}\\\n"
+    return contents
+
+
 def main(c_out, yaml_path):
     func_types = load_yaml(yaml_path)
 
@@ -493,6 +575,10 @@ def main(c_out, yaml_path):
 
     contents += "#define ABI_FUNCTION_TYPE_MIPS64_SIM_DISPATCH \\\n"
     contents += mips64_simulator_dispatch(func_types)
+    contents += "\n"
+
+    contents += "#define ABI_FUNCTION_TYPE_RISCV64_SIM_DISPATCH \\\n"
+    contents += riscv64_simulator_dispatch(func_types)
     contents += "\n"
 
     generate_header(c_out, "jit_ABIFunctionTypeGenerated_h", contents)
