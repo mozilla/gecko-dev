@@ -202,8 +202,10 @@ PopupBlocker::PopupControlState PopupBlocker::GetEventPopupControlState(
               abuse = PopupBlocker::openControlled;
             }
             break;
-          case eXULCommand:
-            abuse = PopupBlocker::openControlled;
+          case eUnidentifiedEvent:
+            if (aEvent->mSpecifiedEventType == nsGkAtoms::oncommand) {
+              abuse = PopupBlocker::openControlled;
+            }
             break;
           default:
             break;

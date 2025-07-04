@@ -167,6 +167,7 @@ EVENT(contentvisibilityautostatechange, eContentVisibilityAutoStateChange,
       EventNameType_All, eBasicEventClass)
 EVENT(contextmenu, eContextMenu,
       EventNameType_HTMLXUL | EventNameType_SVGGraphic, ePointerEventClass)
+EVENT(command, eCommand, EventNameType_HTMLXUL, eBasicEventClass)
 NON_IDL_EVENT(mouselongtap, eMouseLongTap, EventNameType_HTMLXUL,
               eMouseEventClass)
 EVENT(cuechange, eCueChange, EventNameType_All, eBasicEventClass)
@@ -423,7 +424,6 @@ NON_IDL_EVENT(compositionupdate, eCompositionUpdate, EventNameType_XUL,
               eCompositionEventClass)
 NON_IDL_EVENT(compositionend, eCompositionEnd, EventNameType_XUL,
               eCompositionEventClass)
-NON_IDL_EVENT(command, eXULCommand, EventNameType_XUL, eInputEventClass)
 NON_IDL_EVENT(popupshowing, eXULPopupShowing, EventNameType_XUL,
               eBasicEventClass)
 NON_IDL_EVENT(popupshown, eXULPopupShown, EventNameType_XUL, eBasicEventClass)

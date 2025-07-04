@@ -819,7 +819,7 @@ bool nsXULElement::IsEventStoppedFromAnonymousScrollbar(EventMessage aMessage) {
   return (IsRootOfNativeAnonymousSubtree() &&
           IsAnyOfXULElements(nsGkAtoms::scrollbar, nsGkAtoms::scrollcorner) &&
           (aMessage == ePointerClick || aMessage == eMouseDoubleClick ||
-           aMessage == eXULCommand || aMessage == eContextMenu ||
+           aMessage == eCommand || aMessage == eContextMenu ||
            aMessage == eDragStart || aMessage == ePointerAuxClick));
 }
 
@@ -867,7 +867,8 @@ void nsXULElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
     aVisitor.SetParentTarget(nullptr, false);
     return;
   }
-  if (aVisitor.mEvent->mMessage == eXULCommand &&
+  if (aVisitor.mEvent->mMessage == eUnidentifiedEvent &&
+      aVisitor.mEvent->mSpecifiedEventType == nsGkAtoms::oncommand &&
       aVisitor.mEvent->mClass == eInputEventClass &&
       aVisitor.mEvent->mOriginalTarget == static_cast<nsIContent*>(this) &&
       !IsXULElement(nsGkAtoms::command)) {
