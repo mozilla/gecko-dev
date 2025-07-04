@@ -12,7 +12,6 @@
 
 [Pref="media.webspeech.recognition.enable",
  LegacyFactoryFunction=webkitSpeechRecognition,
- Func="SpeechRecognition::IsAuthorized",
  Exposed=Window]
 interface SpeechRecognition : EventTarget {
     [Throws]

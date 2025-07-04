@@ -12003,6 +12003,7 @@
   value: false
   mirror: always
 
+#ifdef MOZ_WEBSPEECH
 - name: media.webspeech.synth.force_global_queue
   type: bool
   value: false
@@ -12023,19 +12024,11 @@
   value: false
   mirror: always
 
-#ifdef MOZ_WEBSPEECH
 -   name: media.webspeech.recognition.enable
     type: bool
     value: false
     mirror: always
-#endif
 
-- name: media.webspeech.recognition.force_enable
-  type: bool
-  value: false
-  mirror: always
-
-#ifdef MOZ_WEBSPEECH
 -   name: media.webspeech.synth.enabled
     type: bool
     value: true

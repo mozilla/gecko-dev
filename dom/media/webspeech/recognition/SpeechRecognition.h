@@ -65,8 +65,6 @@ class SpeechRecognition final : public DOMEventTargetHelper,
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  static bool IsAuthorized(JSContext* aCx, JSObject* aGlobal);
-
   static already_AddRefed<SpeechRecognition> Constructor(
       const GlobalObject& aGlobal, ErrorResult& aRv);
 

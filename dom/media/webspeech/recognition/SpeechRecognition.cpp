@@ -202,32 +202,6 @@ JSObject* SpeechRecognition::WrapObject(JSContext* aCx,
   return SpeechRecognition_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool SpeechRecognition::IsAuthorized(JSContext* aCx, JSObject* aGlobal) {
-  nsCOMPtr<nsIPrincipal> principal = nsContentUtils::ObjectPrincipal(aGlobal);
-
-  nsresult rv;
-  nsCOMPtr<nsIPermissionManager> mgr =
-      do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return false;
-  }
-
-  uint32_t speechRecognition = nsIPermissionManager::UNKNOWN_ACTION;
-  rv = mgr->TestExactPermissionFromPrincipal(principal, "speech-recognition"_ns,
-                                             &speechRecognition);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    return false;
-  }
-
-  bool hasPermission =
-      (speechRecognition == nsIPermissionManager::ALLOW_ACTION);
-
-  return (hasPermission ||
-          StaticPrefs::media_webspeech_recognition_force_enable() ||
-          StaticPrefs::media_webspeech_test_enable()) &&
-         StaticPrefs::media_webspeech_recognition_enable();
-}
-
 already_AddRefed<SpeechRecognition> SpeechRecognition::Constructor(
     const GlobalObject& aGlobal, ErrorResult& aRv) {
   nsCOMPtr<nsPIDOMWindowInner> win = do_QueryInterface(aGlobal.GetAsSupports());

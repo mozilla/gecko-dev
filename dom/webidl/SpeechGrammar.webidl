@@ -12,7 +12,6 @@
 
 [Pref="media.webspeech.recognition.enable",
  LegacyFactoryFunction=webkitSpeechGrammar,
- Func="SpeechRecognition::IsAuthorized",
  Exposed=Window]
 interface SpeechGrammar {
     constructor();

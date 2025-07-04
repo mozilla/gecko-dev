@@ -11,7 +11,6 @@
  */
 
 [Pref="media.webspeech.recognition.enable",
- Func="SpeechRecognition::IsAuthorized",
  Exposed=Window]
 interface SpeechRecognitionAlternative {
     readonly attribute DOMString transcript;

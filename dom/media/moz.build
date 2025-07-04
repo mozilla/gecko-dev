@@ -55,7 +55,6 @@ DIRS += [
     "webcodecs",
     "webm",
     "webrtc",
-    "webspeech",
     "webvtt",
 ]
 
@@ -64,6 +63,9 @@ if CONFIG["MOZ_ANDROID_HLS_SUPPORT"]:
 
 if CONFIG["MOZ_WEBRTC"]:
     DIRS += ["bridge"]
+
+if CONFIG["MOZ_WEBSPEECH"]:
+    DIRS += ["webspeech"]
 
 TEST_DIRS += [
     "gtest",
