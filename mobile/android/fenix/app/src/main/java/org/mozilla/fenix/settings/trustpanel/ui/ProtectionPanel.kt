@@ -85,7 +85,6 @@ internal fun ProtectionPanel(
             ProtectionPanelHeader(
                 icon = icon,
                 websiteInfoState = websiteInfoState,
-                onConnectionSecurityClick = onConnectionSecurityClick,
             )
         },
     ) {
@@ -136,6 +135,26 @@ internal fun ProtectionPanel(
                 onAutoplayValueClick = onAutoplayValueClick,
                 onToggleablePermissionClick = onToggleablePermissionClick,
             )
+        }
+
+        MenuGroup {
+            if (websiteInfoState.isSecured) {
+                MenuItem(
+                    label = stringResource(id = R.string.connection_security_panel_secure),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_lock_24),
+                    description = stringResource(
+                        id = R.string.connection_security_panel_verified_by,
+                        websiteInfoState.certificateName,
+                    ),
+                    onClick = onConnectionSecurityClick,
+                )
+            } else {
+                MenuItem(
+                    label = stringResource(id = R.string.connection_security_panel_not_secure),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_lock_slash_24),
+                    onClick = onConnectionSecurityClick,
+                )
+            }
         }
 
         MenuGroup {

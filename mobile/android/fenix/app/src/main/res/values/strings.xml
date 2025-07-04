@@ -3108,9 +3108,9 @@
 
     <!-- Unified Trust Panel -->
     <!-- Text for the protection panel header when the site is secure. -->
-    <string name="protection_panel_header_secure">Secure</string>
+    <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Secure</string>
     <!-- Text for the protection panel header when the site is not secure. -->
-    <string name="protection_panel_header_not_secure">Not secure</string>
+    <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Not secure</string>
     <!-- Title text for the protection panel banner when the site is not secure. -->
     <string name="protection_panel_banner_not_secure_title">Be careful on this site</string>
     <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3161,7 +3161,7 @@
     <!-- Text for the connection security panel when the site is not secure. -->
     <string name="connection_security_panel_not_secure">Connection not secure</string>
     <!-- Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket -->
+        %s is a placeholder for the name of the certificate authority that issued the certificate. -->
     <string name="connection_security_panel_verified_by">Verified by %s</string>
 
     <!-- Debug drawer -->
