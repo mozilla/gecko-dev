@@ -418,6 +418,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
 
   static bool ExposeWebCodecsAPI(JSContext* aCx, JSObject* aObj);
   static bool ExposeWebCodecsAPIImageDecoder(JSContext* aCx, JSObject* aObj);
+  static bool IsWebCodecsRFPTargetEnabled(JSContext* aCx);
 
  private:
   nsresult Init();
@@ -529,8 +530,6 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
 
   static bool IsTargetActiveForMode(RFPTarget aTarget,
                                     FingerprintingProtectionType aMode);
-
-  static bool IsWebCodecsRFPTargetEnabled(JSContext* aCx);
 
   static nsCString* sExemptedDomainsLowercase;
 };
