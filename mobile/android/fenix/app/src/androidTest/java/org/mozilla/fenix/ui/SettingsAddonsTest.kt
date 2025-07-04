@@ -147,17 +147,16 @@ class SettingsAddonsTest : TestSetup() {
     fun verifyUBlockWorksInPrivateModeTest() {
         TestHelper.appContext.settings().shouldShowCookieBannersCFR = false
         val addonName = "uBlock Origin"
+        val webPage = "https://mozilla-mobile.github.io/testapp/"
 
         addonsMenu {
             installAddonInPrivateMode(addonName, activityTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
-        }.openContextMenuOnTopSitesWithTitle(
-            activityTestRule,
-            getStringResource(R.string.default_top_site_google),
-        ) {
-        }.openTopSiteInPrivateTab(activityTestRule) {
-            verifyUrl("google.com")
+        }
+        navigationToolbar {
+        }.enterURLAndEnterToBrowser(webPage.toUri()) {
+            verifyPageContent("Lets test!")
         }.openThreeDotMenu {
             openAddonsSubList()
             verifyAddonAvailableInMainMenu(addonName)
