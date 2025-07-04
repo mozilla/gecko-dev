@@ -98,7 +98,7 @@ use style::global_style_data::{
 };
 use style::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use style::invalidation::element::invalidation_map::{
-    RelativeSelectorInvalidationMap, TSStateForInvalidation,
+    InvalidationMap, TSStateForInvalidation
 };
 use style::invalidation::element::invalidator::{InvalidationResult, SiblingTraversalMap};
 use style::invalidation::element::relative_selector::{
@@ -7325,12 +7325,11 @@ fn relative_selector_invalidated_at(element: GeckoElement, result: &Invalidation
 fn add_relative_selector_attribute_dependency<'a>(
     element: &GeckoElement<'a>,
     scope: &Option<OpaqueElement>,
-    invalidation_map: &'a RelativeSelectorInvalidationMap,
+    invalidation_map: &'a InvalidationMap,
     attribute: &AtomIdent,
     collector: &mut RelativeSelectorDependencyCollector<'a, GeckoElement<'a>>,
 ) {
     match invalidation_map
-        .map
         .other_attribute_affecting_selectors
         .get(attribute)
     {
@@ -7517,7 +7516,6 @@ pub extern "C" fn Servo_StyleSet_MaybeInvalidateRelativeSelectorStateDependency(
         |element, scope, data, quirks_mode, collector| {
             let invalidation_map = data.relative_selector_invalidation_map();
             invalidation_map
-                .map
                 .state_affecting_selectors
                 .lookup_with_additional(*element, quirks_mode, None, &[], state, |dependency| {
                     if !dependency.state.intersects(state) {
@@ -7628,8 +7626,8 @@ fn invalidate_relative_selector_ts_dependency(
     invalidator.invalidate_relative_selectors_for_this(
         stylist,
         |element, scope, data, quirks_mode, collector| {
-            let invalidation_map = data.relative_selector_invalidation_map();
-            invalidation_map
+            let invalidation_map_attributes = data.relative_invalidation_map_attributes();
+            invalidation_map_attributes
                 .ts_state_to_selector
                 .lookup_with_additional(
                     *element,
@@ -8068,7 +8066,7 @@ fn relative_selector_dependencies_for_id<'a>(
     element: &GeckoElement<'a>,
     scope: Option<OpaqueElement>,
     quirks_mode: QuirksMode,
-    invalidation_map: &'a RelativeSelectorInvalidationMap,
+    invalidation_map: &'a InvalidationMap,
     collector: &mut RelativeSelectorDependencyCollector<'a, GeckoElement<'a>>,
 ) {
     [old_id, new_id]
@@ -8076,7 +8074,7 @@ fn relative_selector_dependencies_for_id<'a>(
         .filter(|id| !id.is_null())
         .for_each(|id| unsafe {
             AtomIdent::with(*id, |atom| {
-                match invalidation_map.map.id_to_selector.get(atom, quirks_mode) {
+                match invalidation_map.id_to_selector.get(atom, quirks_mode) {
                     Some(v) => {
                         for dependency in v {
                             collector.add_dependency(dependency, *element, scope);
@@ -8093,12 +8091,11 @@ fn relative_selector_dependencies_for_class<'a>(
     element: &GeckoElement<'a>,
     scope: Option<OpaqueElement>,
     quirks_mode: QuirksMode,
-    invalidation_map: &'a RelativeSelectorInvalidationMap,
+    invalidation_map: &'a InvalidationMap,
     collector: &mut RelativeSelectorDependencyCollector<'a, GeckoElement<'a>>,
 ) {
     classes_changed.iter().for_each(|atom| {
         match invalidation_map
-            .map
             .class_to_selector
             .get(atom, quirks_mode)
         {
@@ -8116,13 +8113,12 @@ fn relative_selector_dependencies_for_custom_state<'a>(
     state: *const nsAtom,
     element: GeckoElement<'a>,
     scope: Option<OpaqueElement>,
-    invalidation_map: &'a RelativeSelectorInvalidationMap,
+    invalidation_map: &'a InvalidationMap,
     collector: &mut RelativeSelectorDependencyCollector<'a, GeckoElement<'a>>,
 ) {
     unsafe {
         AtomIdent::with(state, |atom| {
             match invalidation_map
-                .map
                 .custom_state_affecting_selectors
                 .get(atom)
             {
@@ -8202,7 +8198,6 @@ fn process_relative_selector_invalidations(
                 )
             });
             invalidation_map
-                .map
                 .state_affecting_selectors
                 .lookup_with_additional(*element, quirks_mode, None, &[], states, |dependency| {
                     if !dependency.state.intersects(states) {

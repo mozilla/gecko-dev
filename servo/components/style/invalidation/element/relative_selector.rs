@@ -10,8 +10,7 @@ use crate::dom::{TElement, TNode};
 use crate::gecko_bindings::structs::ServoElementSnapshotTable;
 use crate::invalidation::element::element_wrapper::ElementWrapper;
 use crate::invalidation::element::invalidation_map::{
-    Dependency, DependencyInvalidationKind, NormalDependencyInvalidationKind,
-    RelativeDependencyInvalidationKind, RelativeSelectorInvalidationMap, TSStateForInvalidation,
+    Dependency, DependencyInvalidationKind, InvalidationMap, NormalDependencyInvalidationKind, RelativeDependencyInvalidationKind, AdditionalRelativeSelectorInvalidationMap, TSStateForInvalidation
 };
 use crate::invalidation::element::invalidator::{
     DescendantInvalidationLists, Invalidation, InvalidationProcessor, InvalidationResult,
@@ -544,12 +543,13 @@ where
         element: E,
         scope: Option<OpaqueElement>,
         quirks_mode: QuirksMode,
-        map: &'a RelativeSelectorInvalidationMap,
+        map: &'a InvalidationMap,
+        additional_relative_selector_invalidation_map: &'a AdditionalRelativeSelectorInvalidationMap,
         operation: DomMutationOperation,
     ) {
         element
             .id()
-            .map(|v| match map.map.id_to_selector.get(v, quirks_mode) {
+            .map(|v| match map.id_to_selector.get(v, quirks_mode) {
                 Some(v) => {
                     for dependency in v {
                         if !operation.accept(dependency, element) {
@@ -560,7 +560,7 @@ where
                 },
                 None => (),
             });
-        element.each_class(|v| match map.map.class_to_selector.get(v, quirks_mode) {
+        element.each_class(|v| match map.class_to_selector.get(v, quirks_mode) {
             Some(v) => {
                 for dependency in v {
                     if !operation.accept(dependency, element) {
@@ -571,7 +571,7 @@ where
             },
             None => (),
         });
-        element.each_custom_state(|v| match map.map.custom_state_affecting_selectors.get(v) {
+        element.each_custom_state(|v| match map.custom_state_affecting_selectors.get(v) {
             Some(v) => {
                 for dependency in v {
                     if !operation.accept(dependency, element) {
@@ -583,7 +583,7 @@ where
             None => (),
         });
         element.each_attr_name(
-            |v| match map.map.other_attribute_affecting_selectors.get(v) {
+            |v| match map.other_attribute_affecting_selectors.get(v) {
                 Some(v) => {
                     for dependency in v {
                         if !operation.accept(dependency, element) {
@@ -596,7 +596,7 @@ where
             },
         );
         let state = element.state();
-        map.map.state_affecting_selectors.lookup_with_additional(
+        map.state_affecting_selectors.lookup_with_additional(
             element,
             quirks_mode,
             None,
@@ -614,7 +614,7 @@ where
             },
         );
 
-        map.ts_state_to_selector.lookup_with_additional(
+        additional_relative_selector_invalidation_map.ts_state_to_selector.lookup_with_additional(
             element,
             quirks_mode,
             None,
@@ -668,7 +668,7 @@ where
             },
         );
 
-        if let Some(v) = map.type_to_selector.get(element.local_name()) {
+        if let Some(v) = additional_relative_selector_invalidation_map.type_to_selector.get(element.local_name()) {
             for dependency in v {
                 if !operation.accept(dependency, element) {
                     continue;
@@ -677,7 +677,7 @@ where
             }
         }
 
-        for dependency in &map.any_to_selector {
+        for dependency in &additional_relative_selector_invalidation_map.any_to_selector {
             if !operation.accept(dependency, element) {
                 continue;
             }
@@ -711,7 +711,7 @@ where
     {
         let mut collector = RelativeSelectorDependencyCollector::new(self.element, None);
         stylist.for_each_cascade_data_with_scope(self.element, |data, scope| {
-            let map = data.relative_selector_invalidation_map();
+            let map = data.relative_invalidation_map_attributes();
             if !map.used {
                 return;
             }
@@ -753,16 +753,18 @@ where
         let mut traverse_subtree = false;
         self.element.apply_selector_flags(inherited_search_path);
         stylist.for_each_cascade_data_with_scope(self.element, |data, scope| {
-            let map = data.relative_selector_invalidation_map();
-            if !map.used {
+            let map_attributes = data.relative_invalidation_map_attributes();
+            if !map_attributes.used {
                 return;
             }
-            traverse_subtree |= map.needs_ancestors_traversal;
+            let map = data.relative_selector_invalidation_map();
+            traverse_subtree |= map_attributes.needs_ancestors_traversal;
             collector.collect_all_dependencies_for_element(
                 self.element,
                 scope.map(|e| e.opaque()),
                 self.quirks_mode,
                 map,
+                map_attributes,
                 operation,
             );
         });
@@ -775,15 +777,17 @@ where
                 };
                 descendant.apply_selector_flags(inherited_search_path);
                 stylist.for_each_cascade_data_with_scope(descendant, |data, scope| {
-                    let map = data.relative_selector_invalidation_map();
-                    if !map.used {
+                    let map_attributes = data.relative_invalidation_map_attributes();
+                    if !map_attributes.used {
                         return;
                     }
+                    let map = data.relative_selector_invalidation_map();
                     collector.collect_all_dependencies_for_element(
                         descendant,
                         scope.map(|e| e.opaque()),
                         self.quirks_mode,
                         map,
+                        map_attributes,
                         operation,
                     );
                 });

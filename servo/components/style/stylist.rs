@@ -14,7 +14,7 @@ use crate::dom::TElement;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::{ServoStyleSetSizes, StyleRuleInclusion};
 use crate::invalidation::element::invalidation_map::{
-    note_selector_for_invalidation, InvalidationMap, RelativeSelectorInvalidationMap,
+    note_selector_for_invalidation, InvalidationMap, AdditionalRelativeSelectorInvalidationMap,
 };
 use crate::invalidation::media_queries::{
     EffectiveMediaQueryResults, MediaListKey, ToMediaListKey,
@@ -2634,7 +2634,9 @@ pub struct CascadeData {
     invalidation_map: InvalidationMap,
 
     /// The relative selector equivalent of the invalidation map.
-    relative_selector_invalidation_map: RelativeSelectorInvalidationMap,
+    relative_selector_invalidation_map: InvalidationMap,
+
+    additional_relative_selector_invalidation_map: AdditionalRelativeSelectorInvalidationMap,
 
     /// The attribute local names that appear in attribute selectors.  Used
     /// to avoid taking element snapshots when an irrelevant attribute changes.
@@ -2761,7 +2763,8 @@ impl CascadeData {
             slotted_rules: None,
             part_rules: None,
             invalidation_map: InvalidationMap::new(),
-            relative_selector_invalidation_map: RelativeSelectorInvalidationMap::new(),
+            relative_selector_invalidation_map: InvalidationMap::new(),
+            additional_relative_selector_invalidation_map: AdditionalRelativeSelectorInvalidationMap::new(),
             nth_of_mapped_ids: PrecomputedHashSet::default(),
             nth_of_class_dependencies: PrecomputedHashSet::default(),
             nth_of_attribute_dependencies: PrecomputedHashSet::default(),
@@ -2837,8 +2840,13 @@ impl CascadeData {
     }
 
     /// Returns the relative selector invalidation map.
-    pub fn relative_selector_invalidation_map(&self) -> &RelativeSelectorInvalidationMap {
+    pub fn relative_selector_invalidation_map(&self) -> &InvalidationMap {
         &self.relative_selector_invalidation_map
+    }
+
+    /// Returns the relative selector invalidation map data.
+    pub fn relative_invalidation_map_attributes(&self) -> &AdditionalRelativeSelectorInvalidationMap{
+        &self.additional_relative_selector_invalidation_map
     }
 
     /// Returns whether the given ElementState bit is relied upon by a selector
@@ -3145,6 +3153,7 @@ impl CascadeData {
         self.custom_property_registrations.shrink_if_needed();
         self.invalidation_map.shrink_if_needed();
         self.relative_selector_invalidation_map.shrink_if_needed();
+        self.additional_relative_selector_invalidation_map.shrink_if_needed();
         self.attribute_dependencies.shrink_if_needed();
         self.nth_of_attribute_dependencies.shrink_if_needed();
         self.nth_of_custom_state_dependencies.shrink_if_needed();
@@ -3320,6 +3329,7 @@ impl CascadeData {
                     quirks_mode,
                     &mut self.invalidation_map,
                     &mut self.relative_selector_invalidation_map,
+                    &mut self.additional_relative_selector_invalidation_map,
                 )?;
                 let mut needs_revalidation = false;
                 let mut visitor = StylistSelectorVisitor {
@@ -3998,6 +4008,7 @@ impl CascadeData {
         self.clear_cascade_data();
         self.invalidation_map.clear();
         self.relative_selector_invalidation_map.clear();
+        self.additional_relative_selector_invalidation_map.clear();
         self.attribute_dependencies.clear();
         self.nth_of_attribute_dependencies.clear();
         self.nth_of_custom_state_dependencies.clear();
