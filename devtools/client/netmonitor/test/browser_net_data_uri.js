@@ -99,5 +99,31 @@ add_task(async function test_content_request_to_data_uri() {
   );
   ok(hasValidSize(firstItem), "The request shows a valid size");
 
+  info("Check that image details are properly displayed in the response panel");
+  const waitDOM = waitForDOM(document, "#response-panel .response-image");
+  store.dispatch(Actions.selectRequestByIndex(1));
+  document.querySelector("#response-tab").click();
+  const [imageNode] = await waitDOM;
+
+  // Wait for the image to load.
+  await once(imageNode, "load");
+
+  const [name, dimensions, mime] = document.querySelectorAll(
+    ".response-image-box .tabpanel-summary-value"
+  );
+
+  // Bug 1975453: Name is truncated to yH5BAEAAAAALAAAAAABAAEAAAIBRAA7.
+  todo_is(
+    name.textContent,
+    "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
+    "The image name matches the base 64 string"
+  );
+  is(mime.textContent, "image/gif", "The image mime info is image/gif");
+  is(
+    dimensions.textContent,
+    "1" + " \u00D7 " + "1",
+    "The image dimensions are correct"
+  );
+
   await teardown(monitor);
 });

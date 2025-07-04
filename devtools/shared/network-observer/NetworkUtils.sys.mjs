@@ -774,11 +774,6 @@ function handleDataChannel(channel, networkEventActor) {
     !lazy.NetworkHelper.isTextMimeType(response.mimeType)
   ) {
     response.encoding = "base64";
-    try {
-      response.text = btoa(response.text);
-    } catch (err) {
-      // Ignore.
-    }
   }
 
   // Note: `size`` is only used by DevTools, WebDriverBiDi relies on
