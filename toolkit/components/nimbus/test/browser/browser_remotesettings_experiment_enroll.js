@@ -1,18 +1,6 @@
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.importESModule(
-  "resource://services-settings/remote-settings.sys.mjs"
-);
-
-let rsClient;
-let secureRsClient;
-
 add_setup(async function () {
-  rsClient = RemoteSettings("nimbus-desktop-experiments");
-  secureRsClient = RemoteSettings("nimbus-secure-experiments");
-  await rsClient.db.importChanges({}, Date.now(), [], { clear: true });
-  await secureRsClient.db.importChanges({}, Date.now(), [], { clear: true });
-
   await SpecialPowers.pushPrefEnv({
     set: [
       ["messaging-system.log", "all"],
@@ -26,8 +14,6 @@ add_setup(async function () {
 
   registerCleanupFunction(async () => {
     await SpecialPowers.popPrefEnv();
-    await rsClient.db.clear();
-    await secureRsClient.db.clear();
   });
 });
 
@@ -35,9 +21,7 @@ add_task(async function test_experimentEnrollment() {
   // Need to randomize the slug so subsequent test runs don't skip enrollment
   // due to a conflicting slug
   const recipe = NimbusTestUtils.factories.recipe("foo" + Math.random());
-  await rsClient.db.importChanges({}, Date.now(), [recipe], {
-    clear: true,
-  });
+  await resetRemoteSettingsCollections({ experiments: [recipe] });
 
   await ExperimentAPI._rsLoader.updateRecipes("mochitest");
 
@@ -50,6 +34,8 @@ add_task(async function test_experimentEnrollment() {
   Assert.ok(!meta, "Experiment is no longer active");
 
   await NimbusTestUtils.removeStore(ExperimentAPI.manager.store);
+
+  await resetRemoteSettingsCollections();
 });
 
 add_task(async function test_experimentEnrollment_startup() {

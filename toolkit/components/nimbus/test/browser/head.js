@@ -14,8 +14,28 @@ const { sinon } = ChromeUtils.importESModule(
 
 NimbusTestUtils.init(this);
 
+async function resetRemoteSettingsCollections({
+  experiments,
+  secureExperiments,
+} = {}) {
+  await ExperimentAPI._rsLoader.remoteSettingsClients.experiments.db.importChanges(
+    {},
+    Date.now(),
+    experiments ?? [],
+    { clear: true }
+  );
+
+  await ExperimentAPI._rsLoader.remoteSettingsClients.secureExperiments.db.importChanges(
+    {},
+    Date.now(),
+    secureExperiments ?? [],
+    { clear: true }
+  );
+}
+
 add_setup(async function () {
   await ExperimentAPI.ready();
+  await resetRemoteSettingsCollections();
 
   const sandbox = sinon.createSandbox();
 
@@ -40,24 +60,13 @@ add_setup(async function () {
   registerCleanupFunction(() => {
     registerCleanupFunction(async () => {
       await NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
+      await resetRemoteSettingsCollections();
       sandbox.restore();
     });
   });
 });
 
 async function setupTest() {
-  await ExperimentAPI.ready();
-  await ExperimentAPI._rsLoader.finishedUpdating();
-
-  await ExperimentAPI._rsLoader.remoteSettingsClients.experiments.db.importChanges(
-    {},
-    Date.now(),
-    [],
-    { clear: true }
-  );
-
-  await ExperimentAPI._rsLoader.updateRecipes("test");
-
   return async function cleanup() {
     await NimbusTestUtils.removeStore(ExperimentAPI.manager.store);
   };
@@ -113,11 +122,11 @@ async function childSharedDataChanged(browser) {
   const MESSAGE = "nimbus-browser-test:shared-data-changed";
 
   const promise = waitForChildMessage(MESSAGE);
-  await SpecialPowers.spawn(browser, [MESSAGE], async MESSAGE => {
+  await SpecialPowers.spawn(browser, [MESSAGE], async message => {
     Services.cpmm.sharedData.addEventListener(
       "change",
       async () => {
-        await Services.cpmm.sendAsyncMessage(MESSAGE);
+        await Services.cpmm.sendAsyncMessage(message);
       },
       { once: true }
     );

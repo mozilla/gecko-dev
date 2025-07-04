@@ -2,22 +2,15 @@
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.importESModule(
-  "resource://services-settings/remote-settings.sys.mjs"
-);
-
-async function setup(recipes) {
+async function setup(experiments) {
   const sandbox = sinon.createSandbox();
 
   sandbox.stub(ExperimentAPI.manager, "forceEnroll");
 
-  const client = RemoteSettings("nimbus-desktop-experiments");
-  await client.db.importChanges({}, Date.now(), recipes, {
-    clear: true,
-  });
+  await resetRemoteSettingsCollections({ experiments });
 
   return async function cleanup() {
-    await client.db.clear();
+    await resetRemoteSettingsCollections();
     sandbox.restore();
   };
 }
