@@ -5,20 +5,23 @@
 use crate::{
     errors::IPCError,
     messages::{self, Message},
-    platform::windows::{create_manual_reset_event, server_name, OverlappedOperation},
-    Pid, IO_TIMEOUT,
+    platform::windows::{
+        create_manual_reset_event, get_last_error, server_name, OverlappedOperation,
+    },
+    Pid, ProcessHandle, IO_TIMEOUT,
 };
 
 use std::{
     ffi::{c_void, CStr, OsString},
-    os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle},
+    os::windows::io::{AsRawHandle, FromRawHandle, IntoRawHandle, OwnedHandle, RawHandle},
     ptr::null_mut,
     str::FromStr,
     time::{Duration, Instant},
 };
 use windows_sys::Win32::{
     Foundation::{
-        GetLastError, ERROR_FILE_NOT_FOUND, ERROR_INVALID_MESSAGE, ERROR_PIPE_BUSY, FALSE, HANDLE,
+        DuplicateHandle, GetLastError, DUPLICATE_CLOSE_SOURCE, DUPLICATE_SAME_ACCESS,
+        ERROR_FILE_NOT_FOUND, ERROR_INVALID_MESSAGE, ERROR_PIPE_BUSY, FALSE, HANDLE,
         INVALID_HANDLE_VALUE, WAIT_TIMEOUT,
     },
     Security::SECURITY_ATTRIBUTES,
@@ -26,12 +29,36 @@ use windows_sys::Win32::{
         CreateFileA, FILE_FLAG_OVERLAPPED, FILE_READ_DATA, FILE_SHARE_READ, FILE_SHARE_WRITE,
         FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA, OPEN_EXISTING,
     },
-    System::Pipes::{SetNamedPipeHandleState, WaitNamedPipeA, PIPE_READMODE_MESSAGE},
+    System::{
+        Pipes::{SetNamedPipeHandleState, WaitNamedPipeA, PIPE_READMODE_MESSAGE},
+        Threading::GetCurrentProcess,
+    },
 };
 
-pub type AncillaryData = ();
+pub type AncillaryData = HANDLE;
 
-pub const INVALID_ANCILLARY_DATA: AncillaryData = ();
+// This must match `kInvalidHandle` in `mfbt/UniquePtrExt.h`
+pub const INVALID_ANCILLARY_DATA: AncillaryData = 0;
+
+const HANDLE_SIZE: usize = size_of::<HANDLE>();
+
+// We encode handles at the beginning of every transmitted message. This
+// function extracts the handle (if present) and returns it together with
+// the rest of the buffer.
+fn extract_buffer_and_handle(buffer: Vec<u8>) -> Result<(Vec<u8>, Option<HANDLE>), IPCError> {
+    let handle_bytes = &buffer[0..HANDLE_SIZE];
+    let data = &buffer[HANDLE_SIZE..];
+    let handle_bytes: Result<[u8; HANDLE_SIZE], _> = handle_bytes.try_into();
+    let Ok(handle_bytes) = handle_bytes else {
+        return Err(IPCError::ParseError);
+    };
+    let handle = match HANDLE::from_ne_bytes(handle_bytes) {
+        INVALID_ANCILLARY_DATA => None,
+        handle => Some(handle),
+    };
+
+    Ok((data.to_vec(), handle))
+}
 
 pub struct IPCConnector {
     handle: OwnedHandle,
@@ -48,6 +75,10 @@ impl IPCConnector {
             event,
             overlapped: None,
         })
+    }
+
+    pub fn from_ancillary(ancillary_data: AncillaryData) -> Result<IPCConnector, IPCError> {
+        IPCConnector::new(unsafe { OwnedHandle::from_raw_handle(ancillary_data as RawHandle) })
     }
 
     pub fn as_raw(&self) -> HANDLE {
@@ -153,16 +184,41 @@ impl IPCConnector {
         IPCConnector::new(handle)
     }
 
+    pub fn into_ancillary(
+        self,
+        dst_process: &Option<ProcessHandle>,
+    ) -> Result<AncillaryData, IPCError> {
+        let mut dst_handle: HANDLE = INVALID_ANCILLARY_DATA;
+
+        if let Some(dst_process) = dst_process.as_ref() {
+            let res = unsafe {
+                DuplicateHandle(
+                    GetCurrentProcess(),
+                    self.handle.into_raw_handle() as HANDLE,
+                    dst_process.as_raw_handle() as HANDLE,
+                    &mut dst_handle,
+                    /* dwDesiredAccess */ 0,
+                    /* bInheritHandle */ FALSE,
+                    DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS,
+                )
+            };
+
+            if res > 0 {
+                Ok(dst_handle)
+            } else {
+                Err(IPCError::System(get_last_error()))
+            }
+        } else {
+            Ok(self.handle.into_raw_handle() as HANDLE)
+        }
+    }
+
     pub fn send_message(&self, message: &dyn Message) -> Result<(), IPCError> {
         // Send the message header
-        self.send(&message.header())?;
+        self.send(&message.header(), None)?;
 
-        // Send the message payload, ancillary payloads are not used on Windows.
-        debug_assert!(
-            message.ancillary_payload().is_none(),
-            "Windows doesn't transfer ancillary data"
-        );
-        self.send(&message.payload())?;
+        // Send the message payload
+        self.send(&message.payload(), message.ancillary_payload())?;
 
         Ok(())
     }
@@ -197,7 +253,7 @@ impl IPCConnector {
                 .try_clone()
                 .map_err(IPCError::CloneHandleFailed)?,
             self.event_raw_handle(),
-            messages::HEADER_SIZE,
+            HANDLE_SIZE + messages::HEADER_SIZE,
         )?);
         Ok(())
     }
@@ -207,18 +263,20 @@ impl IPCConnector {
         // waiting for one, so panic in that scenario.
         let overlapped = self.overlapped.take().unwrap();
         let buffer = overlapped.collect_recv(/* wait */ false)?;
-        messages::Header::decode(buffer.as_ref()).map_err(IPCError::BadMessage)
+        let (data, _) = extract_buffer_and_handle(buffer)?;
+        messages::Header::decode(data.as_ref()).map_err(IPCError::BadMessage)
     }
 
-    pub fn send(&self, buff: &[u8]) -> Result<(), IPCError> {
-        let overlapped = OverlappedOperation::sched_send(
-            self.handle
+    pub fn send(&self, buff: &[u8], handle: Option<AncillaryData>) -> Result<(), IPCError> {
+        let mut buffer = Vec::<u8>::with_capacity(HANDLE_SIZE + buff.len());
+        buffer.extend(handle.unwrap_or(INVALID_ANCILLARY_DATA).to_ne_bytes());
+        buffer.extend(buff);
+
+        let overlapped =
+            OverlappedOperation::sched_send(self.handle
                 .try_clone()
-                .map_err(IPCError::CloneHandleFailed)?,
-            self.event_raw_handle(),
-            buff.to_vec(),
-        )?;
-        overlapped.complete_send(/* wait */ false)
+                .map_err(IPCError::CloneHandleFailed)?, self.event_raw_handle(), buffer)?;
+        overlapped.complete_send(/* wait */ true)
     }
 
     pub fn recv(&self, expected_size: usize) -> Result<(Vec<u8>, Option<AncillaryData>), IPCError> {
@@ -227,10 +285,10 @@ impl IPCConnector {
                 .try_clone()
                 .map_err(IPCError::CloneHandleFailed)?,
             self.event_raw_handle(),
-            expected_size,
+            HANDLE_SIZE + expected_size,
         )?;
         let buffer = overlapped.collect_recv(/* wait */ true)?;
-        Ok((buffer, None))
+        extract_buffer_and_handle(buffer)
     }
 }
 

@@ -20,6 +20,7 @@ pub use crate::breakpad::{BreakpadChar, BreakpadData, BreakpadRawData, Pid};
 pub use crate::ipc_channel::IPCChannel;
 pub use crate::ipc_connector::{AncillaryData, IPCConnector, IPCEvent, INVALID_ANCILLARY_DATA};
 pub use crate::ipc_listener::IPCListener;
+pub use crate::platform::ProcessHandle;
 
 /// OsString extensions to convert from/to C strings. The strings will be
 /// regular nul-terminated byte strings on most platforms but will use wide

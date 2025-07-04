@@ -22,6 +22,8 @@ use std::{
     str::FromStr,
 };
 
+pub type ProcessHandle = ();
+
 pub(crate) fn unix_socket() -> Result<OwnedFd> {
     socket(
         AddressFamily::Unix,

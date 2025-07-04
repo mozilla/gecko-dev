@@ -24,6 +24,8 @@ use windows_sys::Win32::{
     },
 };
 
+pub type ProcessHandle = OwnedHandle;
+
 pub(crate) fn get_last_error() -> WIN32_ERROR {
     // SAFETY: This is always safe to call
     unsafe { GetLastError() }

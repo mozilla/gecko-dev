@@ -18,6 +18,8 @@ use std::{
     os::fd::{AsRawFd, BorrowedFd, OwnedFd},
 };
 
+pub type ProcessHandle = ();
+
 pub(crate) fn unix_socket() -> Result<OwnedFd> {
     socket(
         AddressFamily::Unix,

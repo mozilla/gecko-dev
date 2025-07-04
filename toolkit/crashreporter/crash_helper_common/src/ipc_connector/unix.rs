@@ -10,7 +10,7 @@ use crate::platform::linux::{
 use crate::platform::macos::{
     server_addr, set_socket_cloexec, set_socket_default_flags, unix_socket,
 };
-use crate::{ignore_eintr, Pid, IO_TIMEOUT};
+use crate::{ignore_eintr, Pid, ProcessHandle, IO_TIMEOUT};
 
 use nix::{
     cmsg_space,
@@ -113,8 +113,11 @@ impl IPCConnector {
         self.socket.as_raw_fd()
     }
 
-    pub fn into_ancillary(self) -> AncillaryData {
-        self.socket.into_raw_fd()
+    pub fn into_ancillary(
+        self,
+        _dst_process: &Option<ProcessHandle>,
+    ) -> Result<AncillaryData, IPCError> {
+        Ok(self.socket.into_raw_fd())
     }
 
     pub fn as_raw_ref(&self) -> BorrowedFd {
