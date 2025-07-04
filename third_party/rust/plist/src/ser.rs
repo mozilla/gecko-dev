@@ -1,5 +1,6 @@
 use serde::ser;
 use std::{
+    borrow::Cow,
     fmt::Display,
     fs::File,
     io::{BufWriter, Write},
@@ -12,7 +13,7 @@ use crate::{
     error::{self, Error, ErrorKind},
     stream::{self, Writer},
     uid::serde_impls::UID_NEWTYPE_STRUCT_NAME,
-    Date, Integer, Uid, XmlWriteOptions,
+    Date, Integer, Uid, Value, XmlWriteOptions,
 };
 
 #[doc(hidden)]
@@ -61,7 +62,7 @@ impl<W: Writer> Serializer<W> {
     fn maybe_write_pending_struct_field_name(&mut self) -> Result<(), Error> {
         if let OptionMode::StructField(field_name) = self.option_mode {
             self.option_mode = OptionMode::StructFieldNameWritten;
-            self.writer.write_string(field_name)?;
+            self.writer.write_string(Cow::Borrowed(field_name))?;
         }
         Ok(())
     }
@@ -86,7 +87,7 @@ impl<W: Writer> Serializer<W> {
         self.writer.write_boolean(value)
     }
 
-    fn write_data(&mut self, value: &[u8]) -> Result<(), Error> {
+    fn write_data(&mut self, value: Cow<[u8]>) -> Result<(), Error> {
         self.maybe_write_pending_struct_field_name()?;
         self.writer.write_data(value)
     }
@@ -106,9 +107,9 @@ impl<W: Writer> Serializer<W> {
         self.writer.write_real(value)
     }
 
-    fn write_string(&mut self, value: &str) -> Result<(), Error> {
+    fn write_string<'a, T: Into<Cow<'a, str>>>(&mut self, value: T) -> Result<(), Error> {
         self.maybe_write_pending_struct_field_name()?;
-        self.writer.write_string(value)
+        self.writer.write_string(value.into())
     }
 
     fn write_uid(&mut self, value: Uid) -> Result<(), Error> {
@@ -176,7 +177,7 @@ impl<'a, W: Writer> ser::Serializer for &'a mut Serializer<W> {
     fn serialize_char(self, v: char) -> Result<(), Self::Error> {
         let mut buf = [0; 4];
         let v = v.encode_utf8(&mut buf);
-        self.write_string(v)
+        self.write_string(&*v)
     }
 
     fn serialize_str(self, v: &str) -> Result<(), Error> {
@@ -184,7 +185,7 @@ impl<'a, W: Writer> ser::Serializer for &'a mut Serializer<W> {
     }
 
     fn serialize_bytes(self, v: &[u8]) -> Result<(), Error> {
-        self.write_data(v)
+        self.write_data(Cow::Borrowed(v))
     }
 
     fn serialize_none(self) -> Result<(), Error> {
@@ -392,7 +393,7 @@ impl<'a, W: Writer> ser::Serializer for DateSerializer<'a, W> {
     }
 
     fn serialize_str(self, v: &str) -> Result<(), Error> {
-        let date = Date::from_rfc3339(v).map_err(|()| self.expecting_date_error())?;
+        let date = Date::from_xml_format(v).map_err(|_| self.expecting_date_error())?;
         self.ser.write_date(date)
     }
 
@@ -801,4 +802,12 @@ pub fn to_writer_xml_with_options<W: Write, T: ser::Serialize>(
     let writer = stream::XmlWriter::new_with_options(writer, options);
     let mut ser = Serializer::new(writer);
     value.serialize(&mut ser)
+}
+
+/// Converts a `T` into a [`Value`] which can represent any valid plist.
+pub fn to_value<T: ser::Serialize>(value: &T) -> Result<Value, Error> {
+    let writer = crate::value::Builder::default();
+    let mut ser = Serializer::new(writer);
+    value.serialize(&mut ser)?;
+    ser.into_inner().finish()
 }

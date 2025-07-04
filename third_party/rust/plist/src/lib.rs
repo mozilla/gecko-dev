@@ -72,7 +72,8 @@
 //! specify a tilde requirement e.g. `plist = "~1.0.3"` in you `Cargo.toml` so that the plist crate
 //! is not automatically updated to version 1.1.
 
-#![allow(warnings)] // Third-party
+#![deny(warnings)] // Treat all warnings as errors
+#![deny(rustdoc::broken_intra_doc_links)]
 
 pub mod dictionary;
 
@@ -81,13 +82,17 @@ pub mod stream;
 #[cfg(not(feature = "enable_unstable_features_that_may_break_with_minor_version_bumps"))]
 mod stream;
 
+#[cfg(feature = "serde")]
+mod data;
 mod date;
 mod error;
 mod integer;
 mod uid;
 mod value;
 
-pub use date::Date;
+#[cfg(feature = "serde")]
+pub use data::Data;
+pub use date::{Date, InvalidXmlDate};
 pub use dictionary::Dictionary;
 pub use error::Error;
 pub use integer::Integer;
@@ -113,9 +118,10 @@ mod ser;
 pub use self::{de::Deserializer, ser::Serializer};
 #[cfg(feature = "serde")]
 pub use self::{
-    de::{from_bytes, from_file, from_reader, from_reader_xml},
+    de::{from_bytes, from_file, from_reader, from_reader_ascii, from_reader_xml, from_value},
     ser::{
-        to_file_binary, to_file_xml, to_writer_binary, to_writer_xml, to_writer_xml_with_options,
+        to_file_binary, to_file_xml, to_value, to_writer_binary, to_writer_xml,
+        to_writer_xml_with_options,
     },
 };
 

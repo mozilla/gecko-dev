@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     fs::File,
     io::{BufReader, BufWriter, Read, Seek, Write},
     path::Path,
@@ -7,8 +8,8 @@ use std::{
 use crate::{
     error::{self, Error, ErrorKind, EventKind},
     stream::{
-        BinaryWriter, Event, Events, OwnedEvent, Reader, Writer, XmlReader, XmlWriteOptions,
-        XmlWriter,
+        private, AsciiReader, BinaryWriter, Event, Events, Reader, Writer, XmlReader,
+        XmlWriteOptions, XmlWriter,
     },
     u64_to_usize, Date, Dictionary, Integer, Uid,
 };
@@ -41,9 +42,15 @@ impl Value {
         Value::from_events(reader)
     }
 
-    /// Reads a `Value` from a seekable byte stream containing an XML encoded plist.
+    /// Reads a `Value` from a byte stream containing an ASCII encoded plist.
+    pub fn from_reader_ascii<R: Read>(reader: R) -> Result<Value, Error> {
+        let reader = AsciiReader::new(reader);
+        Value::from_events(reader)
+    }
+
+    /// Reads a `Value` from a byte stream containing an XML encoded plist.
     pub fn from_reader_xml<R: Read>(reader: R) -> Result<Value, Error> {
-        let reader = XmlReader::new(reader);
+        let reader = XmlReader::new(BufReader::new(reader));
         Value::from_events(reader)
     }
 
@@ -105,7 +112,7 @@ impl Value {
     fn to_writer_inner(&self, writer: &mut dyn Writer) -> Result<(), Error> {
         let events = self.events();
         for event in events {
-            writer.write(&event)?;
+            writer.write(event)?;
         }
         Ok(())
     }
@@ -113,40 +120,40 @@ impl Value {
     /// Builds a single `Value` from an `Event` iterator.
     /// On success any excess `Event`s will remain in the iterator.
     #[cfg(feature = "enable_unstable_features_that_may_break_with_minor_version_bumps")]
-    pub fn from_events<T>(events: T) -> Result<Value, Error>
+    pub fn from_events<'event, T>(events: T) -> Result<Value, Error>
     where
-        T: IntoIterator<Item = Result<OwnedEvent, Error>>,
+        T: IntoIterator<Item = Result<Event<'event>, Error>>,
     {
-        Builder::new(events.into_iter()).build()
+        Builder::build(events.into_iter())
     }
 
     /// Builds a single `Value` from an `Event` iterator.
     /// On success any excess `Event`s will remain in the iterator.
     #[cfg(not(feature = "enable_unstable_features_that_may_break_with_minor_version_bumps"))]
-    pub(crate) fn from_events<T>(events: T) -> Result<Value, Error>
+    pub(crate) fn from_events<'event, T>(events: T) -> Result<Value, Error>
     where
-        T: IntoIterator<Item = Result<OwnedEvent, Error>>,
+        T: IntoIterator<Item = Result<Event<'event>, Error>>,
     {
-        Builder::new(events.into_iter()).build()
+        Builder::build(events.into_iter())
     }
 
     /// Converts a `Value` into an `Event` iterator.
     #[cfg(feature = "enable_unstable_features_that_may_break_with_minor_version_bumps")]
     #[doc(hidden)]
     #[deprecated(since = "1.2.0", note = "use Value::events instead")]
-    pub fn into_events(&self) -> Events {
+    pub fn into_events(&self) -> Events<'_> {
         self.events()
     }
 
     /// Creates an `Event` iterator for this `Value`.
     #[cfg(not(feature = "enable_unstable_features_that_may_break_with_minor_version_bumps"))]
-    pub(crate) fn events(&self) -> Events {
+    pub(crate) fn events(&self) -> Events<'_> {
         Events::new(self)
     }
 
     /// Creates an `Event` iterator for this `Value`.
     #[cfg(feature = "enable_unstable_features_that_may_break_with_minor_version_bumps")]
-    pub fn events(&self) -> Events {
+    pub fn events(&self) -> Events<'_> {
         Events::new(self)
     }
 
@@ -638,100 +645,139 @@ impl<'a> From<&'a str> for Value {
     }
 }
 
-struct Builder<T> {
-    stream: T,
-    token: Option<OwnedEvent>,
+enum StackItem {
+    Root(Value),
+    Array(Vec<Value>),
+    Dict(Dictionary),
+    DictAndKey(Dictionary, String),
 }
 
-impl<T: Iterator<Item = Result<OwnedEvent, Error>>> Builder<T> {
-    fn new(stream: T) -> Builder<T> {
-        Builder {
-            stream,
-            token: None,
+#[derive(Default)]
+pub struct Builder {
+    stack: Vec<StackItem>,
+}
+
+impl Builder {
+    fn build<'event, T>(stream: T) -> Result<Value, Error>
+    where
+        T: Iterator<Item = Result<Event<'event>, Error>>,
+    {
+        let mut builder = Self::default();
+        for event in stream {
+            builder.write(event?)?;
         }
+        builder.finish()
     }
 
-    fn build(mut self) -> Result<Value, Error> {
-        self.bump()?;
-        self.build_value()
-    }
-
-    fn bump(&mut self) -> Result<(), Error> {
-        self.token = match self.stream.next() {
-            Some(Ok(token)) => Some(token),
-            Some(Err(err)) => return Err(err),
-            None => None,
-        };
+    fn write_value(&mut self, value: Value) -> Result<(), Error> {
+        match (self.stack.pop(), value) {
+            (None, value) => self.stack.push(StackItem::Root(value)),
+            (Some(StackItem::Root(_)), value) => {
+                return Err(ErrorKind::ExpectedEndOfEventStream {
+                    found: EventKind::of_value(&value),
+                }
+                .without_position())
+            }
+            (Some(StackItem::Array(mut array)), value) => {
+                array.push(value);
+                self.stack.push(StackItem::Array(array));
+            }
+            (Some(StackItem::Dict(dict)), Value::String(key)) => {
+                self.stack.push(StackItem::DictAndKey(dict, key))
+            }
+            (Some(StackItem::Dict(_)), value) => {
+                return Err(ErrorKind::UnexpectedEventType {
+                    expected: EventKind::DictionaryKeyOrEndCollection,
+                    found: EventKind::of_value(&value),
+                }
+                .without_position())
+            }
+            (Some(StackItem::DictAndKey(mut dict, key)), value) => {
+                dict.insert(key, value);
+                self.stack.push(StackItem::Dict(dict));
+            }
+        }
         Ok(())
     }
 
-    fn build_value(&mut self) -> Result<Value, Error> {
-        match self.token.take() {
-            Some(Event::StartArray(len)) => Ok(Value::Array(self.build_array(len)?)),
-            Some(Event::StartDictionary(len)) => Ok(Value::Dictionary(self.build_dict(len)?)),
-
-            Some(Event::Boolean(b)) => Ok(Value::Boolean(b)),
-            Some(Event::Data(d)) => Ok(Value::Data(d.into_owned())),
-            Some(Event::Date(d)) => Ok(Value::Date(d)),
-            Some(Event::Integer(i)) => Ok(Value::Integer(i)),
-            Some(Event::Real(f)) => Ok(Value::Real(f)),
-            Some(Event::String(s)) => Ok(Value::String(s.into_owned())),
-            Some(Event::Uid(u)) => Ok(Value::Uid(u)),
-
-            Some(event @ Event::EndCollection) => Err(error::unexpected_event_type(
-                EventKind::ValueOrStartCollection,
-                &event,
-            )),
-
-            None => Err(ErrorKind::UnexpectedEndOfEventStream.without_position()),
-        }
-    }
-
-    fn build_array(&mut self, len: Option<u64>) -> Result<Vec<Value>, Error> {
-        let mut values = match len.and_then(u64_to_usize) {
-            Some(len) => Vec::with_capacity(len),
-            None => Vec::new(),
-        };
-
-        loop {
-            self.bump()?;
-            if let Some(Event::EndCollection) = self.token {
-                self.token.take();
-                return Ok(values);
-            }
-            values.push(self.build_value()?);
-        }
-    }
-
-    fn build_dict(&mut self, _len: Option<u64>) -> Result<Dictionary, Error> {
-        let mut dict = Dictionary::new();
-
-        loop {
-            self.bump()?;
-            match self.token.take() {
-                Some(Event::EndCollection) => return Ok(dict),
-                Some(Event::String(s)) => {
-                    self.bump()?;
-                    dict.insert(s.into_owned(), self.build_value()?);
-                }
-                Some(event) => {
-                    return Err(error::unexpected_event_type(
-                        EventKind::DictionaryKeyOrEndCollection,
-                        &event,
-                    ))
-                }
-                None => return Err(ErrorKind::UnexpectedEndOfEventStream.without_position()),
-            }
+    pub fn finish(&mut self) -> Result<Value, Error> {
+        match self.stack.pop() {
+            Some(StackItem::Root(value)) => Ok(value),
+            _ => Err(ErrorKind::UnexpectedEndOfEventStream.without_position()),
         }
     }
 }
+
+impl Writer for Builder {
+    fn write_start_array(&mut self, len: Option<u64>) -> Result<(), Error> {
+        let len = len.and_then(u64_to_usize).unwrap_or(0);
+        self.stack.push(StackItem::Array(Vec::with_capacity(len)));
+        Ok(())
+    }
+
+    fn write_start_dictionary(&mut self, _: Option<u64>) -> Result<(), Error> {
+        self.stack.push(StackItem::Dict(Dictionary::new()));
+        Ok(())
+    }
+
+    fn write_end_collection(&mut self) -> Result<(), Error> {
+        let value = match self.stack.pop() {
+            Some(StackItem::Root(_)) => {
+                return Err(ErrorKind::ExpectedEndOfEventStream {
+                    found: EventKind::EndCollection,
+                }
+                .without_position())
+            }
+            Some(StackItem::Array(array)) => Value::Array(array),
+            Some(StackItem::Dict(dict)) => Value::Dictionary(dict),
+            Some(StackItem::DictAndKey(_, _)) | None => {
+                return Err(ErrorKind::UnexpectedEventType {
+                    expected: EventKind::ValueOrStartCollection,
+                    found: EventKind::EndCollection,
+                }
+                .without_position())
+            }
+        };
+        self.write_value(value)
+    }
+
+    fn write_boolean(&mut self, value: bool) -> Result<(), Error> {
+        self.write_value(Value::Boolean(value))
+    }
+
+    fn write_data(&mut self, value: Cow<[u8]>) -> Result<(), Error> {
+        self.write_value(Value::Data(value.into_owned()))
+    }
+
+    fn write_date(&mut self, value: Date) -> Result<(), Error> {
+        self.write_value(Value::Date(value))
+    }
+
+    fn write_integer(&mut self, value: Integer) -> Result<(), Error> {
+        self.write_value(Value::Integer(value))
+    }
+
+    fn write_real(&mut self, value: f64) -> Result<(), Error> {
+        self.write_value(Value::Real(value))
+    }
+
+    fn write_string(&mut self, value: Cow<str>) -> Result<(), Error> {
+        self.write_value(Value::String(value.into_owned()))
+    }
+
+    fn write_uid(&mut self, value: Uid) -> Result<(), Error> {
+        self.write_value(Value::Uid(value))
+    }
+}
+
+impl private::Sealed for Builder {}
 
 #[cfg(test)]
 mod tests {
     use std::time::SystemTime;
 
     use super::*;
-    use crate::{stream::Event::*, Date, Dictionary, Value};
+    use crate::{stream::Event::*, Date};
 
     #[test]
     fn value_accessors() {
@@ -756,7 +802,7 @@ mod tests {
         );
 
         let date: Date = SystemTime::now().into();
-        assert_eq!(Value::Date(date.clone()).as_date(), Some(date));
+        assert_eq!(Value::Date(date).as_date(), Some(date));
 
         assert_eq!(Value::Real(0.0).as_real(), Some(0.0));
         assert_eq!(Value::Integer(1.into()).as_signed_integer(), Some(1));
@@ -792,15 +838,13 @@ mod tests {
             EndCollection,
         ];
 
-        let builder = Builder::new(events.into_iter().map(|e| Ok(e)));
-        let plist = builder.build();
+        let value = Builder::build(events.into_iter().map(Ok));
 
         // Expected output
-        let mut lines = Vec::new();
-        lines.push(Value::String("It is a tale told by an idiot,".to_owned()));
-        lines.push(Value::String(
-            "Full of sound and fury, signifying nothing.".to_owned(),
-        ));
+        let lines = vec![
+            Value::String("It is a tale told by an idiot,".to_owned()),
+            Value::String("Full of sound and fury, signifying nothing.".to_owned()),
+        ];
 
         let mut dict = Dictionary::new();
         dict.insert(
@@ -811,6 +855,6 @@ mod tests {
         dict.insert("Birthdate".to_owned(), Value::Integer(1564.into()));
         dict.insert("Height".to_owned(), Value::Real(1.60));
 
-        assert_eq!(plist.unwrap(), Value::Dictionary(dict));
+        assert_eq!(value.unwrap(), Value::Dictionary(dict));
     }
 }

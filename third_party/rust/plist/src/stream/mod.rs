@@ -11,10 +11,15 @@ pub use self::xml_reader::XmlReader;
 
 mod xml_writer;
 pub use self::xml_writer::XmlWriter;
+#[cfg(feature = "serde")]
+pub(crate) use xml_writer::encode_data_base64 as xml_encode_data_base64;
+
+mod ascii_reader;
+pub use self::ascii_reader::AsciiReader;
 
 use std::{
     borrow::Cow,
-    io::{self, Read, Seek, SeekFrom},
+    io::{self, BufReader, Read, Seek},
     vec,
 };
 
@@ -86,7 +91,9 @@ enum StackItem<'a> {
 /// Options for customizing serialization of XML plists.
 #[derive(Clone, Debug)]
 pub struct XmlWriteOptions {
-    indent_str: Cow<'static, str>,
+    root_element: bool,
+    indent_char: u8,
+    indent_count: usize,
 }
 
 impl XmlWriteOptions {
@@ -95,8 +102,57 @@ impl XmlWriteOptions {
     /// This may be either an `&'static str` or an owned `String`.
     ///
     /// The default is `\t`.
-    pub fn indent_string(mut self, indent_str: impl Into<Cow<'static, str>>) -> Self {
-        self.indent_str = indent_str.into();
+    ///
+    /// Since replacing `xml-rs` with `quick-xml`, the indent string has to consist of a single
+    /// repeating ascii character. This is a backwards compatibility function, prefer using
+    /// [`XmlWriteOptions::indent`].
+    #[deprecated(since = "1.4.0", note = "please use `indent` instead")]
+    pub fn indent_string(self, indent_str: impl Into<Cow<'static, str>>) -> Self {
+        let indent_str = indent_str.into();
+        let indent_str = indent_str.as_ref();
+
+        if indent_str.is_empty() {
+            return self.indent(0, 0);
+        }
+
+        assert!(
+            indent_str.chars().all(|chr| chr.is_ascii()),
+            "indent str must be ascii"
+        );
+        let indent_str = indent_str.as_bytes();
+        assert!(
+            indent_str.iter().all(|chr| chr == &indent_str[0]),
+            "indent str must consist of a single repeating character"
+        );
+
+        self.indent(indent_str[0], indent_str.len())
+    }
+
+    /// Specifies the character and amount used for indentation.
+    ///
+    /// `indent_char` must be a valid UTF8 character.
+    ///
+    /// The default is indenting with a single tab.
+    pub fn indent(mut self, indent_char: u8, indent_count: usize) -> Self {
+        self.indent_char = indent_char;
+        self.indent_count = indent_count;
+        self
+    }
+
+    /// Selects whether to write the XML prologue, plist document type and root element.
+    ///
+    /// In other words the following:
+    /// ```xml
+    /// <?xml version="1.0" encoding="UTF-8"?>
+    /// <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    /// <plist version="1.0">
+    /// ...
+    /// </plist>
+    /// ```
+    ///
+    /// The default is `true`.
+    pub fn root_element(mut self, write_root: bool) -> Self {
+        self.root_element = write_root;
         self
     }
 }
@@ -104,7 +160,9 @@ impl XmlWriteOptions {
 impl Default for XmlWriteOptions {
     fn default() -> Self {
         XmlWriteOptions {
-            indent_str: Cow::Borrowed("\t"),
+            indent_char: b'\t',
+            indent_count: 1,
+            root_element: true,
         }
     }
 }
@@ -139,7 +197,7 @@ impl<'a> Iterator for Events<'a> {
                     Event::StartDictionary(Some(len as u64))
                 }
                 Value::Boolean(value) => Event::Boolean(*value),
-                Value::Data(value) => Event::Data(Cow::Borrowed(&value)),
+                Value::Data(value) => Event::Data(Cow::Borrowed(value)),
                 Value::Date(value) => Event::Date(*value),
                 Value::Real(value) => Event::Real(*value),
                 Value::Integer(value) => Event::Integer(*value),
@@ -180,8 +238,9 @@ pub struct Reader<R: Read + Seek>(ReaderInner<R>);
 
 enum ReaderInner<R: Read + Seek> {
     Uninitialized(Option<R>),
-    Xml(XmlReader<R>),
     Binary(BinaryReader<R>),
+    Xml(XmlReader<BufReader<R>>),
+    Ascii(AsciiReader<BufReader<R>>),
 }
 
 impl<R: Read + Seek> Reader<R> {
@@ -189,15 +248,66 @@ impl<R: Read + Seek> Reader<R> {
         Reader(ReaderInner::Uninitialized(Some(reader)))
     }
 
-    fn is_binary(reader: &mut R) -> Result<bool, Error> {
-        fn from_io_offset_0(err: io::Error) -> Error {
-            ErrorKind::Io(err).with_byte_offset(0)
+    fn init(&mut self, mut reader: R) -> Result<Option<OwnedEvent>, Error> {
+        // Rewind reader back to the start.
+        if let Err(err) = reader.rewind().map_err(from_io_offset_0) {
+            self.0 = ReaderInner::Uninitialized(Some(reader));
+            return Err(err);
         }
 
-        reader.seek(SeekFrom::Start(0)).map_err(from_io_offset_0)?;
+        // A plist is binary if it starts with magic bytes.
+        match Reader::is_binary(&mut reader) {
+            Ok(true) => {
+                self.0 = ReaderInner::Binary(BinaryReader::new(reader));
+                return self.next().transpose();
+            }
+            Ok(false) => (),
+            Err(err) => {
+                self.0 = ReaderInner::Uninitialized(Some(reader));
+                return Err(err);
+            }
+        };
+
+        // If a plist is not binary, try to parse as XML.
+        // Use a `BufReader` for XML and ASCII plists as it is required by `quick-xml` and will
+        // definitely speed up ASCII parsing as well.
+        let mut xml_reader = XmlReader::new(BufReader::new(reader));
+        let mut reader = match xml_reader.next() {
+            res @ Some(Ok(_)) | res @ None => {
+                self.0 = ReaderInner::Xml(xml_reader);
+                return res.transpose();
+            }
+            Some(Err(err)) if xml_reader.xml_doc_started() => {
+                self.0 = ReaderInner::Uninitialized(Some(xml_reader.into_inner().into_inner()));
+                return Err(err);
+            }
+            Some(Err(_)) => xml_reader.into_inner(),
+        };
+
+        // Rewind reader back to the start.
+        if let Err(err) = reader.rewind().map_err(from_io_offset_0) {
+            self.0 = ReaderInner::Uninitialized(Some(reader.into_inner()));
+            return Err(err);
+        }
+
+        // If no valid XML markup is found, try to parse as ASCII.
+        let mut ascii_reader = AsciiReader::new(reader);
+        match ascii_reader.next() {
+            res @ Some(Ok(_)) | res @ None => {
+                self.0 = ReaderInner::Ascii(ascii_reader);
+                res.transpose()
+            }
+            Some(Err(err)) => {
+                self.0 = ReaderInner::Uninitialized(Some(ascii_reader.into_inner().into_inner()));
+                Err(err)
+            }
+        }
+    }
+
+    fn is_binary(reader: &mut R) -> Result<bool, Error> {
         let mut magic = [0; 8];
         reader.read_exact(&mut magic).map_err(from_io_offset_0)?;
-        reader.seek(SeekFrom::Start(0)).map_err(from_io_offset_0)?;
+        reader.rewind().map_err(from_io_offset_0)?;
 
         Ok(&magic == b"bplist00")
     }
@@ -207,39 +317,36 @@ impl<R: Read + Seek> Iterator for Reader<R> {
     type Item = Result<OwnedEvent, Error>;
 
     fn next(&mut self) -> Option<Result<OwnedEvent, Error>> {
-        let mut reader = match self.0 {
-            ReaderInner::Xml(ref mut parser) => return parser.next(),
-            ReaderInner::Binary(ref mut parser) => return parser.next(),
-            ReaderInner::Uninitialized(ref mut reader) => reader.take().unwrap(),
-        };
-
-        match Reader::is_binary(&mut reader) {
-            Ok(true) => self.0 = ReaderInner::Binary(BinaryReader::new(reader)),
-            Ok(false) => self.0 = ReaderInner::Xml(XmlReader::new(reader)),
-            Err(err) => {
-                self.0 = ReaderInner::Uninitialized(Some(reader));
-                return Some(Err(err));
+        match self.0 {
+            ReaderInner::Xml(ref mut parser) => parser.next(),
+            ReaderInner::Binary(ref mut parser) => parser.next(),
+            ReaderInner::Ascii(ref mut parser) => parser.next(),
+            ReaderInner::Uninitialized(ref mut reader) => {
+                let reader = reader.take().unwrap();
+                self.init(reader).transpose()
             }
         }
-
-        self.next()
     }
+}
+
+fn from_io_offset_0(err: io::Error) -> Error {
+    ErrorKind::Io(err).with_byte_offset(0)
 }
 
 /// Supports writing event streams in different plist encodings.
 pub trait Writer: private::Sealed {
-    fn write(&mut self, event: &Event) -> Result<(), Error> {
+    fn write(&mut self, event: Event) -> Result<(), Error> {
         match event {
-            Event::StartArray(len) => self.write_start_array(*len),
-            Event::StartDictionary(len) => self.write_start_dictionary(*len),
+            Event::StartArray(len) => self.write_start_array(len),
+            Event::StartDictionary(len) => self.write_start_dictionary(len),
             Event::EndCollection => self.write_end_collection(),
-            Event::Boolean(value) => self.write_boolean(*value),
+            Event::Boolean(value) => self.write_boolean(value),
             Event::Data(value) => self.write_data(value),
-            Event::Date(value) => self.write_date(*value),
-            Event::Integer(value) => self.write_integer(*value),
-            Event::Real(value) => self.write_real(*value),
+            Event::Date(value) => self.write_date(value),
+            Event::Integer(value) => self.write_integer(value),
+            Event::Real(value) => self.write_real(value),
             Event::String(value) => self.write_string(value),
-            Event::Uid(value) => self.write_uid(*value),
+            Event::Uid(value) => self.write_uid(value),
         }
     }
 
@@ -248,11 +355,11 @@ pub trait Writer: private::Sealed {
     fn write_end_collection(&mut self) -> Result<(), Error>;
 
     fn write_boolean(&mut self, value: bool) -> Result<(), Error>;
-    fn write_data(&mut self, value: &[u8]) -> Result<(), Error>;
+    fn write_data(&mut self, value: Cow<[u8]>) -> Result<(), Error>;
     fn write_date(&mut self, value: Date) -> Result<(), Error>;
     fn write_integer(&mut self, value: Integer) -> Result<(), Error>;
     fn write_real(&mut self, value: f64) -> Result<(), Error>;
-    fn write_string(&mut self, value: &str) -> Result<(), Error>;
+    fn write_string(&mut self, value: Cow<str>) -> Result<(), Error>;
     fn write_uid(&mut self, value: Uid) -> Result<(), Error>;
 }
 
@@ -263,4 +370,76 @@ pub(crate) mod private {
 
     impl<W: Write> Sealed for super::BinaryWriter<W> {}
     impl<W: Write> Sealed for super::XmlWriter<W> {}
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::File;
+
+    use super::{Event::*, *};
+
+    const ANIMALS_PLIST_EVENTS: &[Event] = &[
+        StartDictionary(None),
+        String(Cow::Borrowed("AnimalColors")),
+        StartDictionary(None),
+        String(Cow::Borrowed("lamb")), // key
+        String(Cow::Borrowed("black")),
+        String(Cow::Borrowed("pig")), // key
+        String(Cow::Borrowed("pink")),
+        String(Cow::Borrowed("worm")), // key
+        String(Cow::Borrowed("pink")),
+        EndCollection,
+        String(Cow::Borrowed("AnimalSmells")),
+        StartDictionary(None),
+        String(Cow::Borrowed("lamb")), // key
+        String(Cow::Borrowed("lambish")),
+        String(Cow::Borrowed("pig")), // key
+        String(Cow::Borrowed("piggish")),
+        String(Cow::Borrowed("worm")), // key
+        String(Cow::Borrowed("wormy")),
+        EndCollection,
+        String(Cow::Borrowed("AnimalSounds")),
+        StartDictionary(None),
+        String(Cow::Borrowed("Lisa")), // key
+        String(Cow::Borrowed("Why is the worm talking like a lamb?")),
+        String(Cow::Borrowed("lamb")), // key
+        String(Cow::Borrowed("baa")),
+        String(Cow::Borrowed("pig")), // key
+        String(Cow::Borrowed("oink")),
+        String(Cow::Borrowed("worm")), // key
+        String(Cow::Borrowed("baa")),
+        EndCollection,
+        EndCollection,
+    ];
+
+    #[test]
+    fn autodetect_binary() {
+        let reader = File::open("./tests/data/binary.plist").unwrap();
+        let mut streaming_parser = Reader::new(reader);
+        let events: Result<Vec<_>, _> = streaming_parser.by_ref().collect();
+
+        assert!(matches!(streaming_parser.0, ReaderInner::Binary(_)));
+        // The contents of this plist are tested for elsewhere.
+        assert!(events.is_ok());
+    }
+
+    #[test]
+    fn autodetect_xml() {
+        let reader = File::open("./tests/data/xml-animals.plist").unwrap();
+        let mut streaming_parser = Reader::new(reader);
+        let events: Result<Vec<_>, _> = streaming_parser.by_ref().collect();
+
+        assert!(matches!(streaming_parser.0, ReaderInner::Xml(_)));
+        assert_eq!(events.unwrap(), ANIMALS_PLIST_EVENTS);
+    }
+
+    #[test]
+    fn autodetect_ascii() {
+        let reader = File::open("./tests/data/ascii-animals.plist").unwrap();
+        let mut streaming_parser = Reader::new(reader);
+        let events: Result<Vec<_>, _> = streaming_parser.by_ref().collect();
+
+        assert!(matches!(streaming_parser.0, ReaderInner::Ascii(_)));
+        assert_eq!(events.unwrap(), ANIMALS_PLIST_EVENTS);
+    }
 }

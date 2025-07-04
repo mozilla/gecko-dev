@@ -187,7 +187,7 @@ impl<R: Read + Seek> BinaryReader<R> {
         if offset >= self.trailer_start_offset {
             return Err(self.with_pos(ErrorKind::ObjectOffsetTooLarge));
         }
-        Ok(self.reader.seek(SeekFrom::Start(offset))?)
+        self.reader.seek(SeekFrom::Start(offset))
     }
 
     fn push_stack_item_and_check_for_recursion(&mut self, item: StackItem) -> Result<(), Error> {
@@ -249,7 +249,7 @@ impl<R: Read + Seek> BinaryReader<R> {
             (0x1, 3) => Some(Event::Integer(self.read_be_i64()?.into())),
             (0x1, 4) => {
                 let value = self.read_be_i128()?;
-                if value < 0 || value > u64::max_value().into() {
+                if value < 0 || value > i128::from(u64::max_value()) {
                     return Err(self.with_pos(ErrorKind::IntegerOutOfRange));
                 }
                 Some(Event::Integer((value as u64).into()))
@@ -409,16 +409,15 @@ impl<R: Read + Seek> Iterator for BinaryReader<R> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, path::Path};
+    use std::fs::File;
 
     use super::*;
-    use crate::{stream::Event, Uid};
 
     #[test]
     fn streaming_parser() {
         use crate::stream::Event::*;
 
-        let reader = File::open(&Path::new("./tests/data/binary.plist")).unwrap();
+        let reader = File::open("./tests/data/binary.plist").unwrap();
         let streaming_parser = BinaryReader::new(reader);
         let events: Vec<Event> = streaming_parser.map(|e| e.unwrap()).collect();
 
@@ -427,7 +426,7 @@ mod tests {
             String("Author".into()),
             String("William Shakespeare".into()),
             String("Birthdate".into()),
-            Date(super::Date::from_rfc3339("1981-05-16T11:32:06Z").unwrap()),
+            Date(super::Date::from_xml_format("1981-05-16T11:32:06Z").unwrap()),
             String("EmptyArray".into()),
             StartArray(Some(0)),
             EndCollection,
@@ -442,7 +441,7 @@ mod tests {
             Real(1.6),
             String("Lines".into()),
             StartArray(Some(2)),
-            String("It is a tale told by an idiot,".into()),
+            String("It is a tale told by an idiot,     ".into()),
             String("Full of sound and fury, signifying nothing.".into()),
             EndCollection,
             String("Death".into()),
@@ -463,7 +462,7 @@ mod tests {
 
     #[test]
     fn utf16_plist() {
-        let reader = File::open(&Path::new("./tests/data/utf16_bplist.plist")).unwrap();
+        let reader = File::open("./tests/data/utf16_bplist.plist").unwrap();
         let streaming_parser = BinaryReader::new(reader);
         let mut events: Vec<Event> = streaming_parser.map(|e| e.unwrap()).collect();
 
@@ -480,7 +479,7 @@ mod tests {
 
     #[test]
     fn nskeyedarchiver_plist() {
-        let reader = File::open(&Path::new("./tests/data/binary_NSKeyedArchiver.plist")).unwrap();
+        let reader = File::open("./tests/data/binary_NSKeyedArchiver.plist").unwrap();
         let streaming_parser = BinaryReader::new(reader);
         let events: Vec<Event> = streaming_parser.map(|e| e.unwrap()).collect();
 

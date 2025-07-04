@@ -6,7 +6,7 @@
 	<string>William Shakespeare</string>
 	<key>Lines</key>
 	<array>
-		<string>It is a tale told by an idiot,</string>
+		<string>It is a tale told by an idiot,     </string>
 		<string>Full of sound and fury, signifying nothing.</string>
 	</array>
 	<key>Death</key>

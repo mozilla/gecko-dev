@@ -10,42 +10,67 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.68"
 name = "plist"
-version = "1.3.1"
+version = "1.7.2"
 authors = ["Ed Barnard <eabarnard@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A rusty plist parser. Supports Serde serialization."
-documentation = "https://docs.rs/plist/1.3.1/plist/"
-keywords = ["plist", "parser"]
-categories = ["config", "encoding", "parser-implementations"]
+documentation = "https://docs.rs/plist/"
+readme = "README.md"
+keywords = [
+    "plist",
+    "parser",
+]
+categories = [
+    "config",
+    "encoding",
+    "parser-implementations",
+]
 license = "MIT"
 repository = "https://github.com/ebarnard/rust-plist/"
+
+[features]
+default = ["serde"]
+enable_unstable_features_that_may_break_with_minor_version_bumps = []
+
+[lib]
+name = "plist"
+path = "src/lib.rs"
+
+[[test]]
+name = "fuzzer"
+path = "tests/fuzzer.rs"
+
 [dependencies.base64]
-version = "0.13.0"
+version = "0.22.0"
 
 [dependencies.indexmap]
 version = "2.1.0"
 
-[dependencies.line-wrap]
-version = "0.1.1"
+[dependencies.quick_xml]
+version = "0.37.4"
+package = "quick-xml"
 
 [dependencies.serde]
 version = "1.0.2"
 optional = true
 
 [dependencies.time]
-version = "0.3.3"
-features = ["parsing", "formatting"]
+version = "0.3.30"
+features = [
+    "parsing",
+    "formatting",
+]
 
-[dependencies.xml_rs]
-version = "0.8.2"
-package = "xml-rs"
 [dev-dependencies.serde_derive]
 version = "1.0.2"
 
 [dev-dependencies.serde_yaml]
 version = "0.8.21"
-
-[features]
-default = ["serde"]
-enable_unstable_features_that_may_break_with_minor_version_bumps = []

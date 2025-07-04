@@ -1,6 +1,8 @@
 use std::{error, fmt, io};
 
+#[cfg(feature = "serde")]
 use crate::stream::Event;
+use crate::{InvalidXmlDate, Value};
 
 /// This type represents all possible errors that can occur when working with plist data.
 #[derive(Debug)]
@@ -19,13 +21,26 @@ pub(crate) enum ErrorKind {
     UnexpectedEof,
     UnexpectedEndOfEventStream,
     UnexpectedEventType {
+        // Used by the `Debug` implementation.
+        #[allow(dead_code)]
         expected: EventKind,
+        #[allow(dead_code)]
+        found: EventKind,
+    },
+    ExpectedEndOfEventStream {
+        // Used by the `Debug` implementation.
+        #[allow(dead_code)]
         found: EventKind,
     },
 
+    // Ascii format-specific errors
+    UnclosedString,
+    IncompleteComment,
+    InvalidUtf8AsciiStream,
+    InvalidOctalString,
+
     // Xml format-specific errors
     UnclosedXmlElement,
-    UnpairedXmlClosingTag,
     UnexpectedXmlCharactersExpectedElement,
     UnexpectedXmlOpeningTag,
     UnknownXmlElement,
@@ -52,17 +67,21 @@ pub(crate) enum ErrorKind {
     InfiniteOrNanDate,
     InvalidUtf8String,
     InvalidUtf16String,
-    UnknownObjectType(u8),
+    UnknownObjectType(
+        // Used by the `Debug` implementation.
+        #[allow(dead_code)] u8,
+    ),
 
     Io(io::Error),
-    Serde(String),
+    #[cfg(feature = "serde")]
+    Serde(
+        // Used by the `Debug` implementation.
+        #[allow(dead_code)] String,
+    ),
 }
 
-#[derive(Debug)]
-pub(crate) enum FilePosition {
-    LineColumn(u64, u64),
-    Offset(u64),
-}
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct FilePosition(pub(crate) u64);
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum EventKind {
@@ -89,11 +108,7 @@ impl Error {
 
     /// Returns true if this error was caused by prematurely reaching the end of the input data.
     pub fn is_eof(&self) -> bool {
-        if let ErrorKind::UnexpectedEof = self.inner.kind {
-            true
-        } else {
-            false
-        }
+        matches!(self.inner.kind, ErrorKind::UnexpectedEof)
     }
 
     /// Returns the underlying error if it was caused by a failure to read or write bytes on an IO
@@ -138,20 +153,19 @@ impl fmt::Display for Error {
 
 impl fmt::Display for FilePosition {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            FilePosition::LineColumn(line, column) => {
-                write!(f, "line {}, column {}", line, column)
-            }
-            FilePosition::Offset(offset) => {
-                write!(f, "offset {}", offset)
-            }
-        }
+        write!(f, "offset {}", self.0)
+    }
+}
+
+impl From<InvalidXmlDate> for Error {
+    fn from(error: InvalidXmlDate) -> Self {
+        ErrorKind::from(error).without_position()
     }
 }
 
 impl ErrorKind {
     pub fn with_byte_offset(self, offset: u64) -> Error {
-        self.with_position(FilePosition::Offset(offset))
+        self.with_position(FilePosition(offset))
     }
 
     pub fn with_position(self, pos: FilePosition) -> Error {
@@ -173,7 +187,14 @@ impl ErrorKind {
     }
 }
 
+impl From<InvalidXmlDate> for ErrorKind {
+    fn from(_: InvalidXmlDate) -> Self {
+        ErrorKind::InvalidDateString
+    }
+}
+
 impl EventKind {
+    #[cfg(feature = "serde")]
     pub fn of_event(event: &Event) -> EventKind {
         match event {
             Event::StartArray(_) => EventKind::StartArray,
@@ -186,6 +207,20 @@ impl EventKind {
             Event::Real(_) => EventKind::Real,
             Event::String(_) => EventKind::String,
             Event::Uid(_) => EventKind::Uid,
+        }
+    }
+
+    pub fn of_value(event: &Value) -> EventKind {
+        match event {
+            Value::Array(_) => EventKind::StartArray,
+            Value::Dictionary(_) => EventKind::StartDictionary,
+            Value::Boolean(_) => EventKind::Boolean,
+            Value::Data(_) => EventKind::Data,
+            Value::Date(_) => EventKind::Date,
+            Value::Integer(_) => EventKind::Integer,
+            Value::Real(_) => EventKind::Real,
+            Value::String(_) => EventKind::String,
+            Value::Uid(_) => EventKind::Uid,
         }
     }
 }
@@ -214,7 +249,8 @@ pub(crate) fn from_io_without_position(err: io::Error) -> Error {
     ErrorKind::Io(err).without_position()
 }
 
+#[cfg(feature = "serde")]
 pub(crate) fn unexpected_event_type(expected: EventKind, found: &Event) -> Error {
-    let found = EventKind::of_event(&found);
+    let found = EventKind::of_event(found);
     ErrorKind::UnexpectedEventType { expected, found }.without_position()
 }

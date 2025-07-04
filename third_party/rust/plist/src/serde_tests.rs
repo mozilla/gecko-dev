@@ -2,11 +2,12 @@ use serde::{
     de::{Deserialize, DeserializeOwned},
     ser::Serialize,
 };
-use std::{collections::BTreeMap, fmt::Debug, fs::File, io::Cursor, path::Path};
+use std::{borrow::Cow, collections::BTreeMap, fmt::Debug, fs::File, io::Cursor};
 
 use crate::{
+    from_value,
     stream::{private::Sealed, Event, OwnedEvent, Writer},
-    Date, Deserializer, Dictionary, Error, Integer, Serializer, Uid, Value,
+    to_value, Data, Date, Deserializer, Dictionary, Error, Integer, Serializer, Uid, Value,
 };
 
 struct VecWriter {
@@ -44,8 +45,9 @@ impl Writer for VecWriter {
         Ok(())
     }
 
-    fn write_data(&mut self, value: &[u8]) -> Result<(), Error> {
-        self.events.push(Event::Data(value.to_owned().into()));
+    fn write_data(&mut self, value: Cow<[u8]>) -> Result<(), Error> {
+        self.events
+            .push(Event::Data(Cow::Owned(value.into_owned())));
         Ok(())
     }
 
@@ -64,8 +66,9 @@ impl Writer for VecWriter {
         Ok(())
     }
 
-    fn write_string(&mut self, value: &str) -> Result<(), Error> {
-        self.events.push(Event::String(value.to_owned().into()));
+    fn write_string(&mut self, value: Cow<str>) -> Result<(), Error> {
+        self.events
+            .push(Event::String(Cow::Owned(value.into_owned())));
         Ok(())
     }
 
@@ -81,30 +84,41 @@ fn new_serializer() -> Serializer<VecWriter> {
     Serializer::new(VecWriter::new())
 }
 
-fn new_deserializer(events: Vec<OwnedEvent>) -> Deserializer<Vec<Result<OwnedEvent, Error>>> {
+fn new_deserializer(events: Vec<Event>) -> Deserializer<Vec<Result<Event, Error>>> {
     let result_events = events.into_iter().map(Ok).collect();
     Deserializer::new(result_events)
 }
 
-fn assert_roundtrip<T>(obj: T, comparison: Option<&[Event]>)
+fn assert_roundtrip<T>(obj: T, expected_events: &[Event], roundtrip_value: bool)
 where
     T: Debug + DeserializeOwned + PartialEq + Serialize,
 {
     let mut se = new_serializer();
-
     obj.serialize(&mut se).unwrap();
-
     let events = se.into_inner().into_inner();
 
-    if let Some(comparison) = comparison {
-        assert_eq!(&events[..], comparison);
+    let value = if roundtrip_value {
+        to_value(&obj).expect("failed to convert object into value")
+    } else {
+        Value::Boolean(false)
+    };
+
+    assert_eq!(&events[..], expected_events);
+
+    if roundtrip_value {
+        let expected_value = Value::from_events(expected_events.iter().cloned().map(Ok))
+            .expect("failed to convert expected events into value");
+        assert_eq!(value, expected_value);
     }
 
     let mut de = new_deserializer(events);
+    let obj_events_roundtrip = T::deserialize(&mut de).unwrap();
+    assert_eq!(obj_events_roundtrip, obj);
 
-    let new_obj = T::deserialize(&mut de).unwrap();
-
-    assert_eq!(new_obj, obj);
+    if roundtrip_value {
+        let obj_value_roundtrip: T = from_value(&value).unwrap();
+        assert_eq!(obj_value_roundtrip, obj);
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -130,6 +144,7 @@ struct DogInner {
     b: usize,
     c: Vec<String>,
     d: Option<Uid>,
+    e: Data,
 }
 
 #[test]
@@ -138,7 +153,7 @@ fn cow() {
 
     let comparison = &[Event::String("Cow".into())];
 
-    assert_roundtrip(cow, Some(comparison));
+    assert_roundtrip(cow, comparison, true);
 }
 
 #[test]
@@ -149,6 +164,7 @@ fn dog() {
             b: 12,
             c: vec!["a".to_string(), "b".to_string()],
             d: Some(Uid::new(42)),
+            e: Data::new(vec![20, 22]),
         }],
     });
 
@@ -170,20 +186,22 @@ fn dog() {
         Event::EndCollection,
         Event::String("d".into()),
         Event::Uid(Uid::new(42)),
+        Event::String("e".into()),
+        Event::Data(vec![20, 22].into()),
         Event::EndCollection,
         Event::EndCollection,
         Event::EndCollection,
         Event::EndCollection,
     ];
 
-    assert_roundtrip(dog, Some(comparison));
+    assert_roundtrip(dog, comparison, true);
 }
 
 #[test]
 fn frog() {
     let frog = Animal::Frog(
         Ok("hello".to_owned()),
-        Some(vec![1.0, 2.0, 3.14159, 0.000000001, 1.27e31]),
+        Some(vec![1.0, 2.0, std::f64::consts::PI, 0.000000001, 1.27e31]),
     );
 
     let comparison = &[
@@ -199,7 +217,7 @@ fn frog() {
         Event::StartArray(Some(5)),
         Event::Real(1.0),
         Event::Real(2.0),
-        Event::Real(3.14159),
+        Event::Real(std::f64::consts::PI),
         Event::Real(0.000000001),
         Event::Real(1.27e31),
         Event::EndCollection,
@@ -208,7 +226,7 @@ fn frog() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(frog, Some(comparison));
+    assert_roundtrip(frog, comparison, true);
 }
 
 #[test]
@@ -243,7 +261,7 @@ fn cat_with_firmware() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(cat, Some(comparison));
+    assert_roundtrip(cat, comparison, true);
 }
 
 #[test]
@@ -266,7 +284,7 @@ fn cat_without_firmware() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(cat, Some(comparison));
+    assert_roundtrip(cat, comparison, true);
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -287,7 +305,7 @@ fn newtype_struct() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(newtype, Some(comparison));
+    assert_roundtrip(newtype, comparison, true);
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -331,7 +349,7 @@ fn type_with_options() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -342,11 +360,11 @@ struct TypeWithDate {
 
 #[test]
 fn type_with_date() {
-    let date = Date::from_rfc3339("1920-01-01T00:10:00Z").unwrap();
+    let date = Date::from_xml_format("1920-01-01T00:10:00Z").unwrap();
 
     let obj = TypeWithDate {
         a: Some(28),
-        b: Some(date.clone()),
+        b: Some(date),
     };
 
     let comparison = &[
@@ -358,7 +376,7 @@ fn type_with_date() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[test]
@@ -367,7 +385,7 @@ fn option_some() {
 
     let comparison = &[Event::Integer(12.into())];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[test]
@@ -376,7 +394,8 @@ fn option_none() {
 
     let comparison = &[];
 
-    assert_roundtrip(obj, Some(comparison));
+    // Written as nothing so can't be represented by a `Value`.
+    assert_roundtrip(obj, comparison, false);
 }
 
 #[test]
@@ -390,7 +409,7 @@ fn option_some_some() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[test]
@@ -404,7 +423,7 @@ fn option_some_none() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[test]
@@ -440,7 +459,7 @@ fn option_dictionary_values() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[test]
@@ -476,7 +495,9 @@ fn option_dictionary_keys() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    // This example uses non-string dictionary keys which can only be represented by binary plists
+    // and not by a `Value`.
+    assert_roundtrip(obj, comparison, false);
 }
 
 #[test]
@@ -506,7 +527,7 @@ fn option_array() {
         Event::EndCollection,
     ];
 
-    assert_roundtrip(obj, Some(comparison));
+    assert_roundtrip(obj, comparison, true);
 }
 
 #[test]
@@ -520,7 +541,7 @@ fn enum_variant_types() {
     }
 
     let expected = &[Event::String("Unit".into())];
-    assert_roundtrip(Foo::Unit, Some(expected));
+    assert_roundtrip(Foo::Unit, expected, true);
 
     let expected = &[
         Event::StartDictionary(Some(1)),
@@ -528,7 +549,7 @@ fn enum_variant_types() {
         Event::Integer(42.into()),
         Event::EndCollection,
     ];
-    assert_roundtrip(Foo::Newtype(42), Some(expected));
+    assert_roundtrip(Foo::Newtype(42), expected, true);
 
     let expected = &[
         Event::StartDictionary(Some(1)),
@@ -539,7 +560,7 @@ fn enum_variant_types() {
         Event::EndCollection,
         Event::EndCollection,
     ];
-    assert_roundtrip(Foo::Tuple(42, "bar".into()), Some(expected));
+    assert_roundtrip(Foo::Tuple(42, "bar".into()), expected, true);
 
     let expected = &[
         Event::StartDictionary(Some(1)),
@@ -557,7 +578,8 @@ fn enum_variant_types() {
             v: 42,
             s: "bar".into(),
         },
-        Some(expected),
+        expected,
+        true,
     );
 }
 
@@ -586,7 +608,7 @@ fn deserialise_old_enum_unit_variant_encoding() {
 
 #[test]
 fn deserialize_dictionary_xml() {
-    let reader = File::open(&Path::new("./tests/data/xml.plist")).unwrap();
+    let reader = File::open("./tests/data/xml.plist").unwrap();
     let dict: Dictionary = crate::from_reader(reader).unwrap();
 
     check_common_plist(&dict);
@@ -603,7 +625,7 @@ fn deserialize_dictionary_xml() {
 
 #[test]
 fn deserialize_dictionary_binary() {
-    let reader = File::open(&Path::new("./tests/data/binary.plist")).unwrap();
+    let reader = File::open("./tests/data/binary.plist").unwrap();
     let dict: Dictionary = crate::from_reader(reader).unwrap();
 
     check_common_plist(&dict);
@@ -619,7 +641,7 @@ fn check_common_plist(dict: &Dictionary) {
     assert_eq!(lines.len(), 2);
     assert_eq!(
         lines[0].as_string().unwrap(),
-        "It is a tale told by an idiot,"
+        "It is a tale told by an idiot,     "
     );
     assert_eq!(
         lines[1].as_string().unwrap(),
@@ -634,9 +656,9 @@ fn check_common_plist(dict: &Dictionary) {
 
     // Boolean elements
 
-    assert_eq!(dict.get("IsTrue").unwrap().as_boolean().unwrap(), true);
+    assert!(dict.get("IsTrue").unwrap().as_boolean().unwrap());
 
-    assert_eq!(dict.get("IsNotFalse").unwrap().as_boolean().unwrap(), false);
+    assert!(!dict.get("IsNotFalse").unwrap().as_boolean().unwrap());
 
     // Data
 
@@ -651,7 +673,7 @@ fn check_common_plist(dict: &Dictionary) {
 
     assert_eq!(
         dict.get("Birthdate").unwrap().as_date().unwrap(),
-        Date::from_rfc3339("1981-05-16T11:32:06Z").unwrap()
+        Date::from_xml_format("1981-05-16T11:32:06Z").unwrap()
     );
 
     // Real
@@ -699,7 +721,7 @@ fn check_common_plist(dict: &Dictionary) {
 
 #[test]
 fn deserialize_dictionary_binary_nskeyedarchiver() {
-    let reader = File::open(&Path::new("./tests/data/binary_NSKeyedArchiver.plist")).unwrap();
+    let reader = File::open("./tests/data/binary_NSKeyedArchiver.plist").unwrap();
     let dict: Dictionary = crate::from_reader(reader).unwrap();
 
     assert_eq!(
@@ -775,6 +797,69 @@ fn deserialize_dictionary_binary_nskeyedarchiver() {
     assert_eq!(version, 100000);
 }
 
+fn try_parse_xml(bom: bool, whitespace: bool, decl: bool, comment: bool, doctype: bool) -> bool {
+    #[derive(Deserialize)]
+    struct LayerinfoData {
+        color: Option<String>,
+    }
+
+    let mut data = Vec::new();
+    if bom {
+        // The UTF-8 byte order mark
+        data.extend(b"\xef\xbb\xbf");
+    }
+
+    if whitespace {
+        data.extend(b"\r\n\t ");
+    }
+
+    if decl {
+        data.extend(br#"<?xml version="1.0" encoding="UTF-8"?>"#);
+    }
+
+    if comment {
+        data.extend(br#"<!-- hello -->"#);
+    }
+
+    if doctype {
+        data.extend(br#"<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">"#);
+    }
+
+    data.extend(
+        br#"<plist version="1.0">
+        <dict>
+            <key>color</key>
+            <string>1,0.75,0,0.7</string>
+        </dict>
+        </plist>
+        "#,
+    );
+
+    if let Ok(lib_dict) = crate::from_bytes::<LayerinfoData>(&data) {
+        lib_dict.color.unwrap() == "1,0.75,0,0.7"
+    } else {
+        false
+    }
+}
+
+#[test]
+fn xml_detection() {
+    for bom in [true, false] {
+        for whitespace in [true, false] {
+            for decl in [true, false] {
+                for comment in [true, false] {
+                    for doctype in [true, false] {
+                        assert!(
+                        try_parse_xml(bom, whitespace, decl, comment, doctype),
+                        "bom={bom}, whitespace={whitespace}, decl={decl}, comment={comment}, doctype={doctype}"
+                    );
+                    }
+                }
+            }
+        }
+    }
+}
+
 #[test]
 fn dictionary_deserialize_dictionary_in_struct() {
     // Example from <https://github.com/ebarnard/rust-plist/issues/54>
@@ -825,7 +910,7 @@ fn dictionary_serialize_xml() {
     inner_dict.insert("ThirdKey".to_owned(), Value::Real(1.234));
     inner_dict.insert(
         "FourthKey".to_owned(),
-        Value::Date(Date::from_rfc3339("1981-05-16T11:32:06Z").unwrap()),
+        Value::Date(Date::from_xml_format("1981-05-16T11:32:06Z").unwrap()),
     );
 
     // Top-level dictionary.
@@ -862,7 +947,9 @@ fn dictionary_serialize_xml() {
 \t\t<key>FirstKey</key>
 \t\t<string>FirstValue</string>
 \t\t<key>SecondKey</key>
-\t\t<data>\n\t\tChQeKA==\n\t\t</data>
+\t\t<data>
+\t\tChQeKA==
+\t\t</data>
 \t\t<key>ThirdKey</key>
 \t\t<real>1.234</real>
 \t\t<key>FourthKey</key>
@@ -881,7 +968,73 @@ fn dictionary_serialize_xml() {
 }
 
 #[test]
+fn empty_array_and_dictionary_serialize_to_xml() {
+    #[derive(Serialize, Default)]
+    struct Empty {
+        vec: Vec<String>,
+        map: BTreeMap<String, String>,
+    }
+
+    // Serialize dictionary as an XML plist.
+    let mut buf = Cursor::new(Vec::new());
+    crate::to_writer_xml(&mut buf, &Empty::default()).unwrap();
+    let buf = buf.into_inner();
+    let xml = std::str::from_utf8(&buf).unwrap();
+
+    let comparison = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
+<dict>
+\t<key>vec</key>
+\t<array/>
+\t<key>map</key>
+\t<dict/>
+</dict>
+</plist>";
+
+    assert_eq!(xml, comparison);
+}
+
+#[test]
 fn serde_yaml_to_value() {
     let value: Value = serde_yaml::from_str("true").unwrap();
     assert_eq!(value, Value::Boolean(true));
+}
+
+#[test]
+fn serialize_to_from_value() {
+    let dog = Animal::Dog(DogOuter {
+        inner: vec![DogInner {
+            a: (),
+            b: 12,
+            c: vec!["a".to_string(), "b".to_string()],
+            d: Some(Uid::new(42)),
+            e: Data::new(vec![1, 2, 3]),
+        }],
+    });
+
+    let dog_value = to_value(&dog).unwrap();
+
+    assert_eq!(
+        dog_value
+            .as_dictionary()
+            .unwrap()
+            .get("Dog")
+            .unwrap()
+            .as_dictionary()
+            .unwrap()
+            .get("inner")
+            .unwrap()
+            .as_array()
+            .unwrap()[0]
+            .as_dictionary()
+            .unwrap()["b"]
+            .as_unsigned_integer()
+            .unwrap(),
+        12
+    );
+
+    let dog_roundtrip: Animal = from_value(&dog_value).unwrap();
+
+    assert_eq!(dog_roundtrip, dog);
 }

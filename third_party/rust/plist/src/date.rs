@@ -13,22 +13,29 @@ pub struct Date {
     inner: SystemTime,
 }
 
+/// An error indicating that a string was not a valid XML plist date.
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct InvalidXmlDate;
+
 pub(crate) struct InfiniteOrNanDate;
 
 impl Date {
     /// The unix timestamp of the plist epoch.
     const PLIST_EPOCH_UNIX_TIMESTAMP: Duration = Duration::from_secs(978_307_200);
 
-    pub(crate) fn from_rfc3339(date: &str) -> Result<Self, ()> {
+    /// Converts an XML plist date string to a `Date`.
+    pub fn from_xml_format(date: &str) -> Result<Self, InvalidXmlDate> {
         let offset: OffsetDateTime = OffsetDateTime::parse(date, &Rfc3339)
-            .map_err(|_| ())?
+            .map_err(|_| InvalidXmlDate)?
             .to_offset(UtcOffset::UTC);
         Ok(Date {
             inner: offset.into(),
         })
     }
 
-    pub(crate) fn to_rfc3339(&self) -> String {
+    /// Converts the `Date` to an XML plist date string.
+    pub fn to_xml_format(&self) -> String {
         let datetime: OffsetDateTime = self.inner.into();
         datetime.format(&Rfc3339).unwrap()
     }
@@ -61,7 +68,7 @@ impl Date {
         Ok(Date { inner })
     }
 
-    pub(crate) fn to_seconds_since_plist_epoch(&self) -> f64 {
+    pub(crate) fn as_seconds_since_plist_epoch(&self) -> f64 {
         // needed until #![feature(duration_float)] is stabilized
         fn as_secs_f64(d: Duration) -> f64 {
             const NANOS_PER_SEC: f64 = 1_000_000_000.00;
@@ -78,7 +85,7 @@ impl Date {
 
 impl fmt::Debug for Date {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.to_rfc3339())
+        write!(f, "{}", self.to_xml_format())
     }
 }
 
@@ -88,11 +95,19 @@ impl From<SystemTime> for Date {
     }
 }
 
-impl Into<SystemTime> for Date {
-    fn into(self) -> SystemTime {
-        self.inner
+impl From<Date> for SystemTime {
+    fn from(val: Date) -> Self {
+        val.inner
     }
 }
+
+impl fmt::Display for InvalidXmlDate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("String was not a valid XML plist date")
+    }
+}
+
+impl std::error::Error for InvalidXmlDate {}
 
 #[cfg(feature = "serde")]
 pub mod serde_impls {
@@ -111,7 +126,7 @@ pub mod serde_impls {
         where
             S: Serializer,
         {
-            let date_str = self.to_rfc3339();
+            let date_str = self.to_xml_format();
             serializer.serialize_newtype_struct(DATE_NEWTYPE_STRUCT_NAME, &date_str)
         }
     }
@@ -153,7 +168,7 @@ pub mod serde_impls {
         where
             E: Error,
         {
-            Date::from_rfc3339(v).map_err(|()| E::invalid_value(Unexpected::Str(v), &self))
+            Date::from_xml_format(v).map_err(|_| E::invalid_value(Unexpected::Str(v), &self))
         }
     }
 
@@ -175,9 +190,9 @@ mod testing {
     fn date_roundtrip() {
         let date_str = "1981-05-16T11:32:06Z";
 
-        let date = Date::from_rfc3339(date_str).expect("should parse");
+        let date = Date::from_xml_format(date_str).expect("should parse");
 
-        let generated_str = date.to_rfc3339();
+        let generated_str = date.to_xml_format();
 
         assert_eq!(date_str, generated_str);
     }
@@ -185,6 +200,6 @@ mod testing {
     #[test]
     fn far_past_date() {
         let date_str = "1920-01-01T00:00:00Z";
-        Date::from_rfc3339(date_str).expect("should parse");
+        Date::from_xml_format(date_str).expect("should parse");
     }
 }
