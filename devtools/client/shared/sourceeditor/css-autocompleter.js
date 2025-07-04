@@ -903,14 +903,8 @@ class CSSCompleter {
     const query = this.selector;
     const completion = [];
 
-    // @backward-compat { version 140 } The shape of the returned value from getSuggestionsForQuery
-    // changed in 140. This variable should be removed and considered as true when 140 hits release
-    const suggestionNewShape =
-      this.walker.traits.getSuggestionsForQueryWithoutCount;
-
     for (const suggestion of suggestions) {
-      let value = suggestion[0];
-      const state = suggestionNewShape ? suggestion[1] : suggestion[2];
+      let [value, state] = suggestion;
 
       switch (this.selectorState) {
         case CSSCompleter.CSS_SELECTOR_STATE_ID:

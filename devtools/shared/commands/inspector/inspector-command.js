@@ -134,13 +134,8 @@ class InspectorCommand {
           state
         );
 
-        // @backward-compat { version 140 } The shape of the returned value from getSuggestionsForQuery
-        // changed in 140. This variable should be removed and considered as true when 140 hits release
-        const suggestionNewShape =
-          walker.traits.getSuggestionsForQueryWithoutCount;
         for (const suggestion of suggestions) {
-          const value = suggestion[0];
-          const type = suggestionNewShape ? suggestion[1] : suggestion[2];
+          const [value, type] = suggestion;
 
           // Only add suggestions to final array if it doesn't exist yet.
           const existing = mergedSuggestions.some(

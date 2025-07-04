@@ -342,11 +342,7 @@ class WalkerActor extends Actor {
         "CSSPrefersColorScheme",
         null
       ),
-      traits: {
-        // @backward-compat { version 140 } The shape of the returned value from getSuggestionsForQuery
-        // changed in 140. This trait can be removed when 140 hits release
-        getSuggestionsForQueryWithoutCount: true,
-      },
+      traits: {},
     };
   }
 
