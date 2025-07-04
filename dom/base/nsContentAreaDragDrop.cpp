@@ -158,47 +158,6 @@ nsresult nsContentAreaDragDropDataProvider::SaveURIToFile(
                           inContentPolicyType, isPrivate);
 }
 
-/*
- * Check if the provided filename extension is valid for the MIME type and
- * return the MIME type's primary extension.
- *
- * @param aExtension           [in]  the extension to check
- * @param aMimeType            [in]  the MIME type to check the extension with
- * @param aIsValidExtension    [out] true if |aExtension| is valid for
- *                                   |aMimeType|
- * @param aPrimaryExtension    [out] the primary extension for the MIME type
- *                                   to potentially be used as a replacement
- *                                   for |aExtension|
- */
-nsresult CheckAndGetExtensionForMime(const nsCString& aExtension,
-                                     const nsCString& aMimeType,
-                                     bool* aIsValidExtension,
-                                     nsACString* aPrimaryExtension) {
-  nsresult rv;
-
-  nsCOMPtr<nsIMIMEService> mimeService = do_GetService("@mozilla.org/mime;1");
-  if (NS_WARN_IF(!mimeService)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsIMIMEInfo> mimeInfo;
-  rv = mimeService->GetFromTypeAndExtension(aMimeType, ""_ns,
-                                            getter_AddRefs(mimeInfo));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  mimeInfo->GetPrimaryExtension(*aPrimaryExtension);
-
-  if (aExtension.IsEmpty()) {
-    *aIsValidExtension = false;
-    return NS_OK;
-  }
-
-  rv = mimeInfo->ExtensionExists(aExtension, aIsValidExtension);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
 // This is our nsIFlavorDataProvider callback. There are several
 // assumptions here that make this work:
 //
