@@ -1399,7 +1399,7 @@ class gfxFontGroup final : public gfxTextRunFactory {
 
   bool mResolvedFonts = false;  // Whether the mFonts array has been set up.
 
-  FontPresentation mEmojiPresentation = FontPresentation::Any;
+  StyleFontVariantEmoji mFontVariantEmoji = StyleFontVariantEmoji::Normal;
 
   // Generic font family used to select among font prefs during fallback.
   mozilla::StyleGenericFontFamily mFallbackGeneric =
