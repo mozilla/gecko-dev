@@ -2,6 +2,9 @@
 // Various structs/fields that we are deriving `Arbitrary` for aren't actually
 // used except to exercise the derive.
 #![allow(dead_code)]
+// Various assert_eq! are used to compare result of bool amongst other data types
+// In this case, using assert! is less explicit and readable
+#![allow(clippy::bool_assert_comparison)]
 
 use arbitrary::*;
 
@@ -116,6 +119,30 @@ fn derive_enum() {
     assert_eq!((4, Some(17)), <MyEnum as Arbitrary>::size_hint(0));
 }
 
+// This should result in a compiler-error:
+// #[derive(Arbitrary, Debug)]
+// enum Never {
+//     #[arbitrary(skip)]
+//     Nope,
+// }
+
+#[derive(Arbitrary, Debug)]
+enum SkipVariant {
+    Always,
+    #[arbitrary(skip)]
+    Never,
+}
+
+#[test]
+fn test_skip_variant() {
+    (0..=u8::MAX).for_each(|byte| {
+        let buffer = [byte];
+        let unstructured = Unstructured::new(&buffer);
+        let skip_variant = SkipVariant::arbitrary_take_rest(unstructured).unwrap();
+        assert!(!matches!(skip_variant, SkipVariant::Never));
+    })
+}
+
 #[derive(Arbitrary, Debug)]
 enum RecursiveTree {
     Leaf,
@@ -125,13 +152,86 @@ enum RecursiveTree {
     },
 }
 
+#[derive(Arbitrary, Debug)]
+struct WideRecursiveStruct {
+    a: Option<Box<WideRecursiveStruct>>,
+    b: Option<Box<WideRecursiveStruct>>,
+    c: Option<Box<WideRecursiveStruct>>,
+    d: Option<Box<WideRecursiveStruct>>,
+    e: Option<Box<WideRecursiveStruct>>,
+    f: Option<Box<WideRecursiveStruct>>,
+    g: Option<Box<WideRecursiveStruct>>,
+    h: Option<Box<WideRecursiveStruct>>,
+    i: Option<Box<WideRecursiveStruct>>,
+    k: Option<Box<WideRecursiveStruct>>,
+}
+
+#[derive(Arbitrary, Debug)]
+enum WideRecursiveEnum {
+    None,
+    A(Box<WideRecursiveStruct>),
+    B(Box<WideRecursiveStruct>),
+    C(Box<WideRecursiveStruct>),
+    D(Box<WideRecursiveStruct>),
+    E(Box<WideRecursiveStruct>),
+    F(Box<WideRecursiveStruct>),
+    G(Box<WideRecursiveStruct>),
+    H(Box<WideRecursiveStruct>),
+    I(Box<WideRecursiveStruct>),
+    K(Box<WideRecursiveStruct>),
+}
+
+#[derive(Arbitrary, Debug)]
+enum WideRecursiveMixedEnum {
+    None,
+    A(Box<WideRecursiveMixedEnum>),
+    B(Box<WideRecursiveMixedEnum>),
+    C(Box<WideRecursiveMixedEnum>),
+    D(Box<WideRecursiveMixedEnum>),
+    E(Box<WideRecursiveMixedEnum>),
+    F(Box<WideRecursiveMixedStruct>),
+    G(Box<WideRecursiveMixedStruct>),
+    H(Box<WideRecursiveMixedStruct>),
+    I(Box<WideRecursiveMixedStruct>),
+    K(Box<WideRecursiveMixedStruct>),
+}
+
+#[derive(Arbitrary, Debug)]
+struct WideRecursiveMixedStruct {
+    a: Option<Box<WideRecursiveMixedEnum>>,
+    b: Option<Box<WideRecursiveMixedEnum>>,
+    c: Option<Box<WideRecursiveMixedEnum>>,
+    d: Option<Box<WideRecursiveMixedEnum>>,
+    e: Option<Box<WideRecursiveMixedEnum>>,
+    f: Option<Box<WideRecursiveMixedStruct>>,
+    g: Option<Box<WideRecursiveMixedStruct>>,
+    h: Option<Box<WideRecursiveMixedStruct>>,
+    i: Option<Box<WideRecursiveMixedStruct>>,
+    k: Option<Box<WideRecursiveMixedStruct>>,
+}
+
 #[test]
 fn recursive() {
     let raw = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
     let _rec: RecursiveTree = arbitrary_from(&raw);
+    let _rec: WideRecursiveStruct = arbitrary_from(&raw);
+    let _rec: WideRecursiveEnum = arbitrary_from(&raw);
+    let _rec: WideRecursiveMixedStruct = arbitrary_from(&raw);
+    let _rec: WideRecursiveMixedEnum = arbitrary_from(&raw);
+
+    assert_eq!((0, None), <WideRecursiveStruct as Arbitrary>::size_hint(0));
+    assert_eq!((0, None), <WideRecursiveEnum as Arbitrary>::size_hint(0));
+    assert_eq!(
+        (0, None),
+        <WideRecursiveMixedStruct as Arbitrary>::size_hint(0)
+    );
+    assert_eq!(
+        (0, None),
+        <WideRecursiveMixedEnum as Arbitrary>::size_hint(0)
+    );
 
     let (lower, upper) = <RecursiveTree as Arbitrary>::size_hint(0);
-    assert_eq!(lower, 4, "need a u32 for the discriminant at minimum");
+    assert_eq!(lower, 0, "Cannot compute size hint of recursive structure");
     assert!(
         upper.is_none(),
         "potentially infinitely recursive, so no upper bound"
@@ -275,4 +375,21 @@ fn test_field_attributes() {
 
     // 17 is the 3rd byte used by arbitrary
     assert_eq!(parcel.price, 17);
+}
+
+#[test]
+fn derive_structs_named_same_as_core() {
+    #[derive(Debug, Arbitrary)]
+    struct Option {
+        f: core::option::Option<u32>,
+    }
+
+    let _ = Option::arbitrary(&mut Unstructured::new(&[]));
+
+    #[derive(Debug, Default, Arbitrary)]
+    struct Default {
+        f: u32,
+    }
+
+    let _ = Default::arbitrary(&mut Unstructured::new(&[]));
 }

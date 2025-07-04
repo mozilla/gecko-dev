@@ -30,23 +30,9 @@ These are our requirements for PRs, in addition to the usual functionality and r
   - `cargo fmt --check --all` must pass.
 - If the above checks force you to add a new `#[allow]` attribute, please place a comment on the same line or just above it, 
   explaining what the exception applies to and why it's needed.
-- Commit messages and the PR title must conform to [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) and start 
+- The PR title must conform to [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) and start 
   with one of the types specified by the [Angular convention](https://github.com/angular/angular/blob/22b96b9/CONTRIBUTING.md#type).
-- All commits must be signed and display a "Verified" badge; see 
-  https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification.
-  If any of your commits don't have a "Verified" badge, here's how to fix this:
-  1. Generate a GPG key if you don't already have one, by following
-     https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key.
-  2. If you use GitHub's email privacy feature, associate the key with your users.noreply.github.com email address by following
-     https://docs.github.com/en/authentication/managing-commit-signature-verification/associating-an-email-with-your-gpg-key.
-  3. Configure Git to use your signing key by following
-     https://docs.github.com/en/authentication/managing-commit-signature-verification/telling-git-about-your-signing-key
-  4. Add the key to your GitHub account by following
-     https://docs.github.com/en/authentication/managing-commit-signature-verification/adding-a-gpg-key-to-your-github-account
-  5. Enable commit signing by following
-     https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits
-  6. Squash your PR into one commit or run `git commit --amend --no-edit`, because enabling commit signing isn't retroactive
-     even for unpushed commits.
+  This is also recommended for commit messages; but it's not required, because they'll be replaced when the PR is squash-merged.
 
 Thanks in advance for submitting a bug fix or proposed feature that meets these requirements!
 -->

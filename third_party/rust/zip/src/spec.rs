@@ -1,12 +1,12 @@
 #![macro_use]
 
+use crate::read::magic_finder::{Backwards, Forward, MagicFinder, OptimisticMagicFinder};
+use crate::read::ArchiveOffset;
 use crate::result::{ZipError, ZipResult};
-use memchr::memmem::FinderRev;
-use std::borrow::Cow;
+use core::mem;
 use std::io;
 use std::io::prelude::*;
-use std::mem;
-use std::path::{Component, Path, MAIN_SEPARATOR};
+use std::slice;
 
 /// "Magic" header values used in the zip spec to locate metadata records.
 ///
@@ -22,14 +22,9 @@ impl Magic {
     }
 
     #[inline(always)]
+    #[allow(dead_code)]
     pub const fn from_le_bytes(bytes: [u8; 4]) -> Self {
         Self(u32::from_le_bytes(bytes))
-    }
-
-    #[inline(always)]
-    pub fn from_first_le_bytes(data: &[u8]) -> Self {
-        let first_bytes: [u8; 4] = data[..mem::size_of::<Self>()].try_into().unwrap();
-        Self::from_le_bytes(first_bytes)
     }
 
     #[inline(always)]
@@ -93,60 +88,111 @@ impl ExtraFieldMagic {
     pub const ZIP64_EXTRA_FIELD_TAG: Self = Self::literal(0x0001);
 }
 
-/// This should be equal to `0xFFFFFFFF`.
+/// The file size at which a ZIP64 record becomes necessary.
+///
+/// If a file larger than this threshold attempts to be written, compressed or uncompressed, and
+/// [`FileOptions::large_file()`](crate::write::FileOptions) was not true, then [`ZipWriter`] will
+/// raise an [`io::Error`] with [`io::ErrorKind::Other`].
+///
+/// If the zip file itself is larger than this value, then a zip64 central directory record will be
+/// written to the end of the file.
+///
+///```
+/// # fn main() -> Result<(), zip::result::ZipError> {
+/// # #[cfg(target_pointer_width = "64")]
+/// # {
+/// use std::io::{self, Cursor, prelude::*};
+/// use std::error::Error;
+/// use zip::{ZipWriter, write::SimpleFileOptions};
+///
+/// let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
+/// // Writing an extremely large file for this test is faster without compression.
+/// let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored);
+///
+/// let big_len: usize = (zip::ZIP64_BYTES_THR as usize) + 1;
+/// let big_buf = vec![0u8; big_len];
+/// zip.start_file("zero.dat", options)?;
+/// // This is too big!
+/// let res = zip.write_all(&big_buf[..]).err().unwrap();
+/// assert_eq!(res.kind(), io::ErrorKind::Other);
+/// let description = format!("{}", &res);
+/// assert_eq!(description, "Large file option has not been set");
+/// // Attempting to write anything further to the same zip will still succeed, but the previous
+/// // failing entry has been removed.
+/// zip.start_file("one.dat", options)?;
+/// let zip = zip.finish_into_readable()?;
+/// let names: Vec<_> = zip.file_names().collect();
+/// assert_eq!(&names, &["one.dat"]);
+///
+/// // Create a new zip output.
+/// let mut zip = ZipWriter::new(Cursor::new(Vec::new()));
+/// // This time, create a zip64 record for the file.
+/// let options = options.large_file(true);
+/// zip.start_file("zero.dat", options)?;
+/// // This succeeds because we specified that it could be a large file.
+/// assert!(zip.write_all(&big_buf[..]).is_ok());
+/// # }
+/// # Ok(())
+/// # }
+///```
 pub const ZIP64_BYTES_THR: u64 = u32::MAX as u64;
+/// The number of entries within a single zip necessary to allocate a zip64 central
+/// directory record.
+///
+/// If more than this number of entries is written to a [`ZipWriter`], then [`ZipWriter::finish()`]
+/// will write out extra zip64 data to the end of the zip file.
 pub const ZIP64_ENTRY_THR: usize = u16::MAX as usize;
 
-pub(crate) trait FixedSizeBlock: Sized + Copy {
+/// # Safety
+///
+/// - No padding/uninit bytes
+/// - All bytes patterns must be valid
+/// - No cell, pointers
+///
+/// See `bytemuck::Pod` for more details.
+pub(crate) unsafe trait Pod: Copy + 'static {
+    #[inline]
+    fn zeroed() -> Self {
+        unsafe { mem::zeroed() }
+    }
+
+    #[inline]
+    fn as_bytes(&self) -> &[u8] {
+        unsafe { slice::from_raw_parts(self as *const Self as *const u8, mem::size_of::<Self>()) }
+    }
+
+    #[inline]
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        unsafe { slice::from_raw_parts_mut(self as *mut Self as *mut u8, mem::size_of::<Self>()) }
+    }
+}
+
+pub(crate) trait FixedSizeBlock: Pod {
     const MAGIC: Magic;
 
     fn magic(self) -> Magic;
 
     const WRONG_MAGIC_ERROR: ZipError;
 
-    /* TODO: use smallvec? */
-    fn interpret(bytes: &[u8]) -> ZipResult<Self> {
-        if bytes.len() != mem::size_of::<Self>() {
-            return Err(ZipError::InvalidArchive("Block is wrong size"));
-        }
-        let block_ptr: *const Self = bytes.as_ptr().cast();
-        let block = unsafe { block_ptr.read() }.from_le();
+    #[allow(clippy::wrong_self_convention)]
+    fn from_le(self) -> Self;
+
+    fn parse<R: Read>(reader: &mut R) -> ZipResult<Self> {
+        let mut block = Self::zeroed();
+        reader.read_exact(block.as_bytes_mut())?;
+        let block = Self::from_le(block);
+
         if block.magic() != Self::MAGIC {
             return Err(Self::WRONG_MAGIC_ERROR);
         }
         Ok(block)
     }
 
-    #[allow(clippy::wrong_self_convention)]
-    fn from_le(self) -> Self;
-
-    fn parse<T: Read>(reader: &mut T) -> ZipResult<Self> {
-        let mut block = vec![0u8; mem::size_of::<Self>()].into_boxed_slice();
-        reader.read_exact(&mut block)?;
-        Self::interpret(&block)
-    }
-
-    fn encode(self) -> Box<[u8]> {
-        self.to_le().serialize()
-    }
-
     fn to_le(self) -> Self;
 
-    /* TODO: use Box<[u8; mem::size_of::<Self>()]> when generic_const_exprs are stabilized! */
-    fn serialize(self) -> Box<[u8]> {
-        /* TODO: use Box::new_zeroed() when stabilized! */
-        /* TODO: also consider using smallvec! */
-        let mut out_block = vec![0u8; mem::size_of::<Self>()].into_boxed_slice();
-        let out_ptr: *mut Self = out_block.as_mut_ptr().cast();
-        unsafe {
-            out_ptr.write(self);
-        }
-        out_block
-    }
-
     fn write<T: Write>(self, writer: &mut T) -> ZipResult<()> {
-        let block = self.encode();
-        writer.write_all(&block)?;
+        let block = self.to_le();
+        writer.write_all(block.as_bytes())?;
         Ok(())
     }
 }
@@ -198,7 +244,7 @@ macro_rules! to_and_from_le {
 }
 
 #[derive(Copy, Clone, Debug)]
-#[repr(packed)]
+#[repr(packed, C)]
 pub(crate) struct Zip32CDEBlock {
     magic: Magic,
     pub disk_number: u16,
@@ -209,6 +255,8 @@ pub(crate) struct Zip32CDEBlock {
     pub central_directory_offset: u32,
     pub zip_file_comment_length: u16,
 }
+
+unsafe impl Pod for Zip32CDEBlock {}
 
 impl FixedSizeBlock for Zip32CDEBlock {
     const MAGIC: Magic = Magic::CENTRAL_DIRECTORY_END_SIGNATURE;
@@ -245,7 +293,7 @@ pub(crate) struct Zip32CentralDirectoryEnd {
 }
 
 impl Zip32CentralDirectoryEnd {
-    fn block_and_comment(self) -> ZipResult<(Zip32CDEBlock, Box<[u8]>)> {
+    fn into_block_and_comment(self) -> (Zip32CDEBlock, Box<[u8]>) {
         let Self {
             disk_number,
             disk_with_central_directory,
@@ -263,12 +311,10 @@ impl Zip32CentralDirectoryEnd {
             number_of_files,
             central_directory_size,
             central_directory_offset,
-            zip_file_comment_length: zip_file_comment
-                .len()
-                .try_into()
-                .map_err(|_| ZipError::InvalidArchive("File comment must be less than 64 KiB"))?,
+            zip_file_comment_length: zip_file_comment.len() as u16,
         };
-        Ok((block, zip_file_comment))
+
+        (block, zip_file_comment)
     }
 
     pub fn parse<T: Read>(reader: &mut T) -> ZipResult<Zip32CentralDirectoryEnd> {
@@ -285,7 +331,15 @@ impl Zip32CentralDirectoryEnd {
         } = Zip32CDEBlock::parse(reader)?;
 
         let mut zip_file_comment = vec![0u8; zip_file_comment_length as usize].into_boxed_slice();
-        reader.read_exact(&mut zip_file_comment)?;
+        if let Err(e) = reader.read_exact(&mut zip_file_comment) {
+            if e.kind() == io::ErrorKind::UnexpectedEof {
+                return Err(ZipError::InvalidArchive(
+                    "EOCD comment exceeds file boundary",
+                ));
+            }
+
+            return Err(e.into());
+        }
 
         Ok(Zip32CentralDirectoryEnd {
             disk_number,
@@ -298,97 +352,35 @@ impl Zip32CentralDirectoryEnd {
         })
     }
 
-    pub fn find_and_parse<T: Read + Seek>(
-        reader: &mut T,
-    ) -> ZipResult<(Zip32CentralDirectoryEnd, u64)> {
-        let file_length = reader.seek(io::SeekFrom::End(0))?;
-
-        if file_length < mem::size_of::<Zip32CDEBlock>() as u64 {
-            return Err(ZipError::InvalidArchive("Invalid zip header"));
-        }
-
-        let search_lower_bound = 0;
-
-        const END_WINDOW_SIZE: usize = 512;
-        /* TODO: use static_assertions!() */
-        debug_assert!(END_WINDOW_SIZE > mem::size_of::<Magic>());
-
-        const SIG_BYTES: [u8; mem::size_of::<Magic>()] =
-            Magic::CENTRAL_DIRECTORY_END_SIGNATURE.to_le_bytes();
-        let finder = FinderRev::new(&SIG_BYTES);
-
-        let mut window_start: u64 = file_length.saturating_sub(END_WINDOW_SIZE as u64);
-        let mut window = [0u8; END_WINDOW_SIZE];
-        while window_start >= search_lower_bound {
-            /* Go to the start of the window in the file. */
-            reader.seek(io::SeekFrom::Start(window_start))?;
-
-            /* Identify how many bytes to read (this may be less than the window size for files
-             * smaller than END_WINDOW_SIZE). */
-            let end = (window_start + END_WINDOW_SIZE as u64).min(file_length);
-            let cur_len = (end - window_start) as usize;
-            debug_assert!(cur_len > 0);
-            debug_assert!(cur_len <= END_WINDOW_SIZE);
-            let cur_window: &mut [u8] = &mut window[..cur_len];
-            /* Read the window into the bytes! */
-            reader.read_exact(cur_window)?;
-
-            /* Find instances of the magic signature. */
-            for offset in finder.rfind_iter(cur_window) {
-                let cde_start_pos = window_start + offset as u64;
-                reader.seek(io::SeekFrom::Start(cde_start_pos))?;
-                /* Drop any headers that don't parse. */
-                if let Ok(cde) = Self::parse(reader) {
-                    return Ok((cde, cde_start_pos));
-                }
-            }
-
-            /* We always want to make sure we go allllll the way back to the start of the file if
-             * we can't find it elsewhere. However, our `while` condition doesn't check that. So we
-             * avoid infinite looping by checking at the end of the loop. */
-            if window_start == search_lower_bound {
-                break;
-            }
-            /* Shift the window by END_WINDOW_SIZE bytes, but make sure to cover matches that
-             * overlap our nice neat window boundaries! */
-            window_start = (window_start
-                /* NB: To catch matches across window boundaries, we need to make our blocks overlap
-                 * by the width of the pattern to match. */
-                + mem::size_of::<Magic>() as u64)
-                /* This should never happen, but make sure we don't go past the end of the file. */
-                .min(file_length);
-            window_start = window_start
-                .saturating_sub(
-                    /* Shift the window upon each iteration so we search END_WINDOW_SIZE bytes at
-                     * once (unless limited by file_length). */
-                    END_WINDOW_SIZE as u64,
-                )
-                /* This will never go below the value of `search_lower_bound`, so we have a special
-                 * `if window_start == search_lower_bound` check above. */
-                .max(search_lower_bound);
-        }
-
-        Err(ZipError::InvalidArchive(
-            "Could not find central directory end",
-        ))
-    }
-
     pub fn write<T: Write>(self, writer: &mut T) -> ZipResult<()> {
-        let (block, comment) = self.block_and_comment()?;
+        let (block, comment) = self.into_block_and_comment();
+
+        if comment.len() > u16::MAX as usize {
+            return Err(ZipError::InvalidArchive(
+                "EOCD comment length exceeds u16::MAX",
+            ));
+        }
+
         block.write(writer)?;
         writer.write_all(&comment)?;
         Ok(())
     }
+
+    pub fn may_be_zip64(&self) -> bool {
+        self.number_of_files == u16::MAX || self.central_directory_offset == u32::MAX
+    }
 }
 
 #[derive(Copy, Clone)]
-#[repr(packed)]
+#[repr(packed, C)]
 pub(crate) struct Zip64CDELocatorBlock {
     magic: Magic,
     pub disk_with_central_directory: u32,
     pub end_of_central_directory_offset: u64,
     pub number_of_disks: u32,
 }
+
+unsafe impl Pod for Zip64CDELocatorBlock {}
 
 impl FixedSizeBlock for Zip64CDELocatorBlock {
     const MAGIC: Magic = Magic::ZIP64_CENTRAL_DIRECTORY_END_LOCATOR_SIGNATURE;
@@ -452,7 +444,7 @@ impl Zip64CentralDirectoryEndLocator {
 }
 
 #[derive(Copy, Clone)]
-#[repr(packed)]
+#[repr(packed, C)]
 pub(crate) struct Zip64CDEBlock {
     magic: Magic,
     pub record_size: u64,
@@ -465,6 +457,8 @@ pub(crate) struct Zip64CDEBlock {
     pub central_directory_size: u64,
     pub central_directory_offset: u64,
 }
+
+unsafe impl Pod for Zip64CDEBlock {}
 
 impl FixedSizeBlock for Zip64CDEBlock {
     const MAGIC: Magic = Magic::ZIP64_CENTRAL_DIRECTORY_END_SIGNATURE;
@@ -491,6 +485,7 @@ impl FixedSizeBlock for Zip64CDEBlock {
 }
 
 pub(crate) struct Zip64CentralDirectoryEnd {
+    pub record_size: u64,
     pub version_made_by: u16,
     pub version_needed_to_extract: u16,
     pub disk_number: u32,
@@ -499,13 +494,13 @@ pub(crate) struct Zip64CentralDirectoryEnd {
     pub number_of_files: u64,
     pub central_directory_size: u64,
     pub central_directory_offset: u64,
-    //pub extensible_data_sector: Vec<u8>, <-- We don't do anything with this at the moment.
+    pub extensible_data_sector: Box<[u8]>,
 }
 
 impl Zip64CentralDirectoryEnd {
-    pub fn parse<T: Read>(reader: &mut T) -> ZipResult<Zip64CentralDirectoryEnd> {
+    pub fn parse<T: Read>(reader: &mut T, max_size: u64) -> ZipResult<Zip64CentralDirectoryEnd> {
         let Zip64CDEBlock {
-            // record_size,
+            record_size,
             version_made_by,
             version_needed_to_extract,
             disk_number,
@@ -516,7 +511,20 @@ impl Zip64CentralDirectoryEnd {
             central_directory_offset,
             ..
         } = Zip64CDEBlock::parse(reader)?;
+
+        if record_size < 44 {
+            return Err(ZipError::InvalidArchive("Low EOCD64 record size"));
+        } else if record_size.saturating_add(12) > max_size {
+            return Err(ZipError::InvalidArchive(
+                "EOCD64 extends beyond EOCD64 locator",
+            ));
+        }
+
+        let mut zip_file_comment = vec![0u8; record_size as usize - 44].into_boxed_slice();
+        reader.read_exact(&mut zip_file_comment)?;
+
         Ok(Self {
+            record_size,
             version_made_by,
             version_needed_to_extract,
             disk_number,
@@ -525,94 +533,13 @@ impl Zip64CentralDirectoryEnd {
             number_of_files,
             central_directory_size,
             central_directory_offset,
+            extensible_data_sector: zip_file_comment,
         })
     }
 
-    pub fn find_and_parse<T: Read + Seek>(
-        reader: &mut T,
-        search_lower_bound: u64,
-        search_upper_bound: u64,
-    ) -> ZipResult<Vec<(Zip64CentralDirectoryEnd, u64)>> {
-        let mut results = Vec::new();
-
-        const END_WINDOW_SIZE: usize = 2048;
-        /* TODO: use static_assertions!() */
-        debug_assert!(END_WINDOW_SIZE > mem::size_of::<Magic>());
-
-        const SIG_BYTES: [u8; mem::size_of::<Magic>()] =
-            Magic::ZIP64_CENTRAL_DIRECTORY_END_SIGNATURE.to_le_bytes();
-        let finder = FinderRev::new(&SIG_BYTES);
-
-        let mut window_start: u64 = search_upper_bound
-            .saturating_sub(END_WINDOW_SIZE as u64)
-            .max(search_lower_bound);
-        let mut window = [0u8; END_WINDOW_SIZE];
-        while window_start >= search_lower_bound {
-            reader.seek(io::SeekFrom::Start(window_start))?;
-
-            /* Identify how many bytes to read (this may be less than the window size for files
-             * smaller than END_WINDOW_SIZE). */
-            let end = (window_start + END_WINDOW_SIZE as u64).min(search_upper_bound);
-
-            debug_assert!(end >= window_start);
-            let cur_len = (end - window_start) as usize;
-            if cur_len == 0 {
-                break;
-            }
-            debug_assert!(cur_len <= END_WINDOW_SIZE);
-            let cur_window: &mut [u8] = &mut window[..cur_len];
-            /* Read the window into the bytes! */
-            reader.read_exact(cur_window)?;
-
-            /* Find instances of the magic signature. */
-            for offset in finder.rfind_iter(cur_window) {
-                let cde_start_pos = window_start + offset as u64;
-                reader.seek(io::SeekFrom::Start(cde_start_pos))?;
-
-                debug_assert!(cde_start_pos >= search_lower_bound);
-                let archive_offset = cde_start_pos - search_lower_bound;
-                let cde = Self::parse(reader)?;
-
-                results.push((cde, archive_offset));
-            }
-
-            /* We always want to make sure we go allllll the way back to the start of the file if
-             * we can't find it elsewhere. However, our `while` condition doesn't check that. So we
-             * avoid infinite looping by checking at the end of the loop. */
-            if window_start == search_lower_bound {
-                break;
-            }
-            /* Shift the window by END_WINDOW_SIZE bytes, but make sure to cover matches that
-             * overlap our nice neat window boundaries! */
-            window_start = (window_start
-                /* NB: To catch matches across window boundaries, we need to make our blocks overlap
-                 * by the width of the pattern to match. */
-                + mem::size_of::<Magic>() as u64)
-                /* This may never happen, but make sure we don't go past the end of the specified
-                 * range. */
-                .min(search_upper_bound);
-            window_start = window_start
-                .saturating_sub(
-                    /* Shift the window upon each iteration so we search END_WINDOW_SIZE bytes at
-                     * once (unless limited by search_upper_bound). */
-                    END_WINDOW_SIZE as u64,
-                )
-                /* This will never go below the value of `search_lower_bound`, so we have a special
-                 * `if window_start == search_lower_bound` check above. */
-                .max(search_lower_bound);
-        }
-
-        if results.is_empty() {
-            Err(ZipError::InvalidArchive(
-                "Could not find ZIP64 central directory end",
-            ))
-        } else {
-            Ok(results)
-        }
-    }
-
-    pub fn block(self) -> Zip64CDEBlock {
+    pub fn into_block_and_comment(self) -> (Zip64CDEBlock, Box<[u8]>) {
         let Self {
+            record_size,
             version_made_by,
             version_needed_to_extract,
             disk_number,
@@ -621,79 +548,282 @@ impl Zip64CentralDirectoryEnd {
             number_of_files,
             central_directory_size,
             central_directory_offset,
+            extensible_data_sector,
         } = self;
-        Zip64CDEBlock {
-            magic: Zip64CDEBlock::MAGIC,
-            /* currently unused */
-            record_size: 44,
-            version_made_by,
-            version_needed_to_extract,
-            disk_number,
-            disk_with_central_directory,
-            number_of_files_on_this_disk,
-            number_of_files,
-            central_directory_size,
-            central_directory_offset,
-        }
+
+        (
+            Zip64CDEBlock {
+                magic: Zip64CDEBlock::MAGIC,
+                record_size,
+                version_made_by,
+                version_needed_to_extract,
+                disk_number,
+                disk_with_central_directory,
+                number_of_files_on_this_disk,
+                number_of_files,
+                central_directory_size,
+                central_directory_offset,
+            },
+            extensible_data_sector,
+        )
     }
 
     pub fn write<T: Write>(self, writer: &mut T) -> ZipResult<()> {
-        self.block().write(writer)
+        let (block, comment) = self.into_block_and_comment();
+        block.write(writer)?;
+        writer.write_all(&comment)?;
+        Ok(())
     }
+}
+
+pub(crate) struct DataAndPosition<T> {
+    pub data: T,
+    #[allow(dead_code)]
+    pub position: u64,
+}
+
+impl<T> From<(T, u64)> for DataAndPosition<T> {
+    fn from(value: (T, u64)) -> Self {
+        Self {
+            data: value.0,
+            position: value.1,
+        }
+    }
+}
+
+pub(crate) struct CentralDirectoryEndInfo {
+    pub eocd: DataAndPosition<Zip32CentralDirectoryEnd>,
+    pub eocd64: Option<DataAndPosition<Zip64CentralDirectoryEnd>>,
+
+    pub archive_offset: u64,
+}
+
+/// Finds the EOCD and possibly the EOCD64 block and determines the archive offset.
+///
+/// In the best case scenario (no prepended junk), this function will not backtrack
+/// in the reader.
+pub(crate) fn find_central_directory<R: Read + Seek>(
+    reader: &mut R,
+    archive_offset: ArchiveOffset,
+    end_exclusive: u64,
+    file_len: u64,
+) -> ZipResult<CentralDirectoryEndInfo> {
+    const EOCD_SIG_BYTES: [u8; mem::size_of::<Magic>()] =
+        Magic::CENTRAL_DIRECTORY_END_SIGNATURE.to_le_bytes();
+
+    const EOCD64_SIG_BYTES: [u8; mem::size_of::<Magic>()] =
+        Magic::ZIP64_CENTRAL_DIRECTORY_END_SIGNATURE.to_le_bytes();
+
+    const CDFH_SIG_BYTES: [u8; mem::size_of::<Magic>()] =
+        Magic::CENTRAL_DIRECTORY_HEADER_SIGNATURE.to_le_bytes();
+
+    // Instantiate the mandatory finder
+    let mut eocd_finder = MagicFinder::<Backwards<'static>>::new(&EOCD_SIG_BYTES, 0, end_exclusive);
+    let mut subfinder: Option<OptimisticMagicFinder<Forward<'static>>> = None;
+
+    // Keep the last errors for cases of improper EOCD instances.
+    let mut parsing_error = None;
+
+    while let Some(eocd_offset) = eocd_finder.next(reader)? {
+        // Attempt to parse the EOCD block
+        let eocd = match Zip32CentralDirectoryEnd::parse(reader) {
+            Ok(eocd) => eocd,
+            Err(e) => {
+                if parsing_error.is_none() {
+                    parsing_error = Some(e);
+                }
+                continue;
+            }
+        };
+
+        // ! Relaxed (inequality) due to garbage-after-comment Python files
+        // Consistency check: the EOCD comment must terminate before the end of file
+        if eocd.zip_file_comment.len() as u64 + eocd_offset + 22 > file_len {
+            parsing_error = Some(ZipError::InvalidArchive("Invalid EOCD comment length"));
+            continue;
+        }
+
+        let zip64_metadata = if eocd.may_be_zip64() {
+            fn try_read_eocd64_locator(
+                reader: &mut (impl Read + Seek),
+                eocd_offset: u64,
+            ) -> ZipResult<(u64, Zip64CentralDirectoryEndLocator)> {
+                if eocd_offset < mem::size_of::<Zip64CDELocatorBlock>() as u64 {
+                    return Err(ZipError::InvalidArchive(
+                        "EOCD64 Locator does not fit in file",
+                    ));
+                }
+
+                let locator64_offset = eocd_offset - mem::size_of::<Zip64CDELocatorBlock>() as u64;
+
+                reader.seek(io::SeekFrom::Start(locator64_offset))?;
+                Ok((
+                    locator64_offset,
+                    Zip64CentralDirectoryEndLocator::parse(reader)?,
+                ))
+            }
+
+            try_read_eocd64_locator(reader, eocd_offset).ok()
+        } else {
+            None
+        };
+
+        let Some((locator64_offset, locator64)) = zip64_metadata else {
+            // Branch out for zip32
+            let relative_cd_offset = eocd.central_directory_offset as u64;
+
+            // If the archive is empty, there is nothing more to be checked, the archive is correct.
+            if eocd.number_of_files == 0 {
+                return Ok(CentralDirectoryEndInfo {
+                    eocd: (eocd, eocd_offset).into(),
+                    eocd64: None,
+                    archive_offset: eocd_offset.saturating_sub(relative_cd_offset),
+                });
+            }
+
+            // Consistency check: the CD relative offset cannot be after the EOCD
+            if relative_cd_offset >= eocd_offset {
+                parsing_error = Some(ZipError::InvalidArchive("Invalid CDFH offset in EOCD"));
+                continue;
+            }
+
+            // Attempt to find the first CDFH
+            let subfinder = subfinder
+                .get_or_insert_with(OptimisticMagicFinder::new_empty)
+                .repurpose(
+                    &CDFH_SIG_BYTES,
+                    // The CDFH must be before the EOCD and after the relative offset,
+                    // because prepended junk can only move it forward.
+                    (relative_cd_offset, eocd_offset),
+                    match archive_offset {
+                        ArchiveOffset::Known(n) => {
+                            Some((relative_cd_offset.saturating_add(n).min(eocd_offset), true))
+                        }
+                        _ => Some((relative_cd_offset, false)),
+                    },
+                );
+
+            // Consistency check: find the first CDFH
+            if let Some(cd_offset) = subfinder.next(reader)? {
+                // The first CDFH will define the archive offset
+                let archive_offset = cd_offset - relative_cd_offset;
+
+                return Ok(CentralDirectoryEndInfo {
+                    eocd: (eocd, eocd_offset).into(),
+                    eocd64: None,
+                    archive_offset,
+                });
+            }
+
+            parsing_error = Some(ZipError::InvalidArchive("No CDFH found"));
+            continue;
+        };
+
+        // Consistency check: the EOCD64 offset must be before EOCD64 Locator offset */
+        if locator64.end_of_central_directory_offset >= locator64_offset {
+            parsing_error = Some(ZipError::InvalidArchive("Invalid EOCD64 Locator CD offset"));
+            continue;
+        }
+
+        if locator64.number_of_disks > 1 {
+            parsing_error = Some(ZipError::InvalidArchive(
+                "Multi-disk ZIP files are not supported",
+            ));
+            continue;
+        }
+
+        // This was hidden inside a function to collect errors in a single place.
+        // Once try blocks are stabilized, this can go away.
+        fn try_read_eocd64<R: Read + Seek>(
+            reader: &mut R,
+            locator64: &Zip64CentralDirectoryEndLocator,
+            expected_length: u64,
+        ) -> ZipResult<Zip64CentralDirectoryEnd> {
+            let z64 = Zip64CentralDirectoryEnd::parse(reader, expected_length)?;
+
+            // Consistency check: EOCD64 locator should agree with the EOCD64
+            if z64.disk_with_central_directory != locator64.disk_with_central_directory {
+                return Err(ZipError::InvalidArchive(
+                    "Invalid EOCD64: inconsistency with Locator data",
+                ));
+            }
+
+            // Consistency check: the EOCD64 must have the expected length
+            if z64.record_size + 12 != expected_length {
+                return Err(ZipError::InvalidArchive(
+                    "Invalid EOCD64: inconsistent length",
+                ));
+            }
+
+            Ok(z64)
+        }
+
+        // Attempt to find the EOCD64 with an initial guess
+        let subfinder = subfinder
+            .get_or_insert_with(OptimisticMagicFinder::new_empty)
+            .repurpose(
+                &EOCD64_SIG_BYTES,
+                (locator64.end_of_central_directory_offset, locator64_offset),
+                match archive_offset {
+                    ArchiveOffset::Known(n) => Some((
+                        locator64
+                            .end_of_central_directory_offset
+                            .saturating_add(n)
+                            .min(locator64_offset),
+                        true,
+                    )),
+                    _ => Some((locator64.end_of_central_directory_offset, false)),
+                },
+            );
+
+        // Consistency check: Find the EOCD64
+        let mut local_error = None;
+        while let Some(eocd64_offset) = subfinder.next(reader)? {
+            let archive_offset = eocd64_offset - locator64.end_of_central_directory_offset;
+
+            match try_read_eocd64(
+                reader,
+                &locator64,
+                locator64_offset.saturating_sub(eocd64_offset),
+            ) {
+                Ok(eocd64) => {
+                    if eocd64_offset
+                        < eocd64
+                            .number_of_files
+                            .saturating_mul(
+                                mem::size_of::<crate::types::ZipCentralEntryBlock>() as u64
+                            )
+                            .saturating_add(eocd64.central_directory_offset)
+                    {
+                        local_error = Some(ZipError::InvalidArchive(
+                            "Invalid EOCD64: inconsistent number of files",
+                        ));
+                        continue;
+                    }
+
+                    return Ok(CentralDirectoryEndInfo {
+                        eocd: (eocd, eocd_offset).into(),
+                        eocd64: Some((eocd64, eocd64_offset).into()),
+                        archive_offset,
+                    });
+                }
+                Err(e) => {
+                    local_error = Some(e);
+                }
+            }
+        }
+
+        parsing_error = local_error.or(Some(ZipError::InvalidArchive("Could not find EOCD64")));
+    }
+
+    Err(parsing_error.unwrap_or(ZipError::InvalidArchive("Could not find EOCD")))
 }
 
 pub(crate) fn is_dir(filename: &str) -> bool {
     filename
         .chars()
         .next_back()
-        .map_or(false, |c| c == '/' || c == '\\')
-}
-
-/// Converts a path to the ZIP format (forward-slash-delimited and normalized).
-pub(crate) fn path_to_string<T: AsRef<Path>>(path: T) -> Box<str> {
-    let mut maybe_original = None;
-    if let Some(original) = path.as_ref().to_str() {
-        if (MAIN_SEPARATOR == '/' || !original[1..].contains(MAIN_SEPARATOR))
-            && !original.ends_with('.')
-            && !original.starts_with(['.', MAIN_SEPARATOR])
-            && !original.starts_with(['.', '.', MAIN_SEPARATOR])
-            && !original.contains([MAIN_SEPARATOR, MAIN_SEPARATOR])
-            && !original.contains([MAIN_SEPARATOR, '.', MAIN_SEPARATOR])
-            && !original.contains([MAIN_SEPARATOR, '.', '.', MAIN_SEPARATOR])
-        {
-            if original.starts_with(MAIN_SEPARATOR) {
-                maybe_original = Some(&original[1..]);
-            } else {
-                maybe_original = Some(original);
-            }
-        }
-    }
-    let mut recreate = maybe_original.is_none();
-    let mut normalized_components = Vec::new();
-
-    for component in path.as_ref().components() {
-        match component {
-            Component::Normal(os_str) => match os_str.to_str() {
-                Some(valid_str) => normalized_components.push(Cow::Borrowed(valid_str)),
-                None => {
-                    recreate = true;
-                    normalized_components.push(os_str.to_string_lossy());
-                }
-            },
-            Component::ParentDir => {
-                recreate = true;
-                normalized_components.pop();
-            }
-            _ => {
-                recreate = true;
-            }
-        }
-    }
-    if recreate {
-        normalized_components.join("/").into()
-    } else {
-        maybe_original.unwrap().into()
-    }
+        .is_some_and(|c| c == '/' || c == '\\')
 }
 
 #[cfg(test)]
@@ -702,11 +832,13 @@ mod test {
     use std::io::Cursor;
 
     #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-    #[repr(packed)]
+    #[repr(packed, C)]
     pub struct TestBlock {
         magic: Magic,
         pub file_name_length: u16,
     }
+
+    unsafe impl Pod for TestBlock {}
 
     impl FixedSizeBlock for TestBlock {
         const MAGIC: Magic = Magic::literal(0x01111);

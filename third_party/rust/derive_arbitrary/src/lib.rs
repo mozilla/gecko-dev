@@ -6,11 +6,14 @@ use syn::*;
 
 mod container_attributes;
 mod field_attributes;
+mod variant_attributes;
+
 use container_attributes::ContainerAttributes;
 use field_attributes::{determine_field_constructor, FieldConstructor};
+use variant_attributes::not_skipped;
 
-static ARBITRARY_ATTRIBUTE_NAME: &str = "arbitrary";
-static ARBITRARY_LIFETIME_NAME: &str = "'arbitrary";
+const ARBITRARY_ATTRIBUTE_NAME: &str = "arbitrary";
+const ARBITRARY_LIFETIME_NAME: &str = "'arbitrary";
 
 #[proc_macro_derive(Arbitrary, attributes(arbitrary))]
 pub fn derive_arbitrary(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -55,9 +58,9 @@ fn expand_derive_arbitrary(input: syn::DeriveInput) -> Result<TokenStream> {
 
     Ok(quote! {
         const _: () = {
-            std::thread_local! {
+            ::std::thread_local! {
                 #[allow(non_upper_case_globals)]
-                static #recursive_count: std::cell::Cell<u32> = std::cell::Cell::new(0);
+                static #recursive_count: ::core::cell::Cell<u32> = ::core::cell::Cell::new(0);
             }
 
             #[automatically_derived]
@@ -201,80 +204,107 @@ fn gen_arbitrary_method(
         })
     }
 
+    fn arbitrary_variant(
+        index: u64,
+        enum_name: &Ident,
+        variant_name: &Ident,
+        ctor: TokenStream,
+    ) -> TokenStream {
+        quote! { #index => #enum_name::#variant_name #ctor }
+    }
+
+    fn arbitrary_enum_method(
+        recursive_count: &syn::Ident,
+        unstructured: TokenStream,
+        variants: &[TokenStream],
+    ) -> impl quote::ToTokens {
+        let count = variants.len() as u64;
+        with_recursive_count_guard(
+            recursive_count,
+            quote! {
+                // Use a multiply + shift to generate a ranged random number
+                // with slight bias. For details, see:
+                // https://lemire.me/blog/2016/06/30/fast-random-shuffling
+                Ok(match (u64::from(<u32 as arbitrary::Arbitrary>::arbitrary(#unstructured)?) * #count) >> 32 {
+                    #(#variants,)*
+                    _ => unreachable!()
+                })
+            },
+        )
+    }
+
+    fn arbitrary_enum(
+        DataEnum { variants, .. }: &DataEnum,
+        enum_name: &Ident,
+        lifetime: LifetimeParam,
+        recursive_count: &syn::Ident,
+    ) -> Result<TokenStream> {
+        let filtered_variants = variants.iter().filter(not_skipped);
+
+        // Check attributes of all variants:
+        filtered_variants
+            .clone()
+            .try_for_each(check_variant_attrs)?;
+
+        // From here on, we can assume that the attributes of all variants were checked.
+        let enumerated_variants = filtered_variants
+            .enumerate()
+            .map(|(index, variant)| (index as u64, variant));
+
+        // Construct `match`-arms for the `arbitrary` method.
+        let variants = enumerated_variants
+            .clone()
+            .map(|(index, Variant { fields, ident, .. })| {
+                construct(fields, |_, field| gen_constructor_for_field(field))
+                    .map(|ctor| arbitrary_variant(index, enum_name, ident, ctor))
+            })
+            .collect::<Result<Vec<TokenStream>>>()?;
+
+        // Construct `match`-arms for the `arbitrary_take_rest` method.
+        let variants_take_rest = enumerated_variants
+            .map(|(index, Variant { fields, ident, .. })| {
+                construct_take_rest(fields)
+                    .map(|ctor| arbitrary_variant(index, enum_name, ident, ctor))
+            })
+            .collect::<Result<Vec<TokenStream>>>()?;
+
+        // Most of the time, `variants` is not empty (the happy path),
+        //   thus `variants_take_rest` will be used,
+        //   so no need to move this check before constructing `variants_take_rest`.
+        // If `variants` is empty, this will emit a compiler-error.
+        (!variants.is_empty())
+            .then(|| {
+                // TODO: Improve dealing with `u` vs. `&mut u`.
+                let arbitrary = arbitrary_enum_method(recursive_count, quote! { u }, &variants);
+                let arbitrary_take_rest = arbitrary_enum_method(recursive_count, quote! { &mut u }, &variants_take_rest);
+
+                quote! {
+                    fn arbitrary(u: &mut arbitrary::Unstructured<#lifetime>) -> arbitrary::Result<Self> {
+                        #arbitrary
+                    }
+
+                    fn arbitrary_take_rest(mut u: arbitrary::Unstructured<#lifetime>) -> arbitrary::Result<Self> {
+                        #arbitrary_take_rest
+                    }
+                }
+            })
+            .ok_or_else(|| Error::new_spanned(
+                enum_name,
+                "Enum must have at least one variant, that is not skipped"
+            ))
+    }
+
     let ident = &input.ident;
-    let output = match &input.data {
-        Data::Struct(data) => arbitrary_structlike(&data.fields, ident, lifetime, recursive_count)?,
+    match &input.data {
+        Data::Struct(data) => arbitrary_structlike(&data.fields, ident, lifetime, recursive_count),
         Data::Union(data) => arbitrary_structlike(
             &Fields::Named(data.fields.clone()),
             ident,
             lifetime,
             recursive_count,
-        )?,
-        Data::Enum(data) => {
-            let variants: Vec<TokenStream> = data
-                .variants
-                .iter()
-                .enumerate()
-                .map(|(i, variant)| {
-                    let idx = i as u64;
-                    let variant_name = &variant.ident;
-                    construct(&variant.fields, |_, field| gen_constructor_for_field(field))
-                        .map(|ctor| quote! { #idx => #ident::#variant_name #ctor })
-                })
-                .collect::<Result<_>>()?;
-
-            let variants_take_rest: Vec<TokenStream> = data
-                .variants
-                .iter()
-                .enumerate()
-                .map(|(i, variant)| {
-                    let idx = i as u64;
-                    let variant_name = &variant.ident;
-                    construct_take_rest(&variant.fields)
-                        .map(|ctor| quote! { #idx => #ident::#variant_name #ctor })
-                })
-                .collect::<Result<_>>()?;
-
-            let count = data.variants.len() as u64;
-
-            let arbitrary = with_recursive_count_guard(
-                recursive_count,
-                quote! {
-                    // Use a multiply + shift to generate a ranged random number
-                    // with slight bias. For details, see:
-                    // https://lemire.me/blog/2016/06/30/fast-random-shuffling
-                    Ok(match (u64::from(<u32 as arbitrary::Arbitrary>::arbitrary(u)?) * #count) >> 32 {
-                        #(#variants,)*
-                        _ => unreachable!()
-                    })
-                },
-            );
-
-            let arbitrary_take_rest = with_recursive_count_guard(
-                recursive_count,
-                quote! {
-                    // Use a multiply + shift to generate a ranged random number
-                    // with slight bias. For details, see:
-                    // https://lemire.me/blog/2016/06/30/fast-random-shuffling
-                    Ok(match (u64::from(<u32 as arbitrary::Arbitrary>::arbitrary(&mut u)?) * #count) >> 32 {
-                        #(#variants_take_rest,)*
-                        _ => unreachable!()
-                    })
-                },
-            );
-
-            quote! {
-                fn arbitrary(u: &mut arbitrary::Unstructured<#lifetime>) -> arbitrary::Result<Self> {
-                    #arbitrary
-                }
-
-                fn arbitrary_take_rest(mut u: arbitrary::Unstructured<#lifetime>) -> arbitrary::Result<Self> {
-                    #arbitrary_take_rest
-                }
-            }
-        }
-    };
-    Ok(output)
+        ),
+        Data::Enum(data) => arbitrary_enum(data, ident, lifetime, recursive_count),
+    }
 }
 
 fn construct(
@@ -311,7 +341,7 @@ fn construct(
 fn construct_take_rest(fields: &Fields) -> Result<TokenStream> {
     construct(fields, |idx, field| {
         determine_field_constructor(field).map(|field_constructor| match field_constructor {
-            FieldConstructor::Default => quote!(Default::default()),
+            FieldConstructor::Default => quote!(::core::default::Default::default()),
             FieldConstructor::Arbitrary => {
                 if idx + 1 == fields.len() {
                     quote! { arbitrary::Arbitrary::arbitrary_take_rest(u)? }
@@ -334,17 +364,17 @@ fn gen_size_hint_method(input: &DeriveInput) -> Result<TokenStream> {
                 determine_field_constructor(f).map(|field_constructor| {
                     match field_constructor {
                         FieldConstructor::Default | FieldConstructor::Value(_) => {
-                            quote!((0, Some(0)))
+                            quote!(Ok((0, Some(0))))
                         }
                         FieldConstructor::Arbitrary => {
-                            quote! { <#ty as arbitrary::Arbitrary>::size_hint(depth) }
+                            quote! { <#ty as arbitrary::Arbitrary>::try_size_hint(depth) }
                         }
 
                         // Note that in this case it's hard to determine what size_hint must be, so size_of::<T>() is
                         // just an educated guess, although it's gonna be inaccurate for dynamically
                         // allocated types (Vec, HashMap, etc.).
                         FieldConstructor::With(_) => {
-                            quote! { (::core::mem::size_of::<#ty>(), None) }
+                            quote! { Ok((::core::mem::size_of::<#ty>(), None)) }
                         }
                     }
                 })
@@ -352,9 +382,9 @@ fn gen_size_hint_method(input: &DeriveInput) -> Result<TokenStream> {
             .collect::<Result<Vec<TokenStream>>>()
             .map(|hints| {
                 quote! {
-                    arbitrary::size_hint::and_all(&[
-                        #( #hints ),*
-                    ])
+                    Ok(arbitrary::size_hint::and_all(&[
+                        #( #hints? ),*
+                    ]))
                 }
             })
     };
@@ -362,8 +392,13 @@ fn gen_size_hint_method(input: &DeriveInput) -> Result<TokenStream> {
         size_hint_fields(fields).map(|hint| {
             quote! {
                 #[inline]
-                fn size_hint(depth: usize) -> (usize, Option<usize>) {
-                    arbitrary::size_hint::recursion_guard(depth, |depth| #hint)
+                fn size_hint(depth: usize) -> (usize, ::core::option::Option<usize>) {
+                    Self::try_size_hint(depth).unwrap_or_default()
+                }
+
+                #[inline]
+                fn try_size_hint(depth: usize) -> ::core::result::Result<(usize, ::core::option::Option<usize>), arbitrary::MaxRecursionReached> {
+                    arbitrary::size_hint::try_recursion_guard(depth, |depth| #hint)
                 }
             }
         })
@@ -374,18 +409,26 @@ fn gen_size_hint_method(input: &DeriveInput) -> Result<TokenStream> {
         Data::Enum(data) => data
             .variants
             .iter()
-            .map(|v| size_hint_fields(&v.fields))
+            .filter(not_skipped)
+            .map(|Variant { fields, .. }| {
+                // The attributes of all variants are checked in `gen_arbitrary_method` above
+                //   and can therefore assume that they are valid.
+                size_hint_fields(fields)
+            })
             .collect::<Result<Vec<TokenStream>>>()
             .map(|variants| {
                 quote! {
+                    fn size_hint(depth: usize) -> (usize, ::core::option::Option<usize>) {
+                        Self::try_size_hint(depth).unwrap_or_default()
+                    }
                     #[inline]
-                    fn size_hint(depth: usize) -> (usize, Option<usize>) {
-                        arbitrary::size_hint::and(
-                            <u32 as arbitrary::Arbitrary>::size_hint(depth),
-                            arbitrary::size_hint::recursion_guard(depth, |depth| {
-                                arbitrary::size_hint::or_all(&[ #( #variants ),* ])
-                            }),
-                        )
+                    fn try_size_hint(depth: usize) -> ::core::result::Result<(usize, ::core::option::Option<usize>), arbitrary::MaxRecursionReached> {
+                        Ok(arbitrary::size_hint::and(
+                            <u32 as arbitrary::Arbitrary>::try_size_hint(depth)?,
+                            arbitrary::size_hint::try_recursion_guard(depth, |depth| {
+                                Ok(arbitrary::size_hint::or_all(&[ #( #variants? ),* ]))
+                            })?,
+                        ))
                     }
                 }
             }),
@@ -394,10 +437,25 @@ fn gen_size_hint_method(input: &DeriveInput) -> Result<TokenStream> {
 
 fn gen_constructor_for_field(field: &Field) -> Result<TokenStream> {
     let ctor = match determine_field_constructor(field)? {
-        FieldConstructor::Default => quote!(Default::default()),
+        FieldConstructor::Default => quote!(::core::default::Default::default()),
         FieldConstructor::Arbitrary => quote!(arbitrary::Arbitrary::arbitrary(u)?),
         FieldConstructor::With(function_or_closure) => quote!((#function_or_closure)(u)?),
         FieldConstructor::Value(value) => quote!(#value),
     };
     Ok(ctor)
+}
+
+fn check_variant_attrs(variant: &Variant) -> Result<()> {
+    for attr in &variant.attrs {
+        if attr.path().is_ident(ARBITRARY_ATTRIBUTE_NAME) {
+            return Err(Error::new_spanned(
+                attr,
+                format!(
+                    "invalid `{}` attribute. it is unsupported on enum variants. try applying it to a field of the variant instead",
+                    ARBITRARY_ATTRIBUTE_NAME
+                ),
+            ));
+        }
+    }
+    Ok(())
 }

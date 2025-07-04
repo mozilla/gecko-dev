@@ -12,7 +12,7 @@ pub struct Crc32Reader<R> {
     check: u32,
     /// Signals if `inner` stores aes encrypted data.
     /// AE-2 encrypted data doesn't use crc and sets the value to 0.
-    ae2_encrypted: bool,
+    enabled: bool,
 }
 
 impl<R> Crc32Reader<R> {
@@ -23,7 +23,7 @@ impl<R> Crc32Reader<R> {
             inner,
             hasher: Hasher::new(),
             check: checksum,
-            ae2_encrypted,
+            enabled: !ae2_encrypted,
         }
     }
 
@@ -36,19 +36,50 @@ impl<R> Crc32Reader<R> {
     }
 }
 
+#[cold]
+fn invalid_checksum() -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, "Invalid checksum")
+}
+
 impl<R: Read> Read for Crc32Reader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let invalid_check = !buf.is_empty() && !self.check_matches() && !self.ae2_encrypted;
+        let count = self.inner.read(buf)?;
 
-        let count = match self.inner.read(buf) {
-            Ok(0) if invalid_check => {
-                return Err(io::Error::new(io::ErrorKind::Other, "Invalid checksum"))
+        if self.enabled {
+            if count == 0 && !buf.is_empty() && !self.check_matches() {
+                return Err(invalid_checksum());
             }
-            Ok(n) => n,
-            Err(e) => return Err(e),
-        };
-        self.hasher.update(&buf[0..count]);
+            self.hasher.update(&buf[..count]);
+        }
         Ok(count)
+    }
+
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
+        let start = buf.len();
+        let n = self.inner.read_to_end(buf)?;
+
+        if self.enabled {
+            self.hasher.update(&buf[start..]);
+            if !self.check_matches() {
+                return Err(invalid_checksum());
+            }
+        }
+
+        Ok(n)
+    }
+
+    fn read_to_string(&mut self, buf: &mut String) -> io::Result<usize> {
+        let start = buf.len();
+        let n = self.inner.read_to_string(buf)?;
+
+        if self.enabled {
+            self.hasher.update(&buf.as_bytes()[start..]);
+            if !self.check_matches() {
+                return Err(invalid_checksum());
+            }
+        }
+
+        Ok(n)
     }
 }
 

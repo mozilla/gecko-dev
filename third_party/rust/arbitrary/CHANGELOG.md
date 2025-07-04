@@ -28,6 +28,30 @@ Released YYYY-MM-DD.
 
 --------------------------------------------------------------------------------
 
+## 1.4.0
+
+Released 2024-10-30.
+
+### Added
+
+* Added an `Arbitrary` implementation for `PhantomPinned`.
+* Added the `Unstructured::choose_iter` helper method.
+* Added `#[arbitrary(skip)]` for `enum` variants in the derive macro.
+* Added the `Arbitrary::try_size_hint` trait method.
+
+### Changed
+
+* Implement `Arbitrary` for `PhantomData<A>` even when `A` does not implement
+  `Arbitrary` and when `A` is `?Sized`.
+* Make `usize`'s underlying encoding independent of machine word size so that
+  corpora are more portable.
+
+### Fixed
+
+* Make `derive(Arbitrary)` work for local definitions of `struct Option`.
+
+--------------------------------------------------------------------------------
+
 ## 1.3.2
 
 Released 2023-10-30.

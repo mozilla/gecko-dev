@@ -1,6 +1,8 @@
 //! Utilities for working with and combining the results of
 //! [`Arbitrary::size_hint`][crate::Arbitrary::size_hint].
 
+pub(crate) const MAX_DEPTH: usize = 20;
+
 /// Protects against potential infinite recursion when calculating size hints
 /// due to indirect type recursion.
 ///
@@ -8,14 +10,37 @@
 /// size hint.
 ///
 /// Otherwise, returns the default size hint: `(0, None)`.
+///
+/// <div class="warning">This method is deprecated. Users should instead implement <a href="../trait.Arbitrary.html#method.try_size_hint"><code>try_size_hint</code></a> and use <a href="fn.try_recursion_guard.html"><code>try_recursion_guard</code></a></div>
 #[inline]
+#[deprecated(note = "use `try_recursion_guard` instead")]
 pub fn recursion_guard(
     depth: usize,
     f: impl FnOnce(usize) -> (usize, Option<usize>),
 ) -> (usize, Option<usize>) {
-    const MAX_DEPTH: usize = 20;
     if depth > MAX_DEPTH {
         (0, None)
+    } else {
+        f(depth + 1)
+    }
+}
+
+/// Protects against potential infinite recursion when calculating size hints
+/// due to indirect type recursion.
+///
+/// When the depth is not too deep, calls `f` with `depth + 1` to calculate the
+/// size hint.
+///
+/// Otherwise, returns an error.
+///
+/// This should be used when implementing [`try_size_hint`](crate::Arbitrary::try_size_hint)
+#[inline]
+pub fn try_recursion_guard(
+    depth: usize,
+    f: impl FnOnce(usize) -> Result<(usize, Option<usize>), crate::MaxRecursionReached>,
+) -> Result<(usize, Option<usize>), crate::MaxRecursionReached> {
+    if depth > MAX_DEPTH {
+        Err(crate::MaxRecursionReached {})
     } else {
         f(depth + 1)
     }

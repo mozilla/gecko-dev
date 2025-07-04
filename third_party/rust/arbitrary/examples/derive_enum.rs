@@ -10,9 +10,15 @@ use arbitrary::{Arbitrary, Unstructured};
 
 #[derive(Arbitrary, Debug)]
 enum MyEnum {
-    UnitVariant,
-    TupleVariant(bool, u32),
-    StructVariant { x: i8, y: (u8, i32) },
+    Unit,
+    Tuple(bool, u32),
+    Struct {
+        x: i8,
+        y: (u8, i32),
+    },
+
+    #[arbitrary(skip)]
+    Skipped(usize),
 }
 
 fn main() {

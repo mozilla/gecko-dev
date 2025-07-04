@@ -17,10 +17,13 @@
 //!
 //! |         | Reading | Writing |
 //! | ------- | ------  | ------- |
+//! | Stored | ✅ | ✅ |
 //! | Deflate | ✅ [->](`crate::ZipArchive::by_name`)      | ✅ [->](`crate::write::FileOptions::compression_method`) |
 //! | Deflate64 | ✅ | |
 //! | Bzip2 | ✅ | ✅ |
+//! | ZStandard | ✅ | ✅ |
 //! | LZMA | ✅ | |
+//! | XZ | ✅ | |
 //! | AES encryption | ✅ | ✅ |
 //! | ZipCrypto deprecated encryption | ✅ | ✅ |
 //!
@@ -29,7 +32,9 @@
 #![warn(missing_docs)]
 #![allow(unexpected_cfgs)] // Needed for cfg(fuzzing) on nightly as of 2024-05-06
 pub use crate::compression::{CompressionMethod, SUPPORTED_COMPRESSION_METHODS};
+pub use crate::read::HasZipMetadata;
 pub use crate::read::ZipArchive;
+pub use crate::spec::{ZIP64_BYTES_THR, ZIP64_ENTRY_THR};
 pub use crate::types::{AesMode, DateTime};
 pub use crate::write::ZipWriter;
 
@@ -41,6 +46,7 @@ mod compression;
 mod cp437;
 mod crc32;
 pub mod extra_fields;
+mod path;
 pub mod read;
 pub mod result;
 mod spec;
