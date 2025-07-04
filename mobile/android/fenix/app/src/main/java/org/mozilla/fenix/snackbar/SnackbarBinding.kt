@@ -247,6 +247,8 @@ class SnackbarBinding(
                             action = context.getString(R.string.webcompat_reporter_dismiss_success_snackbar_text),
                             listener = { snackbarDelegate.dismiss() },
                         )
+
+                        appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
 
                     SnackbarState.SiteDataCleared -> {
