@@ -296,8 +296,10 @@ AndroidWebAuthnService::GetAssertion(uint64_t aTransactionId,
         GECKOBUNDLE_PUT(assertionBundle, "timeout",
                         java::sdk::Double::New(timeout));
 
-        // User Verification Requirement is not currently used in the
-        // Android FIDO API.
+        nsString userVerification;
+        Unused << aArgs->GetUserVerification(userVerification);
+        GECKOBUNDLE_PUT(assertionBundle, "userVerification",
+                        jni::StringParam(userVerification));
 
         GECKOBUNDLE_FINISH(assertionBundle);
 
