@@ -90,7 +90,10 @@ function setImageTooltip(tooltip, doc, imageUrl, options) {
 
   const img = doc.createElementNS(XHTML_NS, "img");
   img.classList.add("devtools-tooltip-image");
-  img.classList.toggle("devtools-tooltip-tiles", !hideCheckeredBackground);
+  img.classList.toggle(
+    "devtools-checkered-background",
+    !hideCheckeredBackground
+  );
   img.style.height = imgHeight;
   img.src = encodeURI(imageUrl);
   wrapper.appendChild(img);

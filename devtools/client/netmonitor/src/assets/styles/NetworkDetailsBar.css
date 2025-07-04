@@ -243,7 +243,6 @@
 }
 
 .network-monitor .response-image {
-  background: #fff;
   border: 1px dashed GrayText;
   margin-bottom: 10px;
   max-width: 300px;

@@ -65,7 +65,7 @@ class ImagePreview extends Component {
     return div(
       { className: "panel-container response-image-box devtools-monospace" },
       img({
-        className: "response-image",
+        className: "response-image devtools-checkered-background",
         src: formDataURI(mimeType, encoding, text),
         onLoad: this.updateDimensions,
       }),
