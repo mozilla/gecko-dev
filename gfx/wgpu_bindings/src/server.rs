@@ -2557,12 +2557,12 @@ unsafe fn process_message(
                 }
             }
 
+            let desc = wgt::RequestAdapterOptions {
+                power_preference,
+                force_fallback_adapter,
+                compatible_surface: None,
+            };
             if result.is_none() {
-                let desc = wgt::RequestAdapterOptions {
-                    power_preference,
-                    force_fallback_adapter,
-                    compatible_surface: None,
-                };
                 let created =
                     match global.request_adapter(&desc, wgt::Backends::PRIMARY, Some(adapter_id)) {
                         Ok(_) => true,
@@ -2590,7 +2590,9 @@ unsafe fn process_message(
                     _ => false,
                 };
 
-                if static_prefs::pref!("dom.webgpu.testing.assert-hardware-adapter") {
+                if static_prefs::pref!("dom.webgpu.testing.assert-hardware-adapter")
+                    && !desc.force_fallback_adapter
+                {
                     assert!(
                         is_hardware,
                         "Expected a hardware gpu adapter, got {:?}",
