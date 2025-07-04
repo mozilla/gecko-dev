@@ -9,6 +9,7 @@ task-defaults:
             - geckoview
     index:
         product: mobile
+    worker-type: b-linux-amd
     worker:
         docker-image: {in-tree: android-build}
         max-run-time: 7200
@@ -71,7 +72,6 @@ android-arm/debug:
     treeherder:
         platform: android-5-0-armv7/debug
         symbol: B
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -97,7 +97,6 @@ android-x86/opt:
         platform: android-5-0-x86/opt
         symbol: B
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -122,7 +121,6 @@ android-x86-lite/opt:
         platform: android-5-0-x86/opt
         symbol: Bl
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -152,7 +150,7 @@ android-x86-shippable/opt:
         platform: android-5-0-x86-shippable/opt
         symbol: Bpgo(B)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -181,7 +179,7 @@ android-x86-shippable-lite/opt:
         platform: android-5-0-x86-shippable/opt
         symbol: Bpgo(Bl)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -206,7 +204,6 @@ android-arm/opt:
         platform: android-5-0-armv7/opt
         symbol: B
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -231,7 +228,6 @@ android-arm-lite/opt:
         platform: android-5-0-armv7/opt
         symbol: Bl
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -261,7 +257,7 @@ android-arm-shippable/opt:
         platform: android-5-0-armv7-shippable/opt
         symbol: Bpgo(B)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -290,7 +286,7 @@ android-arm-shippable-lite/opt:
         platform: android-5-0-armv7-shippable/opt
         symbol: Bpgo(Bl)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -315,7 +311,6 @@ android-aarch64/opt:
         platform: android-5-0-aarch64/opt
         symbol: B
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -340,7 +335,6 @@ android-aarch64-lite/opt:
         platform: android-5-0-aarch64/opt
         symbol: Bl
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -364,7 +358,6 @@ android-aarch64/debug:
     treeherder:
         platform: android-5-0-aarch64/debug
         symbol: B
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -395,7 +388,7 @@ android-aarch64-shippable/opt:
         platform: android-5-0-aarch64-shippable/opt
         symbol: Bpgo(B)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -424,7 +417,7 @@ android-aarch64-shippable-lite/opt:
         platform: android-5-0-aarch64-shippable/opt
         symbol: Bpgo(Bl)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
@@ -449,7 +442,6 @@ android-x86_64/opt:
         platform: android-5-0-x86_64/opt
         symbol: B
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -474,7 +466,6 @@ android-x86_64-lite/opt:
         platform: android-5-0-x86_64/opt
         symbol: Bl
     run-on-projects: ['integration']
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -497,7 +488,6 @@ android-x86_64-fuzzing/debug:
     treeherder:
         platform: android-5-0-x86_64/debug
         symbol: Bf
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -530,7 +520,7 @@ android-x86_64-shippable/opt:
         platform: android-5-0-x86_64-shippable/opt
         symbol: Bpgo(B)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -559,7 +549,7 @@ android-x86_64-shippable-lite/opt:
         platform: android-5-0-x86_64-shippable/opt
         symbol: Bpgo(Bl)
     run-on-projects: ['release']
-    worker-type: b-linux-xlarge-gcp
+    worker-type: b-linux-xlarge-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -583,7 +573,6 @@ android-x86_64/debug:
     treeherder:
         platform: android-5-0-x86_64/debug
         symbol: B
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
@@ -608,7 +597,6 @@ android-x86_64/debug-isolated-process:
     treeherder:
         platform: android-5-0-x86_64/debug
         symbol: Bip
-    worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"

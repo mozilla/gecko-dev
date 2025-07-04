@@ -44,7 +44,7 @@ android-aarch64-fenix/debug:
     treeherder:
         platform: fenix-android-all/opt
         symbol: fenix-debug(Br)
-    worker-type: b-linux-gcp
+    worker-type: b-linux-amd
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"

@@ -7,7 +7,7 @@ task-defaults:
         product: firefox
     treeherder:
         tier: 2
-    worker-type: b-linux-gcp
+    worker-type: b-linux-amd
     worker:
         max-run-time: 7200
     run-on-projects: ['trunk']
