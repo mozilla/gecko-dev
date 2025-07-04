@@ -331,10 +331,10 @@ class nsTimerEvent final : public CancelableRunnable {
 #endif
 
   explicit nsTimerEvent(already_AddRefed<nsTimerImpl> aTimer,
-                        ProfilerThreadId aTimerThreadId)
+                        uint64_t aTimerSeq, ProfilerThreadId aTimerThreadId)
       : mozilla::CancelableRunnable("nsTimerEvent"),
         mTimer(aTimer),
-        mGeneration(mTimer->GetGeneration()),
+        mTimerSeq(aTimerSeq),
         mTimerThreadId(aTimerThreadId) {
     // Note: We override operator new for this class, and the override is
     // fallible!
@@ -378,7 +378,7 @@ class nsTimerEvent final : public CancelableRunnable {
 
   TimeStamp mInitTime;
   RefPtr<nsTimerImpl> mTimer;
-  const int32_t mGeneration;
+  const uint64_t mTimerSeq;
   ProfilerThreadId mTimerThreadId;
 
   static TimerEventAllocator* sAllocator;
@@ -562,7 +562,7 @@ nsTimerEvent::Run() {
         MarkerThreadId::CurrentThread());
   }
 
-  mTimer->Fire(mGeneration);
+  mTimer->Fire(mTimerSeq);
 
   return NS_OK;
 }
@@ -665,7 +665,6 @@ struct IntervalComparator {
 };
 
 }  // namespace
-
 
 size_t TimerThread::ComputeTimerInsertionIndex(const TimeStamp& timeout) const {
   mMonitor.AssertCurrentThreadOwns();
@@ -790,6 +789,7 @@ uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
     // us, blocked in gThread->RemoveTimer waiting for TimerThread::mMonitor,
     // under nsTimerImpl::Release.
     RefPtr<nsTimerImpl> timerRef(frontEntry.Take());
+    uint64_t seq = mTimers[0].Sequence();
     RemoveFirstTimerInternal();
 
     // We are going to let the call to PostTimerEvent here handle the release of
@@ -798,7 +798,7 @@ uint64_t TimerThread::FireDueTimers(TimeDuration aAllowedEarlyFiring) {
     {
       ++timersFired;
       LogTimerEvent::Run run(timerRef.get());
-      PostTimerEvent(timerRef.forget());
+      PostTimerEvent(timerRef.forget(), seq);
     }
 
     // PostTimerEvent releases mMonitor, which means that mShutdown could have
@@ -1038,7 +1038,8 @@ nsresult TimerThread::RemoveTimer(nsTimerImpl* aTimer,
   // Remove the timer from our array.  Tell callers that aTimer was not found
   // by returning NS_ERROR_NOT_AVAILABLE.
 
-  if (!RemoveTimerInternal(*aTimer)) {
+  bool wasInThread = RemoveTimerInternal(*aTimer);
+  if (!wasInThread) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
@@ -1247,7 +1248,8 @@ void TimerThread::RemoveFirstTimerInternal() {
   mTimers.RemoveElementAt(0);
 }
 
-void TimerThread::PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef) {
+void TimerThread::PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef,
+                                 uint64_t aTimerSeq) {
   mMonitor.AssertCurrentThreadOwns();
   AUTO_TIMERS_STATS(TimerThread_PostTimerEvent);
 
@@ -1284,8 +1286,8 @@ void TimerThread::PostTimerEvent(already_AddRefed<nsTimerImpl> aTimerRef) {
   if (!p) {
     return;
   }
-  RefPtr<nsTimerEvent> event =
-      ::new (KnownNotNull, p) nsTimerEvent(timer.forget(), mProfilerThreadId);
+  RefPtr<nsTimerEvent> event = ::new (KnownNotNull, p)
+      nsTimerEvent(timer.forget(), aTimerSeq, mProfilerThreadId);
 
   nsresult rv;
   {
