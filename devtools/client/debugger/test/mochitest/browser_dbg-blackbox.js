@@ -155,7 +155,16 @@ add_task(async function testBlackBoxOnToolboxRestart() {
   const dbg2 = createDebuggerContext(toolbox);
   await waitForSelectedSource(dbg2, findSource(dbg2, "simple4.js"));
 
+  // Reloading will automatically re-apply blackboxing which triggers a RDP request.
+  // Wait for blackbox action and requests to settle to avoid unhandled promise
+  // rejections due to pending promises.
+  const onBlackboxDone = waitForDispatch(dbg2.store, "BLACKBOX_SOURCE_RANGES");
   await reloadBrowser();
+
+  info("Wait for the blackbox action to complete");
+  await onBlackboxDone;
+  await waitForRequestsToSettle(dbg);
+
   // Wait a little incase of a pause
   await wait(1000);
 
