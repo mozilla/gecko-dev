@@ -34,6 +34,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import mozilla.components.feature.top.sites.TopSite
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.GleanMetrics.History
 import org.mozilla.fenix.GleanMetrics.HomeBookmarks
@@ -64,6 +65,7 @@ import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.MessageCardInteractor
+import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import org.mozilla.fenix.home.setup.ui.SetupChecklist
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.store.NimbusMessageState
@@ -137,7 +139,7 @@ internal fun Homepage(
                         }
 
                         if (showTopSites) {
-                            TopSites(
+                            TopSitesSection(
                                 topSites = topSites,
                                 topSiteColors = topSiteColors,
                                 interactor = interactor,
@@ -264,6 +266,28 @@ private fun NimbusMessageCardSection(
             onCloseButtonClick = { interactor.onMessageClosedClicked(message) },
         )
     }
+}
+
+@Composable
+private fun TopSitesSection(
+    topSites: List<TopSite>,
+    topSiteColors: TopSiteColors = TopSiteColors.colors(),
+    interactor: TopSiteInteractor,
+    onTopSitesItemBound: () -> Unit,
+) {
+    HomeSectionHeader(
+        headerText = stringResource(R.string.homepage_shortcuts_title),
+        modifier = Modifier.padding(horizontal = horizontalMargin),
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    TopSites(
+        topSites = topSites,
+        topSiteColors = topSiteColors,
+        interactor = interactor,
+        onTopSitesItemBound = onTopSitesItemBound,
+    )
 }
 
 @Composable
