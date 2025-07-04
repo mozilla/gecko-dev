@@ -13,7 +13,6 @@ import {
   getIsCurrentThreadPaused,
   getSelectedSourceTextContent,
   getSearchOptions,
-  getSelectedFrame,
 } from "../../selectors/index";
 
 import { searchKeys } from "../../constants";
@@ -60,7 +59,6 @@ class SearchInFileBar extends Component {
       searchInFileEnabled: PropTypes.bool.isRequired,
       selectedSourceTextContent: PropTypes.object,
       selectedSource: PropTypes.object.isRequired,
-      selectedFrame: PropTypes.object.isRequired,
       setActiveSearch: PropTypes.func.isRequired,
       querySearchWorker: PropTypes.func.isRequired,
       selectLocation: PropTypes.func.isRequired,
@@ -80,17 +78,20 @@ class SearchInFileBar extends Component {
   // FIXME: https://bugzilla.mozilla.org/show_bug.cgi?id=1774507
   UNSAFE_componentWillReceiveProps(nextProps) {
     const { query } = this.state;
-
+    // Trigger a search to update the search results ...
     if (
-      query &&
-      this.props.selectedSource &&
-      this.props.searchInFileEnabled &&
-      nextProps.selectedFrame &&
-      // If a new source is selected update the file search results
-      nextProps.selectedFrame.location.source.id !== nextProps.selectedSource.id
+      // if there is a search query and ...
+      (query &&
+        // the file search bar is toggled open or ...
+        ((!this.props.searchInFileEnabled && nextProps.searchInFileEnabled) ||
+          // a new source is selected.
+          this.props.selectedSource.id !== nextProps.selectedSource.id)) ||
+      // the source content changes
+      this.props.selectedSourceTextContent !==
+        nextProps.selectedSourceTextContent
     ) {
-      // Do not scroll to the search location, if we just switched a new source
-      // and debugger is already paused on a selelcted line.
+      // Do not scroll to the search location, if we just switched to a new source
+      // and debugger is already paused on a selected line.
       this.doSearch(query, !nextProps.isPaused);
     }
   }
@@ -400,7 +401,6 @@ const mapStateToProps = state => {
     selectedSource: getSelectedSource(state),
     isPaused: getIsCurrentThreadPaused(state),
     selectedSourceTextContent: getSelectedSourceTextContent(state),
-    selectedFrame: getSelectedFrame(state),
     modifiers: getSearchOptions(state, "file-search"),
   };
 };
