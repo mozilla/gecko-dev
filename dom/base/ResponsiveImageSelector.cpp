@@ -33,65 +33,6 @@ static bool ParseInteger(const nsAString& aString, int32_t& aInt) {
             nsContentUtils::eParseHTMLInteger_NonStandard));
 }
 
-static bool ParseFloat(const nsAString& aString, double& aDouble) {
-  // Check if it is a valid floating-point number first since the result of
-  // nsString.ToDouble() is more lenient than the spec,
-  // https://html.spec.whatwg.org/#valid-floating-point-number
-  nsAString::const_iterator iter, end;
-  aString.BeginReading(iter);
-  aString.EndReading(end);
-
-  if (iter == end) {
-    return false;
-  }
-
-  if (*iter == char16_t('-') && ++iter == end) {
-    return false;
-  }
-
-  if (IsAsciiDigit(*iter)) {
-    for (; iter != end && IsAsciiDigit(*iter); ++iter);
-  } else if (*iter == char16_t('.')) {
-    // Do nothing, jumps to fraction part
-  } else {
-    return false;
-  }
-
-  // Fraction
-  if (*iter == char16_t('.')) {
-    ++iter;
-    if (iter == end || !IsAsciiDigit(*iter)) {
-      // U+002E FULL STOP character (.) must be followed by one or more ASCII
-      // digits
-      return false;
-    }
-
-    for (; iter != end && IsAsciiDigit(*iter); ++iter);
-  }
-
-  if (iter != end && (*iter == char16_t('e') || *iter == char16_t('E'))) {
-    ++iter;
-    if (*iter == char16_t('-') || *iter == char16_t('+')) {
-      ++iter;
-    }
-
-    if (iter == end || !IsAsciiDigit(*iter)) {
-      // Should have one or more ASCII digits
-      return false;
-    }
-
-    for (; iter != end && IsAsciiDigit(*iter); ++iter);
-  }
-
-  if (iter != end) {
-    return false;
-  }
-
-  nsresult rv;
-  aDouble = PromiseFlatString(aString).ToDouble(&rv);
-  return NS_SUCCEEDED(rv);
-}
-
 ResponsiveImageSelector::ResponsiveImageSelector(nsIContent* aContent)
     : mOwnerNode(aContent), mSelectedCandidateIndex(-1) {}
 
@@ -544,11 +485,11 @@ void ResponsiveImageDescriptors::AddDescriptor(const nsAString& aDescriptor) {
   } else if (*descType == char16_t('x')) {
     // If the value is not a valid floating point number, it doesn't match this
     // descriptor, fall through.
-    double possibleDensity = 0.0;
-    if (ParseFloat(valueStr, possibleDensity)) {
-      if (possibleDensity >= 0.0 && mWidth.isNothing() &&
+    if (auto possibleDensity =
+            nsContentUtils::ParseHTMLFloatingPointNumber(valueStr)) {
+      if (*possibleDensity >= 0.0 && mWidth.isNothing() &&
           mDensity.isNothing() && mFutureCompatHeight.isNothing()) {
-        mDensity.emplace(possibleDensity);
+        mDensity = possibleDensity;
       } else {
         // Valid density descriptor, but height or width or density were already
         // seen, or it parsed to less than zero, which is an error per spec

@@ -1676,23 +1676,8 @@ int32_t HTMLInputElement::MonthsSinceJan1970(uint32_t aYear,
 
 /* static */
 Decimal HTMLInputElement::StringToDecimal(const nsAString& aValue) {
-  if (!IsAscii(aValue)) {
-    return Decimal::nan();
-  }
-  NS_LossyConvertUTF16toASCII asciiString(aValue);
-  std::string stdString(asciiString.get(), asciiString.Length());
-  auto decimal = Decimal::fromString(stdString);
-  if (!decimal.isFinite()) {
-    return Decimal::nan();
-  }
-  // Numbers are considered finite IEEE 754 Double-precision floating point
-  // values, but decimal supports a bigger range.
-  static const Decimal maxDouble =
-      Decimal::fromDouble(std::numeric_limits<double>::max());
-  if (decimal < -maxDouble || decimal > maxDouble) {
-    return Decimal::nan();
-  }
-  return decimal;
+  auto d = nsContentUtils::ParseHTMLFloatingPointNumber(aValue);
+  return d ? Decimal::fromDouble(*d) : Decimal::nan();
 }
 
 Decimal HTMLInputElement::GetValueAsDecimal() const {

@@ -894,6 +894,10 @@ class nsContentUtils {
                                       ParseHTMLIntegerResultFlags* aResult);
 
  public:
+  /* Parse a float as per
+   * https://html.spec.whatwg.org/#valid-floating-point-number */
+  static mozilla::Maybe<double> ParseHTMLFloatingPointNumber(const nsAString&);
+
   /**
    * Parse the value of the <font size=""> attribute according to the HTML5
    * spec as of April 16, 2012.
