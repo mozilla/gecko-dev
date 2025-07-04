@@ -1513,8 +1513,8 @@ void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs,
   MOZ_CRASH("NYI");
 }
 
-void MacroAssembler::ctz32(Register rd, Register rs, bool knownNotZero) {
-  Ctz32(rd, rs);
+void MacroAssembler::ctz32(Register src, Register dest, bool knownNotZero) {
+  Ctz32(dest, src);
 }
 
 void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
