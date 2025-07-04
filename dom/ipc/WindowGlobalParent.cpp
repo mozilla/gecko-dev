@@ -797,7 +797,28 @@ class CheckPermitUnloadRequest final : public PromiseNativeHandler,
         mAction(aAction),
         mFoundBlocker(aHasInProcessBlocker) {}
 
-  void Run(ContentParent* aIgnoreProcess = nullptr, uint32_t aTimeout = 0) {
+  // Special case for when we also want to dispatch a "navigate" event to the
+  // top level window's navigation object. The target session history entry that
+  // we dispatch is what we use when we #fire-a-traverse-navigate-event. This
+  // will _only_ run `DispatchBeforeUnloadToSubtree` for the content process of
+  // the top level window. See further comments below in `Run` and in
+  // `DispatchBeforeUnloadToSubtree`.
+  void RunTraversable(const SessionHistoryInfo& aInfo) {
+    MOZ_DIAGNOSTIC_ASSERT(mWGP->BrowsingContext()->IsTop());
+    Run(nullptr, 0, Some(aInfo));
+  }
+
+  // The complementing special case for `RunTraversable`, which is short hand
+  // for running `DispatchBeforeUnloadToSubtree` for all content processes
+  // except for the content process of the top level window. See further
+  // comments below in `Run` and in `DispatchBeforeUnloadToSubtree`.
+  void RunChildNavigables() {
+    MOZ_DIAGNOSTIC_ASSERT(mWGP->BrowsingContext()->IsTop());
+    Run(mWGP->BrowsingContext()->GetContentParent(), 0);
+  }
+
+  void Run(ContentParent* aIgnoreProcess = nullptr, uint32_t aTimeout = 0,
+           const Maybe<SessionHistoryInfo>& aInfo = Nothing()) {
     MOZ_ASSERT(mState == State::UNINITIALIZED);
     mState = State::WAITING;
 
@@ -809,28 +830,41 @@ class CheckPermitUnloadRequest final : public PromiseNativeHandler,
     }
 
     BrowsingContext* bc = mWGP->GetBrowsingContext();
-    bc->PreOrderWalk([&](dom::BrowsingContext* aBC) {
-      if (WindowGlobalParent* wgp =
-              aBC->Canonical()->GetCurrentWindowGlobal()) {
-        ContentParent* cp = wgp->GetContentParent();
-        if (wgp->HasBeforeUnload() && !seen.ContainsSorted(cp)) {
-          seen.InsertElementSorted(cp);
-          mPendingRequests++;
-          auto resolve = [self](bool blockNavigation) {
-            if (blockNavigation) {
-              self->mFoundBlocker = true;
+    auto resolve = [self](bool blockNavigation) {
+      if (blockNavigation) {
+        self->mFoundBlocker = true;
+      }
+      self->ResolveRequest();
+    };
+    auto reject = [self](auto) { self->ResolveRequest(); };
+    // If `aInfo` is passed, only dispatch to the content process of the top
+    // level window.
+    if (aInfo) {
+      ContentParent* cp = mWGP->GetContentParent();
+      mPendingRequests++;
+      cp->SendDispatchBeforeUnloadToSubtree(bc, aInfo, resolve, reject);
+    } else {
+      bc->PreOrderWalk([&](dom::BrowsingContext* aBC) {
+        if (WindowGlobalParent* wgp =
+                aBC->Canonical()->GetCurrentWindowGlobal()) {
+          ContentParent* cp = wgp->GetContentParent();
+          // `seen` contains processes that we've already dispatched
+          // "beforeunload" to.
+          if (wgp->NeedsBeforeUnload() && !seen.ContainsSorted(cp)) {
+            seen.InsertElementSorted(cp);
+            mPendingRequests++;
+
+            if (cp) {
+              cp->SendDispatchBeforeUnloadToSubtree(bc, Nothing(), resolve,
+                                                    reject);
+            } else {
+              ContentChild::DispatchBeforeUnloadToSubtree(bc, Nothing(),
+                                                          resolve);
             }
-            self->ResolveRequest();
-          };
-          if (cp) {
-            cp->SendDispatchBeforeUnloadToSubtree(
-                bc, resolve, [self](auto) { self->ResolveRequest(); });
-          } else {
-            ContentChild::DispatchBeforeUnloadToSubtree(bc, resolve);
           }
         }
-      }
-    });
+      });
+    }
 
     if (mPendingRequests && aTimeout) {
       Unused << NS_NewTimerWithCallback(getter_AddRefs(mTimer), this, aTimeout,
@@ -992,10 +1026,30 @@ already_AddRefed<Promise> WindowGlobalParent::PermitUnload(
 }
 
 void WindowGlobalParent::PermitUnload(std::function<void(bool)>&& aResolver) {
-  RefPtr<CheckPermitUnloadRequest> request = new CheckPermitUnloadRequest(
-      this, /* aHasInProcessBlocker */ false,
-      nsIDocumentViewer::PermitUnloadAction::ePrompt, std::move(aResolver));
+  RefPtr<CheckPermitUnloadRequest> request =
+      MakeRefPtr<CheckPermitUnloadRequest>(
+          this, /* aHasInProcessBlocker */ false,
+          nsIDocumentViewer::PermitUnloadAction::ePrompt, std::move(aResolver));
   request->Run();
+}
+
+void WindowGlobalParent::PermitUnloadTraversable(
+    const SessionHistoryInfo& aInfo, std::function<void(bool)>&& aResolver) {
+  MOZ_DIAGNOSTIC_ASSERT(BrowsingContext()->IsTop());
+  RefPtr<CheckPermitUnloadRequest> request =
+      MakeRefPtr<CheckPermitUnloadRequest>(
+          this, /* aHasInProcessBlocker */ false,
+          nsIDocumentViewer::PermitUnloadAction::ePrompt, std::move(aResolver));
+  request->RunTraversable(aInfo);
+}
+
+void WindowGlobalParent::PermitUnloadChildNavigables(
+    std::function<void(bool)>&& aResolver) {
+  RefPtr<CheckPermitUnloadRequest> request =
+      MakeRefPtr<CheckPermitUnloadRequest>(
+          this, /* aHasInProcessBlocker */ false,
+          nsIDocumentViewer::PermitUnloadAction::ePrompt, std::move(aResolver));
+  request->RunChildNavigables();
 }
 
 already_AddRefed<mozilla::dom::Promise> WindowGlobalParent::DrawSnapshot(

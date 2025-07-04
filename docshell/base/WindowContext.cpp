@@ -239,7 +239,7 @@ bool WindowContext::CanSet(FieldIndex<IDX_IsSecure>, const bool& aIsSecure,
   return CheckOnlyOwningProcessCanSet(aSource);
 }
 
-bool WindowContext::CanSet(FieldIndex<IDX_HasBeforeUnload>,
+bool WindowContext::CanSet(FieldIndex<IDX_NeedsBeforeUnload>,
                            const bool& aHasBeforeUnload,
                            ContentParent* aSource) {
   return CheckOnlyOwningProcessCanSet(aSource);

@@ -64,7 +64,7 @@ class BrowsingContextGroup;
   FIELD(IsSecure, bool)                                                  \
   /* Whether this window has registered a "beforeunload" event           \
    * handler */                                                          \
-  FIELD(HasBeforeUnload, bool)                                           \
+  FIELD(NeedsBeforeUnload, bool)                                         \
   /* Controls whether the WindowContext is currently considered to be    \
    * activated by a gesture */                                           \
   FIELD(UserActivationStateAndModifiers,                                 \
@@ -131,7 +131,7 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   bool IsInProcess() const { return mIsInProcess; }
 
-  bool HasBeforeUnload() const { return GetHasBeforeUnload(); }
+  bool NeedsBeforeUnload() const { return GetNeedsBeforeUnload(); }
 
   bool IsLocalIP() const { return GetIsLocalIP(); }
 
@@ -283,7 +283,7 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   bool CanSet(FieldIndex<IDX_IsSecure>, const bool& aIsSecure,
               ContentParent* aSource);
 
-  bool CanSet(FieldIndex<IDX_HasBeforeUnload>, const bool& aHasBeforeUnload,
+  bool CanSet(FieldIndex<IDX_NeedsBeforeUnload>, const bool& aHasBeforeUnload,
               ContentParent* aSource);
 
   bool CanSet(FieldIndex<IDX_CookieBehavior>, const Maybe<uint32_t>& aValue,

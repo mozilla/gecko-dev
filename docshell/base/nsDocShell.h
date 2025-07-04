@@ -1013,11 +1013,14 @@ class nsDocShell final : public nsDocLoader,
                  nsIURI* aPreviousURI);
   nsPresContext* GetEldestPresContext();
   nsresult CheckLoadingPermissions();
+  MOZ_CAN_RUN_SCRIPT
+  void MaybeFireTraverseHistory(nsDocShellLoadState* aLoadState);
   nsresult LoadHistoryEntry(nsISHEntry* aEntry, uint32_t aLoadType,
                             bool aUserActivation);
   nsresult LoadHistoryEntry(
       const mozilla::dom::LoadingSessionHistoryInfo& aEntry, uint32_t aLoadType,
       bool aUserActivation);
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY
   nsresult LoadHistoryEntry(nsDocShellLoadState* aLoadState, uint32_t aLoadType,
                             bool aLoadingCurrentEntry);
   nsresult GetHttpChannel(nsIChannel* aChannel, nsIHttpChannel** aReturn);
