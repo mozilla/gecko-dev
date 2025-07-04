@@ -43,7 +43,9 @@ add_task(async function test_hidden() {
   await promise;
 
   ok(
-    !getOneOffs().some(x => x.getAttribute("tooltiptext") == diacritic_engine),
+    !(await getOneOffs()).some(
+      x => x.getAttribute("tooltiptext") == diacritic_engine
+    ),
     "Search engines with diacritics are hidden when added to hiddenOneOffs preference."
   );
 
@@ -56,16 +58,16 @@ add_task(async function test_hidden() {
 add_task(async function test_shown() {
   engine.hideOneOffButton = false;
 
-  let oneOffsContainer = searchPopup.searchOneOffsContainer;
   let shownPromise = promiseEvent(searchPopup, "popupshown");
-  let builtPromise = promiseEvent(oneOffsContainer, "rebuild");
   info("Opening search panel");
 
   EventUtils.synthesizeMouseAtCenter(searchIcon, {});
-  await Promise.all([shownPromise, builtPromise]);
+  await shownPromise;
 
   ok(
-    getOneOffs().some(x => x.getAttribute("tooltiptext") == diacritic_engine),
+    (await getOneOffs()).some(
+      x => x.getAttribute("tooltiptext") == diacritic_engine
+    ),
     "Search engines with diacritics are shown when removed from hiddenOneOffs preference."
   );
 

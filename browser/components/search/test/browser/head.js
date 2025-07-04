@@ -79,12 +79,19 @@ function promiseEvent(aTarget, aEventName, aPreventDefault) {
   return BrowserTestUtils.waitForEvent(aTarget, aEventName, false, cancelEvent);
 }
 
-// Get an array of the one-off buttons.
-function getOneOffs() {
+/**
+ * Get an array of the one-off buttons.
+ */
+async function getOneOffs() {
+  /** @type {Element[]} */
   let oneOffs = [];
   let searchPopup = document.getElementById("PopupSearchAutoComplete");
+  if (searchPopup.oneOffButtons._rebuilding) {
+    await promiseEvent(searchPopup.oneOffButtons, "rebuild");
+  }
   let oneOffsContainer = searchPopup.searchOneOffsContainer;
   let oneOff = oneOffsContainer.querySelector(".search-panel-one-offs");
+
   for (oneOff = oneOff.firstChild; oneOff; oneOff = oneOff.nextSibling) {
     if (oneOff.nodeType == Node.ELEMENT_NODE) {
       oneOffs.push(oneOff);

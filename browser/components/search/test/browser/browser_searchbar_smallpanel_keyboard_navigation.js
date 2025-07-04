@@ -75,7 +75,7 @@ add_task(async function test_arrows() {
   // The tests will be less meaningful if the first, second, last, and
   // before-last one-off buttons aren't different. We should always have more
   // than 4 default engines, but it's safer to check this assumption.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   Assert.greaterOrEqual(
     oneOffs.length,
     4,
@@ -140,7 +140,7 @@ add_task(async function test_tab() {
     "the search bar should be focused"
   ); // from the previous test.
 
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   ok(!textbox.selectedButton, "no one-off button should be selected");
 
   // Pressing tab should select the first one-off without selecting suggestions.
@@ -185,7 +185,7 @@ add_task(async function test_shift_tab() {
   });
   await promise;
 
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   ok(!textbox.selectedButton, "no one-off button should be selected");
   is(
     searchPopup.getAttribute("showonlysettings"),
@@ -251,7 +251,7 @@ add_task(async function test_alt_down() {
 
   // Pressing alt+down should select the first one-off without selecting suggestions
   // and cycle through the one-off items.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   for (let i = 0; i < oneOffs.length; ++i) {
     EventUtils.synthesizeKey("KEY_ArrowDown", { altKey: true });
     is(
@@ -287,7 +287,7 @@ add_task(async function test_alt_up() {
 
   // Pressing alt+up should select the last one-off without selecting suggestions
   // and cycle up through the one-off items.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   for (let i = oneOffs.length - 1; i >= 0; --i) {
     EventUtils.synthesizeKey("KEY_ArrowUp", { altKey: true });
     is(
@@ -327,7 +327,7 @@ add_task(async function test_tab_and_arrows() {
   is(textbox.value, "", "the textfield value should be unmodified");
 
   // After pressing down, the first one-off should be selected.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   EventUtils.synthesizeKey("KEY_ArrowDown");
   is(
     textbox.selectedButton,
@@ -413,7 +413,7 @@ add_task(async function test_open_search() {
 
   // Pressing up again should select the last one-off button.
   EventUtils.synthesizeKey("KEY_ArrowUp");
-  const allOneOffs = getOneOffs();
+  const allOneOffs = await getOneOffs();
   is(
     textbox.selectedButton,
     allOneOffs[allOneOffs.length - engines.length - 1],

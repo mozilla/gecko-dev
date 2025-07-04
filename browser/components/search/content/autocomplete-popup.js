@@ -229,6 +229,18 @@
       }
     }
 
+    /**
+     * @type {string}
+     *   The current engine name being displayed in updateHeader.
+     */
+    #currentEngineName;
+
+    /**
+     * Updates the header of the pop-up with the search engine name and icon.
+     *
+     * @param {nsISearchEngine} [engine]
+     *   The engine to use, if not specified falls back to the default engine.
+     */
     async updateHeader(engine) {
       if (!engine) {
         if (PrivateBrowsingUtils.isWindowPrivate(window)) {
@@ -237,8 +249,18 @@
           engine = await Services.search.getDefault();
         }
       }
+      this.#currentEngineName = engine.name;
 
       let uri = await engine.getIconURL();
+
+      // If the engine name has changed since we started loading, this means
+      // that getIconURL probably took a long time and we had an update in
+      // the meantime. Hence we skip updating to avoid displaying the wrong
+      // thing.
+      if (engine.name != this.#currentEngineName) {
+        return;
+      }
+
       if (uri) {
         this.setAttribute("src", uri);
       } else {

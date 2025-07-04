@@ -40,10 +40,6 @@ async function checkHeader(engine) {
 }
 
 add_setup(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["test.wait300msAfterTabSwitch", true]],
-  });
-
   searchbar = await gCUITestUtils.addSearchBar();
   textbox = searchbar.textbox;
 
@@ -86,7 +82,7 @@ add_task(async function test_arrows() {
   // The tests will be less meaningful if the first, second, last, and
   // before-last one-off buttons aren't different. We should always have more
   // than 4 default engines, but it's safer to check this assumption.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   Assert.greaterOrEqual(
     oneOffs.length,
     4,
@@ -95,6 +91,7 @@ add_task(async function test_arrows() {
 
   ok(!textbox.selectedButton, "no one-off button should be selected");
 
+  await checkHeader(Services.search.defaultEngine);
   // The down arrow should first go through the suggestions.
   for (let i = 0; i < kValues.length; ++i) {
     EventUtils.synthesizeKey("KEY_ArrowDown");
@@ -222,7 +219,7 @@ add_task(async function test_tab() {
     "the search bar should be focused"
   ); // from the previous test.
 
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   ok(!textbox.selectedButton, "no one-off button should be selected");
 
   // Pressing tab should select the first one-off without selecting suggestions.
@@ -264,7 +261,7 @@ add_task(async function test_shift_tab() {
   searchbar.focus();
   await promise;
 
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   ok(!textbox.selectedButton, "no one-off button should be selected");
 
   // Press up once to select the last button.
@@ -344,7 +341,7 @@ add_task(async function test_alt_down() {
 
   // Pressing alt+down should select the first one-off without selecting suggestions
   // and cycle through the one-off items.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   for (let i = 0; i < oneOffs.length; ++i) {
     EventUtils.synthesizeKey("KEY_ArrowDown", { altKey: true });
     is(
@@ -390,7 +387,7 @@ add_task(async function test_alt_up() {
 
   // Pressing alt+up should select the last one-off without selecting suggestions
   // and cycle up through the one-off items.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   for (let i = oneOffs.length - 1; i >= 0; --i) {
     EventUtils.synthesizeKey("KEY_ArrowUp", { altKey: true });
     is(
@@ -502,7 +499,7 @@ add_task(async function test_tab_and_arrows() {
 
   // After pressing tab, the first one-off should be selected,
   // and no suggestion should be selected.
-  let oneOffs = getOneOffs();
+  let oneOffs = await getOneOffs();
   EventUtils.synthesizeKey("KEY_Tab");
   is(
     textbox.selectedButton,
@@ -623,7 +620,7 @@ add_task(async function test_open_search() {
 
   // Pressing up again should select the last one-off button.
   EventUtils.synthesizeKey("KEY_ArrowUp");
-  const allOneOffs = getOneOffs();
+  const allOneOffs = await getOneOffs();
   is(
     textbox.selectedButton,
     allOneOffs[allOneOffs.length - engines.length - 1],
