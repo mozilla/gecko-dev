@@ -386,6 +386,9 @@ include web-animations/reftest.list
 # webcomponents/
 include webcomponents/reftest.list
 
+# webgpu
+include ../../dom/webgpu/tests/reftest/reftest.list
+
 # widget/
 include ../../widget/reftests/reftest.list
 

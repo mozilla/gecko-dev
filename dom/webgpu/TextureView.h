@@ -7,6 +7,7 @@
 #define GPU_TextureView_H_
 
 #include "nsWrapperCache.h"
+#include "CanvasContext.h"
 #include "ObjectModel.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 
@@ -21,7 +22,7 @@ class TextureView final : public ObjectBase, public ChildOf<Texture> {
   GPU_DECL_JS_WRAP(TextureView)
 
   TextureView(Texture* const aParent, RawId aId);
-  CanvasContext* GetTargetContext() const;
+  WeakPtr<CanvasContext> GetTargetContext() const;
 
   const RawId mId;
 

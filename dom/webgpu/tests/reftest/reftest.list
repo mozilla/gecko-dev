@@ -1,0 +1,16 @@
+# The following condition is trying to capture "CI jobs that can't use
+# webgpu". Using WebGPU in CI requires that it is enabled in the build, not
+# disabled by preference, and that a GPU is present on the CI host.
+#
+# Since this condition applies to all tests in this file, and taskcluster will
+# drop suites that have no enabled tests, it is important that this condition
+# not erroneously skip these tests when evaluated under taskcluster's more
+# limited view of the configuration.
+#defaults skip-if(swgl||Android||win_no_dxc)
+
+# TODO: enable these tests after figuring out a proper skip condition
+
+skip fuzzy(0-255,0-800) == draw.html draw-ref.html
+skip fuzzy(0-255,0-800) == draw-storage-compute.html draw.html
+skip fuzzy(0-255,0-800) == draw-storage.html draw.html
+skip fuzzy(0-255,0-800) == draw-storage-bundle.html draw.html

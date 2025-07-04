@@ -101,7 +101,8 @@ void CommandEncoder::Cleanup() {
 
 RefPtr<WebGPUChild> CommandEncoder::GetBridge() { return mBridge; }
 
-void CommandEncoder::TrackPresentationContext(CanvasContext* aTargetContext) {
+void CommandEncoder::TrackPresentationContext(
+    WeakPtr<CanvasContext> aTargetContext) {
   if (aTargetContext) {
     mPresentationContexts.AppendElement(aTargetContext);
   }
@@ -302,7 +303,8 @@ void CommandEncoder::ResolveQuerySet(QuerySet& aQuerySet, uint32_t aFirstQuery,
   mBridge->SendCommandEncoderAction(mId, mParent->mId, std::move(bb));
 }
 
-void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
+void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass,
+                                    CanvasContextArray& aCanvasContexts) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.
   if (!mBridge || !mBridge->CanSend()) {
@@ -315,13 +317,18 @@ void CommandEncoder::EndComputePass(ffi::WGPURecordedComputePass& aPass) {
     return;
   }
   mState = CommandEncoderState::Open;
+
+  for (const auto& context : aCanvasContexts) {
+    TrackPresentationContext(context);
+  }
 
   ipc::ByteBuf byteBuf;
   ffi::wgpu_compute_pass_finish(&aPass, ToFFI(&byteBuf));
   mBridge->SendComputePass(mId, mParent->mId, std::move(byteBuf));
 }
 
-void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
+void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass,
+                                   CanvasContextArray& aCanvasContexts) {
   // Because this can be called during child Cleanup, we need to check
   // that the bridge is still alive.
   if (!mBridge || !mBridge->CanSend()) {
@@ -334,6 +341,10 @@ void CommandEncoder::EndRenderPass(ffi::WGPURecordedRenderPass& aPass) {
     return;
   }
   mState = CommandEncoderState::Open;
+
+  for (const auto& context : aCanvasContexts) {
+    TrackPresentationContext(context);
+  }
 
   ipc::ByteBuf byteBuf;
   ffi::wgpu_render_pass_finish(&aPass, ToFFI(&byteBuf));
