@@ -934,8 +934,7 @@ items from that key's value."
 
         try:
             thread = profile.get("threads", [])[0]
-            times = thread.get("samples", {}).get("time", [])
-            duration = times[-1] / 1000
+            duration = profile["meta"]["profilingEndTime"] / 1000
             markers = thread["markers"]
             phases = {}
             for n, marker in enumerate(markers["data"]):
