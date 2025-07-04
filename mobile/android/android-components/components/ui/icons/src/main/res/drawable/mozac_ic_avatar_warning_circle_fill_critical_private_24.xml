@@ -1,0 +1,20 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@color/mozac_ui_icons_fill"
+        android:fillType="evenOdd"
+        android:pathData="M11,18.75C11.28,18.75 11.553,18.726 11.825,18.696L11.648,19.004C11.296,19.621 11.199,20.314 11.312,20.984C11.267,20.985 11.222,20.989 11.177,20.992C11.118,20.996 11.059,21 11,21C5.477,21 1,16.523 1,11C1,5.477 5.477,1 11,1C16.523,1 21,5.477 21,11C21,11.388 20.973,11.77 20.93,12.146L20.852,12.01C20.311,11.065 19.338,10.5 18.25,10.5C17.162,10.5 16.189,11.064 15.648,12.01L14.51,14H7.25C6.137,14 5.204,14.733 4.881,15.738C6.3,17.567 8.512,18.75 11,18.75ZM8.103,9.799C7.586,7.798 9.083,6 11,6C12.657,6 14,7.343 14,9C14,10.917 12.202,12.414 10.201,11.897C9.19,11.636 8.364,10.809 8.103,9.799Z"
+        tools:ignore="VectorRaster"
+        tools:targetApi="n" />
+    <path
+        android:fillColor="@color/mozac_ui_avatar_warning_fill_critical"
+        android:pathData="M16.951,12.755C17.526,11.748 18.975,11.748 19.551,12.755L23.55,19.749C24.123,20.751 23.401,22 22.25,22H14.251C13.099,22 12.378,20.751 12.952,19.749L16.951,12.755ZM17.501,19V20.5H19.001V19H17.501ZM17.501,15V17.75H19.001V15H17.501Z"
+        tools:ignore="VectorRaster" />
+</vector>

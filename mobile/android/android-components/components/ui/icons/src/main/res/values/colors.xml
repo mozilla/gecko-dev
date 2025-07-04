@@ -12,4 +12,13 @@
 
     <!-- Private Mode mask icon circle fill colors for mozac_ic_private_mode_circle_fill_stroke_20 -->
     <color name="mozac_ui_private_mode_circle_fill">#000000</color>
+
+    <!-- Account Sync Avatar fill colors for mozac_ic_avatar_warning_circle_fill_critical_24 -->
+    <color name="mozac_ui_avatar_warning_bg_fill_critical">#FFFFFF</color>
+    <color name="mozac_ui_avatar_warning_fill_critical">#C50042</color>
+
+    <!-- Extensions disabled icon fill colors for mozac_ic_extension_warning_24 -->
+    <color name="mozac_ui_extensions_warning_bg_fill_critical">#FFFFFF</color>
+    <color name="mozac_ui_extensions_warning_fill_critical">#C50042</color>
+
 </resources>
