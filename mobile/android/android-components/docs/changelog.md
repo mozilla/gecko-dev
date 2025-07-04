@@ -5,6 +5,8 @@ permalink: /changelog/
 ---
 
 # 142.0 (In Development)
+* **feature-tabs**:
+  * Updated `LastTabFeature` to not close the current tab when there's no history. [Bug 1813413](https://bugzilla.mozilla.org/show_bug.cgi?id=1813413).
 * **feature-downloads**:
   * `DownloadAction.RemoveDeletedDownloads` will now only remove downloads that are cancelled or completed. [Bug 1971848](https://bugzilla.mozilla.org/show_bug.cgi?id=1971848).
 * **concept-engine** and **browser-engine-gecko**

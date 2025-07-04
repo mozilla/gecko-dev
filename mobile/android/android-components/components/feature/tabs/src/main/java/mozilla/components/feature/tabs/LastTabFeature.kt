@@ -40,7 +40,12 @@ class LastTabFeature(
             true
         } else {
             val hasParent = tab is TabSessionState && tab.parentId != null
-            removeTabUseCase(tab.id, selectParentIfExists = hasParent) // Alternatively, set this to always true.
+            if (hasParent) {
+                removeTabUseCase(
+                    tab.id,
+                    selectParentIfExists = true,
+                )
+            }
             // We want to return to home if this session didn't have a parent session to select.
             hasParent
         }

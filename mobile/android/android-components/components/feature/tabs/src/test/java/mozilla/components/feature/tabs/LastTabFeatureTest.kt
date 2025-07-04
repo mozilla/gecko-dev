@@ -8,11 +8,14 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.SessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.support.test.any
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 
@@ -21,7 +24,7 @@ class LastTabFeatureTest {
     val coroutinesTestRule = MainCoroutineRule()
 
     @Test
-    fun `onBackPressed removes the session if it was opened by an ACTION_VIEW intent`() {
+    fun `onBackPressed() removes the session if it was opened by an ACTION_VIEW intent`() {
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(
@@ -36,15 +39,35 @@ class LastTabFeatureTest {
         )
 
         val useCase: TabsUseCases.RemoveTabUseCase = mock()
-
-        val feature = LastTabFeature(store, "A", mock(), mock())
+        val feature = LastTabFeature(store, "A", useCase, mock())
 
         assertTrue(feature.onBackPressed())
-        verify(useCase, never()).invoke("A")
+        verify(useCase).invoke("A")
     }
 
     @Test
-    fun `onBackPressed() removes the session if it has a parent session and no more history`() {
+    fun `onBackPressed() does not remove the last tab if there is no parent`() {
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab(
+                        url = "https://www.mozilla.org",
+                        id = "A",
+                    ),
+                ),
+                selectedTabId = "A",
+            ),
+        )
+
+        val useCase: TabsUseCases.RemoveTabUseCase = mock()
+        val feature = LastTabFeature(store, "A", useCase, mock())
+
+        assertFalse(feature.onBackPressed())
+        verify(useCase, never()).invoke("A", true)
+    }
+
+    @Test
+    fun `onBackPressed() removes the tabId session if it has a parent session`() {
         val store = BrowserStore(
             BrowserState(
                 tabs = listOf(
@@ -56,10 +79,32 @@ class LastTabFeatureTest {
         )
 
         val useCase: TabsUseCases.RemoveTabUseCase = mock()
-
-        val feature = LastTabFeature(store, "B", mock(), mock())
+        val feature = LastTabFeature(store, "B", useCase, mock())
 
         assertTrue(feature.onBackPressed())
-        verify(useCase, never()).invoke("A")
+        verify(useCase).invoke("B", true)
+    }
+
+    @Test
+    fun `onBackPressed() does not remove the selected session if it doesn't have a parent`() {
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(
+                    createTab("https://www.mozilla.org", id = "A"),
+                    createTab("https://www.mozilla.org", id = "B", parentId = "A"),
+                ),
+                selectedTabId = "A",
+            ),
+        )
+
+        val useCase: TabsUseCases.RemoveTabUseCase = mock()
+        val feature = LastTabFeature(
+            store = store,
+            removeTabUseCase = useCase,
+            activity = mock(),
+        )
+
+        assertFalse(feature.onBackPressed())
+        verify(useCase, never()).invoke(any(), anyBoolean())
     }
 }
