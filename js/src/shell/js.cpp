@@ -12351,6 +12351,11 @@ int main(int argc, char** argv) {
     return EXIT_FAILURE;
   }
 
+  if (!JS::SetLoggingInterface(shellLoggingInterface)) {
+    return 1;
+  }
+  ParseLoggerOptions();
+
   // Start the engine.
   if (const char* message = JS_InitWithFailureDiagnostic()) {
     fprintf(gErrFile->fp, "JS_Init failed: %s\n", message);
@@ -12380,11 +12385,6 @@ int main(int argc, char** argv) {
   if (!cx) {
     return 1;
   }
-
-  if (!JS::SetLoggingInterface(shellLoggingInterface)) {
-    return 1;
-  }
-  ParseLoggerOptions();
 
   // Register telemetry callbacks.
   JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryDataCallback);
