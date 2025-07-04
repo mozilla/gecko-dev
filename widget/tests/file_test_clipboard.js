@@ -36,12 +36,15 @@ function paste(clipboard) {
   return str;
 }
 
-add_setup(function init() {
-  cleanupAllClipboard();
+let isWayland = false;
+
+add_setup(async function init() {
+  isWayland = (await getWindowProtocol()) === "wayland";
+  await cleanupAllClipboard();
 });
 
 /* Test for bug 948065 */
-add_task(function test_copy() {
+add_task(async function test_copy() {
   // Test copy.
   const data = "random number: " + Math.random();
   let helper = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(
@@ -51,9 +54,12 @@ add_task(function test_copy() {
   is(paste(clipboard), data, "Data was successfully copied.");
 
   clipboard.emptyClipboard(Ci.nsIClipboard.kGlobalClipboard);
-  is(paste(clipboard), "", "Data was successfully cleared.");
+  // XXX wayland does not support clearing clipboard, see bug 1857075.
+  if (!isWayland) {
+    is(paste(clipboard), "", "Data was successfully cleared.");
+  }
 
-  cleanupAllClipboard();
+  await cleanupAllClipboard();
 });
 
 /* Tests for bug 1834073 */
@@ -101,20 +107,23 @@ clipboardTypes.forEach(function (clipboardType) {
       }
     });
 
-    add_task(function test_clipboard_set_empty_string() {
+    add_task(async function test_clipboard_set_empty_string() {
       info(`Test setting empty string to type ${clipboardType}`);
 
       // Clear clipboard type.
       clipboard.emptyClipboard(clipboardType);
-      is(
-        getClipboardData("text/plain", clipboardType),
-        null,
-        `Should get null data on clipboard type ${clipboardType}`
-      );
-      ok(
-        !clipboard.hasDataMatchingFlavors(["text/plain"], clipboardType),
-        `Should not have text/plain flavor on clipboard ${clipboardType}`
-      );
+      // XXX wayland does not support clearing clipboard, see bug 1857075.
+      if (!isWayland) {
+        is(
+          getClipboardData("text/plain", clipboardType),
+          null,
+          `Should get null data on clipboard type ${clipboardType}`
+        );
+        ok(
+          !clipboard.hasDataMatchingFlavors(["text/plain"], clipboardType),
+          `Should not have text/plain flavor on clipboard ${clipboardType}`
+        );
+      }
 
       // Set text/plain to empty string.
       writeStringToClipboard("", "text/plain", clipboardType);
@@ -147,7 +156,7 @@ clipboardTypes.forEach(function (clipboardType) {
       }
 
       // Clear all clipboard data.
-      cleanupAllClipboard();
+      await cleanupAllClipboard();
     });
 
     add_task(function test_unsupport_flavor() {

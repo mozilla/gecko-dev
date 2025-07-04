@@ -32,7 +32,7 @@ clipboardTypes.forEach(function (type) {
 
   add_task(async function test_clipboard_getDataSnapshot_no_matched_flavor() {
     info(`Test getDataSnapshot have no matched flavor on ${type}`);
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
     is(getClipboardData("text/plain", type), null, "ensure clipboard is empty");
 
     writeRandomStringToClipboard("text/plain", type);
@@ -60,7 +60,7 @@ clipboardTypes.forEach(function (type) {
 
   add_task(async function test_empty_data() {
     info(`Test getDataSnapshot request with empty data on ${type}`);
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
     is(getClipboardData("text/plain", type), null, "ensure clipboard is empty");
 
     let request = await getClipboardDataSnapshot(type);
@@ -142,7 +142,7 @@ clipboardTypes.forEach(function (type) {
       "Check data (sync)"
     );
 
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
   });
 
   add_task(async function test_clipboard_getDataSnapshot_after_empty() {
@@ -186,7 +186,7 @@ clipboardTypes.forEach(function (type) {
     request = await getClipboardDataSnapshot(type);
     isDeeply(request.flavorList, [], "Check flavorList");
 
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
   });
 });
 

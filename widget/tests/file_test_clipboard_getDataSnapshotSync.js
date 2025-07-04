@@ -28,7 +28,7 @@ clipboardTypes.forEach(function (type) {
   add_task(
     async function test_clipboard_getDataSnapshotSync_no_matched_flavor() {
       info(`Test getDataSnapshotSync have no matched flavor on ${type}`);
-      cleanupAllClipboard();
+      await cleanupAllClipboard();
       is(
         getClipboardData("text/plain", type),
         null,
@@ -43,7 +43,7 @@ clipboardTypes.forEach(function (type) {
 
   add_task(async function test_empty_data() {
     info(`Test getDataSnapshotSync request with empty data on ${type}`);
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
     is(getClipboardData("text/plain", type), null, "ensure clipboard is empty");
 
     let request = getClipboardDataSnapshotSync(type);
@@ -116,7 +116,7 @@ clipboardTypes.forEach(function (type) {
       "Check data (sync)"
     );
 
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
   });
 
   add_task(async function test_clipboard_getDataSnapshotSync_after_empty() {
@@ -154,7 +154,7 @@ clipboardTypes.forEach(function (type) {
     request = getClipboardDataSnapshotSync(type);
     isDeeply(request.flavorList, [], "Check flavorList");
 
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
   });
 });
 

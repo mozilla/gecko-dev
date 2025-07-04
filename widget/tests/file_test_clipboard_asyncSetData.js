@@ -108,7 +108,7 @@ clipboardTypes.forEach(function (type) {
             );
 
             // Clean clipboard data.
-            cleanupAllClipboard();
+            await cleanupAllClipboard();
           });
         });
       }

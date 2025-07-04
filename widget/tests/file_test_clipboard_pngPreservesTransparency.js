@@ -48,8 +48,8 @@ async function putOnClipboard(expected, operationFn, desc, type) {
   }
 }
 
-add_setup(function init() {
-  cleanupAllClipboard();
+add_setup(async function init() {
+  await cleanupAllClipboard();
 });
 
 add_task(async function test_copy() {
@@ -95,6 +95,6 @@ add_task(async function test_copy() {
   // is(imageData.data[1], 0, "G in circle is red");
   is(imageData.data[2], 0, "B in circle is red");
 
-  cleanupAllClipboard();
+  await cleanupAllClipboard();
   await SpecialPowers.popPrefEnv();
 });

@@ -25,7 +25,7 @@ function testClipboardOwner(aClipboardType, aAsync) {
     },
   };
 
-  add_task(function test_clipboard_owner() {
+  add_task(async function test_clipboard_owner() {
     info(`Test clipboard owner for type ${aClipboardType} ${aAsync ? "async" : ""}`);
 
     // Setup clipboard owner.
@@ -55,7 +55,7 @@ function testClipboardOwner(aClipboardType, aAsync) {
     ok(losingOwnership, `Should lose ownership while async setting data to type ${aClipboardType}`);
 
     // Clean clipboard data.
-    cleanupAllClipboard();
+    await cleanupAllClipboard();
   });
 }
 
