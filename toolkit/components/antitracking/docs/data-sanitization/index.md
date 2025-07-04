@@ -165,7 +165,7 @@ flowchart TD
 - Allows users to clear storage for specific sites, or all sites
 -  \[With TCP\] Also clears data of any third-party sites embedded under the top level base domain
 - Collects list of sites via [SiteDataManager.getSites](https://searchfox.org/mozilla-central/rev/6b8a3f804789fb865f42af54e9d2fef9dd3ec74d/browser/modules/SiteDataManager.sys.mjs#437)
-- Before removal, prompts via SiteDataManger.promptSiteDataRemoval
+- Before removal, prompts via SiteDataManager.promptSiteDataRemoval
 - On removal calls SiteDataManager.removeAll() if all sites have been selected or SiteDataManager.remove() passing a list of sites to be removed.
 - Source
 	-  [siteDataSettings.xhtml](https://searchfox.org/mozilla-central/rev/fbb1e8462ad82b0e76b5c13dd0d6280cfb69e68d/browser/components/preferences/dialogs/siteDataSettings.xhtml)
