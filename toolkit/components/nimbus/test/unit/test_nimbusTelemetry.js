@@ -36,11 +36,13 @@ function setupTest({ ...args } = {}) {
 add_task(
   { skip_if: nimbusTargetingContextTelemetryDisabled },
   async function test_enrollAndUnenroll_gleanMetricConfiguration() {
-    Services.fog.applyServerKnobsConfig(JSON.stringify({
-      metrics_enabled: {
-        "nimbus_events.enrollment_status": true
-      }
-    }));
+    Services.fog.applyServerKnobsConfig(
+      JSON.stringify({
+        metrics_enabled: {
+          "nimbus_events.enrollment_status": true,
+        },
+      })
+    );
 
     info(
       "Testing the interaction of gleanMetricConfiguration with submission of enrollment status and targeting context telemetry"

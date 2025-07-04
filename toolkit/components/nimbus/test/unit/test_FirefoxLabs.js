@@ -86,11 +86,13 @@ add_task(async function test_all() {
 });
 
 add_task(async function test_enroll() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   const recipe = NimbusTestUtils.factories.recipe.withFeatureConfig(
     "opt-in",
@@ -218,11 +220,13 @@ add_task(async function test_reenroll() {
 });
 
 add_task(async function test_unenroll() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   const { manager, cleanup } = await setupTest({
     experiments: [

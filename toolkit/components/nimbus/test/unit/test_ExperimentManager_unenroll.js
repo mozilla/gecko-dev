@@ -307,11 +307,13 @@ add_task(async function test_undefined_reason() {
  */
 
 add_task(async function test_remove_rollouts() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   const { sandbox, manager, cleanup } = await setupTest();
   sandbox.spy(manager.store, "deactivateEnrollment");
@@ -336,11 +338,13 @@ add_task(async function test_remove_rollouts() {
 });
 
 add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   const { manager, cleanup } = await setupTest();
 
@@ -377,11 +381,13 @@ add_task(async function test_unenroll_individualOptOut_statusTelemetry() {
 });
 
 add_task(async function testUnenrollBogusReason() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   const { manager, cleanup } = await setupTest();
 

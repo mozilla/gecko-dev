@@ -1727,11 +1727,13 @@ add_task(async function test_updateRecipes_reEnrollRolloutOptin() {
 });
 
 add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   // Create a feature for each experiment so that they aren't competing.
   const features = [
@@ -1942,11 +1944,13 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
 });
 
 add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
-  Services.fog.applyServerKnobsConfig(JSON.stringify({
-    metrics_enabled: {
-      "nimbus_events.enrollment_status": true
-    }
-  }));
+  Services.fog.applyServerKnobsConfig(
+    JSON.stringify({
+      metrics_enabled: {
+        "nimbus_events.enrollment_status": true,
+      },
+    })
+  );
 
   const features = [
     new ExperimentFeature("test-feature-0", { variables: {} }),
