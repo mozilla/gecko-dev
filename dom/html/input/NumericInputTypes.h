@@ -24,8 +24,7 @@ class NumericInputTypeBase : public InputType {
 
   StringToNumberResult ConvertStringToNumber(
       const nsAString& aValue) const override;
-  bool ConvertNumberToString(Decimal aValue,
-                             nsAString& aResultString) const override;
+  bool ConvertNumberToString(Decimal, Localized, nsAString&) const override;
 
  protected:
   explicit NumericInputTypeBase(HTMLInputElement* aInputElement)
@@ -46,8 +45,7 @@ class NumberInputType final : public NumericInputTypeBase {
   nsresult GetBadInputMessage(nsAString& aMessage) override;
 
   StringToNumberResult ConvertStringToNumber(const nsAString&) const override;
-  bool ConvertNumberToString(Decimal aValue,
-                             nsAString& aResultString) const override;
+  bool ConvertNumberToString(Decimal, Localized, nsAString&) const override;
 
  protected:
   bool IsMutable() const override;

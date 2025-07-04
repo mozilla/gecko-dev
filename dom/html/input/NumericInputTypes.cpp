@@ -52,7 +52,7 @@ nsresult NumericInputTypeBase::GetRangeOverflowMessage(nsAString& aMessage) {
   MOZ_ASSERT(!maximum.isNaN());
 
   nsAutoString maxStr;
-  ConvertNumberToString(maximum, maxStr);
+  ConvertNumberToString(maximum, Localized::Yes, maxStr);
   return nsContentUtils::FormatMaybeLocalizedString(
       aMessage, nsContentUtils::eDOM_PROPERTIES,
       "FormValidationNumberRangeOverflow", mInputElement->OwnerDoc(), maxStr);
@@ -63,7 +63,7 @@ nsresult NumericInputTypeBase::GetRangeUnderflowMessage(nsAString& aMessage) {
   MOZ_ASSERT(!minimum.isNaN());
 
   nsAutoString minStr;
-  ConvertNumberToString(minimum, minStr);
+  ConvertNumberToString(minimum, Localized::Yes, minStr);
   return nsContentUtils::FormatMaybeLocalizedString(
       aMessage, nsContentUtils::eDOM_PROPERTIES,
       "FormValidationNumberRangeUnderflow", mInputElement->OwnerDoc(), minStr);
@@ -75,12 +75,10 @@ auto NumericInputTypeBase::ConvertStringToNumber(const nsAString& aValue) const
 }
 
 bool NumericInputTypeBase::ConvertNumberToString(
-    Decimal aValue, nsAString& aResultString) const {
+    Decimal aValue, Localized, nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
-
   aResultString.Truncate();
   aResultString.AssignASCII(aValue.toString().c_str());
-
   return true;
 }
 
@@ -119,9 +117,14 @@ auto NumberInputType::ConvertStringToNumber(const nsAString& aValue) const
 }
 
 bool NumberInputType::ConvertNumberToString(Decimal aValue,
+                                            Localized aLocalized,
                                             nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
+  if (aLocalized == Localized::No) {
+    return NumericInputTypeBase::ConvertNumberToString(aValue, aLocalized,
+                                                       aResultString);
+  }
   aResultString.Truncate();
   ICUUtils::LanguageTagIterForContent langTagIter(mInputElement);
   ICUUtils::LocalizeNumber(aValue.toDouble(), langTagIter, aResultString);

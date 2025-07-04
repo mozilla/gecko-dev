@@ -172,7 +172,7 @@ auto DateInputType::ConvertStringToNumber(const nsAString& aValue) const
   return {Decimal::fromDouble(time.toDouble())};
 }
 
-bool DateInputType::ConvertNumberToString(Decimal aValue,
+bool DateInputType::ConvertNumberToString(Decimal aValue, Localized,
                                           nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
@@ -210,7 +210,7 @@ auto TimeInputType::ConvertStringToNumber(const nsAString& aValue) const
   return {Decimal(int32_t(milliseconds))};
 }
 
-bool TimeInputType::ConvertNumberToString(Decimal aValue,
+bool TimeInputType::ConvertNumberToString(Decimal aValue, Localized,
                                           nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
@@ -332,7 +332,7 @@ auto WeekInputType::ConvertStringToNumber(const nsAString& aValue) const
   return {Decimal::fromDouble(days * kMsPerDay)};
 }
 
-bool WeekInputType::ConvertNumberToString(Decimal aValue,
+bool WeekInputType::ConvertNumberToString(Decimal aValue, Localized,
                                           nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
@@ -411,7 +411,7 @@ auto MonthInputType::ConvertStringToNumber(const nsAString& aValue) const
   return {Decimal(int32_t(months))};
 }
 
-bool MonthInputType::ConvertNumberToString(Decimal aValue,
+bool MonthInputType::ConvertNumberToString(Decimal aValue, Localized,
                                            nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
@@ -460,7 +460,7 @@ auto DateTimeLocalInputType::ConvertStringToNumber(
 }
 
 bool DateTimeLocalInputType::ConvertNumberToString(
-    Decimal aValue, nsAString& aResultString) const {
+    Decimal aValue, Localized, nsAString& aResultString) const {
   MOZ_ASSERT(aValue.isFinite(), "aValue must be a valid non-Infinite number.");
 
   aResultString.Truncate();

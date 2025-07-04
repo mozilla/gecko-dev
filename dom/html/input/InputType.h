@@ -95,18 +95,21 @@ class InputType {
   virtual StringToNumberResult ConvertStringToNumber(
       const nsAString& aValue) const;
 
+  enum class Localized : bool { No = false, Yes };
   /**
    * Convert a Decimal to a string in a type specific way, ie convert a
    * timestamp to a date string if type=date or append the number string
    * representing the value if type=number.
    *
    * @param aValue the Decimal to be converted
+   * @param Localized whether the value should be localized.
    * @param aResultString [out] the string representing the Decimal
    * @return whether the function succeeded, it will fail if the current input's
    *         type is not supported or the number can't be converted to a string
    *         as expected by the type.
    */
   virtual bool ConvertNumberToString(Decimal aValue,
+                                     Localized,
                                      nsAString& aResultString) const;
 
  protected:
