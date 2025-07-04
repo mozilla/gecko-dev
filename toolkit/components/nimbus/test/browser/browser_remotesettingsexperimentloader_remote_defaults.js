@@ -496,8 +496,6 @@ add_task(async function remote_defaults_variables_storage() {
     enabled: true,
   };
 
-  // TODO(bug 1959831): isEarlyStartup is checked directly on the feature
-  // manifest, not NimbusFeatures.
   const featureCleanup = NimbusTestUtils.addTestFeatures(barFeature);
 
   let doCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
@@ -539,6 +537,5 @@ add_task(async function remote_defaults_variables_storage() {
   ExperimentAPI.manager.store._deleteForTests("bar-rollout");
   await NimbusTestUtils.flushStore();
 
-  delete NimbusFeatures.bar;
   featureCleanup();
 });
