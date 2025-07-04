@@ -93,5 +93,24 @@ def test_expires_version():
     assert all_objs["test"]["unexpired"].disabled is False
 
 
+def test_lint_no_use_ohttp():
+    """Test that the additional lints capture the use of `metadata: use_ohttp: true`"""
+
+    options = {}
+    input_files = [Path(path.join(path.dirname(__file__), "pings_use_ohttp.yaml"))]
+
+    output = io.StringIO()
+
+    try:
+        all_objs, options = run_glean_parser.parse_with_options(
+            input_files, options, file=output
+        )
+    except run_glean_parser.ParserError as exc:
+        assert "additional glinter nits" in str(exc)
+        assert "ERROR: USES_OHTTP_CHECK" in output.getvalue()
+    else:
+        assert False, "should have raised a ParserError"
+
+
 if __name__ == "__main__":
     mozunit.main()

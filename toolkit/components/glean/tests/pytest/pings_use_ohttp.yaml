@@ -1,0 +1,37 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# This file is FOR TESTING PURPOSES ONLY.
+
+---
+$schema: moz://mozilla.org/schemas/glean/pings/2-0-0
+
+test-ohttp:
+    description: A description
+    include_client_id: false
+    send_if_empty: false
+    metadata:
+      include_info_sections: false
+      use_ohttp: true
+    notification_emails:
+      - glean-team@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/1974758
+    data_reviews:
+      - https://example.com
+
+test-ohttp-valid-use:
+    description: A description
+    include_client_id: false
+    send_if_empty: false
+    uploader_capabilities:
+      - ohttp
+    metadata:
+      include_info_sections: false
+    notification_emails:
+      - glean-team@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/1974758
+    data_reviews:
+      - https://example.com

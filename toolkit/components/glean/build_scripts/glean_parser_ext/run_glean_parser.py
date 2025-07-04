@@ -14,6 +14,8 @@ import rust
 import typescript
 from buildconfig import topsrcdir
 from glean_parser import lint, metrics, parser, translate, util
+from glean_parser.lint import CheckType, GlinterNit
+from glean_parser.pings import Ping
 from metrics_header_names import convert_yaml_path_to_header_name
 from mozbuild.util import FileAvoidWrite, memoize
 from util import generate_metric_ids
@@ -119,7 +121,55 @@ def parse(args, interesting_yamls=None):
     return parse_with_options(input_files, options)
 
 
-def parse_with_options(input_files, options):
+def _lint_pings(pings):
+    """
+    Extra lints applied to pings.
+    """
+    nits = []
+    for ping_name, ping in sorted(list(pings.items())):
+        assert isinstance(ping, Ping)
+
+        if "use_ohttp" in ping.metadata:
+            nits.append(
+                GlinterNit(
+                    check_name="USES_OHTTP_CHECK",
+                    name=ping_name,
+                    msg=f"Ping {ping_name} uses `use_ohttp`. Switch to `uploader_capabilities`.",
+                    check_type=CheckType.error,
+                )
+            )
+
+    return nits
+
+
+def _lint_metrics(objs, parser_config, file=sys.stderr):
+    """
+    Extra lints for metrics and pings.
+    """
+    nits = []
+
+    for category_name, category in sorted(list(objs.items())):
+        if category_name == "pings":
+            nits.extend(_lint_pings(category))
+
+        if category_name == "tags":
+            # currently we have no linting for tags
+            continue
+
+        # handling metrics
+        # we don't have any extra lints yet.
+
+    if nits:
+        print("Sorry, run_glean_parser found some glinter nits:", file=file)
+        for nit in nits:
+            print(nit.format(), file=file)
+        print("", file=file)
+        print("Please fix the above nits to continue.", file=file)
+
+    return nits
+
+
+def parse_with_options(input_files, options, file=sys.stderr):
     # Derived heavily from glean_parser.translate.translate.
     # Adapted to how mozbuild sends us a fd, and to expire on versions not dates.
 
@@ -127,13 +177,18 @@ def parse_with_options(input_files, options):
     if util.report_validation_errors(all_objs):
         raise ParserError("found validation errors during parse")
 
-    nits = lint.lint_metrics(all_objs.value, options)
+    nits = lint.lint_metrics(all_objs.value, options, file=file)
     if nits is not None and any(nit.check_name != "EXPIRED" for nit in nits):
         # Treat Warnings as Errors in FOG.
         # But don't fail the whole build on expired metrics (it blocks testing).
         raise ParserError("glinter nits found during parse")
 
     objects = all_objs.value
+
+    # m-c specific lints
+    nits = _lint_metrics(objects, options, file=file)
+    if nits:
+        raise ParserError("additional glinter nits found during parse")
 
     translate.transform_metrics(objects)
 

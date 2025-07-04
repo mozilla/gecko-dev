@@ -13,6 +13,4 @@ subsuite = "fog"
 
 ["test_no_expired_metrics.py"]
 
-["test_no_metadata_use_ohttp.py"]
-
 ["test_yaml_indices.py"]
