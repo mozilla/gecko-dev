@@ -21,17 +21,17 @@ impl PollNext {
         old
     }
 
-    fn other(&self) -> PollNext {
+    fn other(&self) -> Self {
         match self {
-            PollNext::Left => PollNext::Right,
-            PollNext::Right => PollNext::Left,
+            Self::Left => Self::Right,
+            Self::Right => Self::Left,
         }
     }
 }
 
 impl Default for PollNext {
     fn default() -> Self {
-        PollNext::Left
+        Self::Left
     }
 }
 
@@ -45,15 +45,14 @@ enum InternalState {
 impl InternalState {
     fn finish(&mut self, ps: PollNext) {
         match (&self, ps) {
-            (InternalState::Start, PollNext::Left) => {
-                *self = InternalState::LeftFinished;
+            (Self::Start, PollNext::Left) => {
+                *self = Self::LeftFinished;
             }
-            (InternalState::Start, PollNext::Right) => {
-                *self = InternalState::RightFinished;
+            (Self::Start, PollNext::Right) => {
+                *self = Self::RightFinished;
             }
-            (InternalState::LeftFinished, PollNext::Right)
-            | (InternalState::RightFinished, PollNext::Left) => {
-                *self = InternalState::BothFinished;
+            (Self::LeftFinished, PollNext::Right) | (Self::RightFinished, PollNext::Left) => {
+                *self = Self::BothFinished;
             }
             _ => {}
         }
@@ -75,6 +74,7 @@ pin_project! {
     }
 }
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// This function will attempt to pull items from both streams. You provide a
 /// closure to tell [`SelectWithStrategy`] which stream to poll. The closure can
 /// store state on `SelectWithStrategy` to which it will receive a `&mut` on every

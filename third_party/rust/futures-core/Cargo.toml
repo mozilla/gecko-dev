@@ -13,7 +13,12 @@
 edition = "2018"
 rust-version = "1.36"
 name = "futures-core"
-version = "0.3.28"
+version = "0.3.31"
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 The core traits and types in for the `futures` library.
 """
@@ -29,8 +34,13 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[lib]
+name = "futures_core"
+path = "src/lib.rs"
+
 [dependencies.portable-atomic]
-version = "1"
+version = "1.3"
+features = ["require-cas"]
 optional = true
 default-features = false
 
@@ -42,3 +52,14 @@ cfg-target-has-atomic = []
 default = ["std"]
 std = ["alloc"]
 unstable = []
+
+[lints.rust]
+missing_debug_implementations = "warn"
+rust_2018_idioms = "warn"
+single_use_lifetimes = "warn"
+unreachable_pub = "warn"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(futures_sanitizer)"]

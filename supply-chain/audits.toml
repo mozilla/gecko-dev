@@ -2576,6 +2576,11 @@ criteria = "safe-to-deploy"
 delta = "0.3.25 -> 0.3.26"
 
 [[audits.futures-task]]
+who = "Lars Eggert <lars@eggert.org>"
+criteria = "safe-to-deploy"
+delta = "0.3.26 -> 0.3.27"
+
+[[audits.futures-task]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.3.26 -> 0.3.28"
@@ -2599,6 +2604,11 @@ delta = "0.3.25 -> 0.3.26"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.3.26 -> 0.3.28"
+
+[[audits.futures-util]]
+who = "Lars Eggert <lars@eggert.org>"
+criteria = "safe-to-deploy"
+delta = "0.3.28 -> 0.3.27"
 
 [[audits.fxhash]]
 who = "Bobby Holley <bobbyholley@gmail.com>"

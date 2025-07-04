@@ -13,7 +13,12 @@
 edition = "2018"
 rust-version = "1.36"
 name = "futures-io"
-version = "0.3.28"
+version = "0.3.31"
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
 The `AsyncRead`, `AsyncWrite`, `AsyncSeek`, and `AsyncBufRead` traits for the futures-rs library.
 """
@@ -29,9 +34,24 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[lib]
+name = "futures_io"
+path = "src/lib.rs"
+
 [dependencies]
 
 [features]
 default = ["std"]
 std = []
 unstable = []
+
+[lints.rust]
+missing_debug_implementations = "warn"
+rust_2018_idioms = "warn"
+single_use_lifetimes = "warn"
+unreachable_pub = "warn"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(futures_sanitizer)"]

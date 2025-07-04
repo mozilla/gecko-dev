@@ -62,7 +62,7 @@ pub struct FuturesUnordered<Fut> {
 }
 
 unsafe impl<Fut: Send> Send for FuturesUnordered<Fut> {}
-unsafe impl<Fut: Sync> Sync for FuturesUnordered<Fut> {}
+unsafe impl<Fut: Send + Sync> Sync for FuturesUnordered<Fut> {}
 impl<Fut> Unpin for FuturesUnordered<Fut> {}
 
 impl Spawn for FuturesUnordered<FutureObj<'_, ()>> {
@@ -256,16 +256,6 @@ impl<Fut> FuturesUnordered<Fut> {
         // `wake` from doing any work in the future
         let prev = task.queued.swap(true, SeqCst);
 
-        // Drop the future, even if it hasn't finished yet. This is safe
-        // because we're dropping the future on the thread that owns
-        // `FuturesUnordered`, which correctly tracks `Fut`'s lifetimes and
-        // such.
-        unsafe {
-            // Set to `None` rather than `take()`ing to prevent moving the
-            // future.
-            *task.future.get() = None;
-        }
-
         // If the queued flag was previously set, then it means that this task
         // is still in our internal ready to run queue. We then transfer
         // ownership of our reference count to the ready to run queue, and it'll
@@ -277,8 +267,25 @@ impl<Fut> FuturesUnordered<Fut> {
         // enqueue the task, so our task will never see the ready to run queue
         // again. The task itself will be deallocated once all reference counts
         // have been dropped elsewhere by the various wakers that contain it.
-        if prev {
-            mem::forget(task);
+        //
+        // Use ManuallyDrop to transfer the reference count ownership before
+        // dropping the future so unwinding won't release the reference count.
+        let md_slot;
+        let task = if prev {
+            md_slot = mem::ManuallyDrop::new(task);
+            &*md_slot
+        } else {
+            &task
+        };
+
+        // Drop the future, even if it hasn't finished yet. This is safe
+        // because we're dropping the future on the thread that owns
+        // `FuturesUnordered`, which correctly tracks `Fut`'s lifetimes and
+        // such.
+        unsafe {
+            // Set to `None` rather than `take()`ing to prevent moving the
+            // future.
+            *task.future.get() = None;
         }
     }
 
@@ -324,35 +331,37 @@ impl<Fut> FuturesUnordered<Fut> {
     /// This method is unsafe because it has be guaranteed that `task` is a
     /// valid pointer.
     unsafe fn unlink(&mut self, task: *const Task<Fut>) -> Arc<Task<Fut>> {
-        // Compute the new list length now in case we're removing the head node
-        // and won't be able to retrieve the correct length later.
-        let head = *self.head_all.get_mut();
-        debug_assert!(!head.is_null());
-        let new_len = *(*head).len_all.get() - 1;
+        unsafe {
+            // Compute the new list length now in case we're removing the head node
+            // and won't be able to retrieve the correct length later.
+            let head = *self.head_all.get_mut();
+            debug_assert!(!head.is_null());
+            let new_len = *(*head).len_all.get() - 1;
 
-        let task = Arc::from_raw(task);
-        let next = task.next_all.load(Relaxed);
-        let prev = *task.prev_all.get();
-        task.next_all.store(self.pending_next_all(), Relaxed);
-        *task.prev_all.get() = ptr::null_mut();
+            let task = Arc::from_raw(task);
+            let next = task.next_all.load(Relaxed);
+            let prev = *task.prev_all.get();
+            task.next_all.store(self.pending_next_all(), Relaxed);
+            *task.prev_all.get() = ptr::null_mut();
 
-        if !next.is_null() {
-            *(*next).prev_all.get() = prev;
+            if !next.is_null() {
+                *(*next).prev_all.get() = prev;
+            }
+
+            if !prev.is_null() {
+                (*prev).next_all.store(next, Relaxed);
+            } else {
+                *self.head_all.get_mut() = next;
+            }
+
+            // Store the new list length in the head node.
+            let head = *self.head_all.get_mut();
+            if !head.is_null() {
+                *(*head).len_all.get() = new_len;
+            }
+
+            task
         }
-
-        if !prev.is_null() {
-            (*prev).next_all.store(next, Relaxed);
-        } else {
-            *self.head_all.get_mut() = next;
-        }
-
-        // Store the new list length in the head node.
-        let head = *self.head_all.get_mut();
-        if !head.is_null() {
-            *(*head).len_all.get() = new_len;
-        }
-
-        task
     }
 
     /// Returns the reserved value for `Task::next_all` to indicate a pending
@@ -509,7 +518,8 @@ impl<Fut: Future> Stream for FuturesUnordered<Fut> {
                 // We are only interested in whether the future is awoken before it
                 // finishes polling, so reset the flag here.
                 task.woken.store(false, Relaxed);
-                let waker = Task::waker_ref(task);
+                // SAFETY: see the comments of Bomb and this block.
+                let waker = unsafe { Task::waker_ref(task) };
                 let mut cx = Context::from_waker(&waker);
 
                 // Safety: We won't move the future ever again
@@ -558,30 +568,33 @@ impl<Fut> Debug for FuturesUnordered<Fut> {
 impl<Fut> FuturesUnordered<Fut> {
     /// Clears the set, removing all futures.
     pub fn clear(&mut self) {
-        self.clear_head_all();
-
-        // we just cleared all the tasks, and we have &mut self, so this is safe.
-        unsafe { self.ready_to_run_queue.clear() };
-
-        self.is_terminated.store(false, Relaxed);
-    }
-
-    fn clear_head_all(&mut self) {
-        while !self.head_all.get_mut().is_null() {
-            let head = *self.head_all.get_mut();
-            let task = unsafe { self.unlink(head) };
-            self.release_task(task);
-        }
+        *self = Self::new();
     }
 }
 
 impl<Fut> Drop for FuturesUnordered<Fut> {
     fn drop(&mut self) {
+        // Before the strong reference to the queue is dropped we need all
+        // futures to be dropped. See note at the bottom of this method.
+        //
+        // If there is a panic before this completes, we leak the queue.
+        struct LeakQueueOnDrop<'a, Fut>(&'a mut FuturesUnordered<Fut>);
+        impl<Fut> Drop for LeakQueueOnDrop<'_, Fut> {
+            fn drop(&mut self) {
+                mem::forget(Arc::clone(&self.0.ready_to_run_queue));
+            }
+        }
+        let guard = LeakQueueOnDrop(self);
         // When a `FuturesUnordered` is dropped we want to drop all futures
         // associated with it. At the same time though there may be tons of
         // wakers flying around which contain `Task<Fut>` references
         // inside them. We'll let those naturally get deallocated.
-        self.clear_head_all();
+        while !guard.0.head_all.get_mut().is_null() {
+            let head = *guard.0.head_all.get_mut();
+            let task = unsafe { guard.0.unlink(head) };
+            guard.0.release_task(task);
+        }
+        mem::forget(guard); // safe to release strong reference to queue
 
         // Note that at this point we could still have a bunch of tasks in the
         // ready to run queue. None of those tasks, however, have futures

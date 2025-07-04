@@ -8,6 +8,7 @@ use futures_01::{AsyncSink as AsyncSink01, Sink as Sink01};
 use futures_core::{future::Future as Future03, stream::Stream as Stream03, task as task03};
 #[cfg(feature = "sink")]
 use futures_sink::Sink as Sink03;
+use std::boxed::Box;
 use std::pin::Pin;
 use std::task::Context;
 
@@ -346,7 +347,7 @@ unsafe impl UnsafeNotify01 for NotifyWaker {
 
     unsafe fn drop_raw(&self) {
         let ptr: *const dyn UnsafeNotify01 = self;
-        drop(Box::from_raw(ptr as *mut dyn UnsafeNotify01));
+        drop(unsafe { Box::from_raw(ptr as *mut dyn UnsafeNotify01) });
     }
 }
 

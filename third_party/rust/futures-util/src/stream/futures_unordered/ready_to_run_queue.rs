@@ -27,6 +27,8 @@ pub(super) struct ReadyToRunQueue<Fut> {
 /// An MPSC queue into which the tasks containing the futures are inserted
 /// whenever the future inside is scheduled for polling.
 impl<Fut> ReadyToRunQueue<Fut> {
+    // FIXME: this takes raw pointer without safety conditions.
+
     /// The enqueue function from the 1024cores intrusive MPSC queue algorithm.
     pub(super) fn enqueue(&self, task: *const Task<Fut>) {
         unsafe {
@@ -47,64 +49,45 @@ impl<Fut> ReadyToRunQueue<Fut> {
     /// Note that this is unsafe as it required mutual exclusion (only one
     /// thread can call this) to be guaranteed elsewhere.
     pub(super) unsafe fn dequeue(&self) -> Dequeue<Fut> {
-        let mut tail = *self.tail.get();
-        let mut next = (*tail).next_ready_to_run.load(Acquire);
+        unsafe {
+            let mut tail = *self.tail.get();
+            let mut next = (*tail).next_ready_to_run.load(Acquire);
 
-        if tail == self.stub() {
-            if next.is_null() {
-                return Dequeue::Empty;
+            if tail == self.stub() {
+                if next.is_null() {
+                    return Dequeue::Empty;
+                }
+
+                *self.tail.get() = next;
+                tail = next;
+                next = (*next).next_ready_to_run.load(Acquire);
             }
 
-            *self.tail.get() = next;
-            tail = next;
-            next = (*next).next_ready_to_run.load(Acquire);
+            if !next.is_null() {
+                *self.tail.get() = next;
+                debug_assert!(tail != self.stub());
+                return Dequeue::Data(tail);
+            }
+
+            if self.head.load(Acquire) as *const _ != tail {
+                return Dequeue::Inconsistent;
+            }
+
+            self.enqueue(self.stub());
+
+            next = (*tail).next_ready_to_run.load(Acquire);
+
+            if !next.is_null() {
+                *self.tail.get() = next;
+                return Dequeue::Data(tail);
+            }
+
+            Dequeue::Inconsistent
         }
-
-        if !next.is_null() {
-            *self.tail.get() = next;
-            debug_assert!(tail != self.stub());
-            return Dequeue::Data(tail);
-        }
-
-        if self.head.load(Acquire) as *const _ != tail {
-            return Dequeue::Inconsistent;
-        }
-
-        self.enqueue(self.stub());
-
-        next = (*tail).next_ready_to_run.load(Acquire);
-
-        if !next.is_null() {
-            *self.tail.get() = next;
-            return Dequeue::Data(tail);
-        }
-
-        Dequeue::Inconsistent
     }
 
     pub(super) fn stub(&self) -> *const Task<Fut> {
         Arc::as_ptr(&self.stub)
-    }
-
-    // Clear the queue of tasks.
-    //
-    // Note that each task has a strong reference count associated with it
-    // which is owned by the ready to run queue. This method just pulls out
-    // tasks and drops their refcounts.
-    //
-    // # Safety
-    //
-    // - All tasks **must** have had their futures dropped already (by FuturesUnordered::clear)
-    // - The caller **must** guarantee unique access to `self`
-    pub(crate) unsafe fn clear(&self) {
-        loop {
-            // SAFETY: We have the guarantee of mutual exclusion required by `dequeue`.
-            match self.dequeue() {
-                Dequeue::Empty => break,
-                Dequeue::Inconsistent => abort("inconsistent in drop"),
-                Dequeue::Data(ptr) => drop(Arc::from_raw(ptr)),
-            }
-        }
     }
 }
 
@@ -112,11 +95,19 @@ impl<Fut> Drop for ReadyToRunQueue<Fut> {
     fn drop(&mut self) {
         // Once we're in the destructor for `Inner<Fut>` we need to clear out
         // the ready to run queue of tasks if there's anything left in there.
-
-        // All tasks have had their futures dropped already by the `FuturesUnordered`
-        // destructor above, and we have &mut self, so this is safe.
+        //
+        // Note that each task has a strong reference count associated with it
+        // which is owned by the ready to run queue. All tasks should have had
+        // their futures dropped already by the `FuturesUnordered` destructor
+        // above, so we're just pulling out tasks and dropping their refcounts.
         unsafe {
-            self.clear();
+            loop {
+                match self.dequeue() {
+                    Dequeue::Empty => break,
+                    Dequeue::Inconsistent => abort("inconsistent in drop"),
+                    Dequeue::Data(ptr) => drop(Arc::from_raw(ptr)),
+                }
+            }
         }
     }
 }
