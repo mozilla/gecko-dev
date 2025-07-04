@@ -312,7 +312,7 @@ function runTests() {
       )}] failed`
     );
     console.log(
-      "[devtools-node-test-runner] You can find documentation about the " +
+      "TEST-UNEXPECTED-FAIL | Documentation to run and fix failures for " +
         "devtools node tests at https://firefox-source-docs.mozilla.org/devtools/tests/node-tests.html"
     );
   }
