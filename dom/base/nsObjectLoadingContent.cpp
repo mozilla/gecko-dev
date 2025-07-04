@@ -1460,6 +1460,13 @@ nsresult nsObjectLoadingContent::OpenChannel() {
     loadInfo->SetPrincipalToInherit(el->NodePrincipal());
   }
 
+  // For object loads we store the CSP that potentially needs to
+  // be inherited, e.g. in case we are loading an opaque origin
+  // like a data: URI. The actual inheritance check happens within
+  // Document::InitCSP(). Please create an actual copy of the CSP
+  // (do not share the same reference) otherwise a Meta CSP of an
+  // opaque origin will incorrectly be propagated to the embedding
+  // document.
   if (cspToInherit) {
     loadInfo->SetCSPToInherit(cspToInherit);
   }
@@ -1510,36 +1517,17 @@ nsresult nsObjectLoadingContent::OpenChannel() {
                                loadFlags,             // aLoadFlags
                                nullptr);              // aIoService
     NS_ENSURE_SUCCESS(rv, rv);
-
-    if (inheritAttrs) {
-      nsCOMPtr<nsILoadInfo> loadinfo = chan->LoadInfo();
-      loadinfo->SetPrincipalToInherit(el->NodePrincipal());
-    }
-
-    // For object loads we store the CSP that potentially needs to
-    // be inherited, e.g. in case we are loading an opaque origin
-    // like a data: URI. The actual inheritance check happens within
-    // Document::InitCSP(). Please create an actual copy of the CSP
-    // (do not share the same reference) otherwise a Meta CSP of an
-    // opaque origin will incorrectly be propagated to the embedding
-    // document.
-    if (cspToInherit) {
-      nsCOMPtr<nsILoadInfo> loadinfo = chan->LoadInfo();
-      static_cast<LoadInfo*>(loadinfo.get())->SetCSPToInherit(cspToInherit);
-    }
   };
 
   // Referrer
-  nsCOMPtr<nsIHttpChannel> httpChan(do_QueryInterface(chan));
-  if (httpChan) {
+  if (nsCOMPtr<nsIHttpChannel> httpChan = do_QueryInterface(chan)) {
     auto referrerInfo = MakeRefPtr<ReferrerInfo>(*doc);
 
     rv = httpChan->SetReferrerInfoWithoutClone(referrerInfo);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
 
     // Set the initiator type
-    nsCOMPtr<nsITimedChannel> timedChannel(do_QueryInterface(httpChan));
-    if (timedChannel) {
+    if (nsCOMPtr<nsITimedChannel> timedChannel = do_QueryInterface(httpChan)) {
       timedChannel->SetInitiatorType(el->LocalName());
     }
 
@@ -1547,12 +1535,6 @@ nsresult nsObjectLoadingContent::OpenChannel() {
     if (cos && UserActivation::IsHandlingUserInput()) {
       cos->AddClassFlags(nsIClassOfService::UrgentStart);
     }
-  }
-
-  nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(chan);
-  if (scriptChannel) {
-    // Allow execution against our context if the principals match
-    scriptChannel->SetExecutionPolicy(nsIScriptChannel::EXECUTE_NORMAL);
   }
 
   // AsyncOpen can fail if a file does not exist.
