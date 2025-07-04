@@ -30,6 +30,23 @@ impl IPCServer {
             // never happens in practice hence the unwrap().
             let revents = pollfd.revents().unwrap();
 
+            if revents.contains(PollFlags::POLLHUP) {
+                if index > 0 {
+                    events.push(IPCEvent::Disconnect(index - 1));
+                    // If a process was disconnected then skip all further
+                    // processing of the socket. This wouldn't matter normally,
+                    // but on macOS calling recvmsg() on a hung-up socket seems
+                    // to trigger a kernel panic, one we've already encountered
+                    // in the past. Doing things this way avoids the panic
+                    // while having no real downsides.
+                    continue;
+                } else {
+                    // This should never happen, unless the listener socket was
+                    // not set up properly or a failure happened during setup.
+                    return Err(IPCError::System(Errno::EFAULT));
+                }
+            }
+
             if revents.contains(PollFlags::POLLIN) {
                 if index == 0 {
                     if let Ok(connector) = self.listener.accept() {
@@ -47,16 +64,6 @@ impl IPCServer {
                         // instead of here.
                         events.push(IPCEvent::Header(index - 1, header));
                     }
-                }
-            }
-
-            if revents.contains(PollFlags::POLLHUP) {
-                if index > 0 {
-                    events.push(IPCEvent::Disconnect(index - 1));
-                } else {
-                    // This should never happen, unless the listener socket was not
-                    // set up properly or a failure happened during setup.
-                    return Err(IPCError::System(Errno::EFAULT));
                 }
             }
 

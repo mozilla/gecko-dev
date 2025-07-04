@@ -3,17 +3,17 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[cfg(target_os = "windows")]
-pub use windows::{AncillaryData, BreakpadChar, BreakpadData, BreakpadRawData, Pid};
+pub use windows::{BreakpadChar, BreakpadData, BreakpadRawData, Pid};
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
-pub use linux::{AncillaryData, BreakpadChar, BreakpadData, BreakpadRawData, Pid};
+pub use linux::{BreakpadChar, BreakpadData, BreakpadRawData, Pid};
 #[cfg(any(target_os = "android", target_os = "linux"))]
 pub(crate) mod linux;
 
 #[cfg(target_os = "macos")]
-pub use macos::{AncillaryData, BreakpadChar, BreakpadData, BreakpadRawData, Pid};
+pub use macos::{BreakpadChar, BreakpadData, BreakpadRawData, Pid};
 #[cfg(target_os = "macos")]
 pub(crate) mod macos;
 

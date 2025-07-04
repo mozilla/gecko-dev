@@ -13,11 +13,7 @@ use std::{
 #[cfg(target_os = "windows")]
 use windows_sys::Win32::System::Diagnostics::Debug::{CONTEXT, EXCEPTION_RECORD};
 
-use crate::{
-    breakpad::{AncillaryData, Pid},
-    errors::MessageError,
-    BreakpadString,
-};
+use crate::{breakpad::Pid, errors::MessageError, ipc_connector::AncillaryData, BreakpadString};
 
 #[repr(u8)]
 #[derive(Copy, Clone, Debug, FromPrimitive, ToPrimitive, PartialEq)]

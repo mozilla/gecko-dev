@@ -15,7 +15,7 @@ pub enum IPCEvent {
  *****************************************************************************/
 
 #[cfg(target_os = "windows")]
-pub use windows::IPCConnector;
+pub use windows::{AncillaryData, IPCConnector, INVALID_ANCILLARY_DATA};
 
 #[cfg(target_os = "windows")]
 pub(crate) mod windows;
@@ -25,7 +25,7 @@ pub(crate) mod windows;
  *****************************************************************************/
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "macos"))]
-pub use unix::IPCConnector;
+pub use unix::{AncillaryData, IPCConnector, INVALID_ANCILLARY_DATA};
 
 #[cfg(any(target_os = "android", target_os = "linux", target_os = "macos"))]
 pub(crate) mod unix;

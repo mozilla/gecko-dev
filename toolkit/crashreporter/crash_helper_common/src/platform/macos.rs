@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{ignore_eintr, AncillaryData, Pid};
+use crate::Pid;
 
 use nix::{
     errno::Errno,
@@ -12,14 +12,12 @@ use nix::{
         FdFlag, OFlag,
     },
     libc::{setsockopt, SOL_SOCKET, SO_NOSIGPIPE},
-    sys::socket::{
-        recv, send, socket, socketpair, AddressFamily, MsgFlags, SockFlag, SockType, UnixAddr,
-    },
+    sys::socket::{socket, socketpair, AddressFamily, SockFlag, SockType, UnixAddr},
     Result,
 };
 use std::{
     mem::size_of,
-    os::fd::{AsRawFd, BorrowedFd, OwnedFd, RawFd},
+    os::fd::{AsRawFd, BorrowedFd, OwnedFd},
     path::PathBuf,
     str::FromStr,
 };
@@ -78,62 +76,4 @@ pub(crate) fn server_addr(pid: Pid) -> Result<UnixAddr> {
     let server_name = format!("/tmp/gecko-crash-helper-pipe.{pid:}");
     let server_path = PathBuf::from_str(&server_name).unwrap();
     UnixAddr::new(&server_path)
-}
-
-// We're using plain recv()/send() calls here and we're calling them in a loop
-// until all the data expected to be in a message gets retrieved or sent. Note
-// however we'll fail whenever we hit an EAGAIN condition. That's because IPC
-// calls are essentially symmetric, so if we're hitting EAGAIN it means one of
-// the sides isn't responding so better to fail right away.
-
-pub(crate) fn send_nonblock(socket: RawFd, buff: &[u8], fd: Option<AncillaryData>) -> Result<()> {
-    // We don't send file descriptors on macOS
-    if fd.is_some() {
-        return Err(Errno::EINVAL);
-    }
-
-    let mut bytes_sent = 0;
-
-    while bytes_sent != buff.len() {
-        let res = ignore_eintr!(send(socket, &buff[bytes_sent..], MsgFlags::empty()));
-
-        match res {
-            Ok(size) => {
-                bytes_sent += size;
-            }
-            Err(error) => {
-                return Err(error);
-            }
-        }
-    }
-
-    Ok(())
-}
-
-pub(crate) fn recv_nonblock(
-    socket: RawFd,
-    expected_size: usize,
-) -> Result<(Vec<u8>, Option<AncillaryData>)> {
-    let mut buff: Vec<u8> = vec![0; expected_size];
-    let mut bytes_received = 0;
-
-    while bytes_received != expected_size {
-        let res = ignore_eintr!(recv(socket, &mut buff[bytes_received..], MsgFlags::empty()));
-
-        match res {
-            Ok(size) => {
-                bytes_received += size;
-
-                if size == 0 {
-                    // This means the other end was disconnected
-                    return Err(Errno::EBADMSG);
-                }
-            }
-            Err(error) => {
-                return Err(error);
-            }
-        }
-    }
-
-    Ok((buff, None))
 }

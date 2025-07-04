@@ -6,7 +6,7 @@ use crate::{
     errors::IPCError,
     messages::{self, Message},
     platform::windows::{create_manual_reset_event, server_name, OverlappedOperation},
-    AncillaryData, Pid, IO_TIMEOUT,
+    Pid, IO_TIMEOUT,
 };
 
 use std::{
@@ -28,6 +28,10 @@ use windows_sys::Win32::{
     },
     System::Pipes::{SetNamedPipeHandleState, WaitNamedPipeA, PIPE_READMODE_MESSAGE},
 };
+
+pub type AncillaryData = ();
+
+pub const INVALID_ANCILLARY_DATA: AncillaryData = ();
 
 pub struct IPCConnector {
     handle: OwnedHandle,
