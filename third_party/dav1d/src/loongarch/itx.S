@@ -1148,7 +1148,7 @@ functionl inv_txfm_\txfm\()add_4x16_lsx
                        vr27, vr14, vr28, vr10, vr11, vr12, vr13
 
 416:
-    ble           t5,       a3,       416416f
+    bge           a3,       t5,       416416f
 .irp i, vr8, vr9, vr24, vr25, vr26, vr27, vr14, vr28
     vxor.v        \i,       \i,       \i
 .endr
@@ -1654,9 +1654,9 @@ functionl inv_txfm_\txfm1\()add_8x16_lsx
 .endif
 
 816:
-    ble       t5,    a3,  816816f
+    bge           a3,       t5,       816816f
 .irp i, vr8, vr9, vr10, vr11, vr12, vr13, vr14, vr15
-    vxor.v    \i,  \i,  \i
+    vxor.v        \i,       \i,       \i
 .endr
 
 816816:
@@ -1819,7 +1819,7 @@ function inv_txfm_add_\txfm1\()_\txfm2\()_16x8_8bpc_lsx
 
     alsl.d        a0,       a1,       a0,     2
     alsl.d        t2,       a1,       a0,     1
-    VLD_DST_ADD_W16 vr20, vr20, vr20, vr20, vr20, vr20, vr20, vr20,
+    VLD_DST_ADD_W16 vr20, vr20, vr20, vr20, vr20, vr20, vr20, vr20
     b             .\txfm1\()_\txfm2\()_16x8_END
 .NO_HAS_DCONLY_16x8:
 .endif
@@ -1946,7 +1946,7 @@ functionl inv_txfm_add_16x16_lsx
 .endr
 
 1616:
-    ble           t5,       a3,       16161616f
+    bge           a3,       t5,       16161616f
     addi.d        t1,       sp,       320
     vxor.v        vr23,     vr23,     vr23
 .irp i, 0, 16, 32, 48, 64, 80, 96, 112, 128, 144, 160, 176, 192, 208, 224, \
@@ -4284,7 +4284,7 @@ function inv_txfm_add_dct_dct_16x32_8bpc_lsx
     vsrari.h       \i,       \i,       1
 .endr
 
-    vst_x8 t3, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7,
+    vst_x8 t3, 0, 16, vr0, vr1, vr2, vr3, vr4, vr5, vr6, vr7
     vst_x8 t3, 512, 16, vr8, vr9, vr10, vr11, vr12, vr13, vr14, vr15
 
     addi.d        a2,       a2,       16

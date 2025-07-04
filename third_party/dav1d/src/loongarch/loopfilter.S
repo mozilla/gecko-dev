@@ -729,7 +729,7 @@ functionl lpf_h_6_16_lsx
     slli.d           t3,    a1,    4
     sub.d            a0,    a0,    t3
 
-    TRANSPOSE_4x16b vr22, vr23, vr24, vr25, vr26, vr27, vr28, vr29
+    TRANSPOSE_4x16B vr22, vr23, vr24, vr25, vr26, vr27, vr28, vr29
 
     addi.d           a0,    a0,   -2
 .irp i, vr22, vr23, vr24, vr25
@@ -834,7 +834,7 @@ functionl lpf_h_8_16_lsx
     slli.d           t3,    a1,    4
     sub.d            a0,    a0,    t3
 
-    TRANSPOSE_8x16b vr20, vr21, vr22, vr23, vr24, vr25, vr26, vr27, vr28, vr29
+    TRANSPOSE_8x16B vr20, vr21, vr22, vr23, vr24, vr25, vr26, vr27, vr28, vr29
 
     addi.d           a0,    a0,   -4
 .irp i, vr20, vr21, vr22, vr23, vr24, vr25, vr26, vr27

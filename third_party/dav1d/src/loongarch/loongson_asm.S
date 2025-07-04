@@ -59,6 +59,7 @@
 .text ;
 .align \align ;
 .globl ASM_PREF\name ;
+.hidden ASM_PREF\name ;
 .type  ASM_PREF\name, @function ;
 ASM_PREF\name: ;
 .endm

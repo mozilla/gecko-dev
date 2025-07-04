@@ -478,7 +478,7 @@ static int decode_coefs(Dav1dTaskContext *const t,
                        ts->msac.rng); \
         } \
         cf[rc] = tok << 11; \
-        if (TX_CLASS_2D) \
+        if (tx_class == TX_CLASS_2D) \
             level = levels + rc; \
         else \
             level = levels + x * stride + y; \
@@ -492,8 +492,8 @@ static int decode_coefs(Dav1dTaskContext *const t,
             else /* tx_class == TX_CLASS_V */ \
                 x = i & mask, y = i >> shift, rc_i = (x << shift2) | y; \
             assert(x < 32 && y < 32); \
-            if (TX_CLASS_2D) \
-                level = levels + rc; \
+            if (tx_class == TX_CLASS_2D) \
+                level = levels + rc_i; \
             else \
                 level = levels + x * stride + y; \
             ctx = get_lo_ctx(level, tx_class, &mag, lo_ctx_offsets, x, y, stride); \

@@ -385,7 +385,7 @@ function boxsum3_v_8bpc_lsx
     addi.d         t5,       t5,      32
     addi.d         t6,       t6,      16
     addi.d         t3,       t3,      -8
-    ble            t3,       zero,    .LBS3_V_H0
+    bge            zero,     t3,      .LBS3_V_H0
 
 .LBS3_V_W8:
     vld            vr0,      t1,      0   // a 0 1 2 3 4 5 6 7
@@ -1042,7 +1042,7 @@ function boxsum5_v_8bpc_lsx
     addi.d         t0,      t0,      32
     addi.d         t2,      t2,      32
     addi.w         t4,      t4,      -8
-    ble            t4,      zero,    .LBOXSUM5_V_H1
+    bge            zero,    t4,      .LBOXSUM5_V_H1
 
 .LBOXSUM5_V_W:
     vld            vr0,     t1,      0   // a 0 1 2 3 4 5 6 7

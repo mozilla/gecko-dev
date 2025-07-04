@@ -103,7 +103,7 @@ unsigned dav1d_get_uleb128(GetBits *const c) {
         i += 7;
     } while (more && i < 56);
 
-    if (val > UINT_MAX || more) {
+    if (val > UINT32_MAX || more) {
         c->error = 1;
         return 0;
     }
@@ -129,7 +129,7 @@ unsigned dav1d_get_vlc(GetBits *const c) {
     int n_bits = 0;
     do {
         if (++n_bits == 32)
-            return 0xFFFFFFFFU;
+            return UINT32_MAX;
     } while (!dav1d_get_bit(c));
 
     return ((1U << n_bits) - 1) + dav1d_get_bits(c, n_bits);

@@ -235,7 +235,7 @@ if is_asm_enabled
         )
 
         libdav1d_arch_tmpl_sources += {'default': files(
-            'loongarch/looprestoration_tmpl.c',
+            'loongarch/looprestoration_inner.c',
         )}
 
         libdav1d_sources_asm = files(

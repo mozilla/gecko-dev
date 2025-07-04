@@ -110,7 +110,7 @@ static NOINLINE int parse_seq_hdr(Dav1dSequenceHeader *const hdr,
             hdr->equal_picture_interval = dav1d_get_bit(gb);
             if (hdr->equal_picture_interval) {
                 const unsigned num_ticks_per_picture = dav1d_get_vlc(gb);
-                if (num_ticks_per_picture == 0xFFFFFFFFU)
+                if (num_ticks_per_picture == UINT32_MAX)
                     goto error;
                 hdr->num_ticks_per_picture = num_ticks_per_picture + 1;
             }
