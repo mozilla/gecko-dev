@@ -113,11 +113,14 @@ internal fun Homepage(
             }
             .verticalScroll(scrollState),
     ) {
-        HomepageHeader(
-            showPrivateBrowsingButton = state.showPrivateBrowsingButton,
-            browsingMode = state.browsingMode,
-            browsingModeChanged = interactor::onPrivateModeButtonClicked,
-        )
+        if (state.showHeader) {
+            HomepageHeader(
+                browsingMode = state.browsingMode,
+                browsingModeChanged = interactor::onPrivateModeButtonClicked,
+            )
+        } else {
+            Spacer(modifier = Modifier.height(40.dp))
+        }
 
         if (state.firstFrameDrawn) {
             with(state) {
@@ -482,7 +485,7 @@ private fun HomepagePreview() {
                     showRecentlyVisited = true,
                     showPocketStories = true,
                     showCollections = true,
-                    showPrivateBrowsingButton = true,
+                    showHeader = false,
                     searchBarEnabled = false,
                     firstFrameDrawn = true,
                     showSearchBar = true,
@@ -523,7 +526,7 @@ private fun HomepagePreviewCollections() {
                 showRecentlyVisited = true,
                 showPocketStories = true,
                 showCollections = true,
-                showPrivateBrowsingButton = true,
+                showHeader = false,
                 showSearchBar = true,
                 searchBarEnabled = false,
                 firstFrameDrawn = true,
@@ -553,7 +556,7 @@ private fun PrivateHomepagePreview() {
         ) {
             Homepage(
                 HomepageState.Private(
-                    showPrivateBrowsingButton = true,
+                    showHeader = false,
                     firstFrameDrawn = true,
                     isSearchInProgress = false,
                     bottomSpacerHeight = 188.dp,

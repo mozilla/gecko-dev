@@ -43,6 +43,7 @@ features:
         type: Map<HomeScreenSection, Boolean>
         default:
           {
+            "header": false,
             "top-sites": true,
             "jump-back-in": true,
             "bookmarks": true,
@@ -56,6 +57,7 @@ features:
       - channel: nightly
         value: {
           "sections-enabled": {
+            "header": false,
             "top-sites": true,
             "jump-back-in": true,
             "bookmarks": true,
@@ -914,6 +916,8 @@ types:
     HomeScreenSection:
       description: The identifiers for the sections of the homescreen.
       variants:
+        header:
+          description: The header of the homescreen.
         top-sites:
           description: The frecency and pinned sites.
         bookmarks:

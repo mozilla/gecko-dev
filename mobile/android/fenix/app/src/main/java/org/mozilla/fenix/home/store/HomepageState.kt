@@ -42,9 +42,9 @@ internal sealed class HomepageState {
     abstract val bottomSpacerHeight: Dp
 
     /**
-     * Whether to show the private browsing button.
+     * Whether to show the homepage header.
      */
-    abstract val showPrivateBrowsingButton: Boolean
+    abstract val showHeader: Boolean
 
     /**
      * Flag indicating whether the first frame of the homescreen has been drawn.
@@ -59,14 +59,14 @@ internal sealed class HomepageState {
     /**
      * State type corresponding with private browsing mode.
      *
-     * @property showPrivateBrowsingButton Whether to show the private browsing button.
+     * @property showHeader Whether to show the homepage header.
      * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
      * @property isSearchInProgress Whether search is currently active on the homepage.
      * @property bottomSpacerHeight Height in [Dp] for the bottom of the scrollable view, based on
      * what's currently visible on the screen.
      */
     internal data class Private(
-        override val showPrivateBrowsingButton: Boolean,
+        override val showHeader: Boolean,
         override val firstFrameDrawn: Boolean = false,
         override val isSearchInProgress: Boolean,
         override val bottomSpacerHeight: Dp,
@@ -90,7 +90,7 @@ internal sealed class HomepageState {
      * @property showRecentlyVisited Whether to show recent history section.
      * @property showPocketStories Whether to show the pocket stories section.
      * @property showCollections Whether to show the collections section.
-     * @property showPrivateBrowsingButton Whether to show the private browsing button.
+     * @property showHeader Whether to show the homepage header.
      * @property showSearchBar Whether to show the middle search bar.
      * @property searchBarEnabled Whether the middle search bar is enabled or not.
      * @property firstFrameDrawn Flag indicating whether the first frame of the homescreen has been drawn.
@@ -119,7 +119,7 @@ internal sealed class HomepageState {
         val showRecentlyVisited: Boolean,
         val showPocketStories: Boolean,
         val showCollections: Boolean,
-        override val showPrivateBrowsingButton: Boolean,
+        override val showHeader: Boolean,
         val showSearchBar: Boolean,
         val searchBarEnabled: Boolean,
         override val firstFrameDrawn: Boolean = false,
@@ -156,7 +156,7 @@ internal sealed class HomepageState {
             return with(appState) {
                 if (browsingModeManager.mode.isPrivate) {
                     Private(
-                        showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
+                        showHeader = settings.showHomepageHeader,
                         firstFrameDrawn = firstFrameDrawn,
                         isSearchInProgress = isSearchActive,
                         bottomSpacerHeight = getBottomSpace(),
@@ -189,7 +189,7 @@ internal sealed class HomepageState {
                         showPocketStories = settings.showPocketRecommendationsFeature &&
                             recommendationState.pocketStories.isNotEmpty(),
                         showCollections = settings.collections,
-                        showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
+                        showHeader = settings.showHomepageHeader,
                         showSearchBar = shouldShowSearchBar(appState = appState),
                         searchBarEnabled = settings.enableHomepageSearchBar &&
                             settings.toolbarPosition == ToolbarPosition.TOP,
