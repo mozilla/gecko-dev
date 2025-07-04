@@ -46,7 +46,8 @@ export interface Commands {
   client: any;
   targetCommand: {
     targetFront: {
-      // @backward-compat { version 140 } This trait is used to support Firefox < 140
+      // @backward-compat { version 141 } This trait is used to support Firefox < 140
+      // It should be removed when ESR 128 isn't supported anymore.
       getTrait(
         traitName: "useBulkTransferForPerformanceProfile"
       ): boolean | undefined;
@@ -55,7 +56,7 @@ export interface Commands {
   };
 }
 
-/* @backward-compat { version 140 } This interface is only useful for Firefox <
+/* @backward-compat { version 141 } This interface is only useful for Firefox <
  * 140. Starting Firefox 140 a gzipped ArrayBuffer is used in all cases, then
  * this interface can be replaced by MockedExports.ProfileAndAdditionalInformation
  * directly after we stop supporting older versions.
@@ -105,10 +106,10 @@ export interface PreferenceFront {
 }
 
 export interface RootTraits {
-  // @backward-compat { version 140 }
+  // @backward-compat { version 141 }
   // In Firefox >= 140, this will be true, and will be missing in older
   // versions. The functionality controlled by this property can be cleaned up
-  // once Firefox 140 hits release.
+  // once ESR 128 isn't supported anymore.
   useBulkTransferForPerformanceProfile?: boolean;
 
   // There are other properties too, but we don't list them here as they're not
@@ -192,7 +193,7 @@ export interface Library {
 /**
  * Only provide types for the GeckoProfile as much as we need it. There is no
  * reason to maintain a full type definition here.
- * @backward-compat { version 140 } This interface is only useful for Firefox <
+ * @backward-compat { version 141 } This interface is only useful for Firefox <
  * 140. Starting Firefox 140 a gzipped ArrayBuffer is used in all cases.
  */
 export interface MinimallyTypedGeckoProfile {
@@ -604,7 +605,7 @@ type StatusQueryResponse = {
 };
 type EnableMenuButtonResponse = void;
 
-/* @backward-compat { version 140 } When the target is < v140, this is a JS
+/* @backward-compat { version 141 } When the target is < v140, this is a JS
  * object. Starting v140 this is an ArrayBuffer containing a gzipped profile. */
 type GetProfileResponse = ArrayBuffer | MinimallyTypedGeckoProfile;
 type GetExternalMarkersResponse = Array<object>;
@@ -650,7 +651,7 @@ export type ProfilerBrowserInfo = {
 export type ProfileCaptureResult =
   | {
       type: "SUCCESS";
-      /* @backward-compat { version 140 } When the target is < v140, this is a JS
+      /* @backward-compat { version 141 } When the target is < v140, this is a JS
        * object. Starting v140 this is an ArrayBuffer containing a gzipped profile. */
       profile: MinimallyTypedGeckoProfile | ArrayBuffer;
     }

@@ -22,7 +22,7 @@ class PerfFront extends FrontClassWithSpec(perfSpec) {
     this.formAttributeName = "perfActor";
   }
 
-  /* @backward-compat { version 140 }
+  /* @backward-compat { version 141 }
    * Version 140 introduced the bulk transfer of the profile date, as
    * implemented by getProfileAndStopProfilerBulk below.
    * This function uses a trait to decide between calling the old method and the
@@ -33,9 +33,9 @@ class PerfFront extends FrontClassWithSpec(perfSpec) {
    * getPreviouslyRetrievedAdditionalInformation is made to retrieve this
    * information from the server-side.
    *
-   * When we'll want to remove the backwards compatible code, we'll remove the
-   * second part of this function, but we'll likely keep the first part for
-   * simplicity.
+   * When we'll want to remove the backwards compatible code (on ESR 128 EOL),
+   * we'll remove the second part of this function, but we'll likely keep the first part
+   * for simplicity.
    * */
   async getProfileAndStopProfiler() {
     // Note: this.conn.traits exists sometimes, but isn't guaranteed to exist always.
