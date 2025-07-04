@@ -108,8 +108,7 @@ class InputType {
    *         type is not supported or the number can't be converted to a string
    *         as expected by the type.
    */
-  virtual bool ConvertNumberToString(Decimal aValue,
-                                     Localized,
+  virtual bool ConvertNumberToString(Decimal aValue, Localized,
                                      nsAString& aResultString) const;
 
  protected:
