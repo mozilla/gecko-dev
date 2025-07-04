@@ -38,3 +38,6 @@ skip-if = ["true"] # Bug 987616
 ["browser_offscreen_image_in_out_of_process_iframe.js"]
 https_first_disabled = true
 support-files = ["empty.html"]
+
+["browser_mozicon_file_sandbox_headless.js"]
+run-if = ["os == 'linux'"] # specific to Linux sandboxing

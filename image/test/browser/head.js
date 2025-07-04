@@ -38,10 +38,6 @@ function assertFileProcess() {
   assertPrefVal("browser.tabs.remote.separateFileUriProcess", true);
 }
 
-function assertSandboxHeadless() {
-  assertPrefVal("security.sandbox.content.headless", true);
-}
-
 function getPage() {
   let filePage = undefined;
   switch (Services.appinfo.OS) {

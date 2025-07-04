@@ -494,7 +494,7 @@ void RunTestsContent(SandboxTestingChild* child) {
 
 #    ifdef MOZ_X11
   // Check that X11 access is blocked (bug 1129492).
-  // This will fail if security.sandbox.content.headless is turned off.
+  // This will fail if security.sandbox.content.level is less than 5.
   if (PR_GetEnv("DISPLAY")) {
     Display* disp = XOpenDisplay(nullptr);
 
