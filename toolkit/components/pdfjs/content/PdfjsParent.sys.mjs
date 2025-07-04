@@ -500,7 +500,7 @@ export class PdfjsParent extends JSWindowActorParent {
   async #createAIEngine(taskName, aggregator) {
     try {
       return await lazy.createEngine(
-        { engineId: ML_ENGINE_ID, taskName },
+        { engineId: ML_ENGINE_ID, taskName, backend: "onnx-native" },
         aggregator?.aggregateCallback.bind(aggregator) || null
       );
     } catch (e) {
