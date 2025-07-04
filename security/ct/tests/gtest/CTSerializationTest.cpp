@@ -192,6 +192,90 @@ TEST_F(CTSerializationTest, DecodesSignedCertificateTimestamp) {
   const size_t expectedSignatureLength = 71;
   EXPECT_EQ(expectedSignatureLength, sct.signature.signatureData.size());
   EXPECT_TRUE(sct.extensions.empty());
+  EXPECT_TRUE(sct.leafIndex.isNothing());
+}
+
+TEST_F(CTSerializationTest,
+       DecodesSignedCertificateTimestampWithLeafIndexExtension) {
+  Buffer encodedSctBuffer =
+      GetTestSignedCertificateTimestampWithLeafIndexExtension();
+  Input encodedSctInput = InputForBuffer(encodedSctBuffer);
+  Reader encodedSctReader(encodedSctInput);
+
+  SignedCertificateTimestamp sct;
+  ASSERT_EQ(Success, DecodeSignedCertificateTimestamp(encodedSctReader, sct));
+  EXPECT_EQ(SignedCertificateTimestamp::Version::V1, sct.version);
+  EXPECT_EQ(GetTestPublicKeyId(), sct.logId);
+  const uint64_t expectedTime = 1365181456089;
+  EXPECT_EQ(expectedTime, sct.timestamp);
+  const size_t expectedSignatureLength = 71;
+  EXPECT_EQ(expectedSignatureLength, sct.signature.signatureData.size());
+  EXPECT_FALSE(sct.extensions.empty());
+  ASSERT_TRUE(sct.leafIndex.isSome());
+  EXPECT_EQ(sct.leafIndex.value(), 52U);
+}
+
+TEST_F(CTSerializationTest,
+       FailsDecodingSignedCertificateTimestampWithTwoLeafIndexExtensions) {
+  Buffer encodedSctBuffer =
+      GetTestSignedCertificateTimestampWithTwoLeafIndexExtensions();
+  Input encodedSctInput = InputForBuffer(encodedSctBuffer);
+  Reader encodedSctReader(encodedSctInput);
+
+  SignedCertificateTimestamp sct;
+  ASSERT_EQ(Result::ERROR_EXTENSION_VALUE_INVALID,
+            DecodeSignedCertificateTimestamp(encodedSctReader, sct));
+}
+
+TEST_F(CTSerializationTest,
+       DecodesSignedCertificateTimestampWithUnknownExtension) {
+  Buffer encodedSctBuffer =
+      GetTestSignedCertificateTimestampWithUnknownExtension();
+  Input encodedSctInput = InputForBuffer(encodedSctBuffer);
+  Reader encodedSctReader(encodedSctInput);
+
+  SignedCertificateTimestamp sct;
+  ASSERT_EQ(Success, DecodeSignedCertificateTimestamp(encodedSctReader, sct));
+  EXPECT_EQ(SignedCertificateTimestamp::Version::V1, sct.version);
+  EXPECT_EQ(GetTestPublicKeyId(), sct.logId);
+  const uint64_t expectedTime = 1365181456089;
+  EXPECT_EQ(expectedTime, sct.timestamp);
+  const size_t expectedSignatureLength = 71;
+  EXPECT_EQ(expectedSignatureLength, sct.signature.signatureData.size());
+  EXPECT_FALSE(sct.extensions.empty());
+  EXPECT_TRUE(sct.leafIndex.isNothing());
+}
+
+TEST_F(CTSerializationTest,
+       DecodesSignedCertificateTimestampWithUnknownAndLeafIndexExtensions) {
+  Buffer encodedSctBuffer =
+      GetTestSignedCertificateTimestampWithUnknownAndLeafIndexExtensions();
+  Input encodedSctInput = InputForBuffer(encodedSctBuffer);
+  Reader encodedSctReader(encodedSctInput);
+
+  SignedCertificateTimestamp sct;
+  ASSERT_EQ(Success, DecodeSignedCertificateTimestamp(encodedSctReader, sct));
+  EXPECT_EQ(SignedCertificateTimestamp::Version::V1, sct.version);
+  EXPECT_EQ(GetTestPublicKeyId(), sct.logId);
+  const uint64_t expectedTime = 1365181456089;
+  EXPECT_EQ(expectedTime, sct.timestamp);
+  const size_t expectedSignatureLength = 71;
+  EXPECT_EQ(expectedSignatureLength, sct.signature.signatureData.size());
+  EXPECT_FALSE(sct.extensions.empty());
+  ASSERT_TRUE(sct.leafIndex.isSome());
+  EXPECT_EQ(sct.leafIndex.value(), 81U);
+}
+
+TEST_F(CTSerializationTest,
+       FailsDecodingSignedCertificateTimestampWithTooShortExtension) {
+  Buffer encodedSctBuffer =
+      GetTestSignedCertificateTimestampWithTooShortExtension();
+  Input encodedSctInput = InputForBuffer(encodedSctBuffer);
+  Reader encodedSctReader(encodedSctInput);
+
+  SignedCertificateTimestamp sct;
+  ASSERT_EQ(Result::ERROR_BAD_DER,
+            DecodeSignedCertificateTimestamp(encodedSctReader, sct));
 }
 
 TEST_F(CTSerializationTest, FailsDecodingInvalidSignedCertificateTimestamp) {

@@ -360,6 +360,11 @@ Result DecodeSignedCertificateTimestamp(Reader& reader,
   InputToBuffer(extensions, result.extensions);
   result.timestamp = timestamp;
 
+  rv = result.DecodeExtensions();
+  if (rv != Success) {
+    return rv;
+  }
+
   output = std::move(result);
   return Success;
 }

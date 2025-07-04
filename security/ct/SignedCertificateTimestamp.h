@@ -8,6 +8,7 @@
 #define SignedCertificateTimestamp_h
 
 #include "Buffer.h"
+#include "mozilla/Maybe.h"
 #include "mozpkix/Input.h"
 #include "mozpkix/Result.h"
 
@@ -65,12 +66,17 @@ struct SignedCertificateTimestamp {
     V1 = 0,
   };
 
+  pkix::Result DecodeExtensions();
+
   Version version;
   Buffer logId;
   // "timestamp" is the current time in milliseconds, measured since the epoch,
   // ignoring leap seconds. See RFC 6962, Section 3.2.
   uint64_t timestamp;
   Buffer extensions;
+  // Maybe the index of the entry in the log, if specified by a LeafIndex
+  // extension in `extensions`.
+  Maybe<uint64_t> leafIndex;
   DigitallySigned signature;
 };
 

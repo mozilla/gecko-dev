@@ -33,7 +33,8 @@ class CTLogVerifierTest : public ::testing::Test {
   void TearDown() override { signature_cache_free(mSignatureCache); }
 
  protected:
-  CTLogVerifier mLog = CTLogVerifier(-1, CTLogState::Admissible, 0);
+  CTLogVerifier mLog =
+      CTLogVerifier(-1, CTLogState::Admissible, CTLogFormat::RFC6962, 0);
   // For some reason, the templating makes it impossible to use UniquePtr here.
   SignatureCache* mSignatureCache;
 };
@@ -115,7 +116,7 @@ TEST_F(CTLogVerifierTest, ExcessDataInPublicKey) {
   std::string extra = "extra";
   key.insert(key.end(), extra.begin(), extra.end());
 
-  CTLogVerifier log(-1, CTLogState::Admissible, 0);
+  CTLogVerifier log(-1, CTLogState::Admissible, CTLogFormat::RFC6962, 0);
   EXPECT_NE(Success, log.Init(InputForBuffer(key)));
 }
 
