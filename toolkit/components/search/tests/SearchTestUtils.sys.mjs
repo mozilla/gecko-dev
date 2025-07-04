@@ -145,6 +145,9 @@ class _SearchTestUtils {
       } catch (ex) {
         // Don't throw if the test has already removed it.
       }
+      if (setAsDefault) {
+        this.clearDefaultSearchEngineCachedPrefs();
+      }
     });
     return engine;
   }
@@ -484,12 +487,13 @@ class _SearchTestUtils {
     let previousEngine = Services.search.defaultEngine;
     let previousPrivateEngine = Services.search.defaultPrivateEngine;
 
-    async function cleanup() {
+    let cleanup = async () => {
       if (setAsDefault) {
         await Services.search.setDefault(
           previousEngine,
           Ci.nsISearchService.CHANGE_REASON_UNKNOWN
         );
+        this.clearDefaultSearchEngineCachedPrefs();
       }
       if (setAsDefaultPrivate) {
         await Services.search.setDefaultPrivate(
@@ -498,7 +502,7 @@ class _SearchTestUtils {
         );
       }
       await extension.unload();
-    }
+    };
 
     // Cleanup must be registered before loading the extension to avoid
     // failures for mochitests.
@@ -803,6 +807,21 @@ class _SearchTestUtils {
       }
     }, "browser-search-engine-modified");
     return promise;
+  }
+
+  /**
+   * Clears preferences which store settings relating to caching of the default
+   * search engines. This is used to avoid compare-preferences reporting that the
+   * preferences have changed.
+   */
+  clearDefaultSearchEngineCachedPrefs() {
+    const prefs = [
+      "browser.urlbar.recentsearches.lastDefaultChanged",
+      "browser.newtabpage.activity-stream.trendingSearch.defaultSearchEngine",
+    ];
+    for (let pref of prefs) {
+      Services.prefs.clearUserPref(pref);
+    }
   }
 }
 

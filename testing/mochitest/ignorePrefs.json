@@ -14,6 +14,7 @@
   "browser.newtabpage.storageVersion",
   "browser.pageActions.persistedActions",
   "browser.uiCustomization.state",
+  "browser.urlbar.placeholderName",
   "browser.urlbar.placeholderName.private",
   "doh-rollout.doneFirstRun",
   "doh-rollout.home-region",
