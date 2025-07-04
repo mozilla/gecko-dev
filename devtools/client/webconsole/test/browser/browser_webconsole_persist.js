@@ -47,7 +47,7 @@ add_task(async function () {
   await waitFor(() => findAllMessages(hud).length === 0);
   ok(true, "Messages disappeared");
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 add_task(async function () {
@@ -62,7 +62,7 @@ add_task(async function () {
   await waitFor(() => findAllMessages(hud).length === 0);
   ok(true, "Messages disappeared");
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 add_task(async function () {
@@ -214,7 +214,7 @@ add_task(async function () {
     "First page message disappeared"
   );
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 add_task(async function () {
@@ -297,7 +297,7 @@ add_task(async function () {
     TEST_MOCHI_URI
   );
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 add_task(async function consoleClearPersist() {
@@ -329,7 +329,7 @@ add_task(async function consoleClearPersist() {
     "All initial messages are still displayed, with the 2 new ones"
   );
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 function assertLastMessageIsNavigationMessage(hud, timeBeforeNavigation, url) {

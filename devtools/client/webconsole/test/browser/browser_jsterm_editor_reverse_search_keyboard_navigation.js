@@ -76,7 +76,7 @@ add_task(async function () {
     "reader mode still wasn't activated"
   );
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 async function navigateResultsAndCheckState(

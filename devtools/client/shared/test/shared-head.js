@@ -1469,7 +1469,12 @@ function pushPref(preferenceName, value) {
   return SpecialPowers.pushPrefEnv(options);
 }
 
-async function closeToolbox() {
+/**
+ * Close the toolbox for the selected tab if needed.
+ */
+async function closeToolboxIfOpen() {
+  // `closeToolboxForTab` will be a noop if the selected tab does not have any
+  // toolbox.
   await gDevTools.closeToolboxForTab(gBrowser.selectedTab);
 }
 

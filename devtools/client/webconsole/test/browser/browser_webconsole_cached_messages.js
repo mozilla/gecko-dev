@@ -48,7 +48,7 @@ add_task(async function () {
   await testMessagesVisibility(hud, false);
 
   info("Close the toolbox and reload the tab");
-  await closeToolbox();
+  await closeToolboxIfOpen();
   await reloadPage();
 
   info(
@@ -65,7 +65,7 @@ add_task(async function () {
   await testMessagesVisibility(hud);
 
   info("Close the toolbox");
-  await closeToolbox();
+  await closeToolboxIfOpen();
 
   info("Open the console again");
   hud = await openConsole();

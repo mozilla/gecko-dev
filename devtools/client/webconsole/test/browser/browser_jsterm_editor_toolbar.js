@@ -17,7 +17,7 @@ add_task(async function () {
   info("Test that the toolbar is not displayed when in editor mode");
   let toolbar = getEditorToolbar(hud);
   is(toolbar, null, "The toolbar isn't displayed when not in editor mode");
-  await closeToolbox();
+  await closeToolboxIfOpen();
 
   await pushPref("devtools.webconsole.input.editor", true);
   hud = await openConsole(tab);

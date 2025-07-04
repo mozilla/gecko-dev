@@ -50,7 +50,7 @@ add_task(async function () {
     width: EXPECTED_NEW_SIDEBAR_WIDTH,
   });
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 
   info(
     "Check the stored sizes of the inspector in the preferences when the inspector " +

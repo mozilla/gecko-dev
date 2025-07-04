@@ -24,7 +24,7 @@ addRDMTask(TEST_URI, async function ({ ui, manager }) {
   info("Check that ESC still opens the split console");
   await testEscapeOpensSplitConsole(inspector);
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 async function testShrink(ruleView, ui, manager) {

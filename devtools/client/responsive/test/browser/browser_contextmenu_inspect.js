@@ -50,6 +50,4 @@ addRDMTask(TEST_URI, async function ({ ui, manager }) {
     "div",
     "div element is selected after using Inspect Element"
   );
-
-  await closeToolbox();
 });

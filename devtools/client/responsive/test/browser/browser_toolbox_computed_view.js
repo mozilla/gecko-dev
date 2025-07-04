@@ -36,8 +36,6 @@ addRDMTask(TEST_URI, async function ({ ui, manager }) {
 
   info("Try growing the viewport and checking the applied styles");
   await testGrow(view, inspector, ui, manager);
-
-  await closeToolbox();
 });
 
 async function testShrink(computedView, inspector, ui, manager) {

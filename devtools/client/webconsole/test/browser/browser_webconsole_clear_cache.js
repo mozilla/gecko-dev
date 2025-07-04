@@ -18,7 +18,7 @@ add_task(async function () {
   await logTextToConsole(hud, CACHED_MESSAGE);
 
   info("Close and re-open the console");
-  await closeToolbox();
+  await closeToolboxIfOpen();
   hud = await openConsole(tab);
 
   await waitFor(() => findErrorMessage(hud, EXPECTED_REPORT));
@@ -32,7 +32,7 @@ add_task(async function () {
   await onMessagesCacheCleared;
 
   info("Close and re-open the console");
-  await closeToolbox();
+  await closeToolboxIfOpen();
   hud = await openConsole(tab);
 
   info("Log a smoke message in order to know that the console is ready");
@@ -65,7 +65,7 @@ add_task(async function () {
   await Promise.all([onConsoleCleared, onMessagesCacheCleared]);
 
   info("Close and re-open the console");
-  await closeToolbox();
+  await closeToolboxIfOpen();
   hud = await openConsole(tab);
 
   info("Log a smoke message in order to know that the console is ready");
@@ -101,7 +101,7 @@ add_task(async function consoleClearPersist() {
   await onConsoleClearPrevented;
 
   info("Close and re-open the console");
-  await closeToolbox();
+  await closeToolboxIfOpen();
   hud = await openConsole(tab);
 
   info("Log a smoke message in order to know that the console is ready");

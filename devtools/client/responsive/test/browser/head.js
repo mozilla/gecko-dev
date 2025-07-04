@@ -153,7 +153,12 @@ function addRDMTaskWithPreAndPost(url, preTask, task, postTask, options) {
     }
 
     if (!onlyPrefAndTask) {
+      // Close the toolbox first, as closing RDM might trigger a reload if
+      // touch simulation was enabled, which will trigger RDP requests.
+      await closeToolboxIfOpen();
+
       await closeRDM(tab);
+
       if (postTask) {
         await postTask({
           message,

@@ -237,7 +237,7 @@ add_task(async function () {
   );
 
   info("Close DevTools to check that event listeners are re-enabled");
-  await closeToolbox();
+  await closeToolboxIfOpen();
   await safeSynthesizeMouseEventAtCenterInContentPage("#target");
   data = await getTargetElementHandledEventData();
   is(

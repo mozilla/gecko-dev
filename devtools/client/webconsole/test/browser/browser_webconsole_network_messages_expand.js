@@ -32,7 +32,7 @@ add_task(async function task() {
 
   await testNetworkMessage(hud.toolbox, messageNode);
 
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 add_task(async function task() {
@@ -74,7 +74,7 @@ add_task(async function task() {
   ok(!responseContent, "Response content is really not displayed");
 
   await waitForLazyRequests(hud.toolbox);
-  await closeToolbox();
+  await closeToolboxIfOpen();
 });
 
 async function doXhrAndExpand(hud) {
