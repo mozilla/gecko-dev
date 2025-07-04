@@ -558,8 +558,6 @@ package org.mozilla.geckoview {
   }
 
   @AnyThread public static class ContentBlocking.Settings extends RuntimeSettings {
-    method public boolean getAllowListBaselineTrackingProtection();
-    method public boolean getAllowListConvenienceTrackingProtection();
     method public int getAntiTrackingCategories();
     method public int getBounceTrackingProtectionMode();
     method public boolean getCookieBannerDetectOnlyMode();
@@ -582,8 +580,6 @@ package org.mozilla.geckoview {
     method @NonNull public String[] getSafeBrowsingPhishingTable();
     method @NonNull public Collection<ContentBlocking.SafeBrowsingProvider> getSafeBrowsingProviders();
     method public boolean getStrictSocialTrackingProtection();
-    method @NonNull public ContentBlocking.Settings setAllowListBaselineTrackingProtection(boolean);
-    method @NonNull public ContentBlocking.Settings setAllowListConvenienceTrackingProtection(boolean);
     method @NonNull public ContentBlocking.Settings setAntiTracking(int);
     method @NonNull public ContentBlocking.Settings setBounceTrackingProtectionMode(int);
     method @NonNull public ContentBlocking.Settings setCookieBannerDetectOnlyMode(boolean);
@@ -611,8 +607,6 @@ package org.mozilla.geckoview {
 
   @AnyThread public static class ContentBlocking.Settings.Builder extends RuntimeSettings.Builder<ContentBlocking.Settings> {
     ctor public Builder();
-    method @NonNull public ContentBlocking.Settings.Builder allowListBaselineTrackingProtection(boolean);
-    method @NonNull public ContentBlocking.Settings.Builder allowListConvenienceTrackingProtection(boolean);
     method @NonNull public ContentBlocking.Settings.Builder antiTracking(int);
     method @NonNull public ContentBlocking.Settings.Builder bounceTrackingProtectionMode(int);
     method @NonNull public ContentBlocking.Settings.Builder cookieBannerGlobalRulesEnabled(boolean);

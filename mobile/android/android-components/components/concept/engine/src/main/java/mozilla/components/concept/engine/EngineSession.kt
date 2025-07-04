@@ -435,8 +435,6 @@ abstract class EngineSession(
         val strictSocialTrackingProtection: Boolean? = null,
         val cookiePurging: Boolean = false,
         val bounceTrackingProtectionMode: BounceTrackingProtectionMode = BounceTrackingProtectionMode.DISABLED,
-        val allowListBaselineTrackingProtection: Boolean = true,
-        val allowListConvenienceTrackingProtection: Boolean = true,
     ) {
 
         /**
@@ -558,26 +556,13 @@ abstract class EngineSession(
              * Strict policy.
              * Combining the [TrackingCategory.STRICT] plus a cookiePolicy of [ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS].
              * This is the strictest setting and may cause issues on some web sites.
-             *
-             * The [allowListBaselineTrackingProtection] and [allowListConvenienceTrackingProtection]
-             * parameters allow users to control allowlist configurations in the strict preset,
-             * without switching to a less restrictive policy.
-             *
-             * @param allowListBaselineTrackingProtection indicates if the baseline exceptions are applied
-             * @param allowListConvenienceTrackingProtection indicates if the convenience exceptions are applied
-             *
              */
-            fun strict(
-                allowListBaselineTrackingProtection: Boolean = true,
-                allowListConvenienceTrackingProtection: Boolean = false,
-                ) = TrackingProtectionPolicyForSessionTypes(
+            fun strict() = TrackingProtectionPolicyForSessionTypes(
                 trackingCategory = arrayOf(TrackingCategory.STRICT),
                 cookiePolicy = ACCEPT_FIRST_PARTY_AND_ISOLATE_OTHERS,
                 strictSocialTrackingProtection = true,
                 cookiePurging = true,
                 bounceTrackingProtectionMode = BounceTrackingProtectionMode.ENABLED,
-                allowListBaselineTrackingProtection = allowListBaselineTrackingProtection,
-                allowListConvenienceTrackingProtection = allowListConvenienceTrackingProtection,
             )
 
             /**
@@ -592,8 +577,6 @@ abstract class EngineSession(
                 strictSocialTrackingProtection = false,
                 cookiePurging = true,
                 bounceTrackingProtectionMode = BounceTrackingProtectionMode.ENABLED_STANDBY,
-                allowListBaselineTrackingProtection = true,
-                allowListConvenienceTrackingProtection = true,
             )
 
             /**
@@ -609,10 +592,6 @@ abstract class EngineSession(
              *  @param cookiePurging Whether or not to automatically purge tracking cookies. This will
              *  purge cookies from tracking sites that do not have recent user interaction provided.
              *  @param bounceTrackingProtectionMode the bounce tracking protection mode to use.
-             *  @param allowListBaselineTrackingProtection indicates if the baseline tracking
-             *  protection exceptions are applied
-             *  @param allowListConvenienceTrackingProtection indicates if the convenience tracking
-             *  protection exceptions are applied
              */
             fun select(
                 trackingCategories: Array<TrackingCategory> = arrayOf(TrackingCategory.RECOMMENDED),
@@ -622,8 +601,6 @@ abstract class EngineSession(
                 cookiePurging: Boolean = false,
                 bounceTrackingProtectionMode: BounceTrackingProtectionMode =
                     BounceTrackingProtectionMode.ENABLED_STANDBY,
-                allowListBaselineTrackingProtection: Boolean = true,
-                allowListConvenienceTrackingProtection: Boolean = false,
             ) = TrackingProtectionPolicyForSessionTypes(
                 trackingCategory = trackingCategories,
                 cookiePolicy = cookiePolicy,
@@ -631,8 +608,6 @@ abstract class EngineSession(
                 strictSocialTrackingProtection = strictSocialTrackingProtection,
                 cookiePurging = cookiePurging,
                 bounceTrackingProtectionMode = bounceTrackingProtectionMode,
-                allowListBaselineTrackingProtection = allowListBaselineTrackingProtection,
-                allowListConvenienceTrackingProtection = allowListConvenienceTrackingProtection,
             )
         }
 
@@ -746,8 +721,6 @@ abstract class EngineSession(
         strictSocialTrackingProtection: Boolean? = null,
         cookiePurging: Boolean = false,
         bounceTrackingProtectionMode: BounceTrackingProtectionMode = BounceTrackingProtectionMode.DISABLED,
-        allowListBaselineTrackingProtection: Boolean = true,
-        allowListConvenienceTrackingProtection: Boolean = true,
     ) : TrackingProtectionPolicy(
         trackingCategories = trackingCategory,
         cookiePolicy = cookiePolicy,
@@ -755,8 +728,6 @@ abstract class EngineSession(
         strictSocialTrackingProtection = strictSocialTrackingProtection,
         cookiePurging = cookiePurging,
         bounceTrackingProtectionMode = bounceTrackingProtectionMode,
-        allowListBaselineTrackingProtection = allowListBaselineTrackingProtection,
-        allowListConvenienceTrackingProtection = allowListConvenienceTrackingProtection,
     ) {
         /**
          * Marks this policy to be used for private sessions only.
@@ -770,8 +741,6 @@ abstract class EngineSession(
             strictSocialTrackingProtection = false,
             cookiePurging = cookiePurging,
             bounceTrackingProtectionMode = bounceTrackingProtectionMode,
-            allowListBaselineTrackingProtection = allowListBaselineTrackingProtection,
-            allowListConvenienceTrackingProtection = allowListConvenienceTrackingProtection,
         )
 
         /**
@@ -786,8 +755,6 @@ abstract class EngineSession(
             strictSocialTrackingProtection = strictSocialTrackingProtection,
             cookiePurging = cookiePurging,
             bounceTrackingProtectionMode = bounceTrackingProtectionMode,
-            allowListBaselineTrackingProtection = allowListBaselineTrackingProtection,
-            allowListConvenienceTrackingProtection = allowListConvenienceTrackingProtection,
         )
     }
 
