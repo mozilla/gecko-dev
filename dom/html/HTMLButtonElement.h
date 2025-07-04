@@ -126,7 +126,7 @@ class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
   void SetType(const nsAString& aType, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::type, aType, aRv);
   }
-  void GetValue(DOMString& aValue) { GetHTMLAttr(nsGkAtoms::value, aValue); }
+  void GetValue(nsAString& aValue) { GetHTMLAttr(nsGkAtoms::value, aValue); }
   void SetValue(const nsAString& aValue, ErrorResult& aRv) {
     SetHTMLAttr(nsGkAtoms::value, aValue, aRv);
   }

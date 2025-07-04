@@ -8,6 +8,7 @@
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/CloseWatcher.h"
 #include "mozilla/dom/CloseWatcherManager.h"
+#include "mozilla/dom/HTMLButtonElement.h"
 #include "mozilla/dom/HTMLDialogElementBinding.h"
 
 #include "nsIDOMEventListener.h"
@@ -580,8 +581,15 @@ bool HTMLDialogElement::HandleCommandInternal(Element* aSource,
   MOZ_ASSERT(IsValidCommandAction(aCommand));
 
   if (aCommand == Command::Close && Open()) {
-    Optional<nsAString> retValue;
-    Close(retValue);
+    Optional<nsAString> retValueOpt;
+    nsString retValue;
+    if (aSource->HasAttr(nsGkAtoms::value)) {
+      if (auto* button = HTMLButtonElement::FromNodeOrNull(aSource)) {
+        button->GetValue(retValue);
+        retValueOpt = &retValue;
+      }
+    }
+    Close(retValueOpt);
     return true;
   }
 
