@@ -46,7 +46,6 @@ import org.mozilla.fenix.ui.robots.browserScreen
 import org.mozilla.fenix.ui.robots.clickPageObject
 import org.mozilla.fenix.ui.robots.customTabScreen
 import org.mozilla.fenix.ui.robots.homeScreen
-import org.mozilla.fenix.ui.robots.mainMenuScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
 class MainMenuTestCompose : TestSetup() {
@@ -71,7 +70,7 @@ class MainMenuTestCompose : TestSetup() {
     @get:Rule
     val memoryLeaksRule = DetectMemoryLeaksRule()
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860735
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080168
     @SmokeTest
     @Test
     fun homepageRedesignedMenuItemsTest() {
@@ -81,7 +80,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860835
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080124
     @SmokeTest
     @Test
     fun webpageRedesignedMenuItemsTest() {
@@ -94,7 +93,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860844
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080133
     @SmokeTest
     @Test
     fun verifySwitchToDesktopSiteIsDisabledOnPDFsTest() {
@@ -109,7 +108,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860846
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080130
     @SmokeTest
     @Test
     fun findInPageTest() {
@@ -144,7 +143,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860850
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080129
     @SmokeTest
     @Test
     fun verifyBookmarksMenuButtonTest() {
@@ -160,7 +159,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860851
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080136
     @SmokeTest
     @Test
     fun verifyHistoryMenuButtonTest() {
@@ -176,7 +175,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860852
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080138
     @SmokeTest
     @Test
     fun verifyDownloadsMenuButtonTest() {
@@ -193,7 +192,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860853
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080139
     @SmokeTest
     @Test
     fun verifyPasswordsMenuButtonTest() {
@@ -213,7 +212,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860757
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080095
     // Verifies the main menu of a custom tab with a custom menu item
     @SmokeTest
     @Test
@@ -235,7 +234,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860761
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080100
     // The test opens a link in a custom tab then sends it to the browser
     @SmokeTest
     @Test
@@ -257,7 +256,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860771
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080151
     @SmokeTest
     @Test
     fun verifyRecommendedExtensionsListTest() {
@@ -271,7 +270,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860779
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080160
     @SmokeTest
     @Test
     fun verifyRedesignedMenuAfterRemovingAnExtensionTest() {
@@ -307,7 +306,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860784
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080163
     @SmokeTest
     @Test
     fun verifyTheManageExtensionsSubMenuTest() {
@@ -336,7 +335,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860813
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080129
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
@@ -361,7 +360,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860814
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080113
     @SmokeTest
     @Test
     fun verifyTheAddToShortcutsSubMenuOptionTest() {
@@ -386,7 +385,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860815
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080114
     @SmokeTest
     @Test
     fun verifyTheAddToHomeScreenSubMenuOptionTest() {
@@ -410,7 +409,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860816
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080115
     @SmokeTest
     @Test
     fun verifyTheSaveToCollectionSubMenuOptionTest() {
@@ -444,7 +443,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860817
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080118
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
@@ -463,7 +462,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860799
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080111
     @SmokeTest
     @Test
     fun verifyTheTranslatePageButtonsStatesTest() {
@@ -487,7 +486,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860802
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080128
     @SmokeTest
     @Test
     fun verifyTheShareButtonTest() {
@@ -507,7 +506,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860804
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080117
     @SmokeTest
     @Test
     fun verifyOpenInAppButtonIsEnabledTest() {
@@ -524,7 +523,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860845
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080131
     @SmokeTest
     @Test
     fun switchDesktopSiteModeOnOffTest() {
@@ -550,7 +549,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860801
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080119
     @SmokeTest
     @Test
     fun verifyPrintSubMenuOptionTest() {
@@ -566,7 +565,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860775
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080156
     @SmokeTest
     @Test
     fun verifyExtensionInstallTest() {
@@ -584,7 +583,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860741
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080181
     @Test
     fun verifyTheHomePageMainMenuSettingsButtonTest() {
         homeScreen {
@@ -596,7 +595,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860751
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080171
     @Test
     fun verifyTheHomePageMainMenuCustomizeHomepageButtonTest() {
         homeScreen {
@@ -608,7 +607,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860725
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080121
     @Test
     fun verifyTheBrowserViewMainMenuCFRTest() {
         val genericURL = getGenericAsset(mockWebServer, 1)
@@ -623,7 +622,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2728842
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080898
     @Test
     fun verifyFindInPageInPDFTest() {
         val testPage = getGenericAsset(mockWebServer, 3)
@@ -654,7 +653,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860854
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080145
     @Test
     fun verifyTheQuitFirefoxMenuItemTest() {
         val genericURL = getGenericAsset(mockWebServer, 1)
@@ -681,7 +680,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860759
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080103
     @Test
     fun verifyEnabledDesktopSiteToggleInCustomTabTest() {
         val customTabPage = getGenericAsset(mockWebServer, 1)
@@ -704,7 +703,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860760
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080101
     @Test
     fun customTabsFindInPageTest() {
         val customTabPage = getGenericAsset(mockWebServer, 3)
@@ -742,7 +741,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860765
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080107
     @Test
     fun verifyTheDismissalWhenTappingOutsideTheCustomTabMainMenuTest() {
         val customMenuItem = "TestMenuItem"
@@ -763,19 +762,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860770
-    @Test
-    fun noInstalledExtensionsTest() {
-        val genericURL = getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
-            verifyTryRecommendedExtensionButton()
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860781
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080162
     @Test
     fun disabledExtensionTest() {
         var recommendedExtensionTitle = ""
@@ -805,7 +792,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860785
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080153
     @Test
     fun verifyTheDiscoverMoreExtensionSubMenuItemTest() {
         val genericURL = getGenericAsset(mockWebServer, 1)
@@ -819,57 +806,7 @@ class MainMenuTestCompose : TestSetup() {
         }
     }
 
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860790
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1971958")
-    @Test
-    fun verifyTheClosingBehaviourWhenTappingOutsideTheExtensionsSubMenuTest() {
-        var recommendedExtensionTitle = ""
-        val genericURL = getGenericAsset(mockWebServer, 1)
-
-        navigationToolbar {
-        }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-        }
-        mainMenuScreen(composeTestRule) {
-        }.clickOutsideTheMainMenu {
-            verifyExtensionsMenuDoesNotExist()
-        }.openThreeDotMenu(composeTestRule) {
-        }.openExtensionsFromMainMenu {
-            recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
-            installRecommendedAddon(recommendedExtensionTitle, composeTestRule)
-            acceptPermissionToInstallAddon()
-            verifyAddonInstallCompletedPrompt(recommendedExtensionTitle, composeTestRule.activityRule)
-            closeAddonInstallCompletePrompt()
-        }
-        mainMenuScreen(composeTestRule) {
-        }.clickOutsideTheMainMenu {
-            verifyExtensionsMenuDoesNotExist()
-        }
-        // Steps not applicable anymore due to recent main menu redesign changes
-        // Will revise when the final implementation is done
-        // Tracking ticket: https://bugzilla.mozilla.org/show_bug.cgi?id=1971939
-
-        // browserScreen {
-        // }.openThreeDotMenu(composeTestRule) {
-        // }.openExtensionsFromMainMenu {
-        //     clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
-        // }.openDetailedMenuForAddon(recommendedExtensionTitle) {
-        //     disableExtension()
-        //     waitUntilSnackbarGone()
-        // }.goBack {
-        // }.goBackToBrowser {
-        // }.openThreeDotMenu(composeTestRule) {
-        // }.openExtensionsFromMainMenu {
-        //     verifyManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
-        // }
-        // mainMenuScreen(composeTestRule) {
-        // }.clickOutsideTheMainMenu {
-        //     verifyExtensionsMenuDoesNotExist()
-        // }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/3080112
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1974939")
     @Test
     fun verifyTheReportBrokenSiteOptionTest() {
