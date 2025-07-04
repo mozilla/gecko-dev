@@ -26,8 +26,6 @@ mod platform;
 
 pub struct CrashHelperClient {
     connector: IPCConnector,
-    #[cfg(target_os = "linux")]
-    pid: Pid,
 }
 
 impl CrashHelperClient {
@@ -143,19 +141,6 @@ pub unsafe extern "C" fn crash_helper_shutdown(client: *mut CrashHelperClient) {
     // The CrashHelperClient object will be automatically destroyed when the
     // contents of this box are automatically dropped at the end of the function
     let _crash_helper_box = Box::from_raw(client);
-}
-
-/// Return the pid of the crash helper process.
-///
-/// # Safety
-///
-/// The `client` parameter must be a valid pointer to the crash helper client
-/// object returned by the [`crash_helper_launch()`] or
-/// [`crash_helper_connect()`] functions.
-#[cfg(target_os = "linux")]
-#[no_mangle]
-pub unsafe extern "C" fn crash_helper_pid(client: *const CrashHelperClient) -> Pid {
-    (*client).pid
 }
 
 #[repr(C)]

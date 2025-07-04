@@ -3346,10 +3346,6 @@ CrashPipeType GetChildNotificationPipe() {
 #if defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
 
 ProcessId GetCrashHelperPid() {
-  if (gCrashHelperClient) {
-    return crash_helper_pid(gCrashHelperClient);
-  }
-
   return base::kInvalidProcessId;
 }
 
