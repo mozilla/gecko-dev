@@ -3202,7 +3202,7 @@ function assertMenuItemChecked(menuItem, isChecked) {
   );
 }
 
-async function toggleDebbuggerSettingsMenuItem(dbg, { className, isChecked }) {
+async function toggleDebuggerSettingsMenuItem(dbg, { className, isChecked }) {
   const menuButton = findElementWithSelector(
     dbg,
     ".command-bar .debugger-settings-menu-button"

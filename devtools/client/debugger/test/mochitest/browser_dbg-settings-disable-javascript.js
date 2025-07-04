@@ -19,7 +19,7 @@ add_task(async function () {
     gBrowser.selectedBrowser
   );
   info("Clicking the disable javascript button in the settings menu");
-  await toggleDebbuggerSettingsMenuItem(dbg, {
+  await toggleDebuggerSettingsMenuItem(dbg, {
     className: menuItemClassName,
     isChecked: false,
   });
@@ -33,7 +33,7 @@ add_task(async function () {
   info(
     "Clicking the disable javascript button in the settings menu to reenable JavaScript"
   );
-  await toggleDebbuggerSettingsMenuItem(dbg, {
+  await toggleDebuggerSettingsMenuItem(dbg, {
     className: menuItemClassName,
     isChecked: true,
   });

@@ -19,7 +19,7 @@ add_task(async function () {
   const dbg = await initDebugger("doc-sourcemaps-ignorelist.html", ...sources);
 
   info("Click the settings menu to ignore the third party scripts");
-  await toggleDebbuggerSettingsMenuItem(dbg, {
+  await toggleDebuggerSettingsMenuItem(dbg, {
     className: ".debugger-settings-menu-item-enable-sourcemap-ignore-list",
     isChecked: false,
   });
@@ -46,7 +46,7 @@ add_task(async function () {
   await onReloaded;
 
   info("Click the settings menu to stop ignoring the third party scripts");
-  await toggleDebbuggerSettingsMenuItem(dbg, {
+  await toggleDebuggerSettingsMenuItem(dbg, {
     className: ".debugger-settings-menu-item-enable-sourcemap-ignore-list",
     isChecked: true,
   });
