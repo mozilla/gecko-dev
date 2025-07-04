@@ -26,34 +26,23 @@ use windows_sys::Win32::{
         CreateFileA, FILE_FLAG_OVERLAPPED, FILE_READ_DATA, FILE_SHARE_READ, FILE_SHARE_WRITE,
         FILE_WRITE_ATTRIBUTES, FILE_WRITE_DATA, OPEN_EXISTING,
     },
-    System::Pipes::{
-        GetNamedPipeClientProcessId, SetNamedPipeHandleState, WaitNamedPipeA, PIPE_READMODE_MESSAGE,
-    },
+    System::Pipes::{SetNamedPipeHandleState, WaitNamedPipeA, PIPE_READMODE_MESSAGE},
 };
 
 pub struct IPCConnector {
     handle: OwnedHandle,
     event: OwnedHandle,
     overlapped: Option<OverlappedOperation>,
-    pid: Pid,
 }
 
 impl IPCConnector {
     pub fn new(handle: OwnedHandle) -> Result<IPCConnector, IPCError> {
         let event = create_manual_reset_event()?;
-        let mut pid: Pid = 0;
-        // SAFETY: The `pid` pointer is taken from the stack and thus always valid.
-        let res =
-            unsafe { GetNamedPipeClientProcessId(handle.as_raw_handle() as HANDLE, &mut pid) };
-        if res == FALSE {
-            return Err(IPCError::System(unsafe { GetLastError() }));
-        }
 
         Ok(IPCConnector {
             handle,
             event,
             overlapped: None,
-            pid,
         })
     }
 
@@ -238,10 +227,6 @@ impl IPCConnector {
         )?;
         let buffer = overlapped.collect_recv(/* wait */ true)?;
         Ok((buffer, None))
-    }
-
-    pub fn endpoint_pid(&self) -> Pid {
-        self.pid
     }
 }
 

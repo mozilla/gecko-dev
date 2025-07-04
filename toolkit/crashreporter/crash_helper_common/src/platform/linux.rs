@@ -13,8 +13,8 @@ use nix::{
         FdFlag, OFlag,
     },
     sys::socket::{
-        getsockopt, recvmsg, sendmsg, socket, socketpair, sockopt::PeerCredentials, AddressFamily,
-        ControlMessage, ControlMessageOwned, MsgFlags, SockFlag, SockType, UnixAddr,
+        recvmsg, sendmsg, socket, socketpair, AddressFamily, ControlMessage, ControlMessageOwned,
+        MsgFlags, SockFlag, SockType, UnixAddr,
     },
     Result,
 };
@@ -60,13 +60,6 @@ pub(crate) fn server_addr(pid: Pid) -> Result<UnixAddr> {
         format!("gecko-crash-helper-pipe.{pid:}")
     };
     UnixAddr::new_abstract(server_name.as_bytes())
-}
-
-// Return the pid of the process connected to this socket.
-pub(crate) fn connected_process_pid(socket: BorrowedFd) -> Result<Pid> {
-    let pid = getsockopt(&socket, PeerCredentials)?.pid();
-
-    Ok(pid)
 }
 
 pub(crate) fn send_nonblock(socket: RawFd, buff: &[u8], fd: Option<AncillaryData>) -> Result<()> {

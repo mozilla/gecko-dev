@@ -61,14 +61,14 @@ pub unsafe extern "C" fn crash_generator_logic_desktop(
         })
         .unwrap();
 
-    let crash_generator = CrashGenerator::new(client_pid, breakpad_data, minidump_path)
+    let crash_generator = CrashGenerator::new(breakpad_data, minidump_path)
         .map_err(|error| {
             log::error!("Could not create the crash generator (error: {error})");
             error
         })
         .unwrap();
 
-    let ipc_server = IPCServer::new(client_pid, listener, connector);
+    let ipc_server = IPCServer::new(listener, connector);
 
     main_loop(ipc_server, crash_generator)
 }
@@ -102,7 +102,7 @@ pub unsafe extern "C" fn crash_generator_logic_android(
         .into_string()
         .unwrap();
     let minidump_path = OsString::from(minidump_path);
-    let crash_generator = CrashGenerator::new(client_pid, breakpad_data, minidump_path)
+    let crash_generator = CrashGenerator::new(breakpad_data, minidump_path)
         .map_err(|error| {
             log::error!("Could not create the crash generator (error: {error})");
             error
@@ -121,7 +121,7 @@ pub unsafe extern "C" fn crash_generator_logic_android(
             log::error!("Could not use the pipe (error: {error})");
         })
         .unwrap();
-    let ipc_server = IPCServer::new(client_pid, listener, connector);
+    let ipc_server = IPCServer::new(listener, connector);
 
     // On Android the main thread is used to respond to the intents so we
     // can't block it. Run the crash generation loop in a separate thread.

@@ -79,12 +79,10 @@ pub(crate) struct CrashGenerator {
     // This will be used for generating hangs
     _minidump_path: OsString,
     breakpad_server: BreakpadCrashGenerator,
-    client_pid: Pid,
 }
 
 impl CrashGenerator {
     pub(crate) fn new(
-        client_pid: Pid,
         breakpad_data: BreakpadData,
         minidump_path: OsString,
     ) -> Result<CrashGenerator> {
@@ -99,7 +97,6 @@ impl CrashGenerator {
         Ok(CrashGenerator {
             _minidump_path: minidump_path,
             breakpad_server,
-            client_pid,
         })
     }
 
@@ -110,25 +107,14 @@ impl CrashGenerator {
         kind: messages::Kind,
         data: &[u8],
         ancillary_data: Option<AncillaryData>,
-        pid: Pid,
     ) -> Result<Option<Box<dyn Message>>> {
         match kind {
             messages::Kind::SetCrashReportPath => {
-                if pid != self.client_pid {
-                    panic!("Not connected or attempting to set the path from the wrong process");
-                }
-
                 let message = messages::SetCrashReportPath::decode(data, ancillary_data)?;
                 self.set_path(message.path);
                 Ok(None)
             }
             messages::Kind::TransferMinidump => {
-                if pid != self.client_pid {
-                    panic!(
-                        "Not connected or attempting to request a minidump from a child process"
-                    );
-                }
-
                 let message = messages::TransferMinidump::decode(data, ancillary_data)?;
                 Ok(Some(Box::new(self.transfer_minidump(message.pid))))
             }
@@ -146,12 +132,6 @@ impl CrashGenerator {
             }
             #[cfg(any(target_os = "android", target_os = "linux"))]
             messages::Kind::RegisterAuxvInfo => {
-                if pid != self.client_pid {
-                    panic!(
-                        "Attempting to register some auxiliary information from the wrong process"
-                    );
-                }
-
                 let message = messages::RegisterAuxvInfo::decode(data, ancillary_data)?;
                 let map = &mut AUXV_INFO_MAP.lock().unwrap();
                 map.insert(message.pid, message.auxv_info);
@@ -160,10 +140,6 @@ impl CrashGenerator {
             }
             #[cfg(any(target_os = "android", target_os = "linux"))]
             messages::Kind::UnregisterAuxvInfo => {
-                if pid != self.client_pid {
-                    panic!("Attempting to unregister auxiliary information from the wrong process");
-                }
-
                 let message = messages::UnregisterAuxvInfo::decode(data, ancillary_data)?;
                 let map = &mut AUXV_INFO_MAP.lock().unwrap();
                 map.remove(&message.pid);

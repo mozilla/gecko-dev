@@ -13,8 +13,7 @@ use nix::{
     },
     libc::{setsockopt, SOL_SOCKET, SO_NOSIGPIPE},
     sys::socket::{
-        getsockopt, recv, send, socket, socketpair, sockopt::LocalPeerPid, AddressFamily, MsgFlags,
-        SockFlag, SockType, UnixAddr,
+        recv, send, socket, socketpair, AddressFamily, MsgFlags, SockFlag, SockType, UnixAddr,
     },
     Result,
 };
@@ -79,13 +78,6 @@ pub(crate) fn server_addr(pid: Pid) -> Result<UnixAddr> {
     let server_name = format!("/tmp/gecko-crash-helper-pipe.{pid:}");
     let server_path = PathBuf::from_str(&server_name).unwrap();
     UnixAddr::new(&server_path)
-}
-
-// Return the pid of the process connected to this socket.
-pub(crate) fn connected_process_pid(socket: BorrowedFd) -> Result<Pid> {
-    let pid = getsockopt(&socket, LocalPeerPid)?;
-
-    Ok(pid)
 }
 
 // We're using plain recv()/send() calls here and we're calling them in a loop

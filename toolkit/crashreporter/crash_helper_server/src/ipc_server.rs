@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use crash_helper_common::{
-    errors::IPCError, messages, wait_for_events, IPCConnector, IPCEvent, IPCListener, Pid,
+    errors::IPCError, messages, wait_for_events, IPCConnector, IPCEvent, IPCListener,
 };
 
 use crate::crash_generation::CrashGenerator;
@@ -18,19 +18,13 @@ pub enum IPCServerState {
 pub(crate) struct IPCServer {
     listener: IPCListener,
     connectors: Vec<IPCConnector>,
-    client_pid: Pid,
 }
 
 impl IPCServer {
-    pub(crate) fn new(
-        client_pid: Pid,
-        listener: IPCListener,
-        connector: IPCConnector,
-    ) -> IPCServer {
+    pub(crate) fn new(listener: IPCListener, connector: IPCConnector) -> IPCServer {
         IPCServer {
             listener,
             connectors: vec![connector],
-            client_pid,
         }
     }
 
@@ -62,11 +56,8 @@ impl IPCServer {
                     }
                 }
                 IPCEvent::Disconnect(index) => {
-                    let connector = self
-                        .connectors
-                        .get_mut(index)
-                        .expect("Invalid connector index");
-                    if connector.endpoint_pid() == self.client_pid {
+                    // TODO: Don't rely on the index
+                    if index == 0 {
                         // The main process disconnected, leave
                         return Ok(IPCServerState::ClientDisconnected);
                     } else {
@@ -87,12 +78,7 @@ impl IPCServer {
     ) -> Result<()> {
         let (data, ancillary_data) = connector.recv(header.size)?;
 
-        let reply = generator.client_message(
-            header.kind,
-            &data,
-            ancillary_data,
-            connector.endpoint_pid(),
-        )?;
+        let reply = generator.client_message(header.kind, &data, ancillary_data)?;
 
         if let Some(reply) = reply {
             connector.send_message(reply.as_ref())?;

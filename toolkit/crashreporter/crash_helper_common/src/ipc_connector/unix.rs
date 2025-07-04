@@ -4,13 +4,13 @@
 
 #[cfg(any(target_os = "android", target_os = "linux"))]
 use crate::platform::linux::{
-    connected_process_pid, recv_nonblock, send_nonblock, server_addr, set_socket_cloexec,
-    set_socket_default_flags, unix_socket,
+    recv_nonblock, send_nonblock, server_addr, set_socket_cloexec, set_socket_default_flags,
+    unix_socket,
 };
 #[cfg(target_os = "macos")]
 use crate::platform::macos::{
-    connected_process_pid, recv_nonblock, send_nonblock, server_addr, set_socket_cloexec,
-    set_socket_default_flags, unix_socket,
+    recv_nonblock, send_nonblock, server_addr, set_socket_cloexec, set_socket_default_flags,
+    unix_socket,
 };
 use crate::{ignore_eintr, AncillaryData, Pid, IO_TIMEOUT};
 
@@ -32,7 +32,6 @@ use crate::{
 
 pub struct IPCConnector {
     socket: OwnedFd,
-    pid: Pid,
 }
 
 impl IPCConnector {
@@ -49,9 +48,8 @@ impl IPCConnector {
     /// `FD_CLOEXEC` flag will not be set on the underlying socket and thus it
     /// will be possible to inherit this connector in a child process.
     pub fn from_fd_inheritable(socket: OwnedFd) -> Result<IPCConnector, IPCError> {
-        let pid = connected_process_pid(socket.as_fd()).map_err(IPCError::System)?;
         set_socket_default_flags(socket.as_fd()).map_err(IPCError::System)?;
-        Ok(IPCConnector { socket, pid })
+        Ok(IPCConnector { socket })
     }
 
     /// Create a new connector by connecting it to the process specified by
@@ -83,9 +81,7 @@ impl IPCConnector {
             }
         }
 
-        let pid = connected_process_pid(socket.as_fd()).map_err(IPCError::ConnectionFailure)?;
-
-        Ok(IPCConnector { socket, pid })
+        Ok(IPCConnector { socket })
     }
 
     /// Serialize this connector into a string that can be passed on the
@@ -101,8 +97,7 @@ impl IPCConnector {
         let fd = RawFd::from_str(string).map_err(|_e| IPCError::ParseError)?;
         // SAFETY: This is a file descriptor we passed in ourselves.
         let socket = unsafe { OwnedFd::from_raw_fd(fd) };
-        let pid = connected_process_pid(socket.as_fd()).map_err(IPCError::System)?;
-        Ok(IPCConnector { socket, pid })
+        Ok(IPCConnector { socket })
     }
 
     fn raw_fd(&self) -> RawFd {
@@ -187,9 +182,5 @@ impl IPCConnector {
             }
             _ => res,
         }
-    }
-
-    pub fn endpoint_pid(&self) -> Pid {
-        self.pid
     }
 }
