@@ -77,7 +77,6 @@
 #include "mozilla/dom/JSProcessActorChild.h"
 #include "mozilla/dom/LSObject.h"
 #include "mozilla/dom/MemoryReportRequest.h"
-#include "mozilla/dom/Navigation.h"
 #include "mozilla/dom/PSessionStorageObserverChild.h"
 #include "mozilla/dom/PostMessageEvent.h"
 #include "mozilla/dom/PushNotifier.h"
@@ -4361,12 +4360,11 @@ mozilla::ipc::IPCResult ContentChild::RecvDispatchLocationChangeEvent(
 
 mozilla::ipc::IPCResult ContentChild::RecvDispatchBeforeUnloadToSubtree(
     const MaybeDiscarded<BrowsingContext>& aStartingAt,
-    const mozilla::Maybe<SessionHistoryInfo>& aInfo,
     DispatchBeforeUnloadToSubtreeResolver&& aResolver) {
   if (aStartingAt.IsNullOrDiscarded()) {
     aResolver(nsIDocumentViewer::eAllowNavigation);
   } else {
-    DispatchBeforeUnloadToSubtree(aStartingAt.get(), aInfo, aResolver);
+    DispatchBeforeUnloadToSubtree(aStartingAt.get(), std::move(aResolver));
   }
   return IPC_OK();
 }
@@ -4380,41 +4378,19 @@ mozilla::ipc::IPCResult ContentChild::RecvInitNextGenLocalStorageEnabled(
 
 /* static */ void ContentChild::DispatchBeforeUnloadToSubtree(
     BrowsingContext* aStartingAt,
-    const mozilla::Maybe<SessionHistoryInfo>& aInfo,
     const DispatchBeforeUnloadToSubtreeResolver& aResolver) {
-  bool block = false;
   bool resolved = false;
 
-  aStartingAt->PreOrderWalk([&](const RefPtr<dom::BrowsingContext>&
-                                    aBC) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+  aStartingAt->PreOrderWalk([&](dom::BrowsingContext* aBC) {
     if (aBC->GetDocShell()) {
       nsCOMPtr<nsIDocumentViewer> viewer;
       aBC->GetDocShell()->GetDocViewer(getter_AddRefs(viewer));
-      if (viewer && viewer->DispatchBeforeUnload() ==
-                        nsIDocumentViewer::eRequestBlockNavigation) {
-        block = true;
-      } else if (aBC->IsTop() && aInfo) {
-        // https://html.spec.whatwg.org/#preventing-navigation:fire-a-traverse-navigate-event.
-        // If this is the top-level navigable and we've passed `aInfo`, we
-        // should perform #fire-a-traverse-navigate-event.
-        // #checking-if-unloading-is-canceled will block the navigation if the
-        // "navigate" event handler for the top level window's navigation object
-        // returns false.
-        if (RefPtr<nsPIDOMWindowInner> activeWindow =
-                nsDocShell::Cast(aBC->GetDocShell())->GetActiveWindow()) {
-          if (RefPtr navigation = activeWindow->Navigation()) {
-            if (AutoJSAPI jsapi; jsapi.Init(activeWindow)) {
-              // This should send the correct user involvment. See bug 1903552.
-              block = !navigation->FireTraverseNavigateEvent(jsapi.cx(), *aInfo,
-                                                             Nothing());
-            }
-          }
-        }
-      }
-
-      if (!resolved && block) {
-        // Send our response as soon as we find any blocker, so that we can
-        // show the permit unload prompt as soon as possible, without giving
+      if (viewer &&
+          viewer->DispatchBeforeUnload() ==
+              nsIDocumentViewer::eRequestBlockNavigation &&
+          !resolved) {
+        // Send our response as soon as we find any blocker, so that we can show
+        // the permit unload prompt as soon as possible, without giving
         // subsequent handlers a chance to delay it.
         aResolver(nsIDocumentViewer::eRequestBlockNavigation);
         resolved = true;

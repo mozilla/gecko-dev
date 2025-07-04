@@ -310,48 +310,23 @@ bool WindowGlobalChild::IsProcessRoot() {
   return !BrowsingContext()->GetEmbedderElement();
 }
 
-// When a "beforeunload" handler is added, it's recorded to be able to know when
-// dispatching "beforeunload" is needed.
 void WindowGlobalChild::BeforeUnloadAdded() {
   // Don't bother notifying the parent if we don't have an IPC link open.
   if (mBeforeUnloadListeners == 0 && CanSend()) {
-    Unused << mWindowContext->SetNeedsBeforeUnload(true);
+    Unused << mWindowContext->SetHasBeforeUnload(true);
   }
 
   mBeforeUnloadListeners++;
   MOZ_ASSERT(mBeforeUnloadListeners > 0);
 }
 
-// This is the inverse of `BeforeUnloadAdded`, making sure that "beforeunload"
-// isn't dispatched if all "beforeunload" handlers have been removed.
 void WindowGlobalChild::BeforeUnloadRemoved() {
   mBeforeUnloadListeners--;
   MOZ_ASSERT(mBeforeUnloadListeners >= 0);
 
   if (mBeforeUnloadListeners == 0) {
-    Unused << mWindowContext->SetNeedsBeforeUnload(false);
+    Unused << mWindowContext->SetHasBeforeUnload(false);
   }
-}
-
-// This is very similar to what is done for "beforeunload" and uses the same
-// state to keep track, but is only ever used for a top level window. It's used
-// to be able to track when a "navigate" event needs to be dispatched to the top
-// level window's navigation object, which needs to happen right after a
-// "beforeunload" event for that window would be dispatched, regardless of if it
-// is.
-void WindowGlobalChild::NavigateAdded() {
-  if (!BrowsingContext()->IsTop()) {
-    return;
-  }
-  BeforeUnloadAdded();
-}
-
-// The inverse of `NavigateAdded`, again only ever used for a top level window.
-void WindowGlobalChild::NavigateRemoved() {
-  if (!BrowsingContext()->IsTop()) {
-    return;
-  }
-  BeforeUnloadRemoved();
 }
 
 void WindowGlobalChild::Destroy() {

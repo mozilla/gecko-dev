@@ -1055,10 +1055,8 @@ child:
 
     // Dispatches a "beforeunload" event to each in-process content window in the
     // subtree beginning at `aStartingAt`, and returns the result as documented in
-    // the `PermitUnloadResult` enum. If `aStartingAt` is an in-process, top-level
-    // browsing context, then a "navigate" event will also be dispatched.
-    // See https://html.spec.whatwg.org/#preventing-navigation:fire-a-traverse-navigate-event
-    async DispatchBeforeUnloadToSubtree(MaybeDiscardedBrowsingContext aStartingAt, SessionHistoryInfo? info)
+    // the `PermitUnloadResult` enum.
+    async DispatchBeforeUnloadToSubtree(MaybeDiscardedBrowsingContext aStartingAt)
         returns (PermitUnloadResult result);
 
     // Update the cached list of codec supported in the given process.

@@ -44,11 +44,6 @@ class Navigation final : public DOMEventTargetHelper {
 
   explicit Navigation(nsPIDOMWindowInner* aWindow);
 
-  using EventTarget::EventListenerAdded;
-  virtual void EventListenerAdded(nsAtom* aType) override;
-  using EventTarget::EventListenerRemoved;
-  virtual void EventListenerRemoved(nsAtom* aType) override;
-
   // Navigation.webidl
   void Entries(nsTArray<RefPtr<NavigationHistoryEntry>>& aResult) const;
   already_AddRefed<NavigationHistoryEntry> GetCurrentEntry() const;
@@ -114,7 +109,7 @@ class Navigation final : public DOMEventTargetHelper {
   // https://html.spec.whatwg.org/#navigate-event-firing
 
   MOZ_CAN_RUN_SCRIPT bool FireTraverseNavigateEvent(
-      JSContext* aCx, const SessionHistoryInfo& aDestinationSessionHistoryInfo,
+      JSContext* aCx, SessionHistoryInfo* aDestinationSessionHistoryInfo,
       Maybe<UserNavigationInvolvement> aUserInvolvement);
 
   MOZ_CAN_RUN_SCRIPT bool FirePushReplaceReloadNavigateEvent(
@@ -172,7 +167,7 @@ class Navigation final : public DOMEventTargetHelper {
       const nsAString& aDownloadRequestFilename);
 
   NavigationHistoryEntry* FindNavigationHistoryEntry(
-      const SessionHistoryInfo& aSessionHistoryInfo) const;
+      SessionHistoryInfo* aSessionHistoryInfo) const;
 
   void PromoteUpcomingAPIMethodTrackerToOngoing(Maybe<nsID>&& aDestinationKey);
 

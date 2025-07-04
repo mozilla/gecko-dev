@@ -159,9 +159,7 @@ class nsSHistory : public mozilla::LinkedListElement<nsSHistory>,
   };
 
   MOZ_CAN_RUN_SCRIPT
-  static void LoadURIs(nsTArray<LoadEntryResult>& aLoadResults,
-                       mozilla::dom::BrowsingContext* aTraversable = nullptr);
-
+  static void LoadURIs(nsTArray<LoadEntryResult>& aLoadResults);
   MOZ_CAN_RUN_SCRIPT
   static void LoadURIOrBFCache(LoadEntryResult& aLoadEntry);
 

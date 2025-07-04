@@ -1486,8 +1486,7 @@ Maybe<int32_t> CanonicalBrowsingContext::HistoryGo(
     shistory->SetEpoch(aHistoryEpoch, aContentId);
   }
   int32_t requestedIndex = shistory->GetRequestedIndex();
-  RefPtr traversable = Top();
-  nsSHistory::LoadURIs(loadResults, traversable);
+  nsSHistory::LoadURIs(loadResults);
   return Some(requestedIndex);
 }
 
@@ -2494,7 +2493,7 @@ bool CanonicalBrowsingContext::SupportsLoadingInParent(
     // event.
     if (PreOrderWalkFlag([&](BrowsingContext* aBC) {
           WindowContext* wc = aBC->GetCurrentWindowContext();
-          if (wc && wc->NeedsBeforeUnload()) {
+          if (wc && wc->HasBeforeUnload()) {
             // We can stop as soon as we know at least one beforeunload listener
             // exists.
             return WalkFlag::Stop;
