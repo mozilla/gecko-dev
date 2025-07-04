@@ -5,9 +5,6 @@
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.importESModule(
-  "resource://services-settings/remote-settings.sys.mjs"
-);
 const { Preferences } = ChromeUtils.importESModule(
   "resource://gre/modules/Preferences.sys.mjs"
 );

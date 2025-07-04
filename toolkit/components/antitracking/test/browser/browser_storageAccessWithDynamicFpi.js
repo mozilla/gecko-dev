@@ -5,10 +5,6 @@
 
 "use strict";
 
-const { RemoteSettings } = ChromeUtils.importESModule(
-  "resource://services-settings/remote-settings.sys.mjs"
-);
-
 const isAndroid = AppConstants.platform == "android";
 
 XPCOMUtils.defineLazyServiceGetter(
