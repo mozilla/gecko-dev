@@ -21,8 +21,9 @@ use crate::{
 
 use thiserror::Error;
 use wgt::{
-    math::align_to, BufferAddress, BufferUsages, ImageSubresourceRange, TextureAspect,
-    TextureSelector,
+    error::{ErrorType, WebGpuError},
+    math::align_to,
+    BufferAddress, BufferUsages, ImageSubresourceRange, TextureAspect, TextureSelector,
 };
 
 /// Error encountered while attempting a clear.
@@ -79,6 +80,28 @@ whereas subesource range specified start {subresource_base_array_layer} and coun
     InvalidResource(#[from] InvalidResourceError),
 }
 
+impl WebGpuError for ClearError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        let e: &dyn WebGpuError = match self {
+            Self::DestroyedResource(e) => e,
+            Self::MissingBufferUsage(e) => e,
+            Self::Device(e) => e,
+            Self::EncoderState(e) => e,
+            Self::InvalidResource(e) => e,
+            Self::NoValidTextureClearMode(..)
+            | Self::MissingClearTextureFeature
+            | Self::UnalignedFillSize(..)
+            | Self::UnalignedBufferOffset(..)
+            | Self::OffsetPlusSizeExceeds64BitBounds { .. }
+            | Self::BufferOverrun { .. }
+            | Self::MissingTextureAspect { .. }
+            | Self::InvalidTextureLevelRange { .. }
+            | Self::InvalidTextureLayerRange { .. } => return ErrorType::Validation,
+        };
+        e.webgpu_error_type()
+    }
+}
+
 impl Global {
     pub fn command_encoder_clear_buffer(
         &self,
@@ -101,6 +124,8 @@ impl Global {
             if let Some(ref mut list) = cmd_buf_data.commands {
                 list.push(TraceCommand::ClearBuffer { dst, offset, size });
             }
+
+            cmd_buf.device.check_is_valid()?;
 
             let dst_buffer = hub.buffers.get(dst).get()?;
 
@@ -189,6 +214,8 @@ impl Global {
                     subresource_range: *subresource_range,
                 });
             }
+
+            cmd_buf.device.check_is_valid()?;
 
             if !cmd_buf.support_clear_texture {
                 return Err(ClearError::MissingClearTextureFeature);

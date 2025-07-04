@@ -17,7 +17,10 @@ use crate::{
     FastHashMap,
 };
 use thiserror::Error;
-use wgt::BufferAddress;
+use wgt::{
+    error::{ErrorType, WebGpuError},
+    BufferAddress,
+};
 
 #[derive(Debug)]
 pub(crate) struct QueryResetMap {
@@ -109,6 +112,21 @@ pub enum QueryError {
     InvalidResource(#[from] InvalidResourceError),
 }
 
+impl WebGpuError for QueryError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        let e: &dyn WebGpuError = match self {
+            Self::EncoderState(e) => e,
+            Self::Use(e) => e,
+            Self::Resolve(e) => e,
+            Self::InvalidResource(e) => e,
+            Self::Device(e) => e,
+            Self::MissingFeature(e) => e,
+            Self::DestroyedResource(e) => e,
+        };
+        e.webgpu_error_type()
+    }
+}
+
 /// Error encountered while trying to use queries
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
@@ -136,6 +154,19 @@ pub enum QueryUseError {
     },
 }
 
+impl WebGpuError for QueryUseError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        match self {
+            Self::Device(e) => e.webgpu_error_type(),
+            Self::OutOfBounds { .. }
+            | Self::UsedTwiceInsideRenderpass { .. }
+            | Self::AlreadyStarted { .. }
+            | Self::AlreadyStopped
+            | Self::IncompatibleType { .. } => ErrorType::Validation,
+        }
+    }
+}
+
 /// Error encountered while trying to resolve a query.
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
@@ -159,6 +190,17 @@ pub enum ResolveError {
         buffer_start_offset: BufferAddress,
         bytes_used: BufferAddress,
     },
+}
+
+impl WebGpuError for ResolveError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        match self {
+            Self::MissingBufferUsage(e) => e.webgpu_error_type(),
+            Self::BufferOffsetAlignment
+            | Self::QueryOverrun { .. }
+            | Self::BufferOverrun { .. } => ErrorType::Validation,
+        }
+    }
 }
 
 impl QuerySet {
@@ -325,10 +367,6 @@ impl Global {
             .get(command_encoder_id.into_command_buffer_id());
         let mut cmd_buf_data = cmd_buf.data.lock();
         cmd_buf_data.record_with(|cmd_buf_data| -> Result<(), QueryError> {
-            cmd_buf
-                .device
-                .require_features(wgt::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS)?;
-
             #[cfg(feature = "trace")]
             if let Some(ref mut list) = cmd_buf_data.commands {
                 list.push(TraceCommand::WriteTimestamp {
@@ -337,9 +375,16 @@ impl Global {
                 });
             }
 
+            cmd_buf.device.check_is_valid()?;
+
+            cmd_buf
+                .device
+                .require_features(wgt::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS)?;
+
             let raw_encoder = cmd_buf_data.encoder.open()?;
 
             let query_set = hub.query_sets.get(query_set_id).get()?;
+            query_set.same_device_as(cmd_buf.as_ref())?;
 
             query_set.validate_and_write_timestamp(raw_encoder, query_index, None)?;
 
@@ -375,6 +420,8 @@ impl Global {
                     destination_offset,
                 });
             }
+
+            cmd_buf.device.check_is_valid()?;
 
             if destination_offset % wgt::QUERY_RESOLVE_BUFFER_ALIGNMENT != 0 {
                 return Err(QueryError::Resolve(ResolveError::BufferOffsetAlignment));

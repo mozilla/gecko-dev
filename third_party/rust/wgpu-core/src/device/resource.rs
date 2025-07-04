@@ -357,7 +357,7 @@ impl Device {
         if self.is_valid() {
             Ok(())
         } else {
-            Err(DeviceError::Invalid(self.error_ident()))
+            Err(DeviceError::Lost)
         }
     }
 
@@ -378,7 +378,6 @@ impl Device {
         match error {
             hal::DeviceError::OutOfMemory
             | hal::DeviceError::Lost
-            | hal::DeviceError::ResourceCreationFailed
             | hal::DeviceError::Unexpected => {
                 self.lose(&error.to_string());
             }
@@ -1798,6 +1797,22 @@ impl Device {
                 hal::ShaderInput::Msl {
                     shader: inner.source.to_string(),
                     entry_point: inner.entry_point.to_string(),
+                    num_workgroups: inner.num_workgroups,
+                }
+            }
+            pipeline::ShaderModuleDescriptorPassthrough::Dxil(inner) => {
+                self.require_features(wgt::Features::HLSL_DXIL_SHADER_PASSTHROUGH)?;
+                hal::ShaderInput::Dxil {
+                    shader: inner.source,
+                    entry_point: inner.entry_point.clone(),
+                    num_workgroups: inner.num_workgroups,
+                }
+            }
+            pipeline::ShaderModuleDescriptorPassthrough::Hlsl(inner) => {
+                self.require_features(wgt::Features::HLSL_DXIL_SHADER_PASSTHROUGH)?;
+                hal::ShaderInput::Hlsl {
+                    shader: inner.source,
+                    entry_point: inner.entry_point.clone(),
                     num_workgroups: inner.num_workgroups,
                 }
             }

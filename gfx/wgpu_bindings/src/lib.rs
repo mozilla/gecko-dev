@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::command::{RecordedComputePass, RecordedRenderPass};
-use crate::error::ErrorBufferType;
 use wgc::id;
 
 pub mod client;
@@ -298,7 +297,7 @@ enum DeviceAction<'a> {
     ),
     Error {
         message: String,
-        r#type: ErrorBufferType,
+        r#type: wgt::error::ErrorType,
     },
     PushErrorScope(u8 /* dom::GPUErrorFilter */),
     PopErrorScope,

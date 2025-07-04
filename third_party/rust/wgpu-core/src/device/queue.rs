@@ -8,7 +8,10 @@ use core::{
 };
 use smallvec::SmallVec;
 use thiserror::Error;
-use wgt::AccelerationStructureFlags;
+use wgt::{
+    error::{ErrorType, WebGpuError},
+    AccelerationStructureFlags,
+};
 
 use super::{life::LifetimeTracker, Device};
 use crate::device::resource::CommandIndices;
@@ -218,7 +221,6 @@ impl Drop for Queue {
                         self.device.handle_hal_error(e); // will lose the device
                         break;
                     }
-                    hal::DeviceError::ResourceCreationFailed => unreachable!(),
                     hal::DeviceError::Unexpected => {
                         panic!(
                             "We ran into an unexpected error while waiting on the last successful submission to complete!"
@@ -455,6 +457,19 @@ pub enum QueueWriteError {
     InvalidResource(#[from] InvalidResourceError),
 }
 
+impl WebGpuError for QueueWriteError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        let e: &dyn WebGpuError = match self {
+            Self::Queue(e) => e,
+            Self::Transfer(e) => e,
+            Self::MemoryInitFailure(e) => e,
+            Self::DestroyedResource(e) => e,
+            Self::InvalidResource(e) => e,
+        };
+        e.webgpu_error_type()
+    }
+}
+
 #[derive(Clone, Debug, Error)]
 #[non_exhaustive]
 pub enum QueueSubmitError {
@@ -472,6 +487,22 @@ pub enum QueueSubmitError {
     CommandEncoder(#[from] CommandEncoderError),
     #[error(transparent)]
     ValidateAsActionsError(#[from] crate::ray_tracing::ValidateAsActionsError),
+}
+
+impl WebGpuError for QueueSubmitError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        let e: &dyn WebGpuError = match self {
+            Self::Queue(e) => e,
+            Self::Unmap(e) => e,
+            Self::CommandEncoder(e) => e,
+            Self::ValidateAsActionsError(e) => e,
+            Self::InvalidResource(e) => e,
+            Self::DestroyedResource(_) | Self::BufferStillMapped(_) => {
+                return ErrorType::Validation
+            }
+        };
+        e.webgpu_error_type()
+    }
 }
 
 //TODO: move out common parts of write_xxx.
@@ -1279,7 +1310,11 @@ impl Queue {
                                     .unwrap()
                             };
                         }
-                        Err(e) => break 'error Err(e.into()),
+                        // The texture must not have been destroyed when its usage here was
+                        // encoded. If it was destroyed after that, then it was transferred
+                        // to `pending_writes.temp_resources` at the time of destruction, so
+                        // we are still okay to use it.
+                        Err(DestroyedResourceError(_)) => {}
                     }
                 }
 
@@ -1410,6 +1445,7 @@ impl Queue {
         profiling::scope!("Queue::compact_blas");
         api_log!("Queue::compact_blas");
 
+        self.device.check_is_valid()?;
         self.same_device_as(blas.as_ref())?;
 
         let device = blas.device.clone();

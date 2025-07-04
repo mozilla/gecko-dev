@@ -216,7 +216,7 @@ path = "platform-deps/windows-linux-android"
 optional = true
 
 [target.'cfg(not(target_has_atomic = "64"))'.dependencies.portable-atomic]
-version = "1.2"
+version = "1.8"
 optional = true
 
 [target.'cfg(target_os = "emscripten")'.dependencies.wgpu-core-deps-emscripten]

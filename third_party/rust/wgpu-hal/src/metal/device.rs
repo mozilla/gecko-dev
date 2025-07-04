@@ -1039,6 +1039,9 @@ impl crate::Device for super::Device {
             crate::ShaderInput::SpirV(_) => {
                 panic!("SPIRV_SHADER_PASSTHROUGH is not enabled for this backend")
             }
+            crate::ShaderInput::Dxil { .. } | crate::ShaderInput::Hlsl { .. } => {
+                panic!("`Features::HLSL_DXIL_SHADER_PASSTHROUGH` is not enabled for this backend")
+            }
         }
     }
 
@@ -1460,7 +1463,7 @@ impl crate::Device for super::Device {
                             Some(counter) => counter,
                             None => {
                                 log::error!("Failed to obtain timestamp counter set.");
-                                return Err(crate::DeviceError::ResourceCreationFailed);
+                                return Err(crate::DeviceError::Unexpected);
                             }
                         };
                     csb_desc.set_counter_set(timestamp_counter);
@@ -1470,7 +1473,7 @@ impl crate::Device for super::Device {
                             Ok(buffer) => buffer,
                             Err(err) => {
                                 log::error!("Failed to create counter sample buffer: {:?}", err);
-                                return Err(crate::DeviceError::ResourceCreationFailed);
+                                return Err(crate::DeviceError::Unexpected);
                             }
                         };
 

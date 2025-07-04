@@ -17,7 +17,10 @@ use crate::{
 use arrayvec::ArrayVec;
 use smallvec::SmallVec;
 use thiserror::Error;
-use wgt::{BufferAddress, DeviceLostReason, TextureFormat};
+use wgt::{
+    error::{ErrorType, WebGpuError},
+    BufferAddress, DeviceLostReason, TextureFormat,
+};
 
 pub(crate) mod bgl;
 pub mod global;
@@ -100,6 +103,12 @@ pub enum RenderPassCompatibilityError {
         actual: Option<NonZeroU32>,
         res: ResourceErrorIdent,
     },
+}
+
+impl WebGpuError for RenderPassCompatibilityError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        ErrorType::Validation
+    }
 }
 
 impl RenderPassContext {
@@ -313,20 +322,32 @@ impl fmt::Display for DeviceMismatch {
 
 impl core::error::Error for DeviceMismatch {}
 
+impl WebGpuError for DeviceMismatch {
+    fn webgpu_error_type(&self) -> ErrorType {
+        ErrorType::Validation
+    }
+}
+
 #[derive(Clone, Debug, Error)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[non_exhaustive]
 pub enum DeviceError {
-    #[error("{0} is invalid.")]
-    Invalid(ResourceErrorIdent),
     #[error("Parent device is lost")]
     Lost,
     #[error("Not enough memory left.")]
     OutOfMemory,
-    #[error("Creation of a resource failed for a reason other than running out of memory.")]
-    ResourceCreationFailed,
     #[error(transparent)]
     DeviceMismatch(#[from] Box<DeviceMismatch>),
+}
+
+impl WebGpuError for DeviceError {
+    fn webgpu_error_type(&self) -> ErrorType {
+        match self {
+            Self::DeviceMismatch(e) => e.webgpu_error_type(),
+            Self::Lost => ErrorType::DeviceLost,
+            Self::OutOfMemory => ErrorType::OutOfMemory,
+        }
+    }
 }
 
 impl DeviceError {
@@ -337,7 +358,6 @@ impl DeviceError {
         match error {
             hal::DeviceError::Lost => Self::Lost,
             hal::DeviceError::OutOfMemory => Self::OutOfMemory,
-            hal::DeviceError::ResourceCreationFailed => Self::ResourceCreationFailed,
             hal::DeviceError::Unexpected => Self::Lost,
         }
     }
@@ -347,11 +367,23 @@ impl DeviceError {
 #[error("Features {0:?} are required but not enabled on the device")]
 pub struct MissingFeatures(pub wgt::Features);
 
+impl WebGpuError for MissingFeatures {
+    fn webgpu_error_type(&self) -> ErrorType {
+        ErrorType::Validation
+    }
+}
+
 #[derive(Clone, Debug, Error)]
 #[error(
     "Downlevel flags {0:?} are required but not supported on the device.\n{DOWNLEVEL_ERROR_MESSAGE}",
 )]
 pub struct MissingDownlevelFlags(pub wgt::DownlevelFlags);
+
+impl WebGpuError for MissingDownlevelFlags {
+    fn webgpu_error_type(&self) -> ErrorType {
+        ErrorType::Validation
+    }
+}
 
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

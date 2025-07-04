@@ -3,9 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use crate::{
-    error::{
-        error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, HasErrorBufferType, OwnedErrorBuffer,
-    },
+    error::{error_to_string, ErrMsg, ErrorBuffer, ErrorBufferType, OwnedErrorBuffer},
     make_byte_buf, wgpu_string, AdapterInformation, BufferMapResult, ByteBuf, CommandEncoderAction,
     DeviceAction, FfiLUID, FfiSlice, Message, PipelineError, QueueWriteAction,
     QueueWriteDataSource, ServerMessage, ShaderModuleCompilationMessage, SwapChainId,
@@ -18,6 +16,7 @@ use wgc::id;
 use wgc::{pipeline::CreateShaderModuleError, resource::BufferAccessError};
 #[allow(unused_imports)]
 use wgh::Instance;
+use wgt::error::{ErrorType, WebGpuError};
 
 use std::borrow::Cow;
 #[allow(unused_imports)]
@@ -1925,8 +1924,8 @@ impl Global {
                 if shmem_allocation_failed || desc.size > MAX_BUFFER_SIZE {
                     error_buf.init(
                         ErrMsg {
-                            message: "Out of memory",
-                            r#type: ErrorBufferType::OutOfMemory,
+                            message: "Out of memory".into(),
+                            r#type: ErrorType::OutOfMemory,
                         },
                         device_id,
                     );
@@ -1967,8 +1966,8 @@ impl Global {
                     self.create_texture_error(Some(id), &desc);
                     error_buf.init(
                         ErrMsg {
-                            message: "Out of memory",
-                            r#type: ErrorBufferType::OutOfMemory,
+                            message: "Out of memory".into(),
+                            r#type: ErrorType::OutOfMemory,
                         },
                         device_id,
                     );
@@ -1985,8 +1984,8 @@ impl Global {
                     self.create_texture_error(Some(id), &desc);
                     error_buf.init(
                         ErrMsg {
-                            message: "size is zero",
-                            r#type: ErrorBufferType::Validation,
+                            message: "size is zero".into(),
+                            r#type: ErrorType::Validation,
                         },
                         device_id,
                     );
@@ -2009,8 +2008,8 @@ impl Global {
                         self.create_texture_error(Some(id), &desc);
                         error_buf.init(
                             ErrMsg {
-                                message: "size exceeds limits.max_texture_dimension_2d",
-                                r#type: ErrorBufferType::Validation,
+                                message: "size exceeds limits.max_texture_dimension_2d".into(),
+                                r#type: ErrorType::Validation,
                             },
                             device_id,
                         );
@@ -2023,13 +2022,17 @@ impl Global {
                         && !features.contains(wgt::Features::BGRA8UNORM_STORAGE)
                     {
                         self.create_texture_error(Some(id), &desc);
-                        error_buf.init(ErrMsg {
-                            message: concat!(
-                                "Bgra8Unorm with GPUStorageBinding usage ",
-                                "with BGRA8UNORM_STORAGE disabled"
-                            ),
-                            r#type: ErrorBufferType::Validation,
-                        }, device_id);
+                        error_buf.init(
+                            ErrMsg {
+                                message: concat!(
+                                    "Bgra8Unorm with GPUStorageBinding usage ",
+                                    "with BGRA8UNORM_STORAGE disabled"
+                                )
+                                .into(),
+                                r#type: ErrorType::Validation,
+                            },
+                            device_id,
+                        );
                         return;
                     }
 
@@ -2162,8 +2165,8 @@ impl Global {
 
                     error_buf.init(
                         ErrMsg {
-                            message: &format!("Shader module creation failed: {message}"),
-                            r#type: err.error_type(),
+                            message: format!("Shader module creation failed: {message}"),
+                            r#type: err.webgpu_error_type(),
                         },
                         device_id,
                     );
@@ -2189,10 +2192,10 @@ impl Global {
 
                 if is_async {
                     let error = error
-                        .filter(|e| !matches!(e.error_type(), crate::ErrorBufferType::DeviceLost))
+                        .filter(|e| !matches!(e.webgpu_error_type(), ErrorType::DeviceLost))
                         .map(|e| -> _ {
                             let is_validation_error =
-                                matches!(e.error_type(), crate::ErrorBufferType::Validation);
+                                matches!(e.webgpu_error_type(), ErrorType::Validation);
                             PipelineError {
                                 is_validation_error,
                                 error: error_to_string(e),
@@ -2222,10 +2225,10 @@ impl Global {
 
                 if is_async {
                     let error = error
-                        .filter(|e| !matches!(e.error_type(), crate::ErrorBufferType::DeviceLost))
+                        .filter(|e| !matches!(e.webgpu_error_type(), ErrorType::DeviceLost))
                         .map(|e| -> _ {
                             let is_validation_error =
-                                matches!(e.error_type(), crate::ErrorBufferType::Validation);
+                                matches!(e.webgpu_error_type(), ErrorType::Validation);
                             PipelineError {
                                 is_validation_error,
                                 error: error_to_string(e),
@@ -2268,13 +2271,7 @@ impl Global {
                 }
             }
             DeviceAction::Error { message, r#type } => {
-                error_buf.init(
-                    ErrMsg {
-                        message: &message,
-                        r#type,
-                    },
-                    device_id,
-                );
+                error_buf.init(ErrMsg { message, r#type }, device_id);
             }
             DeviceAction::PushErrorScope(filter) => {
                 unsafe {
@@ -2710,8 +2707,8 @@ unsafe fn process_message(
                     );
                     error_buf.init(
                         ErrMsg {
-                            message,
-                            r#type: ErrorBufferType::Validation,
+                            message: message.into(),
+                            r#type: ErrorType::Validation,
                         },
                         device_id,
                     );
