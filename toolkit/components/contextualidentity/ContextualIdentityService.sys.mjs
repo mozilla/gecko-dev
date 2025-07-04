@@ -159,6 +159,10 @@ _ContextualIdentityService.prototype = {
         this.notifyAllContainersCleared();
         this.resetDefault();
       }
+
+      Glean.containers.containersEnabled.record({
+        enabled: contextualIdentitiesEnabled,
+      });
     }
   },
 
@@ -180,6 +184,11 @@ _ContextualIdentityService.prototype = {
         this.loadError(error);
       }
     );
+
+    Glean.containers.containerProfileLoaded.record({
+      containers: this.getPublicUserContextIds().length,
+    });
+
     Services.obs.notifyObservers(
       null,
       "contextual-identity-service-load-finished"
@@ -297,6 +306,10 @@ _ContextualIdentityService.prototype = {
       "contextual-identity-created"
     );
 
+    Glean.containers.containerCreated.record({
+      container_id: userContextId.toString(),
+    });
+
     return Cu.cloneInto(identity, {});
   },
 
@@ -325,6 +338,10 @@ _ContextualIdentityService.prototype = {
         "contextual-identity-updated"
       );
     }
+
+    Glean.containers.containerModified.record({
+      container_id: userContextId.toString(),
+    });
 
     return !!identity;
   },
@@ -380,6 +397,10 @@ _ContextualIdentityService.prototype = {
     this._openedIdentities.delete(userContextId);
     this.saveSoon();
     Services.obs.notifyObservers(deletedOutput, "contextual-identity-deleted");
+
+    Glean.containers.containerDeleted.record({
+      container_id: userContextId.toString(),
+    });
 
     return true;
   },
