@@ -43,6 +43,12 @@ run-sequentially = "very high failure rate in parallel"
 ["test_Migrations.js"]
 
 ["test_NimbusTestUtils.js"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1973051
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1973051
+  "os == 'mac' && os_version == '15.00' && processor == 'aarch64'", # Bug 1973051
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1973051
+]
 
 ["test_RemoteSettingsExperimentLoader.js"]
 

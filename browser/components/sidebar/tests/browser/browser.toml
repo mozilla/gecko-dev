@@ -71,6 +71,7 @@ skip-if = [
 ["browser_vertical_tabs.js"]
 skip-if = [
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968564
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt", # Bug 1922718
 ]
 
 ["browser_vertical_tabs_cui_reset.js"]
