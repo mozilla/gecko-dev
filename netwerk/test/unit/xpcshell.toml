@@ -885,7 +885,6 @@ skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && 
 run-sequentially = "node server exceptions dont replay well"
 
 ["test_httpssvc_https_upgrade.js"]
-https_first_disabled = true
 
 ["test_httpssvc_iphint.js"]
 run-sequentially = "node server exceptions dont replay well"
