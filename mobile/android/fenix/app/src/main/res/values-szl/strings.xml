@@ -387,7 +387,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Przekłady</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Możności udostympnianio</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Możności udostympnianio</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Zbiyranie danych</string>
   <!-- Preference for developers -->

@@ -833,7 +833,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Troidigezhioù</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Dibaboù roadennoù</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Dibaboù roadennoù</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Dastum roadennoù</string>
   <!-- Preference for developers -->
@@ -1098,7 +1098,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Gouzout hirocʼh</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Gouzout hiroc’h</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Gouzout hiroc’h</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Gouzout hiroc\'h a-zivout an danevelloù sac\'hañ</string>
   <!-- Title for studies preferences -->

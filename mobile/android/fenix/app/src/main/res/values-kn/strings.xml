@@ -167,7 +167,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">ಭಾಷೆ</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">ದತ್ತಾಂಶ ಆಯ್ಕೆಗಳು</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">ದತ್ತಾಂಶ ಆಯ್ಕೆಗಳು</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">ಮಾಹಿತಿ ಸಂಗ್ರಹ</string>
   <!-- Preference for developers -->

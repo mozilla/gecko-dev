@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Översättningar</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Dataalternativ</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Dataalternativ</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Datainsamling</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Läs mer</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Skicka teknisk data och interaktionsdata</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Läs mer om teknisk data</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Läs mer</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Läs mer</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Data om din enhet, hårdvarukonfiguration och användning hjälper oss att förbättra Firefox funktioner, prestanda och stabilitet.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping för daglig användning</string>
+  <string name="preferences_daily_usage_ping_description">Detta hjälper Mozilla att uppskatta antalet aktiva användare.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Läs mer om ping för daglig användning</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Skicka automatiskt kraschrapporter</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Det här hjälper oss att diagnostisera och lösa problem med webbläsaren. Rapporter kan innehålla personliga eller känsliga uppgifter.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Läs mer om kraschrapporter</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Kraschrapporter</string>
+  <string name="usage_data_category">Användningsdata</string>
+  <string name="studies_data_category">Undersökningar</string>
+  <string name="technical_data_category">Tekniska data</string>
+  <string name="crash_reporting_description">Kraschrapporter tillåter oss att diagnostisera och åtgärda problem med webbläsaren. Rapporter kan innehålla personliga eller känsliga uppgifter.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Kampanjmätning</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Mätdata för kampanj</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Dela hur du upptäckte Firefox och att du använder Firefox med Mozillas marknadsföringsteknikpartners.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Läs mer om marknadsföringsdata</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping för daglig användning</string>
-  <string name="preferences_daily_usage_ping_description">Detta hjälper Mozilla att uppskatta antalet aktiva användare.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Läs mer om ping för daglig användning</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Skicka automatiskt kraschrapporter</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Det här hjälper oss att diagnostisera och lösa problem med webbläsaren. Rapporter kan innehålla personliga eller känsliga uppgifter.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Läs mer om kraschrapporter</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Redigera</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Ta bort</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Navigera bakåt</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Spara ny inloggning</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Öppna webbplatsen i webbläsaren</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

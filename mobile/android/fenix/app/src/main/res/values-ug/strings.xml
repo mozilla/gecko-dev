@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">تەرجىمە</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">سانلىق مەلۇمات تاللاش</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">سانلىق مەلۇمات تاللاش</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">سانلىق مەلۇمات توپلاش</string>
   <!-- Preference for developers -->
@@ -1231,9 +1231,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">تېخنىكىلىق ۋە تەسىرلىشىش سانلىق مەلۇماتىنى يوللايدۇ</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">تەپسىلاتى</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">تەپسىلاتى</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">ئۈسكۈنە، قاتتىق دېتال سەپلىمىسى ۋە ئىشلىتىش ھەققىدىكى سانلىق مەلۇمات، Firefox نىڭ ئىقتىدارى، ئۈنۈمى ۋە مۇقىملىقىنى ياخشىلىشىمىزغا ياردەم بېرىدۇ.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">كۈندىلىك ئىشلىتىلىش مىقدارى</string>
+  <string name="preferences_daily_usage_ping_description">بۇ سانلىق مەلۇمات Mozilla نىڭ ئاكتىپ ئىشلەتكۈچىنىڭ سانىنى مۆلچەرلىشىگە ياردەم بېرىدۇ.</string>
+  <string name="preferences_daily_usage_ping_learn_more">كۈندىلىك ئىشلىتىلىش مىقدارى ھەققىدە تېخىمۇ كۆپ بىلدۈرگۈ</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">يىمىرىلىش دوكلاتىنى ئۆزلۈكىدىن يوللايدۇ</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">بۇ توركۆرگۈگە دىياگنوز قويۇپ ۋە مەسىلىنى ئوڭشىشىمىزغا ياردەم بېرىدۇ. دوكلات شەخسىي ياكى سەزگۈر ئۇچۇرلارنى ئۆز ئىچىگە ئېلىشى مۇمكىن.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">پائالىيەت ئۆلچەم سانلىق مەلۇماتى</string>
   <!--
@@ -1243,14 +1251,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Firefox نى قانداق بايقىغانلىقىڭىز ۋە ئۇنى ئىشلىتىشنى Mozilla نىڭ بازارچىلىق تېخنىكا ھەمكارلاشقۇچىلىرى بىلەن ھەمبەھىرلەڭ.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">بازارچىلىق سانلىق مەلۇماتى ھەققىدىكى تەپسىلات</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">كۈندىلىك ئىشلىتىلىش مىقدارى</string>
-  <string name="preferences_daily_usage_ping_description">بۇ سانلىق مەلۇمات Mozilla نىڭ ئاكتىپ ئىشلەتكۈچىنىڭ سانىنى مۆلچەرلىشىگە ياردەم بېرىدۇ.</string>
-  <string name="preferences_daily_usage_ping_learn_more">كۈندىلىك ئىشلىتىلىش مىقدارى ھەققىدە تېخىمۇ كۆپ بىلدۈرگۈ</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">يىمىرىلىش دوكلاتىنى ئۆزلۈكىدىن يوللايدۇ</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">بۇ توركۆرگۈگە دىياگنوز قويۇپ ۋە مەسىلىنى ئوڭشىشىمىزغا ياردەم بېرىدۇ. دوكلات شەخسىي ياكى سەزگۈر ئۇچۇرلارنى ئۆز ئىچىگە ئېلىشى مۇمكىن.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">يىمىرىلىش دوكلاتى ھەققىدىكى تەپسىلات</string>
   <!-- Title for studies preferences -->

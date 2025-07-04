@@ -878,7 +878,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">თარგმანები</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">მონაცემთა შერჩევა</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">მონაცემთა შერჩევა</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">მონაცემთა აღრიცხვა</string>
   <!-- Preference for developers -->
@@ -1215,9 +1215,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">ტექნიკური და გამოყენების მონაცემების გაგზავნა</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">ვრცლად</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">ვრცლად</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">თქვენი მოწყობილობის მასახიათებლები, აპარატურული გაწყობა და გამოყენების მონაცემები გვეხმარება გავაუმჯობესოთ Firefox შესაძლებლობების, წარმადობისა და მდგრადობის კუთხით.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">დღიური გამოყენების უწყება</string>
+  <string name="preferences_daily_usage_ping_description">ამით %@ მიახლოებით ითვლის მოქმედ მომხმარებლებს.</string>
+  <string name="preferences_daily_usage_ping_learn_more">ვრცლად დღიური გამოყენების უწყების შესახებ</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">უეცარი გათიშვის მოხსენებების თვითგაგზავნა</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">საშუალებას მოგვცემს, გამოვავლინოთ და მოვაგვაროთ ბრაუზერის ხარვეზები. მოხსენებები შეიძლება შეიცავდეს პირად ან საფრთხილო მონაცემებს.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">გაცნობითი საქმიანობის საზომი</string>
   <!--
@@ -1227,14 +1235,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">გაუზიარეთ Mozilla-ს მოკავშირე სამსახურებს გავრცელების საკითხებში, როგორ აღმოაჩინეთ Firefox და იყენებთ თუ არა.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ვრცლად მარკეტინგულ მონაცემებზე</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">დღიური გამოყენების უწყება</string>
-  <string name="preferences_daily_usage_ping_description">ამით %@ მიახლოებით ითვლის მოქმედ მომხმარებლებს.</string>
-  <string name="preferences_daily_usage_ping_learn_more">ვრცლად დღიური გამოყენების უწყების შესახებ</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">უეცარი გათიშვის მოხსენებების თვითგაგზავნა</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">საშუალებას მოგვცემს, გამოვავლინოთ და მოვაგვაროთ ბრაუზერის ხარვეზები. მოხსენებები შეიძლება შეიცავდეს პირად ან საფრთხილო მონაცემებს.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ვრცლად უეცარი გათიშვების მოხსენებებზე</string>
   <!-- Title for studies preferences -->

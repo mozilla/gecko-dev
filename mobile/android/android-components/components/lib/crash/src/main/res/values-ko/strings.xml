@@ -23,7 +23,13 @@
   <!-- Title of the activity that shows the list of past crashes (similar to about:crashes) -->
   <string name="mozac_lib_crash_activity_title">충돌 보고서</string>
   <!-- Text shown instead of crash list if no crashes have been submitted yet -->
-  <string name="mozac_lib_crash_no_crashes">전송한 충돌 보고서가 없습니다.</string>
+  <string name="mozac_lib_crash_no_crashes">보낸 충돌 보고서가 없습니다.</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">공유</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">보내기 전에 묻기</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">자동으로 보내기</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">보내지 않음</string>
 </resources>

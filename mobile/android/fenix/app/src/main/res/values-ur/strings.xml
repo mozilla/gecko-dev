@@ -243,7 +243,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">زبان</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">ڈیٹا کے انتخاب</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">ڈیٹا کے انتخاب</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">ڈیٹا مجموعہ</string>
   <!-- Preference for developers -->

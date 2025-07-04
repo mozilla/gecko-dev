@@ -624,7 +624,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">ترجومه‌لر</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">دیتا سئچیمی</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">دیتا سئچیمی</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">دیتا یئغیلماسیْ</string>
   <!-- Preference for developers -->

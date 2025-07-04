@@ -373,7 +373,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Til</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Maǵlıwmatlardı tańlaw</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Maǵlıwmatlardı tańlaw</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Maǵlıwmatlardı jıynaw</string>
   <!-- Preference for developers -->

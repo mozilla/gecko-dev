@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Fordítások</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Adatküldések</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Adatküldések</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Adatgyűjtés</string>
   <!-- Preference for developers -->
@@ -1231,9 +1231,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Műszaki és interakciós adatok küldése</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">További tudnivalók</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">További tudnivalók</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Az eszközre, hardverkonfigurációra és a használatra vonatkozó adatok segítenek minket a Firefox funkcióinak, teljesítményének és stabilitásának javításában.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Napi használati ping</string>
+  <string name="preferences_daily_usage_ping_description">Ez segít a Mozillának az aktív felhasználók megbecslésében.</string>
+  <string name="preferences_daily_usage_ping_learn_more">További tudnivalók a napi használati pingről</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Összeomlás-jelentések automatikus elküldése</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Ez segít diagnosztizálni és megoldani a böngésző problémáit. A jelentések személyes vagy bizalmas adatokat tartalmazhatnak.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Kampány mérési adatai</string>
   <!--
@@ -1243,14 +1251,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Ossza meg a Mozilla marketingtechnológiai partnereivel, hogy miként fedezte fel, és hogyan használja a Firefoxot.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Tudjon meg többet a marketingadatokról</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Napi használati ping</string>
-  <string name="preferences_daily_usage_ping_description">Ez segít a Mozillának az aktív felhasználók megbecslésében.</string>
-  <string name="preferences_daily_usage_ping_learn_more">További tudnivalók a napi használati pingről</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Összeomlás-jelentések automatikus elküldése</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Ez segít diagnosztizálni és megoldani a böngésző problémáit. A jelentések személyes vagy bizalmas adatokat tartalmazhatnak.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Tudjon meg többet a összeomlás-jelentésekről</string>
   <!-- Title for studies preferences -->

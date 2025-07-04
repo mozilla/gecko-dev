@@ -277,7 +277,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Idioma</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Tría de datos</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Tría de datos</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Replega de datos</string>
   <!-- Preference for developers -->

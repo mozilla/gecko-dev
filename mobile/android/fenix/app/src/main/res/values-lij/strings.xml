@@ -167,7 +167,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Lengoa</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Condivixon dæti</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Condivixon dæti</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Arecugeita dæti</string>
   <!-- Preference for developers -->

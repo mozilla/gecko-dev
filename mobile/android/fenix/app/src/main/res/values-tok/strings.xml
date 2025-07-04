@@ -534,7 +534,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">ante toki lipu</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">sona ante</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">sona ante</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">jo sona</string>
   <!-- Preference title for switch preference to show search suggestions -->
@@ -707,7 +707,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">o sona</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">o sona</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">o sona</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">sona pali</string>
   <!--

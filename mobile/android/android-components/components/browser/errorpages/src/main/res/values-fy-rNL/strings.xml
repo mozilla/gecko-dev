@@ -35,7 +35,7 @@
   <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
   <string name="mozac_browser_errorpages_net_interrupt_title">De ferbining waard ferbrutsen</string>
   <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
-  <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[<p>De browser is suksesfol ferbûn, mar de ferbining waard ferbrutsen by it oerdragen fan ynformaasje. Probearje it opnij.</p> <ul> <li>De website kin tydlik net beskikber of te drok wêze. Probearje it oer in pear mominten opnij. </li> <li>As jo gjin siden lade kinne, kontrolearje dan de gegevens of de wifi-ferbining fan jo apparaat.</li> </ul>]]></string>
+  <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[<p>De browser is mei sukses ferbûn, mar de ferbining waard ferbrutsen by it oerbringen fan ynformaasje. Probearje it opnij.</p> <ul> <li>De website kin tydlik net beskikber of te drok wêze. Probearje it oer in pear mominten opnij. </li> <li>As jo gjin siden lade kinne, kontrolearje dan de gegevens- of wifi-ferbining fan jo apparaat.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website takes too long to load. -->
   <string name="mozac_browser_errorpages_net_timeout_title">De wachttiid foar de ferbining is ferstrutsen</string>
   <!-- The error message shown when a website took long to load. -->

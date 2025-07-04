@@ -548,7 +548,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Traducciones</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Nuu kaji daa datos</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Nuu kaji daa datos</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Recopilación de datos</string>
   <!-- Preference for developers -->

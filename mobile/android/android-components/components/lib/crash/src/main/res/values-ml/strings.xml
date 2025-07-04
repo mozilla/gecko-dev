@@ -26,4 +26,10 @@
   <string name="mozac_lib_crash_no_crashes">തകരാർ വിവരങ്ങൾ സമര്‍പ്പിച്ചിട്ടില്ല.</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">പങ്കിടുക</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">അയയ്ക്കുന്നതിനു മുമ്പ് ചോദിക്കുക</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">തന്നെത്താനെ അയയ്ക്കുക</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">ഒരിക്കലും അയയ്ക്കരുതു്</string>
 </resources>

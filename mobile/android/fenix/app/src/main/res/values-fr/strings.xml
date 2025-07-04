@@ -217,7 +217,7 @@
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Pour utiliser des extensions, activez-les dans les paramètres ou en sélectionnant « %s » ci-dessous.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body" moz:removedIn="141" tools:ignore="UnusedResources">Pour utiliser des extensions, activez-les dans les paramètres ou en sélectionnant «\u00a0%s\u00a0» ci-dessous.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">En savoir plus</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -424,7 +424,7 @@
 
     Text for the title in the contextual feature recommendation popup promoting the menu feature.
   -->
-  <string name="menu_cfr_title">Nouveau : menu simplifié</string>
+  <string name="menu_cfr_title">Nouveau\u00a0: menu simplifié</string>
   <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
   <string name="menu_cfr_body">Trouvez plus vite ce dont vous avez besoin, de la navigation privée aux actions d’enregistrement.</string>
   <!--
@@ -487,18 +487,18 @@
   <!-- Menu option in the search selector menu to open the search settings -->
   <string name="search_settings_menu_item">Paramètres de recherche</string>
   <!-- Header text for the search selector menu -->
-  <string name="search_header_menu_item_2">Pour cette recherche :</string>
+  <string name="search_header_menu_item_2">Pour cette recherche\u00a0:</string>
   <!--
     Content description (not visible, for screen readers etc.): Search engine icon.
     %s is the search engine name (for example: DuckDuckGo).
   -->
-  <string name="search_engine_icon_content_description_1">Moteur de recherche : %s</string>
+  <string name="search_engine_icon_content_description_1">Moteur de recherche\u00a0: %s</string>
   <!--
     Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
     %s is the search engine name (for example: DuckDuckGo).
     The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
   -->
-  <string name="search_engine_selector_content_description">%s : sélecteur de moteur de recherche</string>
+  <string name="search_engine_selector_content_description">%s\u00a0: sélecteur de moteur de recherche</string>
   <!--
     Home onboarding
 
@@ -616,7 +616,7 @@
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
   <string name="onboarding_add_on_dark_reader_description" moz:removedIn="140" tools:ignore="UnusedResources">Personnalisez le mode sombre pour le Web mobile.</string>
   <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
-  <string name="onboarding_add_on_reviews_label" moz:removedIn="140" tools:ignore="UnusedResources">Avis : %1$s</string>
+  <string name="onboarding_add_on_reviews_label" moz:removedIn="140" tools:ignore="UnusedResources">Avis\u00a0: %1$s</string>
   <!-- Content description for the add-on icon. -->
   <string name="onboarding_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Icône du module</string>
   <!-- Content description for the an installed add-on icon. -->
@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Traductions</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Choix de données</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Choix de données</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Collecte de données</string>
   <!-- Preference for developers -->
@@ -1039,7 +1039,7 @@
 
     Content description for various wallpapers. %1$s is the name of the wallpaper.
   -->
-  <string name="wallpapers_item_name_content_description">Fond d’écran : %1$s</string>
+  <string name="wallpapers_item_name_content_description">Fond d’écran\u00a0: %1$s</string>
   <!-- Snackbar message for when wallpaper is selected -->
   <string name="wallpaper_updated_snackbar_message">Fond d’écran mis à jour !</string>
   <!-- Snackbar label for action to view selected wallpaper -->
@@ -1057,9 +1057,9 @@
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
   <string name="wallpaper_artist_series_title">Série d’artiste</string>
   <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
-  <string name="wallpaper_artist_series_description_with_learn_more">La collection « Voix indépendantes ». %s</string>
+  <string name="wallpaper_artist_series_description_with_learn_more">La collection «\u00a0Voix indépendantes\u00a0». %s</string>
   <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
-  <string name="wallpaper_artist_series_description">La collection « Voix indépendantes ».</string>
+  <string name="wallpaper_artist_series_description">La collection «\u00a0Voix indépendantes\u00a0».</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">Essayez une touche de couleur</string>
   <!-- Wallpaper onboarding dialog body text. -->
@@ -1177,13 +1177,13 @@
   <!-- Label indicating that sync is in progress -->
   <string name="sync_syncing_in_progress">Synchronisation…</string>
   <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
-  <string name="sync_failed_summary">La synchronisation a échoué. Dernier succès : %s</string>
+  <string name="sync_failed_summary">La synchronisation a échoué. Dernier succès\u00a0: %s</string>
   <!-- Label summary showing never synced -->
-  <string name="sync_failed_never_synced_summary">La synchronisation a échoué. Dernier succès : jamais</string>
+  <string name="sync_failed_never_synced_summary">La synchronisation a échoué. Dernier succès\u00a0: jamais</string>
   <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
-  <string name="sync_last_synced_summary">Dernière synchronisation : %s</string>
+  <string name="sync_last_synced_summary">Dernière synchronisation\u00a0: %s</string>
   <!-- Label summary showing never synced -->
-  <string name="sync_never_synced_summary">Dernière synchronisation : jamais</string>
+  <string name="sync_never_synced_summary">Dernière synchronisation\u00a0: jamais</string>
   <!--
     Text for displaying the default device name.
     %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
@@ -1231,9 +1231,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Envoyer des données techniques et d’interaction</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">En savoir plus</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">En savoir plus</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Les données sur votre appareil, votre configuration matérielle et vos usages contribuent à améliorer les fonctionnalités, les performances et la stabilité de Firefox.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping d’utilisation quotidienne</string>
+  <string name="preferences_daily_usage_ping_description">Ce paramètre aide Mozilla à évaluer le nombre d’utilisateurs actifs.</string>
+  <string name="preferences_daily_usage_ping_learn_more">En savoir plus sur le ping d’utilisation quotidienne</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Envoyer automatiquement les rapports de plantage</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Les rapports de plantage nous permettent de diagnostiquer et de corriger des problèmes avec le navigateur. Les rapports peuvent contenir des données personnelles ou sensibles.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Données de mesure des campagnes</string>
   <!--
@@ -1243,14 +1251,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Racontez votre découverte de Firefox et expliquez que vous l’utilisez avec les partenaires en technologies marketing de Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">En savoir plus sur les données marketing</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping d’utilisation quotidienne</string>
-  <string name="preferences_daily_usage_ping_description">Ce paramètre aide Mozilla à évaluer le nombre d’utilisateurs actifs.</string>
-  <string name="preferences_daily_usage_ping_learn_more">En savoir plus sur le ping d’utilisation quotidienne</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Envoyer automatiquement les rapports de plantage</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Les rapports de plantage nous permettent de diagnostiquer et de corriger des problèmes avec le navigateur. Les rapports peuvent contenir des données personnelles ou sensibles.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">En savoir plus sur les rapports de plantage</string>
   <!-- Title for studies preferences -->
@@ -1432,7 +1432,7 @@
   -->
   <string name="preferences_inactive_tabs">Déplacer les onglets inactifs</string>
   <!-- Title of inactive tabs preference -->
-  <string name="preferences_inactive_tabs_title">Les onglets que vous n’avez pas consultés depuis deux semaines sont déplacés vers la section « Onglets inactifs ».</string>
+  <string name="preferences_inactive_tabs_title">Les onglets que vous n’avez pas consultés depuis deux semaines sont déplacés vers la section «\u00a0Onglets inactifs\u00a0».</string>
   <!--
     Studies
 
@@ -1552,11 +1552,11 @@
     Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
     %1$d is the number of items deleted.
   -->
-  <string name="download_delete_multiple_items_snackbar_2">Éléments supprimés : %1$d</string>
+  <string name="download_delete_multiple_items_snackbar_2">Éléments supprimés\u00a0: %1$d</string>
   <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
   <string name="download_app_dialog_title">Télécharger le fichier avec\u00a0:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">« %1$s » supprimé</string>
+  <string name="download_delete_single_item_snackbar_2">«\u00a0%1$s\u00a0» supprimé</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar">Téléchargement en cours…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1803,7 +1803,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Ajouter un dossier</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">Enregistré dans « %s »</string>
+  <string name="bookmark_saved_in_folder_snackbar">Enregistré dans «\u00a0%s\u00a0»</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">MODIFIER</string>
   <!-- Bookmark menu move button -->
@@ -1881,7 +1881,7 @@
   <!-- Bookmark undo button for deletion snackbar action -->
   <string name="bookmark_undo_deletion">ANNULER</string>
   <!-- Bookmark snackbar message for deleting a single item. %s is the title of the item being deleted -->
-  <string name="bookmark_delete_single_item">%s : suppression effectuée</string>
+  <string name="bookmark_delete_single_item">%s\u00a0: suppression effectuée</string>
   <!-- Bookmark snackbar message for deleting multiple items. %s is the number of items being deleted -->
   <string name="bookmark_delete_multiple_items">%s éléments supprimés</string>
   <!-- Text for the button to search all bookmarks -->
@@ -2116,7 +2116,7 @@
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Connecter un autre appareil…</string>
   <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nEnvoyé depuis %2$s 🦊 Essayez le navigateur mobile : %3$s</string>
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nEnvoyé depuis %2$s 🦊 Essayez le navigateur mobile\u00a0: %3$s</string>
   <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
   <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nEnvoyé depuis %2$s 🦊 %3$s</string>
   <!--
@@ -2182,9 +2182,9 @@
   <!-- Text shown in snackbar when user closes all tabs -->
   <string name="snackbar_tabs_closed">Onglets fermés</string>
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
-  <string name="snackbar_num_tabs_closed">Onglets fermés : %1$s</string>
+  <string name="snackbar_num_tabs_closed">Onglets fermés\u00a0: %1$s</string>
   <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
-  <string name="snackbar_message_bookmarks_saved_in">Marque-pages enregistrés dans « %s » !</string>
+  <string name="snackbar_message_bookmarks_saved_in">Marque-pages enregistrés dans «\u00a0%s\u00a0»\u00a0!</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">Ajouté aux raccourcis !</string>
   <!-- Text shown in snackbar when user closes a private tab -->
@@ -2260,7 +2260,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Supprimer les données de navigation en quittant</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Supprime automatiquement les données de navigation lorsque vous sélectionnez « Quitter » dans le menu principal</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Supprime automatiquement les données de navigation lorsque vous sélectionnez «\u00a0Quitter\u00a0» dans le menu principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Quitter</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2284,7 +2284,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Suppression des données de navigation…</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">Supprimer tous les sites dans « %s »</string>
+  <string name="delete_all_history_group_prompt_message">Supprimer tous les sites dans «\u00a0%s\u00a0»</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Annuler</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2410,7 +2410,7 @@
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">Mineurs de cryptomonnaies</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cryptominers_description">Empêche les scripts malveillants d’accéder à votre appareil pour « extraire » de l’argent numérique.</string>
+  <string name="etp_cryptominers_description">Empêche les scripts malveillants d’accéder à votre appareil pour «\u00a0extraire\u00a0» de l’argent numérique.</string>
   <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_known_fingerprinters_description">Empêche la collecte de données identifiables de manière unique sur votre appareil et qui peuvent être utilisées à des fins de pistage.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2520,7 +2520,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Fournisseur</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">L’URL doit commencer par « https:// »</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">L’URL doit commencer par «\u00a0https://\u00a0»</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">URL invalide</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2561,7 +2561,7 @@
     Toast shown to the user when they are activating the secret dev menu
     %1$d is number of long clicks left to enable the menu
   -->
-  <string name="about_debug_menu_toast_progress">Menu de débogage : encore %1$d clic·s restant·s pour l’activation</string>
+  <string name="about_debug_menu_toast_progress">Menu de débogage\u00a0: encore %1$d clic·s restant·s pour l’activation</string>
   <string name="about_debug_menu_toast_done">Menu de débogage activé</string>
   <!--
     Browser long press popup menu
@@ -2818,7 +2818,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">URL à utiliser pour les recherches</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Remplacer les termes de la recherche par « %s ». Par exemple :\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Remplacer les termes de la recherche par «\u00a0%s\u00a0». Par exemple\u00a0:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Détails du moteur de recherche personnalisé</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2826,7 +2826,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">URL de l’API de suggestions de recherche</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Remplacez la requête par « %s ». Exemple :\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Remplacez la requête par «\u00a0%s\u00a0». Exemple\u00a0:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Enregistrer</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2836,15 +2836,15 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Vérifiez que la chaîne de recherche suit le format de l’exemple</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Erreur de connexion à « %s »</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Erreur de connexion à «\u00a0%s\u00a0»</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_success_message">%s : création effectuée</string>
+  <string name="search_add_custom_engine_success_message">%s\u00a0: création effectuée</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
-  <string name="search_edit_custom_engine_success_message">%s : enregistrement effectué</string>
+  <string name="search_edit_custom_engine_success_message">%s\u00a0: enregistrement effectué</string>
   <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
-  <string name="search_delete_search_engine_success_message">%s : suppression effectuée</string>
+  <string name="search_delete_search_engine_success_message">%s\u00a0: suppression effectuée</string>
   <!-- Heading for the instructions to allow a permission -->
-  <string name="phone_feature_blocked_intro">Pour l’autoriser :</string>
+  <string name="phone_feature_blocked_intro">Pour l’autoriser\u00a0:</string>
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Accédez aux paramètres Android</string>
   <!-- Second step for the allowing a permission -->
@@ -2879,7 +2879,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Vérifié par : %1$s</string>
+  <string name="certificate_info_verified_by">Vérifié par\u00a0: %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Supprimer</string>
   <!-- Login overflow menu edit button -->
@@ -2921,7 +2921,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">L’adresse web doit contenir « https:// » ou « http:// ».</string>
+  <string name="add_login_hostname_invalid_text_3">L’adresse web doit contenir «\u00a0https://\u00a0» ou «\u00a0http://\u00a0».</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Un nom d’hôte valide est requis</string>
   <!--
@@ -3118,9 +3118,9 @@
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">En savoir plus</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
-  <string name="translations_bottom_sheet_translate_from">Langue source :</string>
+  <string name="translations_bottom_sheet_translate_from">Langue source\u00a0:</string>
   <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
-  <string name="translations_bottom_sheet_translate_to">Langue cible :</string>
+  <string name="translations_bottom_sheet_translate_to">Langue cible\u00a0:</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
   <string name="translations_bottom_sheet_translate_from_unsupported_language">Essayer une autre langue source</string>
   <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
@@ -3146,7 +3146,7 @@
   <!-- The title of the warning card informs the user that the list of languages cannot be loaded. -->
   <string name="translation_error_could_not_load_languages_warning_text">Impossible de charger les langues. Veuillez vérifier votre connexion Internet puis réessayer.</string>
   <!-- The title of the warning card informs the user that a language is not supported. %1$s is the name of the language that is not supported. -->
-  <string name="translation_error_language_not_supported_warning_text">Désolé, nous ne prenons pas encore en charge cette langue : %1$s.</string>
+  <string name="translation_error_language_not_supported_warning_text">Désolé, nous ne prenons pas encore en charge cette langue\u00a0: %1$s.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">Traduction…</string>
   <!--
@@ -3207,7 +3207,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Traduction automatique</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Sélectionnez une langue pour gérer les préférences « Toujours traduire » et « Ne jamais traduire ».</string>
+  <string name="automatic_translation_header_preference">Sélectionnez une langue pour gérer les préférences «\u00a0Toujours traduire\u00a0» et «\u00a0Ne jamais traduire\u00a0».</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Impossible de charger les langues. Veuillez réessayer plus tard.</string>
   <!--
@@ -3233,7 +3233,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">Ne jamais traduire ces sites</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">Pour ajouter un nouveau site : visitez-le et sélectionnez « Ne jamais traduire ce site » dans le menu des traductions.</string>
+  <string name="never_translate_site_header_preference">Pour ajouter un nouveau site\u00a0: visitez-le et sélectionnez «\u00a0Ne jamais traduire ce site\u00a0» dans le menu des traductions.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")
@@ -3285,7 +3285,7 @@
     %1$s is the language name, for example, "Spanish".
     %2$s is the language file size, for example, "(3.91 KB)".
   -->
-  <string name="download_languages_item_content_description_download_in_progress_state">Interrompre le téléchargement : %1$s (%2$s)</string>
+  <string name="download_languages_item_content_description_download_in_progress_state">Interrompre le téléchargement\u00a0: %1$s (%2$s)</string>
   <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
   <string name="download_languages_item_content_description_not_downloaded_state">Télécharger</string>
   <!-- The title of the warning card informs the user that an error has occurred when fetching the list of languages. -->
@@ -3373,7 +3373,7 @@
     Text for displaying the total number of trackers blocked in the protection panel.
     %d is a placeholder for the number of trackers blocked.
   -->
-  <string name="protection_panel_num_trackers_blocked">Traqueurs bloqués : %d</string>
+  <string name="protection_panel_num_trackers_blocked">Traqueurs bloqués\u00a0: %d</string>
   <!-- Text for when no trackers have been blocked. -->
   <string name="protection_panel_no_trackers_blocked">Aucun traqueur trouvé</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
@@ -3384,13 +3384,13 @@
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
   -->
-  <string name="trackers_blocked_panel_total_num_trackers_blocked">Traqueurs bloqués : %d</string>
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Traqueurs bloqués\u00a0: %d</string>
   <!--
     Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
     %s is a placeholder for the name of the tracker category.
     %d is a placeholder for the number of trackers blocked.
   -->
-  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s : %d</string>
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s\u00a0: %d</string>
   <!--
     Description text for a dialog confirming whether the user wants to delete all data for current site.
     %s is a placeholder for the base domain of website.
@@ -3532,7 +3532,7 @@
   -->
   <string name="debug_drawer_logins_title">Identifiants</string>
   <!-- The title of the logins section in the Logins feature. %s is the site domain. -->
-  <string name="debug_drawer_logins_current_domain_label">Domaine actuel : %s</string>
+  <string name="debug_drawer_logins_current_domain_label">Domaine actuel\u00a0: %s</string>
   <!-- The label for a button to add a new fake login for the current domain in the Logins feature. -->
   <string name="debug_drawer_logins_add_login_button">Ajouter un faux identifiant pour ce domaine</string>
   <!-- Content description for delete button. %s is the username of the login. -->

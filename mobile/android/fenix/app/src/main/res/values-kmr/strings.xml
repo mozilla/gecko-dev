@@ -792,7 +792,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Wergerandin</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Vebijarkên daneyê</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Vebijarkên daneyê</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Berhevkirina daneyan</string>
   <!-- Preference for developers -->

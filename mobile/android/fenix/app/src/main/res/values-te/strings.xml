@@ -328,7 +328,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">అనువాదాలు</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">డేటా ఎంపికలు</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">డేటా ఎంపికలు</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">దత్త సేకరణ</string>
   <!-- Preference for developers -->
@@ -447,7 +447,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ఇంకా తెలుసుకోండి</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">ఇంకా తెలుసుకోండి</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">ఇంకా తెలుసుకోండి</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">అధ్యయనాలు</string>
   <!-- Summary for studies preferences -->

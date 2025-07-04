@@ -197,7 +197,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">மொழி</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">தரவுத் தேர்வுகள்</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">தரவுத் தேர்வுகள்</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">தரவுச் சேகரிப்பு</string>
   <!-- Preference for developers -->

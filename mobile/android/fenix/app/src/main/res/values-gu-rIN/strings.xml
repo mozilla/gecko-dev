@@ -160,7 +160,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">ભાષા</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">માહિતી વિકલ્પો</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">માહિતી વિકલ્પો</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">માહિતી સંગ્રહ</string>
   <!-- Preference for developers -->

@@ -7,6 +7,8 @@
     %1$s will be replaced with the estimated time remaining to complete the download.
   -->
   <string name="mozac_feature_downloads_time_remaining">%1$s-ൽ</string>
+  <!-- Summary text shown on an in progress download notification when the estimated time remaining is unknown. -->
+  <string name="mozac_feature_downloads_time_remaining_unknown">മിച്ചമിരിക്കുന്ന നേരം അറിയില്ല</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">ഇറക്കിവയ്ക്കൽ താൽക്കാലികമായി നിർത്തി</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->

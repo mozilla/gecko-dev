@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">翻译</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">数据反馈</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">数据反馈</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">数据收集</string>
   <!-- Preference for developers -->
@@ -1231,9 +1231,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">发送技术和交互数据</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">详细了解</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">详细了解</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">与您的设备、硬件配置、使用方式相关的数据，有助于我们改进 Firefox 的功能、性能、稳定性。</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">每日使用情况报告</string>
+  <string name="preferences_daily_usage_ping_description">此数据可帮助 Mozilla 估算活跃用户数量。</string>
+  <string name="preferences_daily_usage_ping_learn_more">详细了解每日使用情况报告</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">自动发送崩溃报告</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">这有助于我们诊断和修复浏览器的问题。报告中可能包含个人或敏感数据。</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">活动衡量数据</string>
   <!--
@@ -1243,14 +1251,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">与 Mozilla 的营销技术合作伙伴分享您发现 Firefox 的途径及使用方式。</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">详细了解营销数据</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">每日使用情况报告</string>
-  <string name="preferences_daily_usage_ping_description">此数据可帮助 Mozilla 估算活跃用户数量。</string>
-  <string name="preferences_daily_usage_ping_learn_more">详细了解每日使用情况报告</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">自动发送崩溃报告</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">这有助于我们诊断和修复浏览器的问题。报告中可能包含个人或敏感数据。</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">详细了解崩溃报告</string>
   <!-- Title for studies preferences -->
@@ -2657,6 +2657,8 @@
   <string name="login_detail_menu_edit_button">编辑</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">删除</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">保存新的登录信息</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">在浏览器中打开网站</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

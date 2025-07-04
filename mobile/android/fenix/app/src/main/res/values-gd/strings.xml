@@ -860,7 +860,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Eadar-theangaich</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Roghainnean dàta</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Roghainnean dàta</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Cruinneachadh dàta</string>
   <!-- Preference for developers -->
@@ -1193,9 +1193,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Barrachd fiosrachaidh</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Barrachd fiosrachaidh</string>
-  <!-- Learn more link for marketing data preference -->
-  <string name="preferences_marketing_data_learn_more">Barrachd fiosrachaidh mun dàta mhargaideachd</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Barrachd fiosrachaidh</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">Ping a’ chleachdaidh làitheil</string>
   <string name="preferences_daily_usage_ping_description">Air an dòigh seo, is urrainn dha Mozilla tuairmse a dhèanamh air co mheud neach-cleachdaidh gnìomhach a th’ ann.</string>
@@ -1204,6 +1202,8 @@
   <string name="preferences_automatically_send_crashes_title">Cuir aithisgean tuislidh gu fèin-obrachail</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">Bidh e nas fhasa dhuinn mar seo diagnosachd a dhèanamh air duilgheasan sa bhrabhsair is an cur ceart. Dh’fhaoidte gum bi dàta pearsanta no dìomhair sna h-aithisgean seo.</string>
+  <!-- Learn more link for marketing data preference -->
+  <string name="preferences_marketing_data_learn_more">Barrachd fiosrachaidh mun dàta mhargaideachd</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Barrachd fiosrachaidh mu na h-aithisgean tuislidh</string>
   <!-- Title for studies preferences -->

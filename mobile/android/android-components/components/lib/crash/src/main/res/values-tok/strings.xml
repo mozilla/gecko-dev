@@ -26,4 +26,10 @@
   <string name="mozac_lib_crash_no_crashes">sina pana ala e sona pakala</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">o pana tawa ilo ante</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">o alasa e wile mi</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">o pana lon tenpo ale</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">o pana lon tenpo ala</string>
 </resources>

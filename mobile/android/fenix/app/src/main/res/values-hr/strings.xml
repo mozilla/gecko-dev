@@ -630,9 +630,9 @@
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Pomogni nam poboljšati Firefox</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_crash_reporting_title">Automatski šalji izvještaje o prekidu programa</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_title">Automatski šalji izvještaje o prekidu rada programa</string>
   <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_crash_reporting_description">Izvještaji o prekidu programa nam pomažu dijagnosticirati i riješiti probleme s preglednikom. Izvještaji mogu uključivati osobne ili osjetljive podatke.</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Izvještaji o prekidu rada programa nam pomažu dijagnosticirati i riješiti probleme s preglednikom. Izvještaji mogu uključivati osobne ili osjetljive podatke.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Saznaj više</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Prijevodi</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Izbori za podatke</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Izbori za podatke</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Skupljanje podataka</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Saznaj više</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Šalji tehničke podatke i podatke o interakciji</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Saznaj više o tehničkim podacima</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Saznaj više</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Saznaj više</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Podaci o tvom uređaju, hardverskoj konfiguraciji i načinu korištenja nam pomažu poboljšati Firefox funkcije, performansu i stabilnost.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping dnevne upotrebe</string>
+  <string name="preferences_daily_usage_ping_description">Ovo pomaže Mozilli procijeniti broj aktivnih korisnika.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Saznaj više o pingu dnevne upotrebe</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Automatski šalji izvještaje o prekidu rada programa</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">To nam pomažu dijagnosticirati i riješiti probleme s preglednikom. Izvještaji mogu uključivati osobne ili osjetljive podatke.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Saznaj više o izvještajima o prekidima rada programa</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Izvještaji o prekidu rada programa</string>
+  <string name="usage_data_category">Podaci o korištenju</string>
+  <string name="studies_data_category">Istraživanja</string>
+  <string name="technical_data_category">Tehnički podaci</string>
+  <string name="crash_reporting_description">Izvještaji o prekidu rada programa nam pomažu dijagnosticirati i riješiti probleme s preglednikom. Izvještaji mogu uključivati osobne ili osjetljive podatke.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Mjerenje kampanje</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Podaci mjerenja kampanje</string>
   <!--
@@ -1243,16 +1263,8 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Dijeli s Mozillinim marketinškim tehnološkim partnerima kako si otkrio/la Firefox i da ga koristiš.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Saznaj više o marketinškim podacima</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping dnevne upotrebe</string>
-  <string name="preferences_daily_usage_ping_description">Ovo pomaže Mozilli procijeniti broj aktivnih korisnika.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Saznaj više o pingu dnevne upotrebe</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automatski šalji izvještaje o prekidu programa</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">To nam pomažu dijagnosticirati i riješiti probleme s preglednikom. Izvještaji mogu uključivati osobne ili osjetljive podatke.</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Saznaj više o izvještajima o naglim prekidima rada programa</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Saznaj više o izvještajima o prekidima rada programa</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Istraživanja</string>
   <!-- Summary for studies preferences -->
@@ -1771,7 +1783,7 @@
   -->
   <string name="tab_crash_title_2">Oprosti. %1$s ne može učitati tu stranicu.</string>
   <!-- Send crash report checkbox text on the tab crash page -->
-  <string name="tab_crash_send_report">Pošalji Mozilli izvještaj o rušenju</string>
+  <string name="tab_crash_send_report">Pošalji izvještaj o prekidu rada programa organizaciji Mozilla</string>
   <!-- Close tab button text on the tab crash page -->
   <string name="tab_crash_close">Zatvori karticu</string>
   <!-- Restore tab button text on the tab crash page -->
@@ -1779,17 +1791,17 @@
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s se morao ponovno pokrenuti</string>
   <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Imaš neposlan izvještaj o naglom prekidu rada programa koji je povezan s prekidima koji se istražuju. Slanjem izvještaja ćeš nam pomoći poboljšati %1$s. Zatvaranjem ove obavijesti se ovaj izvještaj zanemaruje.</string>
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Imaš neposlan izvještaj o prekidu rada programa koji je povezan s prekidima koji se istražuju. Slanjem izvještaja ćeš nam pomoći poboljšati %1$s. Zatvaranjem ove obavijesti se ovaj izvještaj zanemaruje.</string>
   <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
-  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Imaš neposlanih izvještaja o naglom prekidu rada programa (%1$d) koji su povezani s prekidima koji se istražuju. Slanjem izvještaja ćeš nam pomoći poboljšati %2$s. Zatvaranjem ove obavijesti se ovaj izvještaj zanemaruje.</string>
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Imaš neposlanih izvještaja o prekidu rada programa (%1$d) koji su povezani s prekidima koji se istražuju. Slanjem izvještaja ćeš nam pomoći poboljšati %2$s. Zatvaranjem ove obavijesti se ovaj izvještaj zanemaruje.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
-  <string name="unsubmitted_crash_dialog_checkbox_label">Automatski šalji izvještaje o prekidu programa</string>
+  <string name="unsubmitted_crash_dialog_checkbox_label">Automatski šalji izvještaje o prekidu rada programa</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Zatvori</string>
   <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
   <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Ne prikazuj više</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
-  <string name="unsubmitted_crash_dialog_positive_button">Pošalji izvještaj o prekidu programa</string>
+  <string name="unsubmitted_crash_dialog_positive_button">Pošalji izvještaj o prekidu rada programa</string>
   <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
   <string name="unsubmitted_crash_requested_by_devs_learn_more">Saznaj više</string>
   <!--
@@ -2659,6 +2671,8 @@
   <string name="login_detail_menu_edit_button">Uredi</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Izbriši</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Idi natrag</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Otvori stranicu u pregledniku</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

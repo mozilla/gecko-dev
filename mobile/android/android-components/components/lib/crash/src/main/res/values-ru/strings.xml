@@ -26,4 +26,10 @@
   <string name="mozac_lib_crash_no_crashes">Ни одного сообщения о падении отправлено не было.</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">Сообщить</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">Спрашивать перед отправкой</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">Отправлять автоматически</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">Никогда не отправлять</string>
 </resources>

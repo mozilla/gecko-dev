@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Traductiones</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Selectiones de datos</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Selectiones de datos</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Collection de datos</string>
   <!-- Preference for developers -->
@@ -1230,10 +1230,30 @@
   <string name="exceptions_empty_message_learn_more_link">Saper plus</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Inviar datos technic e de interaction</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Saper plus re datos technic\u0020</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Pro saper plus</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Pro saper plus</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Datos re tu apparato, configuration hardware, e uso adjuta nos meliorar functiones, prestation e stabilitate.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping de uso quotidian</string>
+  <string name="preferences_daily_usage_ping_description">Isto adjuta Mozilla a estimar le usatores active.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Saper plus re le uso del ping quotidian</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Automaticamente inviar reportos de crash</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Isto adjuta nos a diagnosticar e corriger problemas del navigator, ma pote includer datos personal o sensibile.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Saper plus re le reportos de crash</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Reportos de crash</string>
+  <string name="usage_data_category">Datos de uso</string>
+  <string name="studies_data_category">Studios</string>
+  <string name="technical_data_category">Datos technic</string>
+  <string name="crash_reporting_description">Le reportos de collapso nos permitte de diagnosticar e corriger problemas del navigator, ma pote includer datos personal o sensibile.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Mesuras de campania</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Datos de mesuration del campanias</string>
   <!--
@@ -1243,14 +1263,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Comparti como tu discoperiva Firefox e como tu lo usa con le socios technologic de marketing de Mozilla.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Saper plus re le marketing del datos</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping de uso quotidian</string>
-  <string name="preferences_daily_usage_ping_description">Isto adjuta Mozilla a estimar le usatores active.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Saper plus re le uso del ping quotidian</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automaticamente inviar reportos de crash</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Isto adjuta nos a diagnosticar e corriger problemas del navigator, ma pote includer datos personal o sensibile.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Saper plus re le reportos</string>
   <!-- Title for studies preferences -->
@@ -2659,6 +2671,10 @@
   <string name="login_detail_menu_edit_button">Rediger</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Deler</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Navigar retro</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Salvar nove credential</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Aperir sito in navigator</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

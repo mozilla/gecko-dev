@@ -876,7 +876,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Translaziuns</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Decisiuns areguard datas</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Decisiuns areguard datas</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Datas rimnadas</string>
   <!-- Preference for developers -->
@@ -1199,9 +1199,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Trametter datas tecnicas e d’interacziun</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Ulteriuras infurmaziuns</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Ulteriuras infurmaziuns</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Datas davart tes apparat, la configuraziun da la hardware e l’utilisaziun, ans gidan a meglierar funcziuns, la prestaziun e la stabilitad da Firefox.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping d’utilisaziun quotidian</string>
+  <string name="preferences_daily_usage_ping_description">Quai gida Mozilla a stimar il dumber dad utilisaders activs.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Ulteriuras infurmaziuns davart il ping d’utilisaziun quotidian</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Trametter automaticamain rapports da collaps</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Quai ans gida da diagnostitgar e curreger problems dal navigatur. Rapports pon cuntegnair datas persunalas u sensiblas.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Datas statisticas da campagnas</string>
   <!--
@@ -1211,14 +1219,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Fa a savair noss partenaris da tecnologia da marketing da Mozilla co ti has scuvert Firefox e che ti dovras il program.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Ulteriuras infurmaziuns davart datas da marketing</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping d’utilisaziun quotidian</string>
-  <string name="preferences_daily_usage_ping_description">Quai gida Mozilla a stimar il dumber dad utilisaders activs.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Ulteriuras infurmaziuns davart il ping d’utilisaziun quotidian</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Trametter automaticamain rapports da collaps</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Quai ans gida da diagnostitgar e curreger problems dal navigatur. Rapports pon cuntegnair datas persunalas u sensiblas.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Ulteriuras infurmaziuns davart rapports da collaps</string>
   <!-- Title for studies preferences -->

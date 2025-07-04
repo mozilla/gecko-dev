@@ -341,7 +341,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Til</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Maʼlumotlarni tanlash</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Maʼlumotlarni tanlash</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Maʼlumotlarni toʻplash</string>
   <!-- Preference for developers -->

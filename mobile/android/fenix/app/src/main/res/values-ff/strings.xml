@@ -225,7 +225,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">Ɗemngal</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Cuɓe keɓe</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Cuɓe keɓe</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Ƴettugol keɓe</string>
   <!-- Preference for developers -->

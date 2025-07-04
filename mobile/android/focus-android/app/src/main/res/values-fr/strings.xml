@@ -149,7 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s vous aide à rester aux commandes.</p> <p>Utilisez-le comme un navigateur privé : <ul> <li>Effectuez des recherches et naviguez depuis l’application</li> <li>Bloquez les traqueurs (ou modifiez les paramètres pour les autoriser)</li> <li>Effacez les cookies, ainsi que les historiques de navigation et de recherche</li> </ul> </p> <p>%1$s est réalisé par Mozilla. Notre mission est de défendre l’ouverture et la bonne santé d’Internet.<br/> <a href=\"%2$s\">En savoir plus</a></p>]]></string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s vous aide à rester aux commandes.</p> <p>Utilisez-le comme un navigateur privé\u00a0: <ul> <li>Effectuez des recherches et naviguez depuis l’application</li> <li>Bloquez les traqueurs (ou modifiez les paramètres pour les autoriser)</li> <li>Effacez les cookies, ainsi que les historiques de navigation et de recherche</li> </ul> </p> <p>%1$s est réalisé par Mozilla. Notre mission est de défendre l’ouverture et la bonne santé d’Internet.<br/> <a href=\"%2$s\">En savoir plus</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Vie privée et sécurité</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -218,7 +218,7 @@
   <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
   <string name="preference_autocomplete_action_add">+ Ajouter une adresse personnalisée</string>
   <!-- Explanation text above the list of custom autocomplete URLs. -->
-  <string name="preference_autocomplete_explanation_text">Votre liste de saisie semi-automatique :</string>
+  <string name="preference_autocomplete_explanation_text">Votre liste de saisie semi-automatique\u00a0:</string>
   <!-- Action at the bottom of the list of custom autocomplete URLs that will open a new screen to add a new URL to the list. -->
   <string name="preference_autocomplete_action_add2">Ajouter l’adresse</string>
   <!-- Title of the screen for adding custom autocomplete URLs. -->
@@ -520,7 +520,7 @@
   <!-- First run tour (Shortcut): Title -->
   <string name="firstrun_shortcut_title">Ajoutez des raccourcis sur votre écran d’accueil</string>
   <!-- First run tour (Shortcut): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="firstrun_shortcut_text">Retournez voir vos sites préférés dans %1$s rapidement. Sélectionnez simplement « Ajouter à l’écran d’accueil » depuis le menu de %1$s.</string>
+  <string name="firstrun_shortcut_text">Retournez voir vos sites préférés dans %1$s rapidement. Sélectionnez simplement «\u00a0Ajouter à l’écran d’accueil\u00a0» depuis le menu de %1$s.</string>
   <!-- First run tour (Privacy): Title -->
   <string name="firstrun_privacy_title">Reprenez votre vie privée en main</string>
   <!-- First run tour (Privacy): Text. %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->

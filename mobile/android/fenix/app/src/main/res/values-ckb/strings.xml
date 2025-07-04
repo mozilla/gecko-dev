@@ -200,7 +200,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">زمان</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">هەڵبژاردنەکانی زانیاری</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">هەڵبژاردنەکانی زانیاری</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">کۆمەڵی زانیاری</string>
   <!-- Preference for developers -->

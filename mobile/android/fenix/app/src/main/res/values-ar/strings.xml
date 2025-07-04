@@ -683,7 +683,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">الترجمات</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">اختيارات البيانات</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">اختيارات البيانات</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">جمع البيانات</string>
   <!-- Preference for developers -->

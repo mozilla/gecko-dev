@@ -861,7 +861,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">ترجمه‌ها</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">انتخاب داده‌ها</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">انتخاب داده‌ها</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">جمع آوری داده ها</string>
   <!-- Preference for developers -->
@@ -1168,9 +1168,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">ارسال داده‌های فنی و تعاملی</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">بیشتر بدانید</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">بیشتر بدانید</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">داده‌های مربوط به دستگاه، پیکربندی سخت‌افزار و استفاده شما به ما کمک می‌کند تا ویژگی‌ها، عملکرد و پایداری Firefox را بهبود دهیم.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">پینگ استفاده روزانه</string>
+  <string name="preferences_daily_usage_ping_description">این به Mozilla کمک می‌کند تا کاربران فعال را تخمین بزند.</string>
+  <string name="preferences_daily_usage_ping_learn_more">بیشتر درباره پینگ استفاده روزانه بدانید</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">به‌صورت خودکار گزارشات خرابی ارسال کنید</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">این به ما کمک می‌کند تا مشکلات مرورگر را تشخیص داده و رفع کنیم. گزارش‌ها ممکن است شامل داده‌های شخصی یا حساس باشند.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">داده‌های اندازه‌گیری کمپین</string>
   <!--
@@ -1180,14 +1188,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">نحوه کشف Firefox و استفاده از آن را با شرکای فناوری بازاریابی Mozilla هم‌رسانی کنید.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">بیشتر درباره داده‌های بازاریابی بدانید</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">پینگ استفاده روزانه</string>
-  <string name="preferences_daily_usage_ping_description">این به Mozilla کمک می‌کند تا کاربران فعال را تخمین بزند.</string>
-  <string name="preferences_daily_usage_ping_learn_more">بیشتر درباره پینگ استفاده روزانه بدانید</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">به‌صورت خودکار گزارشات خرابی ارسال کنید</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">این به ما کمک می‌کند تا مشکلات مرورگر را تشخیص داده و رفع کنیم. گزارش‌ها ممکن است شامل داده‌های شخصی یا حساس باشند.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">بیشتر درباره گزارشات خرابی بدانید</string>
   <!-- Title for studies preferences -->

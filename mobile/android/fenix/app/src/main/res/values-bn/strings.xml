@@ -190,7 +190,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">ভাষা</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">ডাটা পছন্দ</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">ডাটা পছন্দ</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">তথ্য সংগ্রহ</string>
   <!-- Preference for developers -->

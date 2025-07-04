@@ -880,7 +880,7 @@
   <!-- Preference for translations -->
   <string name="preferences_translations">Prevajanje</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">Podatkovne možnosti</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">Podatkovne možnosti</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">Zbiranje podatkov</string>
   <!-- Preference for developers -->
@@ -1231,9 +1231,17 @@
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Pošiljaj tehnične podatke in podatke o interakcijah</string>
   <!-- Preference switch for usage and technical learn more link -->
-  <string name="preference_usage_data_learn_more">Več o tem</string>
+  <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Več o tem</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Podatki o vaši napravi, nastavitvi strojne opreme in uporabi nam pomagajo izboljševati zmogljivosti, delovanje in zanesljivost Firefoxa.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Ping za dnevno uporabo</string>
+  <string name="preferences_daily_usage_ping_description">To Mozilli pomaga oceniti število aktivnih uporabnikov.</string>
+  <string name="preferences_daily_usage_ping_learn_more">Več o pingu za dnevno uporabo</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Samodejno pošlji poročila o sesutjih</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">To nam omogoča ugotoviti vzroke težav z brskalnikom in jih odpraviti. Poročila lahko vključujejo osebne ali občutljive podatke.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Podatki o meritvah kampanje</string>
   <!--
@@ -1243,14 +1251,6 @@
   <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">Objavite, kako ste odkrili Firefox in da ga uporabljate, z Mozillinimi tehnološkimi partnerji.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Več o podatkih za trženje</string>
-  <!-- Preference switch for daily usage ping data collection -->
-  <string name="preferences_daily_usage_ping_title">Ping za dnevno uporabo</string>
-  <string name="preferences_daily_usage_ping_description">To Mozilli pomaga oceniti število aktivnih uporabnikov.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Več o pingu za dnevno uporabo</string>
-  <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Samodejno pošlji poročila o sesutjih</string>
-  <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">To nam omogoča ugotoviti vzroke težav z brskalnikom in jih odpraviti. Poročila lahko vključujejo osebne ali občutljive podatke.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Več o poročilih o sesutjih</string>
   <!-- Title for studies preferences -->

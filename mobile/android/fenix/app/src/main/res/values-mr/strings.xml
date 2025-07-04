@@ -167,7 +167,7 @@
   <!-- Preference for language -->
   <string name="preferences_language">भाषा</string>
   <!-- Preference for data choices -->
-  <string name="preferences_data_choices">माहिती पर्याय</string>
+  <string name="preferences_data_choices" tools:ignore="UnusedResources" moz:removedIn="141">माहिती पर्याय</string>
   <!-- Preference for data collection -->
   <string name="preferences_data_collection">माहिती संकलन</string>
   <!-- Preference for developers -->
