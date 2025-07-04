@@ -70,14 +70,90 @@ async function testBodyRuleView(view) {
 
   const images = previewTooltip.panel.getElementsByTagName("img");
   is(images.length, 1, "Tooltip contains an image");
+  const imgSrc = images[0].getAttribute("src");
   ok(
-    images[0]
-      .getAttribute("src")
-      .includes("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHe"),
+    imgSrc.includes("iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHe"),
     "The image URL seems fine"
   );
 
   await assertTooltipHiddenOnMouseOut(previewTooltip, uriSpan);
+
+  info(
+    "Check that middle-clicking on the link opens a new tab in the background"
+  );
+  let onTabOpen = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    imgSrc,
+    // waitForLoad
+    true
+  );
+  uriSpan.scrollIntoView();
+  // uriSpan is an multi-line inline element, and since synthesizeMouse only get the
+  // bounding rect, we might not click on the right place.
+  // So here, use synthesizeMouseAtPoint and pass it the first quad position
+  const uriSpanQuad = uriSpan.getBoxQuads()[0];
+  EventUtils.synthesizeMouseAtPoint(
+    uriSpanQuad.p1.x + 2,
+    uriSpanQuad.p1.y + 2,
+    {
+      button: 1,
+    },
+    uriSpan.ownerGlobal
+  );
+  let tab = await onTabOpen;
+  is(
+    tab.selected,
+    false,
+    "Tab was opened in the background with a middle click"
+  );
+  await removeTab(tab);
+
+  info(
+    "Check that ctrl/cmd clicking on the link opens a new tab in the background"
+  );
+  onTabOpen = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    imgSrc,
+    // waitForLoad
+    true
+  );
+  EventUtils.synthesizeMouseAtPoint(
+    uriSpanQuad.p1.x + 2,
+    uriSpanQuad.p1.y + 2,
+    {
+      button: 1,
+      [Services.appinfo.OS === "Darwin" ? "metaKey" : "ctrlKey"]: true,
+    },
+    uriSpan.ownerGlobal
+  );
+  tab = await onTabOpen;
+  is(
+    tab.selected,
+    false,
+    "Tab was opened in the background with ctrl/cmd + click"
+  );
+  await removeTab(tab);
+
+  info("Check that clicking on the link opens a new tab in the foreground");
+  onTabOpen = BrowserTestUtils.waitForNewTab(
+    gBrowser,
+    imgSrc,
+    // waitForLoad
+    true
+  );
+  EventUtils.synthesizeMouseAtPoint(
+    uriSpanQuad.p1.x + 2,
+    uriSpanQuad.p1.y + 2,
+    {},
+    uriSpan.ownerGlobal
+  );
+  tab = await onTabOpen;
+  is(
+    tab.selected,
+    true,
+    "Tab was opened in the foreground when clicking on the link"
+  );
+  await removeTab(tab);
 }
 
 async function testDivRuleView(view) {
