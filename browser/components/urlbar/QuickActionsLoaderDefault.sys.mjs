@@ -102,7 +102,7 @@ const DEFAULT_ACTIONS = {
     onPick: openUrlFun("about:downloads"),
   },
   extensions: {
-    l10nCommands: ["quickactions-cmd-extensions"],
+    l10nCommands: ["quickactions-cmd-extensions2"],
     icon: "chrome://mozapps/skin/extensions/category-extensions.svg",
     label: "quickactions-extensions",
     onPick: openAddonsUrl("addons://list/extension"),

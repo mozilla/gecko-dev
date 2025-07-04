@@ -430,6 +430,17 @@ async function setup() {
   await Services.search.moveEngine(engine, 0);
 
   registerCleanupFunction(async function () {
+    // Tests verify that no prefs have been changed so clear any
+    // so clear any prefs we may have touched while running tests.
+    let prefs = [
+      "services.sync.lastTabFetch",
+      "services.settings.clock_skew_seconds",
+      "services.settings.last_update_seconds",
+      "services.settings.last_etag",
+      "browser.urlbar.recentsearches.lastDefaultChanged",
+      "browser.search.totalSearches",
+    ];
+    prefs.forEach(pref => Services.prefs.clearUserPref(pref));
     await SpecialPowers.popPrefEnv();
     await Services.search.setDefault(
       originalDefaultEngine,
