@@ -138,8 +138,8 @@ class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
   // Command & CommandFor
   Element* GetCommandForElement() const;
   void SetCommandForElement(Element*);
-  void GetCommand(nsAString& aValue) const;
-  Element::Command GetCommand(nsAtom* aAtom) const;
+  void GetCommand(nsAString& aCommand) const;
+  Element::Command GetCommand() const;
   void SetCommand(const nsAString& aValue) {
     SetHTMLAttr(nsGkAtoms::command, aValue);
   }

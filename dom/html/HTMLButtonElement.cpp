@@ -45,6 +45,24 @@ static constexpr nsAttrValue::EnumTableEntry kButtonTypeTable[] = {
     {"submit", FormControlType::ButtonSubmit},
 };
 
+static constexpr nsAttrValue::EnumTableEntry kButtonCommandTable[] = {
+    {"close", Element::Command::Close},
+    {"hide-popover", Element::Command::HidePopover},
+
+    // Part of "future-invokers" proposal.
+    // https://open-ui.org/components/future-invokers.explainer/
+    {"open", Element::Command::Open},
+
+    {"show-modal", Element::Command::ShowModal},
+    {"show-popover", Element::Command::ShowPopover},
+
+    // Part of "future-invokers" proposal.
+    // https://open-ui.org/components/future-invokers.explainer/
+    {"toggle", Element::Command::Toggle},
+
+    {"toggle-popover", Element::Command::TogglePopover},
+};
+
 // The default type is "button" when the command & commandfor attributes are
 // present.
 static constexpr const nsAttrValue::EnumTableEntry* kButtonButtonType =
@@ -169,8 +187,7 @@ bool HTMLButtonElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
 
     if (StaticPrefs::dom_element_commandfor_enabled()) {
       if (aAttribute == nsGkAtoms::command) {
-        aResult.ParseAtom(aValue);
-        return true;
+        return aResult.ParseEnumValue(aValue, kButtonCommandTable, false);
       }
       if (aAttribute == nsGkAtoms::commandfor) {
         aResult.ParseAtom(aValue);
@@ -340,9 +357,7 @@ void HTMLButtonElement::ActivationBehavior(EventChainPostVisitor& aVisitor) {
   // 5. If target is not null:
   if (target) {
     // 5.1. Let command be element's command attribute.
-    const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command);
-    nsAtom* commandRaw = attr ? attr->GetAtomValue() : nsGkAtoms::_empty;
-    Command command = GetCommand(commandRaw);
+    Element::Command command = GetCommand();
 
     // 5.2. If command is in the Unknown state, then return.
     if (command == Command::Invalid) {
@@ -367,7 +382,7 @@ void HTMLButtonElement::ActivationBehavior(EventChainPostVisitor& aVisitor) {
     // command, its source attribute initialized to element, and its cancelable
     // and composed attributes initialized to true.
     CommandEventInit init;
-    commandRaw->ToString(init.mCommand);
+    GetCommand(init.mCommand);
     init.mSource = this;
     init.mCancelable = true;
     init.mComposed = true;
@@ -550,37 +565,34 @@ void HTMLButtonElement::UpdateValidityElementStates(bool aNotify) {
   }
 }
 
-void HTMLButtonElement::GetCommand(nsAString& aValue) const {
-  const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command);
-  if (attr) {
-    attr->GetAtomValue()->ToString(aValue);
+void HTMLButtonElement::GetCommand(nsAString& aCommand) const {
+  aCommand.Truncate();
+  Element::Command command = GetCommand();
+  if (command == Command::Invalid) {
+    return;
   }
+  if (command == Command::Custom) {
+    const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command);
+    MOZ_ASSERT(attr->Type() == nsAttrValue::eString);
+    aCommand.Assign(attr->GetStringValue());
+    MOZ_ASSERT(
+        aCommand.Length() >= 2,
+        "Custom commands start with '--' so must be atleast 2 chars long!");
+    MOZ_ASSERT(StringBeginsWith(aCommand, u"--"_ns),
+               "Custom commands start with '--'");
+    return;
+  }
+  GetEnumAttr(nsGkAtoms::command, "", aCommand);
 }
 
-Element::Command HTMLButtonElement::GetCommand(nsAtom* aAtom) const {
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::show_popover)) {
-    return Command::ShowPopover;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::hide_popover)) {
-    return Command::HidePopover;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::toggle_popover)) {
-    return Command::TogglePopover;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::show_modal)) {
-    return Command::ShowModal;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::toggle)) {
-    return Command::Toggle;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::close)) {
-    return Command::Close;
-  }
-  if (nsContentUtils::EqualsIgnoreASCIICase(aAtom, nsGkAtoms::open)) {
-    return Command::Open;
-  }
-  if (StringBeginsWith(nsDependentAtomString(aAtom), u"--"_ns)) {
-    return Command::Custom;
+Element::Command HTMLButtonElement::GetCommand() const {
+  if (const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command)) {
+    if (attr->Type() == nsAttrValue::eEnum) {
+      return Command(attr->GetEnumValue());
+    }
+    if (StringBeginsWith(attr->GetStringValue(), u"--"_ns)) {
+      return Command::Custom;
+    }
   }
   return Command::Invalid;
 }
