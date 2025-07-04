@@ -1101,45 +1101,26 @@ class TargetCommand extends EventEmitter {
    *        and if waitForLoad is true, resolved only once the target url is fully loaded.
    */
   navigateTo(url, waitForLoad = true) {
-    if (this.descriptorFront.traits.supportsNavigation) {
-      return this.descriptorFront.navigateTo(url, waitForLoad);
+    if (!this.descriptorFront.traits.supportsNavigation) {
+      throw new Error("Descriptor doesn't support navigation");
     }
 
-    // @backward-compat { version 140 } Tab descriptor started supporting `navigateTo`.
-    // Also, this method should only be used by about:debugging's remote toolboxes
-    // when debugging tabs.
-    //
-    // Once we only support Firefox 140, we can start throwing when supportsNavigation traits
-    // doesn't exists and only support the descriptor's codepath.
-    return this.targetFront.navigateTo({ url });
+    return this.descriptorFront.navigateTo(url, waitForLoad);
   }
 
   goBack() {
-    if (this.descriptorFront.traits.supportsNavigation) {
-      return this.descriptorFront.goBack();
+    if (!this.descriptorFront.traits.supportsNavigation) {
+      throw new Error("Descriptor doesn't support navigation");
     }
 
-    // @backward-compat { version 140 } Tab descriptor started supporting `goBack`.
-    // Also, this method should only be used by about:debugging's remote toolboxes
-    // when debugging tabs.
-    //
-    // Once we only support Firefox 140, we can start throwing when supportsNavigation traits
-    // doesn't exists and only support the descriptor's codepath.
-    return this.targetFront.goBack();
+    return this.descriptorFront.goBack();
   }
 
   goForward() {
-    if (this.descriptorFront.traits.supportsNavigation) {
-      return this.descriptorFront.goForward();
+    if (!this.descriptorFront.traits.supportsNavigation) {
+      throw new Error("Descriptor doesn't support navigation");
     }
-
-    // @backward-compat { version 140 } Tab descriptor started supporting `goBack`.
-    // Also, this method should only be used by about:debugging's remote toolboxes
-    // when debugging tabs.
-    //
-    // Once we only support Firefox 140, we can start throwing when supportsNavigation traits
-    // doesn't exists and only support the descriptor's codepath.
-    return this.targetFront.goForward();
+    return this.descriptorFront.goForward();
   }
 
   /**
