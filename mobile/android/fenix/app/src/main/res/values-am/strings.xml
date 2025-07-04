@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s ሲዘጉ ወይም መተግበሪያውን ሲያቆሙ የፍለጋ እና የአሰሳ ታሪክዎን ከግል ትሮች ያጸዳል። ይህ እርስዎን ለድር ጣቢያዎች ወይም የበይነመረብ አገልግሎት አቅራቢዎ ስም-አልባ ባያደርግም፣ በመስመር ላይ የሚያደርጉትን ይህን መሳሪያ ከሚጠቀም ከማንኛውም ሰው የግል ማድረግን ቀላል ያደርገዋል።</string>
   <string name="private_browsing_common_myths">ስለግል አሰሳ የተለመዱ አፈ ታሪኮች</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">የግል የማሰሻ ክፍል</string>
   <!--
     True Private Browsing Mode
 
@@ -1214,6 +1216,8 @@
   <string name="exceptions_empty_message_learn_more_link">ተጨማሪ ይወቁ</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">ቴክኒካዊ እና መስተጋብር ውሂብ ላክ</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">ስለ ቴክኒካዊ ውሂብ የበለጠ ይወቁ</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">ተጨማሪ ይወቁ</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
@@ -1226,6 +1230,16 @@
   <string name="preferences_automatically_send_crashes_title">የብልሽት ሪፖርቶችን በራስ-ሰር ይላኩ</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">ይህ በአሳሹ ላይ ችግሮችን እንድንመረምር እና እንድናስተካክል ይረዳናል። ሀተታዎች ግላዊ ወይም ሚስጥራዊ መረጃዎችን ሊያካትቱ ይችላሉ።</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">ስለብልሽት ሪፖርቶች የበለጠ ይረዱ</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">የብልሽት ሪፖርቶች</string>
+  <string name="usage_data_category">የአጠቃቀም ውሂብ</string>
+  <string name="studies_data_category">ጥናቶች</string>
+  <string name="technical_data_category">የቴክኒክ ውሂብ</string>
+  <string name="crash_reporting_description">የብልሽት ሪፖርቶች በአሳሹ ላይ ችግሮችን እንድንመረምር እና እንድናስተካክል ያስችሉናል። ሪፖርቶች ግላዊ ወይም ሚስጥራዊ መረጃዎችን ሊያካትቱ ይችላሉ።</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">የዘመቻ መለኪያ</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">የዘመቻ መለኪያ ውሂብ</string>
   <!--
@@ -1643,11 +1657,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • በመጠባበቅ ላይ</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • ያልታወቀ ጊዜ</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • ባለበት ቆሟል</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • ባለበት ቆሟል</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ለአፍታ ቆሟል</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1712,14 +1736,30 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">ጣቢያ ቀርፋፋ ወይም አይሰራም</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">ጣቢያ አይክፍትም</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">መክፈል፣ ማዘዝ ወይም መግዛት አይቻልም</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">ምስሎች ወይም ተንቀሳቃሽ-ምስሎች</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">አዝራሮች፣ አገናኞች እና ሌሎች ይዘቶች</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">መግባት ወይም መውጣት</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">ጣቢያው ቀርፋፋ ነው</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">ቪዲዮው እየተጫወተ ወይም እየተጫነ አይደለም</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">የተጓደለ ይዘት</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">መግባት ወይም መመዝገብ አይቻልም</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">ማስታወቂያ ማገጃ</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">ጣቢያ የማስታወቂያ ማገጃውን እንዲያጠፋ ተጠይቋል</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">አሳሽ አይደገፍም ወይም ታግዷል</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">ሌላ ነገር</string>
   <!--
@@ -1740,8 +1780,12 @@
   <string name="unsubmitted_crash_dialog_checkbox_label">የብልሽት ሪፖርቶችን በራስ-ሰር ይላኩ</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">ዝጋ</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">ዳግም አታሳይ</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">የብልሽት ሪፖርት ላክ</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">ተጨማሪ ይወቁ</string>
   <!--
     Bookmarks
 
@@ -1950,6 +1994,10 @@
   <string name="studies_on">በርቷል</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">ጠፍቷል</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">በርቷል</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">ጠፍቷል</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">ፈቃዶች</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -2543,6 +2591,8 @@
   <string name="preferences_passwords_exceptions_remove_all">ሁሉንም የማይካተቱትን ሰርዝ</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">የይለፍ ቃላትን ፈልግ</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">ተመለስ</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">ድረ-ገፅ</string>
   <!-- The header for the username for a login -->
@@ -2563,6 +2613,22 @@
   <string name="saved_login_clear_username">የተጠቃሚ ስም አጽዳ</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">የአስተናጋጅ ስም ያጽዱ</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">የመግቢያ ዝርዝር ምናሌ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">ወደ ኋላ ዳስስ</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">አርትዕ</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">አጥፋ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">ወደ ኋላ ዳስስ</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">አዲስ መግቢያን አስቀምጥ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">ወደ ኋላ ዳስስ</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">መግቢያ አርትዕ</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">ድረ-ገፅን በአሳሽ ውስጥ ይክፈቱ</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
@@ -2956,6 +3022,8 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">አነቃቂ ታሪኮች</string>
   <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">ታሪኮች</string>
+  <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">ታሪኮች በርዕስ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">ተጨማሪ ያግኙ</string>
@@ -3275,6 +3343,8 @@
   <string name="protection_panel_etp_toggle_label">የተሻሻለ የክትትል ጥበቃ</string>
   <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
   <string name="protection_panel_etp_toggle_enabled_description">በዚህ ጣቢያ ላይ የሆነ ነገር የተሰበረ ከመሰለ፣ ጥበቃዎችን በማጥፋት ይሞክሩ።</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+  <string name="protection_panel_etp_toggle_disabled_description">ጥበቃዎች ጠፍተዋል። እነሱን መልሰው እንዲያበሩዋቸው እንመክራለን።</string>
   <!--
     Text for displaying the total number of trackers blocked in the protection panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3297,6 +3367,11 @@
     %d is a placeholder for the number of trackers blocked.
   -->
   <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s፡ %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description"><![CDATA[ለ<b>%s</b> ኩኪዎችን እና የጣቢያ ውሂብን ማስወገድ ከድር ጣቢያዎች ሊያወጣዎት እና የግዢ ጋሪዎችን ሊያጸዳ ይችላል።]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">አጽዳ</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
@@ -3492,12 +3567,18 @@
     Homepage card button to open Google Play Store. "Update" is a verb.
   -->
   <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">አሁን አዘምን</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">የFኢረፎሽ ማሰሻዎን ያዘምኑ</string>
+  <!-- Homepage card message about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">የዋና ሰርተፍኬት ጊዜው ያበቃል፣ ይህም አንዳንድ ባህሪያት ማርች 14 ላይ መስራት እንዲያቆሙ ያደርጋል።</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">ከማርች 14 በፊት ያዘምኑ</string>
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">የእርስዎን Firefox ለማቆየት የመጨረሻው ዕድል</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">ማዘመን ይመከራል</string>
+  <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">የቆየ የFirefox ስሪት ላይ ነዎት</string>
   <!-- TextField Design System Component -->
 
   <!--
@@ -3518,6 +3599,10 @@
   <string name="setup_checklist_subtitle_3_steps_initial_state">%1$sን ለምርጥ የአሰሳ ተሞክሮ ለማዘጋጀት እነዚህን 3 ደረጃዎች ያጠናቅቁ።</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_3_steps_first_step">ጥሩ ጅምር! ከ3 ደረጃዎች 1 ጨርሰዋል።</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">4 ደረጃዎች ገብተዋል። 2 ተጨማሪ ብቻ ነው የቀረው!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">ሊደርሱ ነው! ከመጨረሻው መስመር 1 እርምጃ ብቻ ይቀርዎታል።</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3564,8 +3649,24 @@
   <string name="pbm_authentication_unlock_private_tabs">የግል ትሮችን ይክፈቱ</string>
   <!-- Authentication prompt title to enable the private tabs mode -->
   <string name="pbm_authentication_enable_lock">የግል ትሮች የማያ ገጽ መቆለፊያን አንቃ</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">የግል ትሮችን የማያ ገጽ መቆለፊያን አሰናክል</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">ትሮችን ለመደበቅ የማያ ገጽ መቆለፊያን ያዘጋጁ</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">አልፈልግም፣አመሰግናለሁ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">ትሮችን ቆልፍ</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">ስለ%1$s ምን ያስባሉ?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">ችግሮች እያጋጠሙኝ ነው</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">በጣም ጥሩ ነው!</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">አስተያየት ይተው</string>
 </resources>

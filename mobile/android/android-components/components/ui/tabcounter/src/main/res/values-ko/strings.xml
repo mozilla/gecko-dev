@@ -10,6 +10,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_open_tab_counter_tab_tray">열린 일반 탭: %1$s개. 탭을 전환하려면 누르세요.</string>
+  <!--
+    Message announced to the user when the tab counter is selected in private browsing mode.
+    Used by a11y services. The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_private">열린 사생활 보호 탭: %1$s개. 탭을 전환하려면 누르세요.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">새 탭</string>
   <!-- Browser menu button that creates a private tab -->

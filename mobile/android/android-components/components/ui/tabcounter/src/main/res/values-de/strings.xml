@@ -10,6 +10,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_open_tab_counter_tab_tray">Geöffnete nicht private Tabs: %1$s. Antippen, um Tabs zu wechseln.</string>
+  <!--
+    Message announced to the user when the tab counter is selected in private browsing mode.
+    Used by a11y services. The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_private">Offene private Tabs: %1$s. Antippen, um Tabs zu wechseln.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Neuer Tab</string>
   <!-- Browser menu button that creates a private tab -->

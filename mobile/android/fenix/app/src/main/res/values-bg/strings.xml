@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s изчиства вашата история на търсене и разглеждане от поверителните раздели, когато ги затворите или излезете от приложението. Това не ви прави невидими за уебсайтовете или мрежовите доставчици, но запазва поверителността на вашата дейност онлайн от други ползватели на същото устройството.</string>
   <string name="private_browsing_common_myths">Разпространени легенди относно поверителното разглеждане</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Поверителна сесия</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Връщане назад</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Запазете новото влизане</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Връщане назад</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Редактиране на регистрацията</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Отваряне препратката в четеца</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

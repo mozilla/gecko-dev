@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s는 사생활 보호 탭을 닫거나 앱을 종료할 때 사생활 보호 탭으로부터 검색과 방문 기록을 지웁니다. 이것이 사용자를 웹 사이트나 인터넷 서비스 제공자로부터 익명으로 만들지는 않지만, 사용자가 온라인에서 한 일을 이 기기를 사용하는 다른 사용자로부터 보호 할 수 있게 합니다.</string>
   <string name="private_browsing_common_myths">사생활 보호 모드에 관한 흔한 오해</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">사생활 보호 세션</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">뒤로</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">새 로그인 저장</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">뒤로</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">로그인 편집</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">브라우저에서 사이트 열기</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
@@ -2923,7 +2929,7 @@
   <!-- The button description to save changes to an edited password. -->
   <string name="save_changes_to_login_2">변경 내용 저장.</string>
   <!-- The page title for editing a saved password. -->
-  <string name="edit_2">비밀번호 수정</string>
+  <string name="edit_2">비밀번호 편집</string>
   <!-- The page title for adding new password. -->
   <string name="add_login_2">비밀번호 추가</string>
   <!-- Error text displayed underneath the password field when it is in an error case. -->
