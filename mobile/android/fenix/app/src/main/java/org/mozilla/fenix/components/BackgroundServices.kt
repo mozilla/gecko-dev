@@ -29,6 +29,8 @@ import mozilla.components.feature.syncedtabs.commands.SyncedTabsCommands
 import mozilla.components.feature.syncedtabs.commands.SyncedTabsCommandsFlushScheduler
 import mozilla.components.feature.syncedtabs.storage.SyncedTabsStorage
 import mozilla.components.lib.crash.CrashReporter
+import mozilla.components.lib.state.Middleware
+import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.service.fxa.PeriodicSyncConfig
 import mozilla.components.service.fxa.ServerConfig
 import mozilla.components.service.fxa.SyncConfig
@@ -36,6 +38,8 @@ import mozilla.components.service.fxa.SyncEngine
 import mozilla.components.service.fxa.manager.FxaAccountManager
 import mozilla.components.service.fxa.manager.SCOPE_SESSION
 import mozilla.components.service.fxa.manager.SCOPE_SYNC
+import mozilla.components.service.fxa.store.SyncAction
+import mozilla.components.service.fxa.store.SyncState
 import mozilla.components.service.fxa.store.SyncStore
 import mozilla.components.service.fxa.store.SyncStoreSupport
 import mozilla.components.service.fxa.sync.GlobalSyncableStoreProvider
@@ -45,6 +49,8 @@ import mozilla.components.support.utils.RunWhenReadyQueue
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.FeatureFlags
+import org.mozilla.fenix.GleanMetrics.Metrics.clientAssociation
+import org.mozilla.fenix.GleanMetrics.Pings.fxAccounts
 import org.mozilla.fenix.GleanMetrics.SyncAuth
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
@@ -152,7 +158,7 @@ class BackgroundServices(
     val accountAbnormalities = AccountAbnormalities(context, crashReporter, strictMode)
 
     val syncStore by lazyMonitored {
-        SyncStore()
+        SyncStore(middleware = listOf(TelemetryMiddleware()))
     }
 
     private lateinit var syncStoreSupport: SyncStoreSupport
@@ -254,6 +260,22 @@ private class AccountManagerReadyObserver(
 ) : AccountObserver {
     override fun onReady(authenticatedAccount: OAuthAccount?) {
         accountManagerAvailableQueue.ready()
+    }
+}
+
+internal class TelemetryMiddleware : Middleware<SyncState, SyncAction> {
+    override fun invoke(
+        context: MiddlewareContext<SyncState, SyncAction>,
+        next: (SyncAction) -> Unit,
+        action: SyncAction,
+    ) {
+        val prevState = context.store.state
+        next(action)
+        val accountUid = context.store.state.account?.uid
+        if (prevState.account?.uid != accountUid && accountUid != null) {
+            clientAssociation.set(accountUid)
+            fxAccounts.submit()
+        }
     }
 }
 

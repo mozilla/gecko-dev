@@ -131,6 +131,20 @@ fx-suggest:
     - ttran@mozilla.com
     - najiang@mozilla.com
 
+fx-accounts:
+  description: |
+    A ping for information about Mozilla Account usage. Sent at the same cadence
+    as the baseline ping.
+  include_client_id: true
+  send_if_empty: false
+  bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1970661
+  data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1970661
+  notification_emails:
+    - fmasalha@mozilla.com
+    - mtighe@mozilla.com
+
 font-list:
   description: |
       List of fonts installed on the user's device
