@@ -59,6 +59,70 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "blockListEnabled",
   "browser.ml.linkPreview.blockListEnabled"
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "preUserPrompt",
+  "browser.ml.linkPreview.preUserPrompt",
+  ""
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "postUserPrompt",
+  "browser.ml.linkPreview.postUserPrompt",
+  ""
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "penalizedTokens",
+  "browser.ml.linkPreview.penalizedTokens",
+  // default (when PREF_INVALID)
+  // Tokens with newlines for the default link preview model, based on the model's vocab: https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/raw/main/vocab.json
+  JSON.stringify([
+    198, 448, 466, 472, 629, 945, 1004, 1047, 1116, 1410, 1927, 2367, 2738,
+    2830, 2953, 3136, 3299, 3337, 3354, 3558, 3717, 3805, 3914, 4602, 4767,
+    5952, 7116, 7209, 7338, 7396, 8301, 8500, 8821, 8866, 9198, 9225, 9343,
+    9694, 10459, 11181, 11259, 11539, 11813, 12350, 13002, 13272, 13280, 13596,
+    13617, 13809, 14436, 14446, 15111, 15182, 15290, 15537, 16140, 16299, 16390,
+    16506, 16871, 16980, 16997, 18682, 18850, 18864, 19014, 19145, 19993, 20098,
+    20370, 20793, 21193, 21377, 21941, 22342, 22369, 23004, 23386, 23499, 23799,
+    24112, 24205, 25457, 25576, 26675, 26886, 26925, 27536, 27924, 28577, 29306,
+    29866, 30314, 30544, 30799, 31464, 32057, 32315, 32829, 34344, 34356, 35163,
+    35988, 36176, 36286, 36328, 36489, 36496, 36804, 37468, 38028, 38031, 39014,
+    39843, 39892, 40677, 40944, 42057, 42617, 43784, 43902, 44064, 46778, 47213,
+    47647, 48259, 48279, 48818,
+  ]),
+  null, // no onUpdate callback
+  rawValue => {
+    if (!rawValue) {
+      return [];
+    }
+    return JSON.parse(rawValue);
+  }
+);
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "minWordsPerOutputSentences",
+  "browser.ml.linkPreview.minWordsPerOutputSentences",
+  0
+);
+
+// End of generation tokens.
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "stopTokens",
+  "browser.ml.linkPreview.stopTokens",
+  // default (when PREF_INVALID)
+  JSON.stringify([END_OF_TEXT_TOKEN, BOS_TOKEN, EOS_TOKEN]),
+  null, // no onUpdate callback
+  rawValue => {
+    if (!rawValue) {
+      return [];
+    }
+    return JSON.parse(rawValue);
+  }
+);
 
 export const LinkPreviewModel = {
   /**
@@ -74,23 +138,7 @@ export const LinkPreviewModel = {
    * @returns {Array<number>} block token list
    */
   getBlockTokenList() {
-    // Tokens with newlines for the link preview model, based on the model's vocab: https://huggingface.co/HuggingFaceTB/SmolLM2-360M-Instruct/raw/main/vocab.json
-    const tokensWithNewLines = [
-      198, 448, 466, 472, 629, 945, 1004, 1047, 1116, 1410, 1927, 2367, 2738,
-      2830, 2953, 3136, 3299, 3337, 3354, 3558, 3717, 3805, 3914, 4602, 4767,
-      5952, 7116, 7209, 7338, 7396, 8301, 8500, 8821, 8866, 9198, 9225, 9343,
-      9694, 10459, 11181, 11259, 11539, 11813, 12350, 13002, 13272, 13280,
-      13596, 13617, 13809, 14436, 14446, 15111, 15182, 15290, 15537, 16140,
-      16299, 16390, 16506, 16871, 16980, 16997, 18682, 18850, 18864, 19014,
-      19145, 19993, 20098, 20370, 20793, 21193, 21377, 21941, 22342, 22369,
-      23004, 23386, 23499, 23799, 24112, 24205, 25457, 25576, 26675, 26886,
-      26925, 27536, 27924, 28577, 29306, 29866, 30314, 30544, 30799, 31464,
-      32057, 32315, 32829, 34344, 34356, 35163, 35988, 36176, 36286, 36328,
-      36489, 36496, 36804, 37468, 38028, 38031, 39014, 39843, 39892, 40677,
-      40944, 42057, 42617, 43784, 43902, 44064, 46778, 47213, 47647, 48259,
-      48279, 48818,
-    ];
-    return tokensWithNewLines;
+    return lazy.penalizedTokens;
   },
   /**
    * Extracts sentences from a given text.
@@ -379,12 +427,15 @@ export const LinkPreviewModel = {
       const blockedTokens = this.getBlockTokenList();
       for await (const val of engine.runWithGenerator({
         nPredict,
-        stopTokens: [END_OF_TEXT_TOKEN, BOS_TOKEN, EOS_TOKEN],
+        stopTokens: lazy.stopTokens,
         logit_bias_toks: blockedTokens,
         logit_bias_vals: Array(blockedTokens.length).fill(-Infinity),
         prompt: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: processedInput },
+          {
+            role: "user",
+            content: lazy.preUserPrompt + processedInput + lazy.postUserPrompt,
+          },
         ],
       })) {
         const { sentence, abort } = postProcessor.put(val.text);
@@ -515,13 +566,22 @@ export class SentencePostProcessor {
     let abort = false;
     if (sentences.length >= 2) {
       this.currentText = sentences.slice(1).join("");
-      this.currentNumSentences += 1;
+      // simple way to get number of word ignoring non-whitespaces chatacters
+      const isValidSentence =
+        sentences[0].trim().split(/\p{White_Space}+/u).length >=
+        lazy.minWordsPerOutputSentences;
+
+      if (isValidSentence) {
+        this.currentNumSentences += 1;
+      }
 
       if (this.currentNumSentences == this.maxNumOutputSentences) {
         this.currentText = "";
         abort = true;
       }
-      sentence = sentences[0];
+      if (isValidSentence) {
+        sentence = sentences[0];
+      }
 
       // If the sentence contains a block word, abort
       if (
