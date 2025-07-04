@@ -7,10 +7,6 @@ ipprotection-button =
   .label = IP Protection
   .tooltiptext = { -brand-product-name } IP Protection
 
-ipprotection-button-dropmarker =
-  .label = Open IP Protection
-  .tooltiptext = Open IP Protection
-
 ipprotection-title = { -brand-product-name } IP Protection
 
 upgrade-vpn-title = Upgrade to protect yourself beyond the browser

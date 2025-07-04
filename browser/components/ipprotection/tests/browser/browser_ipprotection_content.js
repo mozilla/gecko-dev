@@ -16,9 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
  * Tests that the ip protection main panel view has the correct content.
  */
 add_task(async function test_main_content() {
-  let dropmarker = document.getElementById(
-    lazy.IPProtectionWidget.WIDGET_ID + "-dropmarker"
-  );
+  let button = document.getElementById(lazy.IPProtectionWidget.WIDGET_ID);
   let panelView = PanelMultiView.getViewNode(
     document,
     lazy.IPProtectionWidget.PANEL_ID
@@ -26,7 +24,7 @@ add_task(async function test_main_content() {
 
   let panelShownPromise = waitForPanelEvent(document, "popupshown");
   // Open the panel
-  dropmarker.click();
+  button.click();
   await panelShownPromise;
 
   let content = panelView.querySelector(lazy.IPProtectionPanel.CONTENT_TAGNAME);
