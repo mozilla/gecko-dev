@@ -1,6 +1,9 @@
+//! Contains thread-safe variants.
 use super::*;
 use std::sync::Mutex;
 
+/// A thread-safe version of the [`intl_memoizer::IntlLangMemoizer`](super::IntlLangMemoizer).
+/// See the single-thread version for more documentation.
 #[derive(Debug)]
 pub struct IntlLangMemoizer {
     lang: LanguageIdentifier,
@@ -8,6 +11,7 @@ pub struct IntlLangMemoizer {
 }
 
 impl IntlLangMemoizer {
+    /// Create a new [`IntlLangMemoizer`] that is unique to a specific [`LanguageIdentifier`]
     pub fn new(lang: LanguageIdentifier) -> Self {
         Self {
             lang,
@@ -15,6 +19,9 @@ impl IntlLangMemoizer {
         }
     }
 
+    /// Lazily initialize and run a formatter. See
+    /// [`intl_memoizer::IntlLangMemoizer::with_try_get`](crate::IntlLangMemoizer::with_try_get)
+    /// for documentation.
     pub fn with_try_get<I, R, U>(&self, args: I::Args, cb: U) -> Result<R, I::Error>
     where
         Self: Sized,
@@ -34,6 +41,6 @@ impl IntlLangMemoizer {
                 entry.insert(val)
             }
         };
-        Ok(cb(&e))
+        Ok(cb(e))
     }
 }

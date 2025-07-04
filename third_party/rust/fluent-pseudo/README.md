@@ -1,12 +1,16 @@
-# Fluent
+# Fluent Pseudo
 
-`fluent-pseudo` is a Rust implementation of the pseudolocalization API for [Project Fluent](https://projectfluent.org/), a localization
-framework designed to unleash the entire expressive power of natural language
-translations.
+[![crates.io](https://img.shields.io/crates/v/fluent-pseudo.svg)](https://crates.io/crates/fluent-pseudo)
+[![docs.rs](https://img.shields.io/docsrs/fluent-pseudo)](https://docs.rs/fluent-pseudo)
+[![Build](https://github.com/projectfluent/fluent-rs/actions/workflows/test.yaml/badge.svg)](https://github.com/projectfluent/fluent-rs/actions/workflows/test.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/projectfluent/fluent-rs/badge.svg?branch=main)](https://coveralls.io/github/projectfluent/fluent-rs?branch=main)
 
-[![crates.io](https://meritbadge.herokuapp.com/fluent-pseudo)](https://crates.io/crates/fluent-pseudo)
-[![Build and test](https://github.com/projectfluent/fluent-rs/workflows/Build%20and%20test/badge.svg)](https://github.com/projectfluent/fluent-rs/actions?query=branch%3Amaster+workflow%3A%22Build+and+test%22)
-[![Coverage Status](https://coveralls.io/repos/github/projectfluent/fluent-rs/badge.svg?branch=master)](https://coveralls.io/github/projectfluent/fluent-rs?branch=master)
+The `fluent-rs` workspace is a collection of Rust crates implementing [Project Fluent][],
+a localization system designed to unleash the entire expressive power of natural language translations.
+
+This crate provides a pseudolocalization and transformation API.
+
+[Project Fluent]: https://projectfluent.org
 
 Usage
 -----

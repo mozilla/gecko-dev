@@ -78,7 +78,7 @@
 //!
 //! ## Errors
 //!
-//! Fluent AST preserves blocks containing invaid syntax as [`Entry::Junk`].
+//! Fluent AST preserves blocks containing invalid syntax as [`Entry::Junk`].
 //!
 //! ## White space
 //!
@@ -111,7 +111,7 @@ use serde::{Deserialize, Serialize};
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Resource<S> {
     pub body: Vec<Entry<S>>,
@@ -193,7 +193,7 @@ pub struct Resource<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum Entry<S> {
@@ -253,7 +253,7 @@ pub enum Entry<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Message<S> {
     pub id: Identifier<S>,
@@ -307,7 +307,7 @@ pub struct Message<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Term<S> {
     pub id: Identifier<S>,
@@ -387,13 +387,13 @@ pub struct Term<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Pattern<S> {
     pub elements: Vec<PatternElement<S>>,
 }
 
-/// PatternElement is an element of a [`Pattern`].
+/// `PatternElement` is an element of a [`Pattern`].
 ///
 /// Each [`PatternElement`] node represents
 /// either a simple textual value, or a combination of text literals
@@ -464,7 +464,7 @@ pub struct Pattern<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum PatternElement<S> {
@@ -535,7 +535,7 @@ pub enum PatternElement<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Attribute<S> {
     pub id: Identifier<S>,
@@ -584,7 +584,7 @@ pub struct Attribute<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Identifier<S> {
     pub name: S,
@@ -667,7 +667,7 @@ pub struct Identifier<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub struct Variant<S> {
@@ -752,7 +752,7 @@ pub struct Variant<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum VariantKey<S> {
@@ -798,7 +798,7 @@ pub enum VariantKey<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(from = "helper::CommentDef<S>"))]
 pub struct Comment<S> {
@@ -879,7 +879,7 @@ pub struct Comment<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub struct CallArguments<S> {
@@ -948,7 +948,7 @@ pub struct CallArguments<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub struct NamedArgument<S> {
@@ -1004,7 +1004,7 @@ pub struct NamedArgument<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum InlineExpression<S> {
@@ -1434,13 +1434,26 @@ pub enum InlineExpression<S> {
 ///     }
 /// );
 /// ```
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum Expression<S> {
+    /// A select expression such as:
+    /// ```ftl
+    /// key = { $var ->
+    ///     [key1] Value 1
+    ///    *[other] Value 2
+    /// }
+    /// ```
     Select {
         selector: InlineExpression<S>,
         variants: Vec<Variant<S>>,
     },
+
+    /// An inline expression such as `${ username }`:
+    ///
+    /// ```ftl
+    /// hello-user = Hello ${ username }
+    /// ```
     Inline(InlineExpression<S>),
 }

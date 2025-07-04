@@ -8,28 +8,28 @@ use std::borrow::Borrow;
 use std::fmt;
 
 /// State for a single `ResolveValue::to_value` call.
-pub struct Scope<'scope, 'errors, R, M> {
+pub struct Scope<'bundle, 'ast, 'args, 'errors, R, M> {
     /// The current `FluentBundle` instance.
-    pub bundle: &'scope FluentBundle<R, M>,
+    pub bundle: &'bundle FluentBundle<R, M>,
     /// The current arguments passed by the developer.
-    pub(super) args: Option<&'scope FluentArgs<'scope>>,
+    pub(super) args: Option<&'args FluentArgs<'args>>,
     /// Local args
-    pub(super) local_args: Option<FluentArgs<'scope>>,
+    pub(super) local_args: Option<FluentArgs<'bundle>>,
     /// The running count of resolved placeables. Used to detect the Billion
     /// Laughs and Quadratic Blowup attacks.
     pub(super) placeables: u8,
     /// Tracks hashes to prevent infinite recursion.
-    travelled: smallvec::SmallVec<[&'scope ast::Pattern<&'scope str>; 2]>,
+    traveled: smallvec::SmallVec<[&'ast ast::Pattern<&'bundle str>; 2]>,
     /// Track errors accumulated during resolving.
     pub errors: Option<&'errors mut Vec<FluentError>>,
     /// Makes the resolver bail.
     pub dirty: bool,
 }
 
-impl<'scope, 'errors, R, M> Scope<'scope, 'errors, R, M> {
+impl<'bundle, 'ast, 'args, 'errors, R, M> Scope<'bundle, 'ast, 'args, 'errors, R, M> {
     pub fn new(
-        bundle: &'scope FluentBundle<R, M>,
-        args: Option<&'scope FluentArgs>,
+        bundle: &'bundle FluentBundle<R, M>,
+        args: Option<&'args FluentArgs>,
         errors: Option<&'errors mut Vec<FluentError>>,
     ) -> Self {
         Scope {
@@ -37,7 +37,7 @@ impl<'scope, 'errors, R, M> Scope<'scope, 'errors, R, M> {
             args,
             local_args: None,
             placeables: 0,
-            travelled: Default::default(),
+            traveled: Default::default(),
             errors,
             dirty: false,
         }
@@ -49,25 +49,24 @@ impl<'scope, 'errors, R, M> Scope<'scope, 'errors, R, M> {
         }
     }
 
-    // This method allows us to lazily add Pattern on the stack,
-    // only if the Pattern::resolve has been called on an empty stack.
-    //
-    // This is the case when pattern is called from Bundle and it
-    // allows us to fast-path simple resolutions, and only use the stack
-    // for placeables.
+    /// This method allows us to lazily add Pattern on the stack, only if the
+    /// `Pattern::resolve` has been called on an empty stack.
+    ///
+    /// This is the case when pattern is called from Bundle and it allows us to fast-path
+    /// simple resolutions, and only use the stack for placeables.
     pub fn maybe_track<W>(
         &mut self,
         w: &mut W,
-        pattern: &'scope ast::Pattern<&str>,
-        exp: &'scope ast::Expression<&str>,
+        pattern: &'ast ast::Pattern<&'bundle str>,
+        exp: &'ast ast::Expression<&'bundle str>,
     ) -> fmt::Result
     where
         R: Borrow<FluentResource>,
         W: fmt::Write,
         M: MemoizerKind,
     {
-        if self.travelled.is_empty() {
-            self.travelled.push(pattern);
+        if self.traveled.is_empty() {
+            self.traveled.push(pattern);
         }
         exp.write(w, self)?;
         if self.dirty {
@@ -82,23 +81,23 @@ impl<'scope, 'errors, R, M> Scope<'scope, 'errors, R, M> {
     pub fn track<W>(
         &mut self,
         w: &mut W,
-        pattern: &'scope ast::Pattern<&str>,
-        exp: &ast::InlineExpression<&str>,
+        pattern: &'ast ast::Pattern<&'bundle str>,
+        exp: &'ast ast::InlineExpression<&'bundle str>,
     ) -> fmt::Result
     where
         R: Borrow<FluentResource>,
         W: fmt::Write,
         M: MemoizerKind,
     {
-        if self.travelled.contains(&pattern) {
+        if self.traveled.contains(&pattern) {
             self.add_error(ResolverError::Cyclic);
             w.write_char('{')?;
             exp.write_error(w)?;
             w.write_char('}')
         } else {
-            self.travelled.push(pattern);
+            self.traveled.push(pattern);
             let result = pattern.write(w, self);
-            self.travelled.pop();
+            self.traveled.pop();
             result
         }
     }
@@ -119,8 +118,8 @@ impl<'scope, 'errors, R, M> Scope<'scope, 'errors, R, M> {
 
     pub fn get_arguments(
         &mut self,
-        arguments: Option<&'scope ast::CallArguments<&'scope str>>,
-    ) -> (Vec<FluentValue<'scope>>, FluentArgs<'scope>)
+        arguments: Option<&'ast ast::CallArguments<&'bundle str>>,
+    ) -> (Vec<FluentValue<'bundle>>, FluentArgs<'bundle>)
     where
         R: Borrow<FluentResource>,
         M: MemoizerKind,

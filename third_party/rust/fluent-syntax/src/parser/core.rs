@@ -18,7 +18,7 @@ where
     S: Slice<'s>,
 {
     pub fn new(source: S) -> Self {
-        let length = source.as_ref().as_bytes().len();
+        let length = source.as_ref().len();
         Self {
             source,
             ptr: 0,

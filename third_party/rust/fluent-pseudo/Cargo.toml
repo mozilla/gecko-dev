@@ -3,25 +3,63 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.65.0"
 name = "fluent-pseudo"
-version = "0.3.1"
-authors = ["Zibi Braniecki <gandalf@mozilla.com>", "Staś Małolepszy <stas@mozilla.com>"]
-include = ["src/**/*", "benches/*.rs", "Cargo.toml", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-description = "Pseudolocalization transformation API for use with Project Fluent API.\n"
-homepage = "http://www.projectfluent.org"
+version = "0.3.3"
+authors = [
+    "Caleb Maclennan <caleb@alerque.com>",
+    "Bruce Mitchener <bruce.mitchener@gmail.com",
+    "Zibi Braniecki <zibi@unicode.org>",
+    "Staś Małolepszy <stas@mozilla.com>",
+]
+build = false
+include = [
+    "src/**/*",
+    "benches/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = """
+A pseudolocalization and transformation API for Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
+"""
+homepage = "https://www.projectfluent.org"
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
-license = "Apache-2.0/MIT"
+keywords = [
+    "localization",
+    "l10n",
+    "i18n",
+    "intl",
+    "internationalization",
+]
+categories = [
+    "localization",
+    "internationalization",
+]
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/projectfluent/fluent-rs"
+
+[lib]
+name = "fluent_pseudo"
+path = "src/lib.rs"
+
+[dependencies.once_cell]
+version = "1.21"
+
 [dependencies.regex]
-version = "1"
+version = "1.11"

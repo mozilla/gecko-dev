@@ -93,7 +93,7 @@ mime-guess-ffi = { path = "../../../../dom/fs/parent/rust/mime-guess-ffi" }
 # changing this version.
 rusqlite = { workspace = true, features = ["modern_sqlite", "in_gecko"] }
 
-fluent = { version = "0.16.0", features = ["fluent-pseudo"] }
+fluent = { version = "0.17.0", features = ["fluent-pseudo"] }
 fluent-ffi = { path = "../../../../intl/l10n/rust/fluent-ffi" }
 l10nregistry-ffi = { path = "../../../../intl/l10n/rust/l10nregistry-ffi" }
 l10nregistry = { path = "../../../../intl/l10n/rust/l10nregistry-rs" }

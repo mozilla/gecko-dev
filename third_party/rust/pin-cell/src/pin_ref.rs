@@ -17,6 +17,13 @@ impl<'a, T: ?Sized> Deref for PinRef<'a, T> {
     }
 }
 
+impl<'a, T: ?Sized> PinRef<'a, T> {
+    /// Get a pinned reference to the value inside this wrapper.
+    pub fn as_ref<'b>(orig: &'b PinRef<'a, T>) -> Pin<&'b T> {
+        orig.inner.as_ref()
+    }
+}
+
 /* TODO implement these APIs
 
 impl<'a, T: ?Sized> PinRef<'a, T> {

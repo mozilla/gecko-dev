@@ -1,3 +1,4 @@
+use once_cell::sync::Lazy;
 use regex::Captures;
 use regex::Regex;
 use std::borrow::Cow;
@@ -20,8 +21,8 @@ static FLIPPED_CAPS_MAP: &[char] = &[
     '⊥', '∩', 'Ʌ', 'M', 'X', '⅄', 'Z',
 ];
 
-static mut RE_EXCLUDED: Option<Regex> = None;
-static mut RE_AZ: Option<Regex> = None;
+static RE_EXCLUDED: Lazy<Regex> = Lazy::new(|| Regex::new(r"&[#\w]+;|<\s*.+?\s*>").unwrap());
+static RE_AZ: Lazy<Regex> = Lazy::new(|| Regex::new(r"[a-zA-Z]").unwrap());
 
 pub fn transform_dom(s: &str, flipped: bool, elongate: bool, with_markers: bool) -> Cow<str> {
     // Exclude access-keys and other single-char messages
@@ -30,22 +31,19 @@ pub fn transform_dom(s: &str, flipped: bool, elongate: bool, with_markers: bool)
     }
 
     // XML entities (&#x202a;) and XML tags.
-    let re_excluded =
-        unsafe { RE_EXCLUDED.get_or_insert_with(|| Regex::new(r"&[#\w]+;|<\s*.+?\s*>").unwrap()) };
-
     let mut result = Cow::from(s);
 
     let mut pos = 0;
     let mut diff = 0;
 
-    for cap in re_excluded.captures_iter(s) {
+    for cap in RE_EXCLUDED.captures_iter(s) {
         let capture = cap.get(0).unwrap();
 
         let sub_len = capture.start() - pos;
         let range = pos..capture.start();
         let result_range = pos + diff..capture.start() + diff;
         let sub = &s[range.clone()];
-        let transform_sub = transform(&sub, false, true);
+        let transform_sub = transform(sub, false, true);
         diff += transform_sub.len() - sub_len;
         result
             .to_mut()
@@ -58,22 +56,20 @@ pub fn transform_dom(s: &str, flipped: bool, elongate: bool, with_markers: bool)
     result.to_mut().replace_range(result_range, &transform_sub);
 
     if with_markers {
-        return Cow::from("[") + result + "]"
+        return Cow::from("[") + result + "]";
     }
 
     result
 }
 
 pub fn transform(s: &str, flipped: bool, elongate: bool) -> Cow<str> {
-    let re_az = unsafe { RE_AZ.get_or_insert_with(|| Regex::new(r"[a-zA-Z]").unwrap()) };
-
     let (small_map, caps_map) = if flipped {
         (FLIPPED_SMALL_MAP, FLIPPED_CAPS_MAP)
     } else {
         (TRANSFORM_SMALL_MAP, TRANSFORM_CAPS_MAP)
     };
 
-    re_az.replace_all(s, |caps: &Captures| {
+    RE_AZ.replace_all(s, |caps: &Captures| {
         let ch = caps[0].chars().next().unwrap();
         let cc = ch as u8;
         if (97..=122).contains(&cc) {

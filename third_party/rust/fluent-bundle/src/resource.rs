@@ -115,7 +115,7 @@ impl FluentResource {
     /// );
     /// ```
     pub fn source(&self) -> &str {
-        &self.0.borrow_owner()
+        self.0.borrow_owner()
     }
 
     /// Returns an iterator over [`entries`](fluent_syntax::ast::Entry) of the [`FluentResource`].

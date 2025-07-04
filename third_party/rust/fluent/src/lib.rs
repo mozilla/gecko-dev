@@ -70,18 +70,14 @@
 //! optimize results.
 //!
 //! At the moment it is expected that users will use
-//! the `fluent-bundle` crate directly, while the ecosystem
+//! the [`fluent-bundle`](fluent_bundle) crate directly, while the ecosystem
 //! matures and higher level APIs are being developed.
 //!
-//! [`FluentBundle`]: ./struct.FluentBundle.html
-//! [`FluentResource`]: ./struct.FluentResource.html
-//! [`FluentMessage`]: ./struct.FluentMessage.html
-//! [`FluentArgs`]: ./type.FluentArgs.html
-//! [`FluentValue`]: ./struct.FluentValue.html
+//! [`FluentBundle`]: bundle::FluentBundle
 
 pub use fluent_bundle::*;
 
-/// A helper macro to simplify creation of FluentArgs.
+/// A helper macro to simplify creation of `FluentArgs`.
 ///
 /// # Example
 ///
@@ -90,13 +86,13 @@ pub use fluent_bundle::*;
 ///
 /// let mut args = fluent_args![
 ///     "name" => "John",
-///     "emailCount" => 5
+///     "emailCount" => 5,
 /// ];
 ///
 /// ```
 #[macro_export]
 macro_rules! fluent_args {
-    ( $($key:expr => $value:expr),* ) => {
+    ( $($key:expr => $value:expr),* $(,)? ) => {
         {
             let mut args: $crate::FluentArgs = $crate::FluentArgs::new();
             $(

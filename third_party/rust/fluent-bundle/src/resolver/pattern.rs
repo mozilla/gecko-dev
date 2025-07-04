@@ -13,11 +13,11 @@ use crate::types::FluentValue;
 
 const MAX_PLACEABLES: u8 = 100;
 
-impl<'p> WriteValue for ast::Pattern<&'p str> {
-    fn write<'scope, 'errors, W, R, M>(
-        &'scope self,
+impl<'bundle> WriteValue<'bundle> for ast::Pattern<&'bundle str> {
+    fn write<'ast, 'args, 'errors, W, R, M>(
+        &'ast self,
         w: &mut W,
-        scope: &mut Scope<'scope, 'errors, R, M>,
+        scope: &mut Scope<'bundle, 'ast, 'args, 'errors, R, M>,
     ) -> fmt::Result
     where
         W: fmt::Write,
@@ -80,11 +80,11 @@ impl<'p> WriteValue for ast::Pattern<&'p str> {
     }
 }
 
-impl<'p> ResolveValue for ast::Pattern<&'p str> {
-    fn resolve<'source, 'errors, R, M>(
-        &'source self,
-        scope: &mut Scope<'source, 'errors, R, M>,
-    ) -> FluentValue<'source>
+impl<'bundle> ResolveValue<'bundle> for ast::Pattern<&'bundle str> {
+    fn resolve<'ast, 'args, 'errors, R, M>(
+        &'ast self,
+        scope: &mut Scope<'bundle, 'ast, 'args, 'errors, R, M>,
+    ) -> FluentValue<'bundle>
     where
         R: Borrow<FluentResource>,
         M: MemoizerKind,

@@ -12,11 +12,11 @@ use crate::memoizer::MemoizerKind;
 use crate::resource::FluentResource;
 use crate::types::FluentValue;
 
-impl<'p> WriteValue for ast::InlineExpression<&'p str> {
-    fn write<'scope, 'errors, W, R, M>(
-        &'scope self,
+impl<'bundle> WriteValue<'bundle> for ast::InlineExpression<&'bundle str> {
+    fn write<'ast, 'args, 'errors, W, R, M>(
+        &'ast self,
         w: &mut W,
-        scope: &mut Scope<'scope, 'errors, R, M>,
+        scope: &mut Scope<'bundle, 'ast, 'args, 'errors, R, M>,
     ) -> fmt::Result
     where
         W: fmt::Write,
@@ -53,7 +53,7 @@ impl<'p> WriteValue for ast::InlineExpression<&'p str> {
                     scope.write_ref_error(w, self)
                 }
             }
-            Self::NumberLiteral { value } => FluentValue::try_number(*value).write(w, scope),
+            Self::NumberLiteral { value } => FluentValue::try_number(value).write(w, scope),
             Self::TermReference {
                 id,
                 attribute,
@@ -93,7 +93,7 @@ impl<'p> WriteValue for ast::InlineExpression<&'p str> {
                     if let FluentValue::Error = result {
                         self.write_error(w)
                     } else {
-                        w.write_str(&result.as_string(scope))
+                        w.write_str(&result.into_string(scope))
                     }
                 } else {
                     scope.write_ref_error(w, self)
@@ -147,27 +147,42 @@ impl<'p> WriteValue for ast::InlineExpression<&'p str> {
     }
 }
 
-impl<'p> ResolveValue for ast::InlineExpression<&'p str> {
-    fn resolve<'source, 'errors, R, M>(
-        &'source self,
-        scope: &mut Scope<'source, 'errors, R, M>,
-    ) -> FluentValue<'source>
+impl<'bundle> ResolveValue<'bundle> for ast::InlineExpression<&'bundle str> {
+    fn resolve<'ast, 'args, 'errors, R, M>(
+        &'ast self,
+        scope: &mut Scope<'bundle, 'ast, 'args, 'errors, R, M>,
+    ) -> FluentValue<'bundle>
     where
         R: Borrow<FluentResource>,
         M: MemoizerKind,
     {
         match self {
             Self::StringLiteral { value } => unescape_unicode_to_string(value).into(),
-            Self::NumberLiteral { value } => FluentValue::try_number(*value),
+            Self::NumberLiteral { value } => FluentValue::try_number(value),
             Self::VariableReference { id } => {
-                let args = scope.local_args.as_ref().or(scope.args);
-
-                if let Some(arg) = args.and_then(|args| args.get(id.name)) {
-                    arg.clone()
-                } else {
-                    if scope.local_args.is_none() {
-                        scope.add_error(self.into());
+                if let Some(local_args) = &scope.local_args {
+                    if let Some(arg) = local_args.get(id.name) {
+                        return arg.clone();
                     }
+                } else if let Some(arg) = scope.args.and_then(|args| args.get(id.name)) {
+                    return arg.into_owned();
+                }
+
+                if scope.local_args.is_none() {
+                    scope.add_error(self.into());
+                }
+                FluentValue::Error
+            }
+            Self::FunctionReference { id, arguments } => {
+                let (resolved_positional_args, resolved_named_args) =
+                    scope.get_arguments(Some(arguments));
+
+                let func = scope.bundle.get_entry_function(id.name);
+
+                if let Some(func) = func {
+                    let result = func(resolved_positional_args.as_slice(), &resolved_named_args);
+                    result
+                } else {
                     FluentValue::Error
                 }
             }

@@ -1,3 +1,19 @@
+//! This is a simple CLI utility to take in an FTL file and output the AST.
+//!
+//! ## View the `Debug` representation:
+//!
+//! From the root directory of the `fluent-rs` repo:
+//!
+//! ```sh
+//! cargo run --bin parser -- ./fluent-syntax/tests/fixtures/literal_expressions.ftl
+//! ```
+//!
+//! ## View the `json` representation:
+//!
+//! ```sh
+//! cargo run --bin parser --features json -- ./fluent-syntax/tests/fixtures/literal_expressions.ftl
+//! ```
+
 use fluent_syntax::parser::parse;
 use std::env;
 use std::fs::File;
@@ -13,7 +29,8 @@ fn read_file(path: &str) -> Result<String, io::Error> {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let source = read_file(args.get(1).expect("Pass an argument")).expect("Failed to fetch file");
+    let source = read_file(args.get(1).expect("Pass a file path as the first argument"))
+        .expect("Failed to fetch file");
 
     let (ast, errors) = match parse(source.as_str()) {
         Ok(ast) => (ast, None),

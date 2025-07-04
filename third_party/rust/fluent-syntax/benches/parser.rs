@@ -18,7 +18,7 @@ fn get_resources(tests: &[&'static str]) -> HashMap<&'static str, String> {
         let path = format!("./benches/{}", test);
         ftl_strings.insert(*test, read_file(&path).expect("Couldn't load file"));
     }
-    return ftl_strings;
+    ftl_strings
 }
 
 fn get_ctxs(tests: &[&'static str]) -> HashMap<&'static str, Vec<String>> {
@@ -35,7 +35,7 @@ fn get_ctxs(tests: &[&'static str]) -> HashMap<&'static str, Vec<String>> {
             .collect::<Vec<_>>();
         ftl_strings.insert(*test, strings);
     }
-    return ftl_strings;
+    ftl_strings
 }
 
 fn parse_bench(c: &mut Criterion) {
@@ -84,7 +84,7 @@ fn parse_bench(c: &mut Criterion) {
                     for source in ctx {
                         parse_runtime(source.as_str()).expect("Parsing of the FTL failed.");
                     }
-                })
+                });
             });
         }
 

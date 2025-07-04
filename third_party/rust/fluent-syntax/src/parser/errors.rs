@@ -92,7 +92,7 @@ use thiserror::Error;
 /// The information contained in the `ParserError` should allow the tooling
 /// to display rich contextual annotations of the error slice, using
 /// crates such as `annotate-snippers`.
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[error("{}", self.kind)]
 pub struct ParserError {
     /// Precise location of where the parser encountered the error.
@@ -122,7 +122,7 @@ macro_rules! error {
 }
 
 /// Kind of an error associated with the [`ParserError`].
-#[derive(Error, Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, Eq, Error, PartialEq)]
 pub enum ErrorKind {
     #[error("Expected a token starting with \"{0}\"")]
     ExpectedToken(char),

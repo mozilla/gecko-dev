@@ -8,17 +8,29 @@ use intl_pluralrules::operands::PluralOperands;
 use crate::args::FluentArgs;
 use crate::types::FluentValue;
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
+pub enum FluentNumberType {
+    #[default]
+    Cardinal,
+    Ordinal,
+}
+
+impl From<&str> for FluentNumberType {
+    fn from(input: &str) -> Self {
+        match input {
+            "cardinal" => Self::Cardinal,
+            "ordinal" => Self::Ordinal,
+            _ => Self::default(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum FluentNumberStyle {
+    #[default]
     Decimal,
     Currency,
     Percent,
-}
-
-impl std::default::Default for FluentNumberStyle {
-    fn default() -> Self {
-        Self::Decimal
-    }
 }
 
 impl From<&str> for FluentNumberStyle {
@@ -32,17 +44,12 @@ impl From<&str> for FluentNumberStyle {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
 pub enum FluentNumberCurrencyDisplayStyle {
+    #[default]
     Symbol,
     Code,
     Name,
-}
-
-impl std::default::Default for FluentNumberCurrencyDisplayStyle {
-    fn default() -> Self {
-        Self::Symbol
-    }
 }
 
 impl From<&str> for FluentNumberCurrencyDisplayStyle {
@@ -56,8 +63,9 @@ impl From<&str> for FluentNumberCurrencyDisplayStyle {
     }
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct FluentNumberOptions {
+    pub r#type: FluentNumberType,
     pub style: FluentNumberStyle,
     pub currency: Option<String>,
     pub currency_display: FluentNumberCurrencyDisplayStyle,
@@ -72,6 +80,7 @@ pub struct FluentNumberOptions {
 impl Default for FluentNumberOptions {
     fn default() -> Self {
         Self {
+            r#type: Default::default(),
             style: Default::default(),
             currency: None,
             currency_display: Default::default(),
@@ -89,6 +98,9 @@ impl FluentNumberOptions {
     pub fn merge(&mut self, opts: &FluentArgs) {
         for (key, value) in opts.iter() {
             match (key, value) {
+                ("type", FluentValue::String(n)) => {
+                    self.r#type = n.as_ref().into();
+                }
                 ("style", FluentValue::String(n)) => {
                     self.style = n.as_ref().into();
                 }
@@ -122,7 +134,7 @@ impl FluentNumberOptions {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FluentNumber {
     pub value: f64,
     pub options: FluentNumberOptions,
@@ -138,11 +150,7 @@ impl FluentNumber {
         if let Some(minfd) = self.options.minimum_fraction_digits {
             if let Some(pos) = val.find('.') {
                 let frac_num = val.len() - pos - 1;
-                let missing = if frac_num > minfd {
-                    0
-                } else {
-                    minfd - frac_num
-                };
+                let missing = minfd.saturating_sub(frac_num);
                 val = format!("{}{}", val, "0".repeat(missing));
             } else {
                 val = format!("{}.{}", val, "0".repeat(minfd));
@@ -167,7 +175,7 @@ impl FromStr for FluentNumber {
     }
 }
 
-impl<'l> From<FluentNumber> for FluentValue<'l> {
+impl From<FluentNumber> for FluentValue<'_> {
     fn from(input: FluentNumber) -> Self {
         FluentValue::Number(input)
     }
@@ -247,6 +255,6 @@ mod tests {
         let x = 1i16;
         let y = &x;
         let z: FluentValue = y.into();
-        assert_eq!(z, FluentValue::try_number(1));
+        assert_eq!(z, FluentValue::try_number("1"));
     }
 }

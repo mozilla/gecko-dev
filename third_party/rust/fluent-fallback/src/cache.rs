@@ -8,9 +8,9 @@ use std::{
 };
 
 use crate::generator::{BundleIterator, BundleStream};
-use crate::pin_cell::{PinCell, PinMut};
 use chunky_vec::ChunkyVec;
 use futures::{ready, Stream};
+use pin_cell::{PinCell, PinMut};
 
 pub struct Cache<I, R>
 where
@@ -185,7 +185,7 @@ where
         let pin = unsafe { Pin::new_unchecked(&self.stream) };
         unsafe { PinMut::as_mut(&mut pin.borrow_mut()).get_unchecked_mut() }
             .prefetch_async()
-            .await
+            .await;
     }
 }
 

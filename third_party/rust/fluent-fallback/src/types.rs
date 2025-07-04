@@ -16,19 +16,19 @@ impl<'l> From<&'l str> for L10nKey<'l> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct L10nAttribute<'l> {
     pub name: Cow<'l, str>,
     pub value: Cow<'l, str>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct L10nMessage<'l> {
     pub value: Option<Cow<'l, str>>,
     pub attributes: Vec<L10nAttribute<'l>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum ResourceType {
     /// This is a required resource.
     ///
@@ -53,7 +53,7 @@ pub enum ResourceType {
 }
 
 /// A resource identifier for a localization resource.
-#[derive(Debug, Clone, Hash)]
+#[derive(Clone, Debug)]
 pub struct ResourceId {
     /// The resource identifier.
     pub value: String,
@@ -117,6 +117,12 @@ impl Eq for ResourceId {}
 impl PartialEq for ResourceId {
     fn eq(&self, other: &Self) -> bool {
         self.value.eq(&other.value)
+    }
+}
+
+impl std::hash::Hash for ResourceId {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
     }
 }
 

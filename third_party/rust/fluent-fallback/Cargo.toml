@@ -11,17 +11,26 @@
 
 [package]
 edition = "2021"
+rust-version = "1.67.0"
 name = "fluent-fallback"
-version = "0.7.0"
+version = "0.7.2"
 authors = [
-    "Zibi Braniecki <gandalf@mozilla.com>",
+    "Caleb Maclennan <caleb@alerque.com>",
+    "Bruce Mitchener <bruce.mitchener@gmail.com",
+    "Zibi Braniecki <zibi@unicode.org>",
     "Staś Małolepszy <stas@mozilla.com>",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = """
-High-level abstraction model for managing localization resources
-and runtime localization lifecycle.
+A high-level implementation of a collection of locale bundles including fallback between locales for Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
 """
-homepage = "http://www.projectfluent.org"
+homepage = "https://www.projectfluent.org"
 readme = "README.md"
 keywords = [
     "localization",
@@ -34,9 +43,20 @@ categories = [
     "localization",
     "internationalization",
 ]
-license = "Apache-2.0/MIT"
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/projectfluent/fluent-rs"
-resolver = "1"
+
+[lib]
+name = "fluent_fallback"
+path = "src/lib.rs"
+
+[[example]]
+name = "simple-fallback"
+path = "examples/simple-fallback.rs"
+
+[[test]]
+name = "localization_test"
+path = "tests/localization_test.rs"
 
 [dependencies.async-trait]
 version = "0.1"
@@ -45,16 +65,19 @@ version = "0.1"
 version = "0.1"
 
 [dependencies.fluent-bundle]
-version = "0.15.2"
+version = "0.16.0"
 
 [dependencies.futures]
 version = "0.3"
 
 [dependencies.once_cell]
-version = "1.9"
+version = "1.21"
+
+[dependencies.pin-cell]
+version = "0.2"
 
 [dependencies.rustc-hash]
-version = "1"
+version = "2.1"
 
 [dependencies.unic-langid]
 version = "0.9"
@@ -63,7 +86,7 @@ version = "0.9"
 version = "0.13"
 
 [dev-dependencies.tokio]
-version = "1.0"
+version = "1.38"
 features = [
     "rt-multi-thread",
     "macros",

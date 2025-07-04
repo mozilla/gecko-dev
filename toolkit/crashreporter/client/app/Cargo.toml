@@ -12,7 +12,7 @@ buildid_reader = { path = "../../../library/buildid_reader" }
 cfg-if = "1.0"
 env_logger = { version = "0.10", default-features = false }
 flate2 = "1"
-fluent = "0.16.0"
+fluent = "0.17.0"
 glean = { workspace = true }
 intl-memoizer = "0.5"
 libloading = "0.8"

@@ -10,69 +10,108 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.67.0"
 name = "fluent-bundle"
-version = "0.15.2"
-authors = ["Zibi Braniecki <gandalf@mozilla.com>", "Staś Małolepszy <stas@mozilla.com>"]
-include = ["src/**/*", "benches/*.rs", "Cargo.toml", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-description = "A localization system designed to unleash the entire expressive power of\nnatural language translations.\n"
-homepage = "http://www.projectfluent.org"
+version = "0.16.0"
+authors = [
+    "Caleb Maclennan <caleb@alerque.com>",
+    "Bruce Mitchener <bruce.mitchener@gmail.com",
+    "Zibi Braniecki <zibi@unicode.org>",
+    "Staś Małolepszy <stas@mozilla.com>",
+]
+build = false
+include = [
+    "src/**/*",
+    "benches/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = """
+A low-level implementation of a collection of localization messages for a single locale for Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
+"""
+homepage = "https://www.projectfluent.org"
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
-license = "Apache-2.0/MIT"
+keywords = [
+    "localization",
+    "l10n",
+    "i18n",
+    "intl",
+    "internationalization",
+]
+categories = [
+    "localization",
+    "internationalization",
+]
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/projectfluent/fluent-rs"
+
+[features]
+all-benchmarks = []
+default = []
+
+[lib]
+name = "fluent_bundle"
+path = "src/lib.rs"
 
 [[bench]]
 name = "resolver"
+path = "benches/resolver.rs"
 harness = false
 
 [[bench]]
 name = "resolver_iai"
+path = "benches/resolver_iai.rs"
 harness = false
+
 [dependencies.fluent-langneg]
 version = "0.13"
 
 [dependencies.fluent-syntax]
-version = "0.11"
+version = "0.12.0"
 
 [dependencies.intl-memoizer]
-version = "0.5"
+version = "0.5.3"
 
 [dependencies.intl_pluralrules]
-version = "7.0.1"
+version = "7.0"
 
 [dependencies.rustc-hash]
-version = "1"
+version = "2.1"
 
 [dependencies.self_cell]
-version = "0.10"
+version = "1.2"
 
 [dependencies.smallvec]
-version = "1"
+version = "1.13"
 
 [dependencies.unic-langid]
 version = "0.9"
+
 [dev-dependencies.criterion]
-version = "0.3"
+version = "0.5"
 
 [dev-dependencies.iai]
 version = "0.1"
 
 [dev-dependencies.rand]
-version = "0.8"
+version = "0.9"
 
 [dev-dependencies.serde]
 version = "1.0"
 features = ["derive"]
 
 [dev-dependencies.serde_yaml]
-version = "0.8"
+version = "0.9"
 
 [dev-dependencies.unic-langid]
 version = "0.9"
 features = ["macros"]
-
-[features]
-all-benchmarks = []
-default = []

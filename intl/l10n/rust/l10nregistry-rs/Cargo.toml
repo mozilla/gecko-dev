@@ -7,7 +7,7 @@ edition = "2018"
 
 [dependencies]
 async-trait = "0.1"
-fluent-bundle = "0.15.2"
+fluent-bundle = "0.16.0"
 fluent-fallback = "0.7.0"
 futures = "0.3"
 pin-project-lite = "0.2"

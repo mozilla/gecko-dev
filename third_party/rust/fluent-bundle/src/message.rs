@@ -69,7 +69,7 @@ impl<'m> FluentAttribute<'m> {
     /// assert_eq!(attr1.id(), "confirm");
     /// ```
     pub fn id(&self) -> &'m str {
-        &self.node.id.name
+        self.node.id.name
     }
 
     /// Retrieves an value of an attribute.

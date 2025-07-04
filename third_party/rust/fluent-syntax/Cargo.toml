@@ -3,26 +3,69 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.64.0"
 name = "fluent-syntax"
-version = "0.11.0"
-authors = ["Zibi Braniecki <gandalf@mozilla.com>", "Staś Małolepszy <stas@mozilla.com>"]
-include = ["src/**/*", "benches/*.rs", "Cargo.toml", "README.md", "LICENSE-APACHE", "LICENSE-MIT"]
-description = "Parser/Serializer tools for Fluent Syntax. \n"
-homepage = "http://www.projectfluent.org"
+version = "0.12.0"
+authors = [
+    "Caleb Maclennan <caleb@alerque.com>",
+    "Bruce Mitchener <bruce.mitchener@gmail.com",
+    "Zibi Braniecki <zibi@unicode.org>",
+    "Staś Małolepszy <stas@mozilla.com>",
+]
+build = false
+include = [
+    "src/**/*",
+    "benches/*.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE-APACHE",
+    "LICENSE-MIT",
+]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = """
+A low-level parser, AST, and serializer API for the syntax used by Project Fluent,
+a localization system designed to unleash the entire expressive power of natural language translations.
+"""
+homepage = "https://www.projectfluent.org"
 readme = "README.md"
-keywords = ["localization", "l10n", "i18n", "intl", "internationalization"]
-categories = ["localization", "internationalization"]
-license = "Apache-2.0/MIT"
+keywords = [
+    "localization",
+    "l10n",
+    "i18n",
+    "intl",
+    "internationalization",
+]
+categories = [
+    "localization",
+    "internationalization",
+]
+license = "Apache-2.0 OR MIT"
 repository = "https://github.com/projectfluent/fluent-rs"
+
+[features]
+all-benchmarks = []
+default = []
+json = [
+    "serde",
+    "dep:serde_json",
+]
+serde = ["dep:serde"]
+
+[lib]
+name = "fluent_syntax"
+path = "src/lib.rs"
 
 [[bin]]
 name = "parser"
@@ -33,18 +76,19 @@ name = "update_fixtures"
 path = "src/bin/update_fixtures.rs"
 required-features = ["json"]
 
-[[test]]
-name = "parser_fixtures"
-path = "tests/parser_fixtures.rs"
-required-features = ["json"]
-
 [[bench]]
 name = "parser"
+path = "benches/parser.rs"
 harness = false
 
 [[bench]]
 name = "parser_iai"
+path = "benches/parser_iai.rs"
 harness = false
+
+[dependencies.memchr]
+version = "2.0"
+
 [dependencies.serde]
 version = "1.0"
 features = ["derive"]
@@ -55,9 +99,10 @@ version = "1.0"
 optional = true
 
 [dependencies.thiserror]
-version = "1.0"
+version = "2.0"
+
 [dev-dependencies.criterion]
-version = "0.3"
+version = "0.5"
 
 [dev-dependencies.glob]
 version = "0.3"
@@ -71,8 +116,3 @@ features = ["derive"]
 
 [dev-dependencies.serde_json]
 version = "1.0"
-
-[features]
-all-benchmarks = []
-default = []
-json = ["serde", "serde_json"]

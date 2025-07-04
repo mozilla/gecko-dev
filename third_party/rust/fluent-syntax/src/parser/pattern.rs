@@ -5,9 +5,9 @@ use crate::ast;
 #[derive(Debug, PartialEq)]
 enum TextElementTermination {
     LineFeed,
-    CRLF,
+    Crlf,
     PlaceableStart,
-    EOF,
+    Eof,
 }
 
 // This enum tracks the placement of the text element in the pattern, which is needed for
@@ -114,9 +114,9 @@ where
 
                 text_element_role = match termination_reason {
                     TextElementTermination::LineFeed => TextElementPosition::LineStart,
-                    TextElementTermination::CRLF => TextElementPosition::LineStart,
+                    TextElementTermination::Crlf => TextElementPosition::LineStart,
                     TextElementTermination::PlaceableStart => TextElementPosition::Continuation,
-                    TextElementTermination::EOF => TextElementPosition::Continuation,
+                    TextElementTermination::Eof => TextElementPosition::Continuation,
                 };
             }
         }
@@ -157,51 +157,64 @@ where
         &mut self,
     ) -> Result<(usize, usize, TextElementType, TextElementTermination)> {
         let start_pos = self.ptr;
-        let mut text_element_type = TextElementType::Blank;
-
-        while let Some(b) = get_current_byte!(self) {
-            match b {
-                b' ' => self.ptr += 1,
-                b'\n' => {
-                    self.ptr += 1;
-                    return Ok((
-                        start_pos,
-                        self.ptr,
-                        text_element_type,
-                        TextElementTermination::LineFeed,
-                    ));
-                }
-                b'\r' if self.is_byte_at(b'\n', self.ptr + 1) => {
-                    self.ptr += 1;
-                    return Ok((
-                        start_pos,
-                        self.ptr - 1,
-                        text_element_type,
-                        TextElementTermination::CRLF,
-                    ));
-                }
-                b'{' => {
-                    return Ok((
-                        start_pos,
-                        self.ptr,
-                        text_element_type,
-                        TextElementTermination::PlaceableStart,
-                    ));
-                }
-                b'}' => {
-                    return error!(ErrorKind::UnbalancedClosingBrace, self.ptr);
-                }
-                _ => {
-                    text_element_type = TextElementType::NonBlank;
-                    self.ptr += 1
-                }
+        let Some(rest) = get_remaining_bytes!(self) else {
+            return Ok((
+                start_pos,
+                self.ptr,
+                TextElementType::Blank,
+                TextElementTermination::Eof,
+            ));
+        };
+        let end = memchr::memchr3(b'\n', b'{', b'}', rest);
+        let element_type = |text: &[u8]| {
+            if text.iter().any(|&c| c != b' ') {
+                TextElementType::NonBlank
+            } else {
+                TextElementType::Blank
             }
+        };
+        match end.map(|p| &rest[..=p]) {
+            Some([text @ .., b'}']) => {
+                self.ptr += text.len();
+                error!(ErrorKind::UnbalancedClosingBrace, self.ptr)
+            }
+            Some([text @ .., b'\r', b'\n']) => {
+                self.ptr += text.len() + 1;
+                Ok((
+                    start_pos,
+                    self.ptr - 1,
+                    element_type(text),
+                    TextElementTermination::Crlf,
+                ))
+            }
+            Some([text @ .., b'\n']) => {
+                self.ptr += text.len() + 1;
+                Ok((
+                    start_pos,
+                    self.ptr,
+                    element_type(text),
+                    TextElementTermination::LineFeed,
+                ))
+            }
+            Some([text @ .., b'{']) => {
+                self.ptr += text.len();
+                Ok((
+                    start_pos,
+                    self.ptr,
+                    element_type(text),
+                    TextElementTermination::PlaceableStart,
+                ))
+            }
+            None => {
+                self.ptr += rest.len();
+                Ok((
+                    start_pos,
+                    self.ptr,
+                    element_type(rest),
+                    TextElementTermination::Eof,
+                ))
+            }
+            _ => unreachable!(),
         }
-        Ok((
-            start_pos,
-            self.ptr,
-            text_element_type,
-            TextElementTermination::EOF,
-        ))
     }
 }

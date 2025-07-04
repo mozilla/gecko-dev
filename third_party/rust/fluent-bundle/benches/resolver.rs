@@ -25,7 +25,7 @@ fn get_strings(tests: &[&'static str]) -> HashMap<&'static str, String> {
         let path = format!("./benches/{}.ftl", test);
         ftl_strings.insert(*test, read_file(&path).expect("Couldn't load file"));
     }
-    return ftl_strings;
+    ftl_strings
 }
 
 fn get_ids(res: &FluentResource) -> Vec<String> {
@@ -58,15 +58,10 @@ fn get_args(name: &str) -> Option<FluentArgs> {
 }
 
 fn add_functions<R>(name: &'static str, bundle: &mut FluentBundle<R>) {
-    match name {
-        "preferences" => {
-            bundle
-                .add_function("PLATFORM", |_args, _named_args| {
-                    return "linux".into();
-                })
-                .expect("Failed to add a function to the bundle.");
-        }
-        _ => {}
+    if name == "preferences" {
+        bundle
+            .add_function("PLATFORM", |_args, _named_args| "linux".into())
+            .expect("Failed to add a function to the bundle.");
     }
 }
 
@@ -108,7 +103,7 @@ fn resolver_bench(c: &mut Criterion) {
                     .add_resource(res.clone())
                     .expect("Couldn't add FluentResource to the FluentBundle");
                 add_functions(name, &mut bundle);
-            })
+            });
         });
     }
     group.finish();
@@ -133,9 +128,9 @@ fn resolver_bench(c: &mut Criterion) {
                             bundle.write_pattern(&mut s, attr.value(), args.as_ref(), &mut errors);
                         s.clear();
                     }
-                    assert!(errors.len() == 0, "Resolver errors: {:#?}", errors);
+                    assert!(errors.is_empty(), "Resolver errors: {:#?}", errors);
                 }
-            })
+            });
         });
     }
     group.finish();
@@ -156,9 +151,9 @@ fn resolver_bench(c: &mut Criterion) {
                     for attr in msg.attributes() {
                         let _ = bundle.format_pattern(attr.value(), args.as_ref(), &mut errors);
                     }
-                    assert!(errors.len() == 0, "Resolver errors: {:#?}", errors);
+                    assert!(errors.is_empty(), "Resolver errors: {:#?}", errors);
                 }
-            })
+            });
         });
     }
     group.finish();

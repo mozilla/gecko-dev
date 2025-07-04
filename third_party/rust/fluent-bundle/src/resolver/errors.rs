@@ -1,7 +1,10 @@
 use fluent_syntax::ast::InlineExpression;
 use std::error::Error;
 
-#[derive(Debug, PartialEq, Clone)]
+/// Maps an [`InlineExpression`] into the kind of reference, with owned strings
+/// that identify the expression. This makes it so that the [`InlineExpression`] can
+/// be used to generate an error string.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ReferenceKind {
     Function {
         id: String,
@@ -44,7 +47,9 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+/// Errors generated during the process of resolving a fluent message into a string.
+/// This process takes place in the `write` method of the `WriteValue` trait.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResolverError {
     Reference(ReferenceKind),
     NoValue(String),

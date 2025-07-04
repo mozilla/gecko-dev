@@ -7,7 +7,7 @@
 //! Literals`](super::ast::InlineExpression::StringLiteral).
 //!
 //! Four byte sequences are encoded with `\u` and six byte
-//! sqeuences using `\U`.
+//! sequences using `\U`.
 //! ## Example
 //!
 //! ```
@@ -69,6 +69,16 @@ pub fn unescape_unicode<W>(w: &mut W, input: &str) -> fmt::Result
 where
     W: fmt::Write,
 {
+    if unescape(w, input)? {
+        return Ok(());
+    }
+    w.write_str(input)
+}
+
+fn unescape<W>(w: &mut W, input: &str) -> Result<bool, std::fmt::Error>
+where
+    W: fmt::Write,
+{
     let bytes = input.as_bytes();
 
     let mut start = 0;
@@ -100,10 +110,15 @@ where
         w.write_char(new_char)?;
         start = ptr;
     }
+
+    if start == 0 {
+        return Ok(false);
+    }
+
     if start != ptr {
         w.write_str(&input[start..ptr])?;
     }
-    Ok(())
+    Ok(true)
 }
 
 /// Unescapes to a `Cow<str>` optionally allocating.
@@ -119,41 +134,11 @@ where
 /// );
 /// ```
 pub fn unescape_unicode_to_string(input: &str) -> Cow<str> {
-    let bytes = input.as_bytes();
-    let mut result = Cow::from(input);
-
-    let mut ptr = 0;
-
-    while let Some(b) = bytes.get(ptr) {
-        if b != &b'\\' {
-            if let Cow::Owned(ref mut s) = result {
-                s.push(*b as char);
-            }
-            ptr += 1;
-            continue;
-        }
-
-        if let Cow::Borrowed(_) = result {
-            result = Cow::from(&input[0..ptr]);
-        }
-
-        ptr += 1;
-
-        let new_char = match bytes.get(ptr) {
-            Some(b'\\') => '\\',
-            Some(b'"') => '"',
-            Some(u @ b'u') | Some(u @ b'U') => {
-                let start = ptr + 1;
-                let len = if u == &b'u' { 4 } else { 6 };
-                ptr += len;
-                input
-                    .get(start..(start + len))
-                    .map_or(UNKNOWN_CHAR, |slice| encode_unicode(Some(slice)))
-            }
-            _ => UNKNOWN_CHAR,
-        };
-        result.to_mut().push(new_char);
-        ptr += 1;
+    let mut result = String::new();
+    let owned = unescape(&mut result, input).expect("String write methods don't Err");
+    if owned {
+        Cow::Owned(result)
+    } else {
+        Cow::Borrowed(input)
     }
-    result
 }

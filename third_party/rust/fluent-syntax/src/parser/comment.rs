@@ -1,7 +1,7 @@
 use super::{core::Parser, core::Result, Slice};
 use crate::ast;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) enum Level {
     None = 0,
     Regular = 1,
@@ -31,7 +31,7 @@ where
 
             if self.ptr == self.length {
                 break;
-            } else if self.is_current_byte(b'\n') {
+            } else if self.is_eol() {
                 content.push(self.get_comment_line());
             } else {
                 if let Err(e) = self.expect_byte(b' ') {
@@ -52,7 +52,7 @@ where
 
     pub(super) fn skip_comment(&mut self) {
         loop {
-            while self.ptr < self.length && !self.is_current_byte(b'\n') {
+            while self.ptr < self.length && !self.is_eol() {
                 self.ptr += 1;
             }
             self.ptr += 1;

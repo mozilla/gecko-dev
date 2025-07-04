@@ -48,7 +48,7 @@
 //! assert_eq!(value, Some("Hello World [en]".into()));
 //! ```
 //!
-//! The above example is far from the ergonomical API style the Fluent project
+//! The above example is far from the ergonomic API style the Fluent project
 //! is aiming for, but it represents the full scope of functionality intended
 //! for the model.
 //!
@@ -61,8 +61,8 @@
 //!
 //! Resource identifiers can refer to resources that are either required or optional.
 //! In the above example, `"test.ftl"` is a required resource (the default using `.into()`),
-//! and `"test2.ftl" is an optional resource, which you can create via the
-//! [`ToResourceId`](fluent_fallback::types::ToResourceId) trait.
+//! and `"test2.ftl"` is an optional resource, which you can create via the
+//! [`ToResourceId`](types::ToResourceId) trait.
 //!
 //! A required resource must be present in order for the a bundle to be considered valid.
 //! If a required resource is missing for a given locale, a bundle will not be generated for that locale.
@@ -96,7 +96,7 @@
 //! As a long lived structure, the [`Localization`] is intended to handle runtime locale
 //! management.
 //!
-//! In the example above, [`Vec<LagnuageIdentifier>`](unic_langid::LanguageIdentifier)
+//! In the example above, [`Vec<LanguageIdentifier>`](unic_langid::LanguageIdentifier)
 //! provides a static list of locales that the [`Localization`] handles, but that's just the
 //! simplest implementation of the [`env::LocalesProvider`], and one can implement
 //! a much more sophisticated one that reacts to user or environment driven changes, and
@@ -110,7 +110,6 @@ pub mod env;
 mod errors;
 pub mod generator;
 mod localization;
-mod pin_cell;
 pub mod types;
 
 pub use bundles::Bundles;
