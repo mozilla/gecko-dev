@@ -132,7 +132,10 @@ class nsTimerImpl {
   void GetName(nsACString& aName, const mozilla::MutexAutoLock& aProofOfLock)
       MOZ_REQUIRES(mMutex);
 
+  // Caution: Only call this when you hold TimerThread's monitor!
   bool IsInTimerThread() const { return mIsInTimerThread; }
+
+  // Caution: Only call this when you hold TimerThread's monitor!
   void SetIsInTimerThread(bool aIsInTimerThread) {
     mIsInTimerThread = aIsInTimerThread;
   }
@@ -145,13 +148,9 @@ class nsTimerImpl {
                                    const mozilla::TimeDuration& aDelay,
                                    uint32_t aType, const char* aNameString);
 
-  // Is this timer currently referenced from a TimerThread::Entry?
-  // Note: It is cleared before the Entry is destroyed.  Take() also sets it to
-  // false, to indicate it's no longer in the TimerThread's list. This Take()
-  // call is NOT made under the nsTimerImpl's mutex (all other
-  // SetIsInTimerThread calls are under the mutex).  However, ALL accesses to
-  // mIsInTimerThread are under the TimerThread's Monitor lock, so consistency
-  // is guaranteed by that.
+  // Is this timer currently referenced from a TimerThread::Entry in the list?
+  // ALL accesses to mIsInTimerThread are under the TimerThread's Monitor lock,
+  // so consistency is guaranteed by that.
   bool mIsInTimerThread;
 
   // These members are set by the initiating thread, when the timer's type is
