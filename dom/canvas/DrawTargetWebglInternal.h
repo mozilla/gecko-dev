@@ -10,6 +10,7 @@
 #include "DrawTargetWebgl.h"
 
 #include "mozilla/HashFunctions.h"
+#include "mozilla/WeakPtr.h"
 #include "mozilla/gfx/Etagere.h"
 #include "mozilla/gfx/PathSkia.h"
 #include "mozilla/gfx/WPFGpuRaster.h"
@@ -141,6 +142,7 @@ class BackingTexture {
 // or standalone texture). It may be further linked to use-specific metadata
 // such as for shadow drawing or for cached entries in the glyph cache.
 class TextureHandle : public RefCounted<TextureHandle>,
+                      public SupportsWeakPtr,
                       public LinkedListElement<RefPtr<TextureHandle>> {
  public:
   MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(TextureHandle)
@@ -426,6 +428,13 @@ class PathCacheEntry : public CacheEntryImpl<PathCacheEntry> {
   const PathVertexRange& GetVertexRange() const { return mVertexRange; }
   void SetVertexRange(const PathVertexRange& aRange) { mVertexRange = aRange; }
 
+  const WeakPtr<TextureHandle>& GetSecondaryHandle() const {
+    return mSecondaryHandle;
+  }
+  void SetSecondaryHandle(WeakPtr<TextureHandle> aHandle) {
+    mSecondaryHandle = std::move(aHandle);
+  }
+
  private:
   // The actual path geometry supplied
   QuantizedPath mPath;
@@ -441,6 +450,8 @@ class PathCacheEntry : public CacheEntryImpl<PathCacheEntry> {
   float mSigma;
   // If the path has cached geometry in the vertex buffer.
   PathVertexRange mVertexRange;
+  // Secondary texture handle that is not linked and only weakly referenced.
+  WeakPtr<TextureHandle> mSecondaryHandle;
 };
 
 class PathCache : public CacheImpl<PathCacheEntry, true> {
@@ -452,6 +463,12 @@ class PathCache : public CacheImpl<PathCacheEntry, true> {
       const StrokeOptions* aStrokeOptions, AAStrokeMode aStrokeMode,
       const Matrix& aTransform, const IntRect& aBounds, const Point& aOrigin,
       float aSigma = -1.0f);
+
+  already_AddRefed<PathCacheEntry> FindEntry(
+      const QuantizedPath& aPath, const Pattern* aPattern,
+      const StrokeOptions* aStrokeOptions, AAStrokeMode aStrokeMode,
+      const Matrix& aTransform, const IntRect& aBounds, const Point& aOrigin,
+      float aSigma = -1.0f, bool aHasSecondaryHandle = false);
 
   void ClearVertexRanges();
 };

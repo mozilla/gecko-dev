@@ -1329,27 +1329,14 @@ already_AddRefed<FilterNode> FilterNodeGraphFromDescription(
 
 void FilterSupport::RenderFilterDescription(
     DrawTarget* aDT, const FilterDescription& aFilter, const Rect& aRenderRect,
-    SourceSurface* aSourceGraphic, const IntRect& aSourceGraphicRect,
-    SourceSurface* aFillPaint, const IntRect& aFillPaintRect,
-    SourceSurface* aStrokePaint, const IntRect& aStrokePaintRect,
+    RefPtr<FilterNode> aSourceGraphic, const IntRect& aSourceGraphicRect,
+    RefPtr<FilterNode> aFillPaint, const IntRect& aFillPaintRect,
+    RefPtr<FilterNode> aStrokePaint, const IntRect& aStrokePaintRect,
     nsTArray<RefPtr<SourceSurface>>& aAdditionalImages, const Point& aDestPoint,
     const DrawOptions& aOptions) {
-  RefPtr<FilterNode> sourceGraphic, fillPaint, strokePaint;
-  if (aSourceGraphic) {
-    sourceGraphic = FilterWrappers::ForSurface(aDT, aSourceGraphic,
-                                               aSourceGraphicRect.TopLeft());
-  }
-  if (aFillPaint) {
-    fillPaint =
-        FilterWrappers::ForSurface(aDT, aFillPaint, aFillPaintRect.TopLeft());
-  }
-  if (aStrokePaint) {
-    strokePaint = FilterWrappers::ForSurface(aDT, aStrokePaint,
-                                             aStrokePaintRect.TopLeft());
-  }
   RefPtr<FilterNode> resultFilter = FilterNodeGraphFromDescription(
-      aDT, aFilter, aRenderRect, sourceGraphic, aSourceGraphicRect, fillPaint,
-      strokePaint, aAdditionalImages);
+      aDT, aFilter, aRenderRect, aSourceGraphic, aSourceGraphicRect, aFillPaint,
+      aStrokePaint, aAdditionalImages);
   if (!resultFilter) {
     gfxWarning() << "Filter is NULL.";
     return;

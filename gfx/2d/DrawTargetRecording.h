@@ -365,6 +365,11 @@ class DrawTargetRecording final : public DrawTarget {
 
   virtual already_AddRefed<FilterNode> CreateFilter(FilterType aType) override;
 
+  virtual already_AddRefed<FilterNode> DeferFilterInput(
+      const Path* aPath, const Pattern& aPattern, const IntRect& aSourceRect,
+      const IntPoint& aDestOffset, const DrawOptions& aOptions = DrawOptions(),
+      const StrokeOptions* aStrokeOptions = nullptr) override;
+
   /*
    * Set a transform on the surface, this transform is applied at drawing time
    * to both the mask and source of the operation.

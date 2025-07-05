@@ -28,6 +28,7 @@ EXPORTS.mozilla.gfx += [
     "DrawTargetOffset.h",
     "DrawTargetRecording.h",
     "DrawTargetSkia.h",
+    "FilterNodeSoftware.h",
     "Filters.h",
     "FontFeature.h",
     "FontVariation.h",

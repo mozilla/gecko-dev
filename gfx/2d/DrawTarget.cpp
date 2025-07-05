@@ -14,6 +14,8 @@
 #include "BufferEdgePad.h"
 #include "BufferUnrotate.h"
 
+#include "FilterSupport.h"
+
 #ifdef USE_NEON
 #  include "mozilla/arm.h"
 #  include "LuminanceNEON.h"
@@ -349,6 +351,46 @@ void DrawTarget::DrawShadow(const Path* aPath, const Pattern& aPattern,
   if (snapshot) {
     DrawSurfaceWithShadow(snapshot, offset, aShadow, aOptions.mCompositionOp);
   }
+}
+
+already_AddRefed<SourceSurface> DrawTarget::ResolveFilterInput(
+    const Path* aPath, const Pattern& aPattern, const IntRect& aSourceRect,
+    const Matrix& aDestTransform, const DrawOptions& aOptions,
+    const StrokeOptions* aStrokeOptions) {
+  if (!CanCreateSimilarDrawTarget(aSourceRect.Size(),
+                                  SurfaceFormat::B8G8R8A8)) {
+    return nullptr;
+  }
+  RefPtr<DrawTarget> dt =
+      CreateSimilarDrawTarget(aSourceRect.Size(), SurfaceFormat::B8G8R8A8);
+  if (dt) {
+    // See bug 1524554.
+    dt->ClearRect(Rect());
+  }
+  if (!dt || !dt->IsValid()) {
+    return nullptr;
+  }
+  dt->SetTransform(
+      Matrix(aDestTransform).PostTranslate(-aSourceRect.TopLeft()));
+  if (aStrokeOptions) {
+    dt->Stroke(aPath, aPattern, *aStrokeOptions, aOptions);
+  } else {
+    dt->Fill(aPath, aPattern, aOptions);
+  }
+  return dt->Snapshot();
+}
+
+already_AddRefed<FilterNode> DrawTarget::DeferFilterInput(
+    const Path* aPath, const Pattern& aPattern, const IntRect& aSourceRect,
+    const IntPoint& aDestOffset, const DrawOptions& aOptions,
+    const StrokeOptions* aStrokeOptions) {
+  RefPtr<SourceSurface> surface = ResolveFilterInput(
+      aPath, aPattern, aSourceRect, GetTransform().PostTranslate(aDestOffset),
+      aOptions, aStrokeOptions);
+  if (!surface) {
+    return nullptr;
+  }
+  return FilterWrappers::ForSurface(this, surface, aSourceRect.TopLeft());
 }
 
 }  // namespace gfx

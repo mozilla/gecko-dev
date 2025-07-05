@@ -96,6 +96,7 @@
 #include "mozilla/gfx/Tools.h"
 #include "mozilla/gfx/PathHelpers.h"
 #include "mozilla/gfx/DataSurfaceHelpers.h"
+#include "mozilla/gfx/Filters.h"
 #include "mozilla/gfx/PatternHelpers.h"
 #include "mozilla/gfx/Swizzle.h"
 #include "mozilla/layers/ImageBridgeChild.h"
@@ -354,12 +355,14 @@ class AdjustedTargetForFilter {
                           const gfx::IntPoint& aFilterSpaceToTargetOffset,
                           const gfx::IntRect& aPreFilterBounds,
                           const gfx::IntRect& aPostFilterBounds,
-                          gfx::CompositionOp aCompositionOp)
+                          gfx::CompositionOp aCompositionOp,
+                          bool aAllowOptimization = false)
       : mFinalTarget(aFinalTarget),
         mCtx(aCtx),
         mPostFilterBounds(aPostFilterBounds),
         mOffset(aFilterSpaceToTargetOffset),
-        mCompositionOp(aCompositionOp) {
+        mCompositionOp(aCompositionOp),
+        mAllowOptimization(aAllowOptimization) {
     nsIntRegion sourceGraphicNeededRegion;
     nsIntRegion fillPaintNeededRegion;
     nsIntRegion strokePaintNeededRegion;
@@ -380,6 +383,10 @@ class AdjustedTargetForFilter {
       // create a DrawTarget that we can return from DT() anyway, so we'll
       // just use a 1x1-sized one.
       mSourceGraphicRect.SizeTo(1, 1);
+    }
+
+    if (mAllowOptimization) {
+      return;
     }
 
     if (!mFinalTarget->CanCreateSimilarDrawTarget(mSourceGraphicRect.Size(),
@@ -411,11 +418,105 @@ class AdjustedTargetForFilter {
         -mSourceGraphicRect.TopLeft() + mOffset));
   }
 
+  void Fill(const Path* aPath, const Pattern& aPattern,
+            const DrawOptions& aOptions) {
+    if (mAllowOptimization) {
+      mDeferInput = mFinalTarget->DeferFilterInput(
+          aPath, aPattern, mSourceGraphicRect, mOffset, aOptions);
+    } else {
+      mTarget->Fill(aPath, aPattern, aOptions);
+    }
+  }
+
+  void FillRect(const Rect& aRect, const Pattern& aPattern,
+                const DrawOptions& aOptions) {
+    if (mAllowOptimization) {
+      RefPtr<Path> path = MakePathForRect(*mFinalTarget, aRect);
+      mDeferInput = mFinalTarget->DeferFilterInput(
+          path, aPattern, mSourceGraphicRect, mOffset, aOptions);
+    } else {
+      mTarget->FillRect(aRect, aPattern, aOptions);
+    }
+  }
+
+  void Stroke(const Path* aPath, const Pattern& aPattern,
+              const StrokeOptions& aStrokeOptions,
+              const DrawOptions& aOptions) {
+    if (mAllowOptimization) {
+      mDeferInput =
+          mFinalTarget->DeferFilterInput(aPath, aPattern, mSourceGraphicRect,
+                                         mOffset, aOptions, &aStrokeOptions);
+    } else {
+      mTarget->Stroke(aPath, aPattern, aStrokeOptions, aOptions);
+    }
+  }
+
+  void StrokeRect(const Rect& aRect, const Pattern& aPattern,
+                  const StrokeOptions& aStrokeOptions,
+                  const DrawOptions& aOptions) {
+    if (mAllowOptimization) {
+      RefPtr<Path> path = MakePathForRect(*mFinalTarget, aRect);
+      mDeferInput =
+          mFinalTarget->DeferFilterInput(path, aPattern, mSourceGraphicRect,
+                                         mOffset, aOptions, &aStrokeOptions);
+    } else {
+      mTarget->StrokeRect(aRect, aPattern, aStrokeOptions, aOptions);
+    }
+  }
+
+  void StrokeLine(const Point& aStart, const Point& aEnd,
+                  const Pattern& aPattern, const StrokeOptions& aStrokeOptions,
+                  const DrawOptions& aOptions) {
+    if (mAllowOptimization) {
+      RefPtr<PathBuilder> builder = mFinalTarget->CreatePathBuilder();
+      builder->MoveTo(aStart);
+      builder->LineTo(aEnd);
+      RefPtr<Path> path = builder->Finish();
+      mDeferInput =
+          mFinalTarget->DeferFilterInput(path, aPattern, mSourceGraphicRect,
+                                         mOffset, aOptions, &aStrokeOptions);
+    } else {
+      mTarget->StrokeLine(aStart, aEnd, aPattern, aStrokeOptions, aOptions);
+    }
+  }
+
+  void DrawSurface(SourceSurface* aSurface, const Rect& aDest,
+                   const Rect& aSource, const DrawSurfaceOptions& aSurfOptions,
+                   const DrawOptions& aOptions) {
+    if (mAllowOptimization) {
+      RefPtr<Path> path = MakePathForRect(*mFinalTarget, aSource);
+      SurfacePattern pattern(aSurface, ExtendMode::CLAMP, Matrix(),
+                             aSurfOptions.mSamplingFilter);
+      Matrix matrix = Matrix::Scaling(aDest.width / aSource.width,
+                                      aDest.height / aSource.height);
+      matrix.PreTranslate(-aSource.x, -aSource.y);
+      matrix.PostTranslate(aDest.x, aDest.y);
+      AutoRestoreTransform autoRestoreTransform(mFinalTarget);
+      mFinalTarget->ConcatTransform(matrix);
+      mDeferInput = mFinalTarget->DeferFilterInput(
+          path, pattern, mSourceGraphicRect, mOffset, aOptions);
+    } else {
+      mTarget->DrawSurface(aSurface, aDest, aSource, aSurfOptions, aOptions);
+    }
+  }
+
   // Return a SourceSurface that contains the FillPaint or StrokePaint source.
-  already_AddRefed<SourceSurface> DoSourcePaint(
+  already_AddRefed<FilterNode> DoSourcePaint(
       gfx::IntRect& aRect, CanvasRenderingContext2D::Style aStyle) {
     if (aRect.IsEmpty()) {
       return nullptr;
+    }
+
+    if (mAllowOptimization) {
+      Matrix transform = mFinalTarget->GetTransform();
+      RefPtr<Path> path =
+          transform.Invert()
+              ? MakePathForRect(*mFinalTarget, transform.TransformBounds(
+                                                   Rect(aRect - mOffset)))
+              : MakeEmptyPath(*mFinalTarget);
+      return mFinalTarget->DeferFilterInput(
+          path, CanvasGeneralPattern().ForStyle(mCtx, aStyle, mFinalTarget),
+          aRect, mOffset);
     }
 
     RefPtr<DrawTarget> dt = mFinalTarget->CreateSimilarDrawTarget(
@@ -441,7 +542,13 @@ class AdjustedTargetForFilter {
       gfx::Rect fillRect = transform.TransformBounds(dtBounds);
       dt->FillRect(fillRect, CanvasGeneralPattern().ForStyle(mCtx, aStyle, dt));
     }
-    return dt->Snapshot();
+
+    RefPtr<SourceSurface> snapshot = dt->Snapshot();
+    if (!snapshot) {
+      return nullptr;
+    }
+
+    return FilterWrappers::ForSurface(mFinalTarget, snapshot, aRect.TopLeft());
   }
 
   ~AdjustedTargetForFilter() {
@@ -449,11 +556,16 @@ class AdjustedTargetForFilter {
       return;
     }
 
-    RefPtr<SourceSurface> snapshot = mTarget->Snapshot();
-
-    RefPtr<SourceSurface> fillPaint =
+    RefPtr<FilterNode> sourceGraphic;
+    if (mAllowOptimization) {
+      sourceGraphic = mDeferInput;
+    } else if (RefPtr<SourceSurface> snapshot = mTarget->Snapshot()) {
+      sourceGraphic = FilterWrappers::ForSurface(mFinalTarget, snapshot,
+                                                 mSourceGraphicRect.TopLeft());
+    }
+    RefPtr<FilterNode> fillPaint =
         DoSourcePaint(mFillPaintRect, CanvasRenderingContext2D::Style::FILL);
-    RefPtr<SourceSurface> strokePaint = DoSourcePaint(
+    RefPtr<FilterNode> strokePaint = DoSourcePaint(
         mStrokePaintRect, CanvasRenderingContext2D::Style::STROKE);
 
     AutoRestoreTransform autoRestoreTransform(mFinalTarget);
@@ -462,8 +574,9 @@ class AdjustedTargetForFilter {
     MOZ_RELEASE_ASSERT(!mCtx->CurrentState().filter.mPrimitives.IsEmpty());
     gfx::FilterSupport::RenderFilterDescription(
         mFinalTarget, mCtx->CurrentState().filter, gfx::Rect(mPostFilterBounds),
-        snapshot, mSourceGraphicRect, fillPaint, mFillPaintRect, strokePaint,
-        mStrokePaintRect, mCtx->CurrentState().filterAdditionalImages,
+        std::move(sourceGraphic), mSourceGraphicRect, std::move(fillPaint),
+        mFillPaintRect, std::move(strokePaint), mStrokePaintRect,
+        mCtx->CurrentState().filterAdditionalImages,
         mPostFilterBounds.TopLeft() - mOffset,
         DrawOptions(1.0f, mCompositionOp));
 
@@ -490,6 +603,8 @@ class AdjustedTargetForFilter {
   gfx::IntRect mPostFilterBounds;
   gfx::IntPoint mOffset;
   gfx::CompositionOp mCompositionOp;
+  bool mAllowOptimization;
+  RefPtr<FilterNode> mDeferInput;
 };
 
 /* This is an RAII based class that can be used as a drawtarget for
@@ -589,9 +704,7 @@ class AdjustedTarget {
   explicit AdjustedTarget(CanvasRenderingContext2D* aCtx,
                           const gfx::Rect* aBounds = nullptr,
                           bool aAllowOptimization = false)
-      : mCtx(aCtx),
-        mOptimizeShadow(false),
-        mUsedOperation(aCtx->CurrentState().op) {
+      : mCtx(aCtx), mUsedOperation(aCtx->CurrentState().op) {
     // All rects in this function are in the device space of ctx->mTarget.
 
     // In order to keep our temporary surfaces as small as possible, we first
@@ -649,6 +762,11 @@ class AdjustedTarget {
       return;
     }
     if (applyFilter) {
+      // Only allow optimizatoin of filters if no shadow is being drawn.
+      if (aAllowOptimization && !mShadowTarget) {
+        mOptimizeFilter = true;
+      }
+
       bounds.RoundOut();
 
       if (!mTarget) {
@@ -660,7 +778,8 @@ class AdjustedTarget {
       }
       mFilterTarget = MakeUnique<AdjustedTargetForFilter>(
           aCtx, mTarget, offsetToFinalDT, intBounds,
-          gfx::RoundedToInt(boundsAfterFilter), mUsedOperation);
+          gfx::RoundedToInt(boundsAfterFilter), mUsedOperation,
+          mOptimizeFilter);
       mTarget = mFilterTarget->DT();
       mUsedOperation = CompositionOp::OP_OVER;
     }
@@ -683,6 +802,7 @@ class AdjustedTarget {
   CompositionOp UsedOperation() const { return mUsedOperation; }
 
   bool UseOptimizeShadow() const { return mOptimizeShadow; }
+  bool UseOptimizeFilter() const { return mOptimizeFilter; }
 
   ShadowOptions ShadowParams() const {
     const ContextState& state = mCtx->CurrentState();
@@ -692,6 +812,10 @@ class AdjustedTarget {
 
   void Fill(const Path* aPath, const Pattern& aPattern,
             const DrawOptions& aOptions) {
+    if (mOptimizeFilter) {
+      mFilterTarget->Fill(aPath, aPattern, aOptions);
+      return;
+    }
     if (mOptimizeShadow) {
       mTarget->DrawShadow(aPath, aPattern, ShadowParams(), aOptions);
     }
@@ -700,6 +824,10 @@ class AdjustedTarget {
 
   void FillRect(const Rect& aRect, const Pattern& aPattern,
                 const DrawOptions& aOptions) {
+    if (mOptimizeFilter) {
+      mFilterTarget->FillRect(aRect, aPattern, aOptions);
+      return;
+    }
     if (mOptimizeShadow) {
       RefPtr<Path> path = MakePathForRect(*mTarget, aRect);
       mTarget->DrawShadow(path, aPattern, ShadowParams(), aOptions);
@@ -710,6 +838,10 @@ class AdjustedTarget {
   void Stroke(const Path* aPath, const Pattern& aPattern,
               const StrokeOptions& aStrokeOptions,
               const DrawOptions& aOptions) {
+    if (mOptimizeFilter) {
+      mFilterTarget->Stroke(aPath, aPattern, aStrokeOptions, aOptions);
+      return;
+    }
     if (mOptimizeShadow) {
       mTarget->DrawShadow(aPath, aPattern, ShadowParams(), aOptions,
                           &aStrokeOptions);
@@ -720,6 +852,10 @@ class AdjustedTarget {
   void StrokeRect(const Rect& aRect, const Pattern& aPattern,
                   const StrokeOptions& aStrokeOptions,
                   const DrawOptions& aOptions) {
+    if (mOptimizeFilter) {
+      mFilterTarget->StrokeRect(aRect, aPattern, aStrokeOptions, aOptions);
+      return;
+    }
     if (mOptimizeShadow) {
       RefPtr<Path> path = MakePathForRect(*mTarget, aRect);
       mTarget->DrawShadow(path, aPattern, ShadowParams(), aOptions,
@@ -731,6 +867,11 @@ class AdjustedTarget {
   void StrokeLine(const Point& aStart, const Point& aEnd,
                   const Pattern& aPattern, const StrokeOptions& aStrokeOptions,
                   const DrawOptions& aOptions) {
+    if (mOptimizeFilter) {
+      mFilterTarget->StrokeLine(aStart, aEnd, aPattern, aStrokeOptions,
+                                aOptions);
+      return;
+    }
     if (mOptimizeShadow) {
       RefPtr<PathBuilder> builder = mTarget->CreatePathBuilder();
       builder->MoveTo(aStart);
@@ -745,6 +886,11 @@ class AdjustedTarget {
   void DrawSurface(SourceSurface* aSurface, const Rect& aDest,
                    const Rect& aSource, const DrawSurfaceOptions& aSurfOptions,
                    const DrawOptions& aOptions) {
+    if (mOptimizeFilter) {
+      mFilterTarget->DrawSurface(aSurface, aDest, aSource, aSurfOptions,
+                                 aOptions);
+      return;
+    }
     if (mOptimizeShadow) {
       RefPtr<Path> path = MakePathForRect(*mTarget, aSource);
       ShadowOptions shadowParams(ShadowParams());
@@ -825,7 +971,8 @@ class AdjustedTarget {
   }
 
   CanvasRenderingContext2D* mCtx;
-  bool mOptimizeShadow;
+  bool mOptimizeShadow = false;
+  bool mOptimizeFilter = false;
   CompositionOp mUsedOperation;
   RefPtr<DrawTarget> mTarget;
   UniquePtr<AdjustedTargetForShadow> mShadowTarget;

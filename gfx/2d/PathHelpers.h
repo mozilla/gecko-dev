@@ -153,8 +153,13 @@ void EllipseToBezier(T* aSink, const Point& aOrigin, const Size& aRadius) {
   }
 }
 
+inline already_AddRefed<Path> MakeEmptyPath(const DrawTarget& aDrawTarget) {
+  RefPtr<PathBuilder> builder = aDrawTarget.CreatePathBuilder();
+  return builder->Finish();
+}
+
 /**
- * Appends a path represending a rectangle to the path being built by
+ * Appends a path representing a rectangle to the path being built by
  * aPathBuilder.
  *
  * aRect           The rectangle to append.
@@ -175,7 +180,7 @@ inline already_AddRefed<Path> MakePathForRect(const DrawTarget& aDrawTarget,
 }
 
 /**
- * Appends a path represending a rounded rectangle to the path being built by
+ * Appends a path representing a rounded rectangle to the path being built by
  * aPathBuilder.
  *
  * aRect           The rectangle to append.
@@ -199,7 +204,7 @@ inline already_AddRefed<Path> MakePathForRoundedRect(
 }
 
 /**
- * Appends a path represending an ellipse to the path being built by
+ * Appends a path representing an ellipse to the path being built by
  * aPathBuilder.
  *
  * The ellipse extends aDimensions.width / 2.0 in the horizontal direction

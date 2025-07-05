@@ -110,6 +110,7 @@ UNIFIED_SOURCES += [
 
 SOURCES += [
     "DrawTargetWebgl.cpp",  # Isolate Skia
+    "FilterNodeWebgl.cpp",
     "ImageUtils.cpp",
     "OffscreenCanvasDisplayHelper.cpp",  # See bug 1745384
     "OffscreenCanvasRenderingContext2D.cpp",  # See bug 1745384

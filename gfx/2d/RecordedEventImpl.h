@@ -1229,6 +1229,50 @@ class RecordedFilterNodeCreation
   MOZ_IMPLICIT RecordedFilterNodeCreation(S& aStream);
 };
 
+class RecordedDeferFilterInput
+    : public RecordedEventDerived<RecordedDeferFilterInput> {
+ public:
+  RecordedDeferFilterInput(ReferencePtr aRefPtr, ReferencePtr aPath,
+                           const Pattern& aPattern, const IntRect& aSourceRect,
+                           const IntPoint& aDestOffset,
+                           const DrawOptions& aOptions,
+                           const StrokeOptions* aStrokeOptions)
+      : RecordedEventDerived(DEFERFILTERINPUT),
+        mRefPtr(aRefPtr),
+        mPath(aPath),
+        mPattern(),
+        mSourceRect(aSourceRect),
+        mDestOffset(aDestOffset),
+        mOptions(aOptions),
+        mHasStrokeOptions(!!aStrokeOptions),
+        mStrokeOptions(aStrokeOptions ? *aStrokeOptions : StrokeOptions()) {
+    StorePattern(mPattern, aPattern);
+  }
+
+  bool PlayEvent(Translator* aTranslator) const override;
+
+  template <class S>
+  void Record(S& aStream) const;
+  void OutputSimpleEventInfo(std::stringstream& aStringStream) const override;
+
+  std::string GetName() const override { return "DeferFilterInput"; }
+
+ private:
+  friend class RecordedEvent;
+
+  template <class S>
+  MOZ_IMPLICIT RecordedDeferFilterInput(S& aStream);
+
+  ReferencePtr mRefPtr;
+  ReferencePtr mPath;
+  PatternStorage mPattern;
+  IntRect mSourceRect;
+  IntPoint mDestOffset;
+  DrawOptions mOptions;
+  bool mHasStrokeOptions = false;
+  StrokeOptions mStrokeOptions;
+};
+
 class RecordedFilterNodeDestruction
     : public RecordedEventDerived<RecordedFilterNodeDestruction> {
  public:
@@ -3716,6 +3760,59 @@ inline void RecordedFilterNodeCreation::OutputSimpleEventInfo(
                 << "] FilterNode created (Type: " << int(mType) << ")";
 }
 
+inline bool RecordedDeferFilterInput::PlayEvent(Translator* aTranslator) const {
+  DrawTarget* dt = aTranslator->GetCurrentDrawTarget();
+  if (!dt) {
+    return false;
+  }
+
+  Path* path = aTranslator->LookupPath(mPath);
+  if (!path) {
+    return false;
+  }
+
+  RefPtr<FilterNode> node = dt->DeferFilterInput(
+      path, *GenericPattern(mPattern, aTranslator), mSourceRect, mDestOffset,
+      mOptions, mHasStrokeOptions ? &mStrokeOptions : nullptr);
+  aTranslator->AddFilterNode(mRefPtr, node);
+  return true;
+}
+
+template <class S>
+void RecordedDeferFilterInput::Record(S& aStream) const {
+  WriteElement(aStream, mRefPtr);
+  WriteElement(aStream, mPath);
+  RecordPatternData(aStream, mPattern);
+  WriteElement(aStream, mSourceRect);
+  WriteElement(aStream, mDestOffset);
+  WriteElement(aStream, mOptions);
+  WriteElement(aStream, mHasStrokeOptions);
+  if (mHasStrokeOptions) {
+    RecordStrokeOptions(aStream, mStrokeOptions);
+  }
+}
+
+template <class S>
+RecordedDeferFilterInput::RecordedDeferFilterInput(S& aStream)
+    : RecordedEventDerived(DEFERFILTERINPUT) {
+  ReadElement(aStream, mRefPtr);
+  ReadElement(aStream, mPath);
+  ReadPatternData(aStream, mPattern);
+  ReadElement(aStream, mSourceRect);
+  ReadElement(aStream, mDestOffset);
+  ReadDrawOptions(aStream, mOptions);
+  ReadElement(aStream, mHasStrokeOptions);
+  if (mHasStrokeOptions) {
+    ReadStrokeOptions(aStream, mStrokeOptions);
+  }
+}
+
+inline void RecordedDeferFilterInput::OutputSimpleEventInfo(
+    std::stringstream& aStringStream) const {
+  aStringStream << "DeferFilterInput[" << mRefPtr << "] (" << mPath << ") ";
+  OutputSimplePatternInfo(mPattern, aStringStream);
+}
+
 inline bool RecordedFilterNodeDestruction::PlayEvent(
     Translator* aTranslator) const {
   aTranslator->RemoveFilterNode(mRefPtr);
@@ -4567,6 +4664,7 @@ inline void RecordedDestination::OutputSimpleEventInfo(
   f(SOURCESURFACECREATION, RecordedSourceSurfaceCreation);         \
   f(SOURCESURFACEDESTRUCTION, RecordedSourceSurfaceDestruction);   \
   f(FILTERNODECREATION, RecordedFilterNodeCreation);               \
+  f(DEFERFILTERINPUT, RecordedDeferFilterInput);                   \
   f(FILTERNODEDESTRUCTION, RecordedFilterNodeDestruction);         \
   f(GRADIENTSTOPSCREATION, RecordedGradientStopsCreation);         \
   f(GRADIENTSTOPSDESTRUCTION, RecordedGradientStopsDestruction);   \

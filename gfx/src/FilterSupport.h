@@ -400,15 +400,15 @@ class FilterSupport {
    * space coordinates. aRenderRect specifies the part of the filter output
    * that will be drawn at (0, 0) into the draw target aDT, subject to the
    * current transform on aDT but with no additional scaling.
-   * The source surfaces must match their corresponding rect in size.
+   * The source filter nodes must match their corresponding rect in size.
    * aAdditionalImages carries the images that are referenced by the
    * eImageInputIndex attribute on any image primitives in the filter.
    */
   static void RenderFilterDescription(
       DrawTarget* aDT, const FilterDescription& aFilter,
-      const Rect& aRenderRect, SourceSurface* aSourceGraphic,
-      const IntRect& aSourceGraphicRect, SourceSurface* aFillPaint,
-      const IntRect& aFillPaintRect, SourceSurface* aStrokePaint,
+      const Rect& aRenderRect, RefPtr<FilterNode> aSourceGraphic,
+      const IntRect& aSourceGraphicRect, RefPtr<FilterNode> aFillPaint,
+      const IntRect& aFillPaintRect, RefPtr<FilterNode> aStrokePaint,
       const IntRect& aStrokePaintRect,
       nsTArray<RefPtr<SourceSurface>>& aAdditionalImages,
       const Point& aDestPoint, const DrawOptions& aOptions = DrawOptions());
