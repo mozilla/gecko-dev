@@ -132,6 +132,8 @@
   <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">ആരോഗ്യ വിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
   <!-- Long description for the locationInfo data collection permission -->
   <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">ഇടവിവരം വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">തിരിച്ചറിയാനുപയോഗിക്കുന്ന വിവരങ്ങൾ വിപുലീകരണ വികസിനാക്താവിനോടൊപ്പം പങ്കിടുക</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">പതിപ്പു്</string>
   <!-- The author of an add-on. -->

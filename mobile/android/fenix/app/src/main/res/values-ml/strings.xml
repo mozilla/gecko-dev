@@ -906,6 +906,10 @@
   <string name="preferences_open_links_in_apps_never">ഒരിക്കലുമില്ല</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">ബാഹ്യ ഇറക്കിവയ്ക്കൽ മാനേജർ</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">മറ്റൊരു പ്രയോഗംവഴി ഇറക്കിവയ്ക്കലുകൾ കൈകാര്യം ചെയ്യുക</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">%s-ൽ നിന്നും ഉപകരണത്തിൽനിന്നും മായ്ക്കുക</string>
   <!-- Preference for downloads -->
   <string name="preferences_downloads">ഇറക്കിവയ്ക്കലുകൾ</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -936,6 +940,10 @@
   <string name="addons_does_not_require_permissions">ഈ വിപുലീകരണത്തിനു് അനുമതികളുടെ അവിശ്യമില്ല.</string>
   <!-- The title of the required permissions section from addon's permissions screen. -->
   <string name="addons_permissions_heading_required_permissions">ആവശ്യപ്പെട്ടവനുമതികൾ:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">ആവശ്യപ്പെട്ട ഡാറ്റപ്പിരിവു് :</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">നിൎബന്ധമില്ലാത്ത ഡാറ്റപ്പിരിവു് :</string>
   <!--
     Add-on Preferences
 
@@ -2541,6 +2549,10 @@
   <string name="add_login_navigate_back_button_content_description">തിരിച്ചു ചെല്ലുക</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">പുതിയ പ്രവേശനമായി കരുതിവയ്ക്കുക</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">തിരിച്ചു്</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">പ്രവേശനം തിരുത്തൂ</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">അന്വേഷിയിൽ വെബ്സ്ഥാനം തുറക്കുക</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

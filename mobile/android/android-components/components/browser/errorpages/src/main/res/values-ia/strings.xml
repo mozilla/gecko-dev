@@ -83,7 +83,7 @@
   <!-- In the example, the two URLs in markup do not need to be translated. -->
   <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[<p>Le navigator non pote trovar le servitor hospite al adresse fornite.</p> <ul> <li>Verifica le adresse pro errores de scriptura como <strong>ww</strong>.example.com in loco de <strong>www</strong>.example.com.</li> <li>Si tu non pote cargar alcun pagina, verifica le connexion de datos o Wi-Fi de tu apparato.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
-  <string name="mozac_browser_errorpages_no_internet_title_2">Il pare que il ha un problema con tu connexion internet.</string>
+  <string name="mozac_browser_errorpages_no_internet_title_2">Il pare haber un problema con tu connexion a internet</string>
   <!-- The main body text of this error page. It will be shown beneath the title -->
   <string name="mozac_browser_errorpages_no_internet_message_2">Prova a connecter te ab un altere apparato. Controla le modem o le router. Disactiva e reactiva le connexion Wi-Fi.</string>
   <!-- The document title and heading of an error page. -->
