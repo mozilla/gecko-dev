@@ -38,7 +38,11 @@ function promiseTouchTapContent(aBrowser, aContentElementId) {
         );
       });
 
-      EventUtils.synthesizeTouchAtCenter(contentElement, {}, content.window);
+      EventUtils.synthesizeTouchAtCenter(
+        contentElement,
+        { asyncEnabled: true },
+        content.window
+      );
 
       return promise;
     }
@@ -47,10 +51,7 @@ function promiseTouchTapContent(aBrowser, aContentElementId) {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["dom.events.asyncClipboard.readText", true],
-      ["test.events.async.enabled", true],
-    ],
+    set: [["dom.events.asyncClipboard.readText", true]],
   });
 });
 

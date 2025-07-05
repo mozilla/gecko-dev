@@ -381,6 +381,15 @@ interface nsIDOMWindowUtils : nsISupports {
                          [optional] in long aButtons,
                          [optional] in unsigned long aIdentifier);
 
+/**
+ * AsyncEnabledOption is passed to functions to enable or disable
+ * asynchronous event dispatching. Default is disabled.
+ */
+cenum AsyncEnabledOption : 8 {
+  ASYNC_DISABLED = 0,
+  ASYNC_ENABLED = 1
+};
+
   /** Synthesize a touch event. The event types supported are:
    *    touchstart, touchend, touchmove, and touchcancel
    *
@@ -394,19 +403,19 @@ interface nsIDOMWindowUtils : nsISupports {
    * window at all.
    *
    * @param aType event type
-   * @param xs array of offsets in CSS pixels for each touch to be sent
-   * @param ys array of offsets in CSS pixels for each touch to be sent
-   * @param rxs array of radii in CSS pixels for each touch to be sent
-   * @param rys array of radii in CSS pixels for each touch to be sent
-   * @param rotationAngles array of angles in degrees for each touch to be sent
-   * @param forces array of forces (floats from 0 to 1) for each touch to be sent
-   * @param tiltXs array of tiltX for each touch to be sent
-   * @param tiltYs array of tiltY for each touch to be sent
-   * @param twists array of twist for each touch to be sent
-   * @param count number of touches in this set
+   * @param aIdentifiers array of touch IDs
+   * @param aXs array of offsets in CSS pixels for each touch to be sent
+   * @param aYs array of offsets in CSS pixels for each touch to be sent
+   * @param aRxs array of radii in CSS pixels for each touch to be sent
+   * @param aRys array of radii in CSS pixels for each touch to be sent
+   * @param aRotationAngles array of angles in degrees for each touch to be sent
+   * @param aForces array of forces (floats from 0 to 1) for each touch to be sent
+   * @param aTiltXs array of tiltX for each touch to be sent
+   * @param aTiltYs array of tiltY for each touch to be sent
+   * @param aTwists array of twist for each touch to be sent
    * @param aModifiers modifiers pressed, using constants defined as MODIFIER_*
-   * @param aIgnoreRootScrollFrame whether the event should ignore viewport bounds
-   *                           during dispatch
+   * @param aAsyncEnabled Enable or disable asynchronous event dispatching
+   * through APZ without being injected into the OS event queue
    *
    * returns true if the page called prevent default on this touch event
    */
@@ -422,7 +431,8 @@ interface nsIDOMWindowUtils : nsISupports {
                          in Array<long> aTiltXs,
                          in Array<long> aTiltYs,
                          in Array<long> aTwists,
-                         in long aModifiers);
+                         in long aModifiers,
+                         [optional] in nsIDOMWindowUtils_AsyncEnabledOption aAsyncEnabled);
 
   /**
    * The same as sendTouchEvent but sets input source to "pen" to mock Windows behavior.
@@ -444,7 +454,8 @@ interface nsIDOMWindowUtils : nsISupports {
                               in long aTiltX,
                               in long aTiltY,
                               in long aTwist,
-                              in long aModifier);
+                              in long aModifier,
+                              [optional] in nsIDOMWindowUtils_AsyncEnabledOption aAsyncEnabled);
 
   /** The same as sendMouseEvent but ensures that the event is dispatched to
    *  this DOM window or one of its children.

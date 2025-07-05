@@ -566,34 +566,18 @@ function synthesizeMouse(aTarget, aOffsetX, aOffsetY, aEvent, aWindow) {
  * Synthesize one or more touches on aTarget. aTarget can be either Element
  * or Array of Elements.  aOffsetX, aOffsetY, aEvent.id, aEvent.rx, aEvent.ry,
  * aEvent.angle, aEvent.force, aEvent.tiltX, aEvent.tiltY and aEvent.twist can
- * be either Number or Array of Numbers (can be mixed).  If you specify array
+ * be either number or array of numbers (can be mixed).  If you specify array
  * to synthesize a multi-touch, you need to specify same length arrays.  If
  * you don't specify array to them, same values (or computed default values for
  * aEvent.id) are used for all touches.
  *
- * @param {Element | Element[]} aTarget The target element which you specify
+ * @param {Element | Element[]} aTarget - The target element which you specify
  * relative offset from its top-left.
- * @param {Number | Number[]} aOffsetX The relative offset from left of aTarget.
- * @param {Number | Number[]} aOffsetY The relative offset from top of aTarget.
- * @param {Object} aEvent
- * type: The touch event type.  If undefined, "touchstart" and "touchend" will
- * be synthesized at same point.
+ * @param {number | number[]} aOffsetX - The relative offset from left of aTarget.
+ * @param {number | number[]} aOffsetY - The relative offset from top of aTarget.
+ * @param {TouchEventData} aEvent - Details of the touch event to dispatch
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
  *
- * id: The touch id.  If you don't specify this, default touch id will be used
- * for first touch and further touch ids are the values incremented from the
- * first id.
- *
- * rx, ry: The radii of the touch.
- *
- * angle: The angle in degree.
- *
- * force: The force of the touch.  If the type is "touchend", this should be 0.
- * If unspecified, this is default to 0 for "touchend"  or 1 for the others.
- *
- * tiltX, tiltY: The tilt of the touch.
- *
- * twist: The twist of the touch.
- * @param {Window} aWindow Default to `window`.
  * @returns true if and only if aEvent.type is specified and default of the
  * event is prevented.
  */
@@ -844,36 +828,37 @@ function synthesizeMouseAtPoint(left, top, aEvent, aWindow = window) {
 }
 
 /**
+ * @typedef {Object} TouchEventData
+ * @property {boolean} [aEvent.asyncEnabled] - If `true`, the event is
+ * dispatched to the parent process through APZ, without being injected
+ * into the OS event queue.
+ * @property {string} [aEvent.type] - The touch event type. If undefined,
+ * "touchstart" and "touchend" will be synthesized at same point.
+ * @property {number | number[]} [aEvent.id] - The touch id. If you don't specify this,
+ * default touch id will be used for first touch and further touch ids
+ * are the values incremented from the first id.
+ * @property {number | number[]} [aEvent.ry] - The X radius in CSS pixels of the touch
+ * @property {number | number[]} [aEvent.ry] - The Y radius in CSS pixels of the touch
+ * @property {number | number[]} [aEvent.angle] - The angle in degrees
+ * @property {number | number[]} [aEvent.force] - The force of the touch
+ * @property {number | number[]} [aEvent.tiltX] - The X tilt of the touch
+ * @property {number | number[]} [aEvent.tiltY] - The Y tilt of the touch
+ * @property {number | number[]} [aEvent.twist] - The twist of the touch
+ */
+
+/**
  * Synthesize one or more touches at the points. aLeft, aTop, aEvent.id,
  * aEvent.rx, aEvent.ry, aEvent.angle, aEvent.force, aEvent.tiltX, aEvent.tiltY
- * and aEvent.twist can be either Number or Array of Numbers (can be mixed).
+ * and aEvent.twist can be either number or array of numbers (can be mixed).
  * If you specify array to synthesize a multi-touch, you need to specify same
  * length arrays.  If you don't specify array to them, same values are used for
  * all touches.
  *
- * @param {Element | Element[]} aTarget The target element which you specify
- * relative offset from its top-left.
- * @param {Number | Number[]} aOffsetX The relative offset from left of aTarget.
- * @param {Number | Number[]} aOffsetY The relative offset from top of aTarget.
- * @param {Object} aEvent
- * type: The touch event type.  If undefined, "touchstart" and "touchend" will
- * be synthesized at same point.
+ * @param {number | number[]} aLeft - The relative offset from left of aTarget.
+ * @param {number | number[]} aTop - The relative offset from top of aTarget.
+ * @param {TouchEventData} aEvent - Details of the touch event to dispatch
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
  *
- * id: The touch id.  If you don't specify this, default touch id will be used
- * for first touch and further touch ids are the values incremented from the
- * first id.
- *
- * rx, ry: The radii of the touch.
- *
- * angle: The angle in degree.
- *
- * force: The force of the touch.  If the type is "touchend", this should be 0.
- * If unspecified, this is default to 0 for "touchend"  or 1 for the others.
- *
- * tiltX, tiltY: The tilt of the touch.
- *
- * twist: The twist of the touch.
- * @param {Window} aWindow Default to `window`.
  * @returns true if and only if aEvent.type is specified and default of the
  * event is prevented.
  */
@@ -957,6 +942,10 @@ function synthesizeTouchAtPoint(aLeft, aTop, aEvent = {}, aWindow = window) {
 
   const modifiers = _parseModifiers(aEvent, aWindow);
 
+  const asyncOption = aEvent.asyncEnabled
+    ? utils.ASYNC_ENABLED
+    : utils.ASYNC_DISABLED;
+
   const args = [
     idArray,
     leftArray,
@@ -969,6 +958,7 @@ function synthesizeTouchAtPoint(aLeft, aTop, aEvent = {}, aWindow = window) {
     tiltYArray,
     twistArray,
     modifiers,
+    asyncOption,
   ];
 
   const sender =
@@ -994,6 +984,14 @@ function synthesizeMouseAtCenter(aTarget, aEvent, aWindow) {
     aWindow
   );
 }
+
+/**
+ * Synthesize one or more touches at the center of your target
+ *
+ * @param {Element | Element[]} aTarget - The target element
+ * @param {TouchEventData} aEvent - Details of the touch event to dispatch
+ * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
+ */
 function synthesizeTouchAtCenter(aTarget, aEvent = {}, aWindow = window) {
   var rect = aTarget.getBoundingClientRect();
   synthesizeTouchAtPoint(
@@ -1395,24 +1393,24 @@ function synthesizeNativeTap(
  * @param {Element} aParams.target Origin of offsetX and offsetY, must be an element
  * @param {Boolean} [aParams.atCenter]
  *        Instead of offsetX/Y, synthesize the event at center of `target`.
- * @param {Number} [aParams.offsetX]
+ * @param {number} [aParams.offsetX]
  *        X offset in `target` (in CSS pixels if `scale` is "screenPixelsPerCSSPixel")
- * @param {Number} [aParams.offsetY]
+ * @param {number} [aParams.offsetY]
  *        Y offset in `target` (in CSS pixels if `scale` is "screenPixelsPerCSSPixel")
- * @param {Number} [aParams.screenX]
+ * @param {number} [aParams.screenX]
  *        X offset in screen (in CSS pixels if `scale` is "screenPixelsPerCSSPixel"),
  *        Neither offsetX/Y nor atCenter must be set if this is set.
- * @param {Number} [aParams.screenY]
+ * @param {number} [aParams.screenY]
  *        Y offset in screen (in CSS pixels if `scale` is "screenPixelsPerCSSPixel"),
  *        Neither offsetX/Y nor atCenter must be set if this is set.
  * @param {String} [aParams.scale="screenPixelsPerCSSPixel"]
  *        If scale is "screenPixelsPerCSSPixel", devicePixelRatio will be used.
  *        If scale is "inScreenPixels", clientX/Y nor scaleX/Y are not adjusted with screenPixelsPerCSSPixel.
- * @param {Number} [aParams.button=0]
+ * @param {number} [aParams.button=0]
  *        Defaults to 0, if "click", "mousedown", "mouseup", set same value as DOM MouseEvent.button
  * @param {Object} [aParams.modifiers={}]
  *        Active modifiers, see `_parseNativeModifiers`
- * @param {Window} [aParams.win=window]
+ * @param {DOMWindow} [aParams.win=window]
  *        The window to use its utils. Defaults to the window in which EventUtils.js is running.
  * @param {Element} [aParams.elementOnWidget=target]
  *        Defaults to target. If element under the point is in another widget from target's widget,
@@ -1656,7 +1654,7 @@ function synthesizeAndWaitNativeMouseMove(
  *        If you need to emulate non-US keyboard layout or virtual keyboard
  *        which doesn't emulate hardware key input, you should set this value
  *        to empty string explicitly.
- * @param {Number} [aEvent.repeat]
+ * @param {number} [aEvent.repeat]
  *        If you emulate auto-repeat, you should set the count of repeat.
  *        This method will automatically synthesize keydown (and keypress).
  * @param {*} aEvent.location
@@ -1669,11 +1667,11 @@ function synthesizeAndWaitNativeMouseMove(
  *        If keydown is specified, this only fires keydown (and keypress if
  *        it should be fired).
  *        If keyup is specified, this only fires keyup.
- * @param {Number} aEvent.keyCode
+ * @param {number} aEvent.keyCode
  *        Must be 0 - 255 (0xFF). If this is specified explicitly,
  *        .keyCode value is initialized with this value.
- * @param {Window} aWindow
- *        Is optional and defaults to the current window object.
+ * @param {DOMWindow} [aWindow=window]
+ *        DOM window used to dispatch the event.
  * @param {Function} aCallback
  *        Is optional and can be used to receive notifications from TIP.
  *
@@ -2220,7 +2218,7 @@ function _getDOMWindowUtils(aWindow = window) {
 }
 
 /**
- * @param {Window} aWindow The window.
+ * @param {DOMWindow} [aWindow] - DOM window
  * @returns The scaling value applied to the top window.
  */
 function _getTopWindowResolution(aWindow) {
@@ -2235,8 +2233,8 @@ function _getTopWindowResolution(aWindow) {
 }
 
 /**
- * @param {Window} aWindow The window which you want to get its x-offset in the
- * screen.
+ * @param {DOMWindow} [aWindow] - The DOM window which you want
+ * to get its x-offset in the screen.
  * @returns The screenX of aWindow in the unscaled CSS pixels.
  */
 function _getScreenXInUnscaledCSSPixels(aWindow) {
@@ -2258,8 +2256,8 @@ function _getScreenXInUnscaledCSSPixels(aWindow) {
 }
 
 /**
- * @param {Window} aWindow The window which you want to get its y-offset in the
- * screen.
+ * @param {DOMWindow} [aWindow] - The DOM window which you want
+ * to get its y-offset in the screen.
  * @returns The screenY of aWindow in the unscaled CSS pixels.
  */
 function _getScreenYInUnscaledCSSPixels(aWindow) {
@@ -3229,11 +3227,11 @@ function createDragEventObject(
  *        Pass null to avoid modifying dataTransfer.
  * @param {String} [aDropEffect="move"]
  *        The drop effect to set during the dragstart event, or 'move' if omitted.
- * @param {Window} [aWindow=window]
- *        The window in which the drag happens. Defaults to the window in which
+ * @param {DOMWindow} [aWindow=window]
+ *        The DOM window in which the drag happens. Defaults to the window in which
  *        EventUtils.js is loaded.
- * @param {Window} [aDestWindow=aWindow]
- *        Used when aDestElement is in a different window than aSrcElement.
+ * @param {DOMWindow} [aDestWindow=aWindow]
+ *        Used when aDestElement is in a different DOM window than aSrcElement.
  *        Default is to match ``aWindow``.
  * @param {Object} [aDragEvent={}]
  *        Defaults to empty object. Overwrites an object passed to sendDragEvent.
@@ -3334,8 +3332,8 @@ function synthesizeDragOver(
  *        The second element of the array returned from ``synthesizeDragOver``.
  * @param {Element} aDestElement
  *        The element on which to fire the drop event.
- * @param {Window} [aDestWindow=window]
- *        The window in which the drop happens. Defaults to the window in which
+ * @param {DOMWindow} [aDestWindow=window]
+ *        The DOM window in which the drop happens. Defaults to the window in which
  *        EventUtils.js is loaded.
  * @param {Object} [aDragEvent={}]
  *        Defaults to empty object. Overwrites an object passed to sendDragEvent.
@@ -3403,11 +3401,11 @@ function synthesizeDropAfterDragOver(
  *        Pass null to avoid modifying dataTransfer.
  * @param {String} [aDropEffect="move"]
  *        The drop effect to set during the dragstart event, or 'move' if omitted..
- * @param {Window} [aWindow=window]
- *        The window in which the drag happens. Defaults to the window in which
+ * @param {DOMWindow} [aWindow=window]
+ *        The DOM window in which the drag happens. Defaults to the window in which
  *        EventUtils.js is loaded.
- * @param {Window} [aDestWindow=aWindow]
- *        Used when aDestElement is in a different window than aSrcElement.
+ * @param {DOMWindow} [aDestWindow=aWindow]
+ *        Used when aDestElement is in a different DOM window than aSrcElement.
  *        Default is to match ``aWindow``.
  * @param {Object} [aDragEvent={}]
  *        Defaults to empty object. Overwrites an object passed to sendDragEvent.
@@ -3538,24 +3536,24 @@ function _computeSrcElementFromSrcSelection(aSrcSelection) {
  *                The selection to start to drag, set null if srcElement is set.
  * @param {Element|nil} aParams.destElement
  *                The element to drop on. Pass null to emulate a drop on an invalid target.
- * @param {Number} aParams.srcX
+ * @param {number} aParams.srcX
  *                The initial x coordinate inside srcElement or ignored if srcSelection is set.
- * @param {Number} aParams.srcY
+ * @param {number} aParams.srcY
  *                The initial y coordinate inside srcElement or ignored if srcSelection is set.
- * @param {Number} aParams.stepX
+ * @param {number} aParams.stepX
  *                The x-axis step for mousemove inside srcElement
- * @param {Number} aParams.stepY
+ * @param {number} aParams.stepY
  *                The y-axis step for mousemove inside srcElement
- * @param {Number} aParams.finalX
+ * @param {number} aParams.finalX
  *                The final x coordinate inside srcElement
- * @param {Number} aParams.finalY
+ * @param {number} aParams.finalY
  *                The final x coordinate inside srcElement
  * @param {Any} aParams.id
  *                The pointer event id
- * @param {Window} aParams.srcWindow
- *                The window for dispatching event on srcElement, defaults to the current window object.
- * @param {Window} aParams.destWindow
- *                The window for dispatching event on destElement, defaults to the current window object.
+ * @param {DOMWindow} aParams.srcWindow
+ *                The DOM window for dispatching event on srcElement, defaults to the current window object.
+ * @param {DOMWindow} aParams.destWindow
+ *                The DOM window for dispatching event on destElement, defaults to the current window object.
  * @param {Boolean} aParams.expectCancelDragStart
  *                Set to true if the test cancels "dragstart"
  * @param {Boolean} aParams.expectSrcElementDisconnected
@@ -4165,11 +4163,11 @@ async function synthesizePlainDragAndCancel(
  *                The element to drag.
  * @param {Element|nil} aParams.targetElement
  *                The element to drop on.
- * @param {Number} aParams.step
+ * @param {number} aParams.step
  *                The 2D step for mousemoves
  * @param {Boolean} aParams.expectCancelDragStart
  *                Set to true if srcElement is set up to cancel "dragstart"
- * @param {Number} aParams.cancel
+ * @param {number} aParams.cancel
  *                The 2D coord the mouse is moved to as the last step if
  *                expectCancelDragStart is set
  * @param {Boolean} aParams.expectSrcElementDisconnected
