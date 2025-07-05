@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s limpa o historial de buscas e de navegación das lapelas privadas ao saír delas ou pechar a aplicación. Aínda que isto non conserva o seu anonimato en sitios web para o seu fornecedor de servizos de internet, si facilita manter en privado o que fai na rede para calquera outra persoa que utilice este ordenador.</string>
   <string name="private_browsing_common_myths">Mitos frecuentes sobre a navegación privada</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Sesión de navegación privada</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Retroceder no historial</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Garda o novo inicio de sesión</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Retroceder no historial</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Editar identificación</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Abrir sitio no navegador</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

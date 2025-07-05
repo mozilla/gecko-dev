@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s leert die eingegebenen Suchbegriffe und besuchten Webseiten aller privaten Tabs wenn Sie diese schließen oder die App beenden. Das macht Sie gegenüber Website-Betreibern und Internetanbietern nicht anonym, aber erleichtert es Ihnen, dass andere Nutzer dieses Geräts Ihre Aktivitäten nicht einsehen können.</string>
   <string name="private_browsing_common_myths">Häufige Missverständnisse über das Surfen im Privaten Modus</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Private Surf-Sitzung</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Rückwärts navigieren</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Neue Zugangsdaten speichern</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Rückwärts navigieren</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Zugangsdaten bearbeiten</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Website im Browser öffnen</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

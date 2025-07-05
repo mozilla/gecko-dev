@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s efface vos historiques de recherche et de navigation des onglets privés lorsque vous les fermez ou quittez l’application. Bien que cela ne vous rende pas anonyme sur les sites web ni pour votre fournisseur d’accès à Internet, cela vous permet de garder confidentielle votre activité en ligne pour toutes les autres personnes qui utiliseraient votre appareil.</string>
   <string name="private_browsing_common_myths">Idées reçues sur la navigation privée</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Session de navigation privée</string>
   <!--
     True Private Browsing Mode
 
@@ -1230,6 +1232,8 @@
   <string name="exceptions_empty_message_learn_more_link">En savoir plus</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Envoyer des données techniques et d’interaction</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">En savoir plus à propos des données techniques</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">En savoir plus</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
@@ -1242,6 +1246,16 @@
   <string name="preferences_automatically_send_crashes_title">Envoyer automatiquement les rapports de plantage</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">Les rapports de plantage nous permettent de diagnostiquer et de corriger des problèmes avec le navigateur. Les rapports peuvent contenir des données personnelles ou sensibles.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">En savoir plus sur les rapports de plantage</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Rapports de plantage</string>
+  <string name="usage_data_category">Données d’utilisation</string>
+  <string name="studies_data_category">Études</string>
+  <string name="technical_data_category">Données techniques</string>
+  <string name="crash_reporting_description">Les rapports de plantage nous permettent de diagnostiquer et de corriger des problèmes avec le navigateur. Les rapports peuvent contenir des données personnelles ou sensibles.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Mesure des campagnes</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Données de mesure des campagnes</string>
   <!--
@@ -1778,6 +1792,10 @@
   <string name="tab_crash_restore">Restaurer l’onglet</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s a dû redémarrer</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">Vous avez un rapport de plantage non envoyé qui fait l’objet d’investigations. Nous l’envoyer aidera à améliorer %1$s. Fermer cette notification ignore ce rapport.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">Vous avez des rapports de plantage non envoyés (%1$d) qui font l’objet d’investigations. Nous les envoyer aidera à améliorer %2$s. Fermer cette notification ignore ces rapports.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Envoyer automatiquement les rapports de plantage</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
@@ -2647,12 +2665,22 @@
   <string name="saved_login_clear_username">Effacer le nom d’utilisateur</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Effacer le nom d’hôte</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">Menu des détails de l’identifiant</string>
   <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
   <string name="login_details_navigate_back_button_content_description">Précédent</string>
   <!-- Edit text for the login detail menu edit button -->
   <string name="login_detail_menu_edit_button">Modifier</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">Supprimer</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Précédent</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Enregistrer le nouvel identifiant</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Précédent</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Modifier l’identifiant</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Ouvrir le site dans le navigateur</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

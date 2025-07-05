@@ -84,12 +84,68 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">ያልተረጋገጡ የሶስተኛ ወገን ስክሪፕቶች የእርስዎን ውሂብ እንዲደርሱበት ይፍቀዱ</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">ያልተረጋገጡ ስክሪፕቶች የደህንነት እና የግላዊነት አደጋዎችን ሊያስከትሉ ይችላሉ። ስክሪፕቶችን ከቅጥያዎች ወይም ከምታምኗቸው ምንጮች ብቻ አሂድ።</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">ገንቢው እንዳለው ይህ ቅጥያ፡- %1$s ይሰበስባል።</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">ገንቢው እንዳለው ይህ ቅጥያ፡- %1$s ይሰበስባል</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">ገንቢው ይህ ቅጥያ የውሂብ መሰብሰብ አያስፈልገውም ብሏል።</string>
+  <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">ገንቢው እንዳለው ይህ ቅጥያ፡- %1$sን መሰብሰብ ይፈልጋል</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">በክፍት ትሮች ውስጥ ውሂብዎን ለመድረስ የገንቢ መሳሪያዎችን ዘርጋ</string>
   <!-- Description for text button that expands the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_all_sites">ሁሉንም ጣቢያዎች አሳይ</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">ያነሱ ጣቢያዎችን አሳይ</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">የማረጋገጫ መረጃ</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">ዕልባቶች</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">የአሰሳ እንቅስቃሴ</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">የፋይናንስ እና የክፍያ መረጃ</string>
+  <!-- Short description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">የጤና መረጃ</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">ቦታ</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">የግል ግንኙነቶች</string>
+  <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">የግል መለያ መረጃ</string>
+  <!-- Short description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">የፍለጋ ቃላት</string>
+  <!-- Short description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">ቴክኒካዊ እና መስተጋብር ውሂብ</string>
+  <!-- Short description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">የድር ጣቢያ እንቅስቃሴ</string>
+  <!-- Short description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">የድር ጣቢያ ይዘት</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">የማረጋገጫ መረጃን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">የዕልባቶች መረጃ ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">የአሰሳ እንቅስቃሴን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">የፋይናንስ እና የክፍያ መረጃን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">የጤና መረጃን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">የአካባቢ መረጃን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">የግል ግንኙነቶችን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">የግል መለያ መረጃን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">የፍለጋ ቃላትን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">ቴክኒካዊ እና የመስተጋብር ውሂብን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">የድር ጣቢያ እንቅስቃሴን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">የድር ጣቢያ ይዘትን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">ስሪት</string>
   <!-- The author of an add-on. -->
@@ -110,6 +166,8 @@
   <string name="mozac_feature_addons_settings_on">በርቷል</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">በግል አሰሳ ፍቀድ</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing_2">ቅጥያ በግል አሰሳ ውስጥ እንዲሰራ ፍቀድ</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">በግል አሰሳ ውስጥ አሂድ</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -136,12 +194,28 @@
   <string name="mozac_feature_addons_report">አሳውቅ</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">%1$s ይታከል?</string>
+  <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_permissions_dialog_title_2">ያክሉ %1$s</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title" moz:removedIn="142" tools:ignore="UnusedResources">%1$s ተጨማሪ ፈቃዶችን ይጠይቃል።</string>
+  <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_dialog_title">%1$s ተጨማሪ ቅንብሮችን ይጠይቃል</string>
+  <!-- This is the title of a dialog that asks the users to grant optional data collection permissions only. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title">%1$s ተጨማሪ መረጃ መሰብሰብን ይጠይቃል</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">የሚከተለውን ለማድረግ የእርስዎን ፈቃድ ይፈልጋል፦</string>
+  <!-- Heading for the permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">አስፈላጊ ፈቃዶች፡-</string>
+  <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_data_collection">አስፈላጊ መረጃ መሰብሰብ፡-</string>
+  <!-- Heading for the optional settings section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">አማራጭ ቅንብሮች፡-</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">ይፈልጋል፡-</string>
+  <!-- Heading for the permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_permissions">አዲስ ፈቃዶች፡-</string>
+  <!-- Heading for the data collection permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_data_collection">አዲስ መረጃ መሰብሰብ፡-</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">አክል</string>
   <!-- This is a button to allow the optional permissions requested by an add-on . -->
@@ -150,6 +224,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">ከልክል</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">ተጨማሪ ይወቁ</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">ቴክኒካዊ እና የመስተጋብር ውሂብን ከቅጥያ ገንቢ ጋር ያጋሩ</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">ተወው</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

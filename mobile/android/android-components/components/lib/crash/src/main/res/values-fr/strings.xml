@@ -26,4 +26,10 @@
   <string name="mozac_lib_crash_no_crashes">Aucun rapport de plantage n’a été envoyé.</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">Partager</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">Demander avant d’envoyer</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">Envoyer automatiquement</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">Ne jamais envoyer</string>
 </resources>

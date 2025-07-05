@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s wašu pytansku a přehladowansku historjiu z priwatnych rajtarkow wuprózdni, hdyž je začinjeće abo nałoženje kónčiće. Přez to so wosnadnja, před druhimi, kotřiž tutón grat wužiwaja, schować, štož online činiće, hačrunjež to was za websydła abo wašeho poskićowarja internetneje słužby njeanonymizuje.</string>
   <string name="private_browsing_common_myths">Časte myty wo priwatnym modusu</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Priwatne posedźenje</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Wróćo nawigěrować</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Nowe přizjewjenje składować</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Wróćo nawigěrować</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Přizjewjenje wobdźěłać</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Sydło we wobhladowaku wočinić</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

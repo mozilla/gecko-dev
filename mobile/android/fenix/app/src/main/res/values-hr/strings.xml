@@ -2673,6 +2673,8 @@
   <string name="login_detail_menu_delete_button">Izbriši</string>
   <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
   <string name="add_login_navigate_back_button_content_description">Idi natrag</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Spremi novu prijavu</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Otvori stranicu u pregledniku</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

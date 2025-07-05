@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">Mae %1$s yn clirio’ch hanes chwilio a phori o dabiau preifat pan fyddwch yn eu cau neu’n gadael yr ap. Er nad yw hyn yn eich gwneud chi’n anhysbys i wefannau neu’ch darparwr gwasanaeth rhyngrwyd, mae’n ei gwneud hi’n haws cadw’r hyn rydych chi’n ei wneud ar-lein yn breifat rhag unrhyw un arall sy’n defnyddio’r ddyfais hon.</string>
   <string name="private_browsing_common_myths">Mythau cyffredin am bori preifat</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Sesiwn pori preifat</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Symud nôl</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Cadw mewngofnod newydd</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Symud nôl</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Golygu\'r mewngofnod</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Agor y wefan yn y porwr</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

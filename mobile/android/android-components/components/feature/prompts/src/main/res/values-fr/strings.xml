@@ -125,6 +125,8 @@
   <string name="mozac_feature_prompt_repost_negative_button_text">Annuler</string>
   <!-- Strings show in a dialog that appear when user confirm folder upload -->
   <string name="mozac_feature_prompt_folder_upload_confirm_title">Envoyer les fichiers\u00a0?</string>
+  <!-- Prompt message displayed when user selects a specific folder. %1$s is a folder / directory name. -->
+  <string name="mozac_feature_prompt_folder_upload_confirm_message">Assurez-vous de faire confiance à ce site avant d’effectuer un envoi depuis «\u00a0%1$s\u00a0».</string>
   <!-- Pressing this will dismiss the dialog and allow to upload folder -->
   <string name="mozac_feature_prompt_folder_upload_confirm_positive_button_text">Envoyer</string>
   <!-- Pressing this will dismiss the dialog and disallow to upload folder -->

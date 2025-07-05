@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">Το %1$s διαγράφει το ιστορικό αναζητήσεων και περιήγησης των ιδιωτικών καρτελών όταν κλείνετε αυτές ή την εφαρμογή. Αυτό δεν σας παρέχει ανωνυμία σε ιστοτόπους ή στον πάροχο υπηρεσιών διαδικτύου σας, αλλά σας βοηθά να προστατέψετε το απόρρητό σας από τους άλλους χρήστες αυτής της συσκευής.</string>
   <string name="private_browsing_common_myths">Συνήθεις παρανοήσεις σχετικά με την ιδιωτική περιήγηση</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Συνεδρία ιδιωτικής περιήγησης</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Πλοήγηση προς τα πίσω</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Αποθήκευση νέας σύνδεσης</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Πλοήγηση προς τα πίσω</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Επεξεργασία σύνδεσης</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Άνοιγμα σελίδας στο πρόγραμμα περιήγησης</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
