@@ -396,7 +396,7 @@ template <TextScanDirection direction>
   // (if the next word boundary would be at the beginning/end of the text node)
   nsString textBuffer;
   for (Text* textNode : SameBlockVisibleTextNodeIterator<direction>(*node)) {
-    if (!textNode) {
+    if (!textNode || textNode->Length() == 0) {
       continue;
     }
     nsString data;
@@ -543,6 +543,9 @@ template <TextScanDirection direction>
   nsTArray<nsString> textContentForLogging;
   for (Text* text : SameBlockVisibleTextNodeIterator<direction>(
            *aBoundaryPoint.GetContainer())) {
+    if (!text || text->Length() == 0) {
+      continue;
+    }
     uint32_t offset =
         direction == TextScanDirection::Left ? text->Length() - 1 : 0;
     if (text == aBoundaryPoint.GetContainer()) {

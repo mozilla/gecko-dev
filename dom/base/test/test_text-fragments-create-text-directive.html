@@ -44,7 +44,18 @@
 
   <span id="longWord">1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</span>
   <p id="loremIpsum">Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia, looked up one of the more obscure Latin words, consectetur, from a Lorem Ipsum passage, and going through the cites of the word in classical literature, discovered the undoubtable source.</p>
+  <p>
+    <span id="beforeEmptyTextNode">before empty text node</span>
+    <!-- empty text node will be inserted right here -->
+    <span id="afterEmptyTextNode">after empty text node</span>
+  </p>
   <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const empty = document.createTextNode("");
+      const afterEmptyTextNode = document.getElementById("afterEmptyTextNode");
+      afterEmptyTextNode.parentNode.insertBefore(empty, afterEmptyTextNode);
+    });
+
     SimpleTest.waitForExplicitFinish();
     function rAF() {
       return new Promise(resolve => {
@@ -323,6 +334,24 @@
           endOffset: 18,
           content: "begin with begin\n  end or end and end",
           textDirective: "text=or-,begin,end,-at"
+        },
+        {
+          name: "Empty text nodes need to be handled correctly when finding word boundary looking left",
+          startContainer: afterEmptyTextNode.firstChild,
+          startOffset: 0,
+          endContainer: afterEmptyTextNode.firstChild,
+          endOffset: 5,
+          content: "after",
+          textDirective: "text=after"
+        },
+        {
+          name: "Empty text nodes need to be handled correctly when finding word boundary looking right",
+          startContainer: beforeEmptyTextNode.firstChild,
+          startOffset: 18,
+          endContainer: beforeEmptyTextNode.firstChild,
+          endOffset: 22,
+          content: "node",
+          textDirective: "text=node"
         },
       ]) {
         const range = document.createRange();
