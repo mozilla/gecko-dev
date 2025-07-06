@@ -10,6 +10,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_open_tab_counter_tab_tray">Abas não privativas abertas: %1$s. Toque para mudar de aba.</string>
+  <!--
+    Message announced to the user when the tab counter is selected in private browsing mode.
+    Used by a11y services. The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_private">Abas privativas abertas: %1$s. Toque para mudar de aba.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Nova aba</string>
   <!-- Browser menu button that creates a private tab -->

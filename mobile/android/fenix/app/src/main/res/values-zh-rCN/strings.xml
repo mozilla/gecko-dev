@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s 会在关闭所有隐私标签页或退出应用时，清除您的搜索记录与浏览历史。虽然这样仍无法对网站和电信运营商匿名，但还是可以更简单地防止其他使用此设备的人得知您的上网活动。</string>
   <string name="private_browsing_common_myths">正确认识隐私浏览功能</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">隐私浏览会话</string>
   <!--
     True Private Browsing Mode
 
@@ -1230,6 +1232,8 @@
   <string name="exceptions_empty_message_learn_more_link">详细了解</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">发送技术和交互数据</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">详细了解技术数据</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">详细了解</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
@@ -1242,6 +1246,13 @@
   <string name="preferences_automatically_send_crashes_title">自动发送崩溃报告</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">这有助于我们诊断和修复浏览器的问题。报告中可能包含个人或敏感数据。</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">详细了解崩溃报告</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">崩溃报告</string>
+  <string name="studies_data_category">研究</string>
+  <string name="technical_data_category">技术数据</string>
+  <string name="crash_reporting_description">我们可借助崩溃报告来诊断和修复浏览器的问题。报告中可能包含个人或敏感数据。</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">活动衡量数据</string>
   <!--
@@ -2653,12 +2664,20 @@
   <string name="saved_login_clear_hostname">清除主机名</string>
   <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
   <string name="login_detail_menu_button_content_description">登录详细信息菜单</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">后退</string>
   <!-- Edit text for the login detail menu edit button -->
   <string name="login_detail_menu_edit_button">编辑</string>
   <!-- Delete text for the login detail menu delete button -->
   <string name="login_detail_menu_delete_button">删除</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">后退</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">保存新的登录信息</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">后退</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">编辑登录信息</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">在浏览器中打开网站</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

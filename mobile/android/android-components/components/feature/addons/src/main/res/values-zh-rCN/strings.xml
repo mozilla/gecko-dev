@@ -90,6 +90,8 @@
   <string name="mozac_feature_addons_permissions_required_data_collection_description_2">开发者称此扩展收集：%1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">开发者称此扩展无需收集数据。</string>
+  <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">开发者称此扩展希望收集：%1$s</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">让开发者工具可以存取您打开的标签页中的数据</string>
   <!-- Description for text button that expands the list of domain permissions -->
@@ -206,6 +208,10 @@
   <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">可选设置：</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">它希望：</string>
+  <!-- Heading for the permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_permissions">新权限：</string>
+  <!-- Heading for the data collection permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_data_collection">新增收集的数据：</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">添加</string>
   <!-- This is a button to allow the optional permissions requested by an add-on . -->

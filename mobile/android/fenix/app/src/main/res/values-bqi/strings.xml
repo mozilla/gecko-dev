@@ -418,7 +418,7 @@
   -->
   <string name="browser_menu_default_banner_title">%1$s ن پؽش فرز خوتووݩ کۊنین</string>
   <!-- Label text within the set as default banner -->
-  <string name="browser_menu_default_banner_subtitle">چن سانیه تۊل اکشه. هر سا خاستین آلشتس کۊنین.</string>
+  <string name="browser_menu_default_banner_subtitle">تینا چن سانیه تۊل اکشه. هر سا خاستین ترین آلشتس کۊنین.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
   <string name="browser_menu_default_banner_dismiss">رڌ کردن</string>
   <!--

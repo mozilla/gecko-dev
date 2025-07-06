@@ -951,6 +951,8 @@
   <string name="customize_toggle_recently_visited">Gweladennet nevez ’zo</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Boued spered</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">Pennadoù</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Pennadoù kinniget gant %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -991,6 +993,14 @@
   <string name="wallpapers_onboarding_dialog_body_text">Dibabit ur skeudenn drekleur a blij deoc’h.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Dizoleiñ skeudennoù drekleur all</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">Gouloù-noz</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">Pikselaet</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">Bihanañ</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">Lorc’h</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1099,6 +1109,9 @@
   <string name="exceptions_empty_message_learn_more_link">Gouzout hirocʼh</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Gouzout hiroc’h</string>
+  <string name="studies_data_category">Studioù</string>
+  <string name="technical_data_category">Roadennoù teknikel</string>
+  <string name="crash_reporting_description">Gant an danevelloù sac’hañ e c’hallomp kempenn ar c’hudennoù er merdeer. An danevelloù a c’hall kaout roadennoù personel pe kizidik eno.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Gouzout hiroc\'h a-zivout an danevelloù sac\'hañ</string>
   <!-- Title for studies preferences -->
@@ -1129,6 +1142,10 @@
   <string name="preference_top_toolbar">Krecʼh</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Traoñ</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Eeun</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Astennet</string>
   <!--
     Theme Preferences
 
@@ -1315,6 +1332,8 @@
   <string name="tab_tray_multiselect_share_content_description">Serriñ an ivinelloù diuzet</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Lañser an ivinelloù diuzet</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Degemer</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Dilemel an ivinell eus an dastumad</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1380,6 +1399,10 @@
   <string name="download_in_progress_snackbar_action_details">Munudoù</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
   <string name="download_completed_snackbar">Pellgargadur echu</string>
+  <!-- Text for the snackbar action button to undo deleting a download. -->
+  <string name="download_undo_delete_snackbar_action">Dizober</string>
+  <!-- Text shown when no download exists -->
+  <string name="download_empty_message_2">Pellgargadur ebet evit poent</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
@@ -1418,6 +1441,16 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s a chom</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • amzer dianav</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • ehanet</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ehanet</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1428,6 +1461,14 @@
   <string name="download_search_no_results_found">Disoc’h ebet kavet</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">Diuzañ pep tra</string>
+  <!--
+    Downloads Content Type Filters
+
+    Text for the filter button to show all files in the downloads list
+  -->
+  <string name="download_content_type_filter_all">Pep tra</string>
+  <!-- Text for the filter button to show only images in the downloads list -->
+  <string name="download_content_type_filter_image">Skeudennoù</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">All</string>
   <!--
@@ -1466,12 +1507,16 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">N’a ket en-dro pe gorrek eo al lec’hienn</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Ne garg ket al lec’hienn</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Skeudennoù pe videoioù</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Boutonoù, liammoù ha danvezioù all</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Kennaskañ pe digennaskañ</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Gorrek eo al lec’hienn</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Stanker bruderezh</string>
   <!-- Broken site reason text for something else -->
@@ -1494,8 +1539,12 @@
   <string name="unsubmitted_crash_dialog_checkbox_label">Kas danevelloù sac’hañ ent emgefreek</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Serriñ</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Na ziskouez en-dro</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Kas an danevell sac’hadenn</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Gouzout hiroc’h</string>
   <!--
     Bookmarks
 
@@ -1690,6 +1739,10 @@
   <string name="studies_on">Gweredekaet</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Diweredekaet</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Gweredekaet</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Diweredekaet</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Aotreoù</string>
   <!--
@@ -1801,6 +1854,10 @@
   <string name="sync_add_new_device_learn_button">Gouzout hirocʼh a-zivout ar cʼhas ivinelloù…</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Kennaskañ un trevnad all…</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nKaset eus %2$s 🦊 Esaeit ar merdeer hezoug: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nKaset eus %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2155,6 +2212,8 @@
   <string name="preference_doh_provider_custom_dialog_title">Pourchaser personelaet</string>
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Pourchaser</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">An URL a rank kregiñ gant “https://”</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">URL direizh</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2167,6 +2226,10 @@
   <string name="preference_doh_exceptions_add">Ouzhpennañ ul lec’hienn</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
   <string name="preference_doh_exceptions_add_site">Lec’hienn</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">skouer.bzh</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Enrollañ</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Skor</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2653,6 +2716,8 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Boued spered</string>
   <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">Pennadoù</string>
+  <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Istorioù dre dem</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Dizoloiñ muioc’h</string>
@@ -2740,6 +2805,12 @@
   <string name="translation_error_language_not_supported_warning_text">Hon digarezit, n’eo ket skoret ar yezh \"%1$s\" c’hoazh.</string>
   <!-- Snackbar title shown if the user closes the Translation Request dialogue and a translation is in progress. -->
   <string name="translation_in_progress_snackbar">O treiñ…</string>
+  <!--
+    Translations options dialog
+
+    Title of the translation options dialog that allows a user to set their translation options for the site the user is currently on.
+  -->
+  <string name="translation_option_bottom_sheet_title_heading">Arventennoù an droidigezh</string>
   <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_never_translate_in_language">Na dreiñ biken %1$s</string>
   <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
@@ -2911,8 +2982,55 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">Pellgargañ ha treiñ</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Nullañ</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">Diogel</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">Diziogel</string>
+  <!-- Title text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_title">Taolit evezh war al lec’hienn-mañ</string>
+  <!-- Description text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_description">N’eo ket diogel ho kennask.</string>
+  <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+  <string name="protection_panel_banner_not_protected_title">Diweredekaet ho peus ar gwarezioù</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">Heulierien stanket: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">N’eo bet kavet heulier ebet</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">Arventennoù evit ho puhez prevez ha diogelroez</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Aotreoù</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">Heulierien stanket: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">Skarzhañ</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
   <string name="clear_site_data_dialog_negative_button_text">Nullañ</string>
+  <!-- Text for the connection security panel when the site is secure. -->
+  <string name="connection_security_panel_secure">Kennask diarvar</string>
+  <!-- Text for the connection security panel when the site is not secure. -->
+  <string name="connection_security_panel_not_secure">N’eo ket diarvar ar c’hennask</string>
+  <!--
+    Text for the connection security panel to indicate who the certificate was verified by.
+    %s is a placeholder for the name of the certificate authority that verified the ticket
+  -->
+  <string name="connection_security_panel_verified_by">Gwiriet gant %s</string>
   <!--
     Debug drawer
 
@@ -3040,6 +3158,18 @@
   <!-- Content description for delete button. %s is the username of the login. -->
   <string name="debug_drawer_logins_delete_login_button_content_description">Dilemel an titour kennaskañ gant an anv arveriad %s</string>
   <!--
+    Debug drawer addresses
+
+    The title of the Addresses feature in the Debug Drawer.
+  -->
+  <string name="debug_drawer_addresses_title">Chomlec’hioù</string>
+  <!-- The title of the header for the section for managing addresses. -->
+  <string name="debug_drawer_addresses_management_header">Merañ ar chomlec’hioù</string>
+  <!-- The title of the button in the debug drawer for adding a new address. -->
+  <string name="debug_drawer_add_new_address">Ouzhpennañ chomlec’hioù nevez evit ar yezh diuzet</string>
+  <!-- The title of the button for deleting in the debug drawer all addresses. -->
+  <string name="debug_drawer_delete_all_addresses">Dilemel an holl chomlec’hioù</string>
+  <!--
     Debug drawer "contextual feature recommendation" (CFR) tools
 
     The title of the CFR Tools feature in the Debug Drawer
@@ -3073,6 +3203,22 @@
     Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element.
   -->
   <string name="beta_feature">BETA</string>
+  <!--
+    Root certificate expiration warnings
+
+    These strings for homepage cards and push notifications to be pushed to users running outdated versions of Firefox. We want to encourage these users to update to the latest version so their extensions and other features don't stop working when Firefox's old root certificate expires on 2025-03-14. For more information, see this SUMO article: https://support.mozilla.org/kb/root-certificate-expiration !
+
+    Homepage card button to open Google Play Store. "Update" is a verb.
+  -->
+  <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Hizivaat bremañ</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Hizivait ho merdeer Firefox</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Hizivait a-raok ar 14 a viz Meurzh</string>
+  <!-- Homepage card title about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Chom a ra nebeutoc’h eget 7 deiz evit hizivaat</string>
+  <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+  <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Hizivadur erbedet</string>
   <!-- TextField Design System Component -->
 
   <!--
@@ -3085,4 +3231,18 @@
   <string name="a11y_task_icon_description">Ikon trevell</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Ket, trugarez</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Prennañ an ivinell</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Petra soñjit eus %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Kudennoù am eus</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Dispar eo!</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Reiñ hoc’h ali</string>
 </resources>

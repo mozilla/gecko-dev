@@ -2,6 +2,13 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Name of the "notification channel" used for displaying download notification. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_downloads_notification_channel">Pellgargadurioù</string>
+  <!--
+    Summary text shown on an in progress download notification.
+    %1$s will be replaced with the estimated time remaining to complete the download.
+  -->
+  <string name="mozac_feature_downloads_time_remaining">a-benn %1$s</string>
+  <!-- Summary text shown on an in progress download notification when the estimated time remaining is unknown. -->
+  <string name="mozac_feature_downloads_time_remaining_unknown">amzer dianav</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Pellgargañ ehanet</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
@@ -34,6 +41,8 @@
     %1$s will be replaced with the name of the file.
   -->
   <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s n’eo ket bet pellgarget.</string>
+  <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Gwiriit ho kennask ha klaskit adarre.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s ne cʼhall ket pellgargañ ar rizh restr-mañ</string>
   <!-- Message that appears when the downloaded file could not be opened. -->
