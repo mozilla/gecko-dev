@@ -47,6 +47,7 @@ class CustomReviewPromptNavigationMiddleware(
 
             CustomReviewPromptAction.NegativePrePromptButtonClicked -> {}
             CustomReviewPromptAction.PositivePrePromptButtonClicked -> {}
+            CustomReviewPromptAction.Displayed -> {}
         }
         next(action)
     }
