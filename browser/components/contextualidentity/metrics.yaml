@@ -1,0 +1,161 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: DOM: Security'
+
+containers:
+  containers_enabled:
+    type: event
+    description: >
+      Recorded when the container feature is enabled or disabled (pref privacy.userContext.enabled).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      enabled:
+        description: |
+          True if the feature is enabled.
+        type: boolean
+
+  container_profile_loaded:
+    type: event
+    description: >
+      Recorded when the user profile is loaded and container definitions are read.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      containers:
+        description: |
+          The number of container configurations read from the user profile.
+        type: quantity
+
+  container_tab_opened:
+    type: event
+    description: >
+      Recorded when a container tab is opened.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      container_id:
+        description: The ID of the container.
+        type: string
+
+  container_tab_closed:
+    type: event
+    description: >
+      Recorded when a container tab is closed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      container_id:
+        description: The ID of the closed container.
+        type: string
+
+  tab_assigned_container:
+    type: event
+    description: >
+      Recorded when a tab is moved into a container.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      from_container_id:
+        description: The source container id, or "0" if the tab wasn't in a container
+        type: string
+      to_container_id:
+        description: The destination container id, or "0" if the tab wasn't in a container
+        type: string
+
+  container_created:
+    type: event
+    description: >
+      Recorded when a user creates a new container.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      container_id:
+        description: The ID of the newly created container.
+        type: string
+
+  container_modified:
+    type: event
+    description: >
+      Recorded when a user edits a container (e.g. changes name, icon, or color).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - amarchesini@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      container_id:
+        description: The ID of the modified container.
+        type: string
+
+  container_deleted:
+    type: event
+    description: >
+      Recorded when a user deletes a container.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1975403
+    notification_emails:
+      - containers-telemetry@mozilla.com
+    expires: never
+    data_sensitivity:
+      - interaction
+    extra_keys:
+      container_id:
+        description: The ID of the deleted container.
+        type: string
