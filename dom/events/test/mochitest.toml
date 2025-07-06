@@ -418,12 +418,16 @@ tags = "os_integration"
 ["test_drag_image_file.html"]
 skip-if = [
   "xorigin", # Bug 1802904
+  "os == 'android' && verify",
 ]
 support-files = ["green.png"]
 
 ["test_draggableprop.html"]
 
 ["test_dragstart.html"]
+skip-if = [
+  "os == 'android' && verify",
+]
 
 ["test_error_events.html"]
 skip-if = ["os == 'android'"] #TIMED_OUT
