@@ -4,6 +4,9 @@ firefox-appdir = "browser"
 ["test_basic.js"]
 skip-if = ["appname == 'thunderbird'"]
 
+["test_telemetry.js"]
+skip-if = ["appname == 'thunderbird'"]
+
 ["test_corruptedFile.js"]
 skip-if = ["appname == 'thunderbird'"]
 
