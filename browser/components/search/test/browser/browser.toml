@@ -62,6 +62,9 @@ support-files = [
 ["browser_contextSearchTabPosition.js"]
 
 ["browser_contextmenu.js"]
+skip-if = [
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1937944
+]
 
 ["browser_contextmenu_whereToOpenLink.js"]
 
