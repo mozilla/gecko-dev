@@ -54,7 +54,19 @@ class SaturateOp {
 
   // Compound operators
 
+#if defined(__has_builtin)
+#  if __has_builtin(__builtin_elementwise_add_sat)
+#    define MOZ_ADD_SAT(x, y) __builtin_elementwise_add_sat(x, y)
+#  endif
+#  if __has_builtin(__builtin_elementwise_add_sat)
+#    define MOZ_SUB_SAT(x, y) __builtin_elementwise_sub_sat(x, y)
+#  endif
+#endif
+
   const T& operator+=(const T& aRhs) const {
+#ifdef MOZ_ADD_SAT
+    return mValue = MOZ_ADD_SAT(mValue, aRhs);
+#else
     const T min = std::numeric_limits<T>::min();
     const T max = std::numeric_limits<T>::max();
 
@@ -64,9 +76,13 @@ class SaturateOp {
       mValue = (min - aRhs) > mValue ? min : mValue + aRhs;
     }
     return mValue;
+#endif
   }
 
   const T& operator-=(const T& aRhs) const {
+#ifdef MOZ_SUB_SAT
+    return mValue = MOZ_SUB_SAT(mValue, aRhs);
+#else
     const T min = std::numeric_limits<T>::min();
     const T max = std::numeric_limits<T>::max();
 
@@ -76,6 +92,7 @@ class SaturateOp {
       mValue = (max + aRhs) < mValue ? max : mValue - aRhs;
     }
     return mValue;
+#endif
   }
 
   // Increment and decrement operators
