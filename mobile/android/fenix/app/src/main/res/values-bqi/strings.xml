@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s پیتینیڌنا وو ویرگار گشتن ایسا ن مجال ودر زیڌن ز برنومه یا بستن بلگه یل سیخومی پاک اکونه. ٱلبت ای کار ایسا ن سی وبگه یل یا جۊر کونووݩ اینترنت نشناخته نؽکونه، ای کار تینا بؽڌار کردن فعالیتا ریتور ایسا ز ور هر کس دی ک ای دسگا ن و کار اگره ساڌه تر اکونه.</string>
   <string name="private_browsing_common_myths">باورا اشتوا من زایار زبار گشتن سیخومی</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">نشست گشتن سیخومی</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">وورگشتن و عقب</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">زفت و من ٱووڌن نۊ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">وورگشتن و عقب</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">آلشت و من ٱووڌن</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">گۊشیڌن وبگه من گشت گر</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s fjerner søk- og nettleserhistorikken fra private nettlesingsfaner når du lukker dem eller avslutter appen. Selv om dette ikke gjør deg anonym for nettsteder eller internett-leverandøren din, vil det gjøre det lettere å beholde det du gjør på nettet privat fra alle andre som bruker denne enheten.</string>
   <string name="private_browsing_common_myths">Vanlige myter om privat nettlesing</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Privat nettlesingsøkt</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Naviger tilbake</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Lagre ny innlogging</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Naviger tilbake</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Rediger innlogging</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Åpne nettsted i nettleseren</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

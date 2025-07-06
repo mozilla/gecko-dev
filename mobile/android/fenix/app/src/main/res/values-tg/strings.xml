@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s таърихи тамошобинӣ ва ҷустуҷӯи шуморо аз варақаҳои хусусие, ки шумо мепӯшед ё вақте ки шумо барномаро хомӯш мекунед, пок мекунад. Ин амал шуморо аз сомонаҳо ё провайдери хизматрасонии интернет пинҳон намекунад, аммо аз корбарони дигаре, ки ин дастгоҳро истифода мебаранд, фаъолияти онлайни шуморо ба осонӣ шахсӣ карда, нигоҳ медорад.</string>
   <string name="private_browsing_common_myths">Асотири маълум дар бораи тамошобинии хусусӣ</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Ҷаласаи тамошобинии хусусӣ</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Ба қафо гузаштан</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Нигоҳ доштани воридшавии нав</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Ба қафо гузаштан</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Таҳрир кардани воридшавӣ</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Кушодани сомона дар браузер</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

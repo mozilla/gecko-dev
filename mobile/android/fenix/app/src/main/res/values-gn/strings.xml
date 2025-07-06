@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s omopotĩ nde jeheka ha kundahára rembiasakue tendayke ñemiguápe emboty térã esẽenguévo ko tembiporu’ígui. Kóva nande kuaukáiramo jepe ñanduti rendápe térã ne ñanduti me’ẽhárape, nombohasýi eime ñemi hag̃ua opaite tapicha oiporúva ko mba’e’oka renondépe.</string>
   <string name="private_browsing_common_myths">Mombe’ugua’u kundahára ñemi rehegua</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Tembiapo kundaha ñemíme</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Eikundaha tapykuévo</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Eñongatu tembiapo ñepyrũ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Eikundaha tapykuévo</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Jeikeha mbosako\'i</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Embojuruja tenda kundahárape</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

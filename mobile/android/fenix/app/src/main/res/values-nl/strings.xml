@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s wist uw zoek- en browsergeschiedenis zodra u de toepassing afsluit of alle privétabbladen sluit. Hoewel dit u niet anoniem maakt voor websites of uw internetprovider, maakt dit het makkelijker om wat u online doet privé te houden voor anderen die dit apparaat gebruiken.</string>
   <string name="private_browsing_common_myths">Veelgehoorde mythes over privénavigatie</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Privénavigatiesessie</string>
   <!--
     True Private Browsing Mode
 
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Terug bladeren</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Nieuwe aanmelding opslaan</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Terug bladeren</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Aanmelding bewerken</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Website openen in browser</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

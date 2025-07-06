@@ -10,6 +10,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_open_tab_counter_tab_tray">Otvoreni tabovi koji nisu privatni: %1$s. Dodirnite za promjenu tabova.</string>
+  <!--
+    Message announced to the user when the tab counter is selected in private browsing mode.
+    Used by a11y services. The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_private">Otvoreni privatni tabovi: %1$s. Dodirnite za promjenu tabova.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Novi tab</string>
   <!-- Browser menu button that creates a private tab -->
