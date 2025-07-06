@@ -154,7 +154,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
 
     private fun initSharePageAction(context: Context) {
         // Only adding share page action if tab strip is disabled.
-        if (!context.isTabStripEnabled()) {
+        if (!context.isTabStripEnabled() && isLargeWindow()) {
             val sharePageAction = BrowserToolbar.createShareBrowserAction(
                 context = context,
             ) {
@@ -167,6 +167,11 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initTranslationsAction(context: Context, view: View) {
+        // Do not add translation page action if device doesn't have large window
+        if (!isLargeWindow()) {
+            return
+        }
+
         if (
             !FxNimbus.features.translations.value().mainFlowToolbarEnabled
         ) {
