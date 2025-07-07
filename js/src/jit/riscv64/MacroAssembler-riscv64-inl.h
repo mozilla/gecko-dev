@@ -1687,7 +1687,7 @@ void MacroAssembler::move64To32(Register64 src, Register dest) {
 }
 
 void MacroAssembler::move8ZeroExtend(Register src, Register dest) {
-  MOZ_CRASH("NYI");
+  andi(dest, src, 0xFF);
 }
 
 void MacroAssembler::move8SignExtend(Register src, Register dest) {
