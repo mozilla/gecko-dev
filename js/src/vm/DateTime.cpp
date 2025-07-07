@@ -426,11 +426,9 @@ int32_t js::DateTimeInfo::internalGetOffsetMilliseconds(int64_t milliseconds,
                                  &DateTimeInfo::computeUTCOffsetMilliseconds);
 }
 
-bool js::DateTimeInfo::internalTimeZoneDisplayName(char16_t* buf, size_t buflen,
-                                                   int64_t utcMilliseconds,
-                                                   const char* locale) {
-  MOZ_ASSERT(buf != nullptr);
-  MOZ_ASSERT(buflen > 0);
+bool js::DateTimeInfo::internalTimeZoneDisplayName(
+    TimeZoneDisplayNameVector& result, int64_t utcMilliseconds,
+    const char* locale) {
   MOZ_ASSERT(locale != nullptr);
 
   // Clear any previously cached names when the default locale changed.
@@ -466,17 +464,7 @@ bool js::DateTimeInfo::internalTimeZoneDisplayName(char16_t* buf, size_t buflen,
       return false;
     }
   }
-
-  // Return an empty string if the display name doesn't fit into the buffer.
-  size_t length = js_strlen(cachedName.get());
-  if (length < buflen) {
-    std::copy(cachedName.get(), cachedName.get() + length, buf);
-  } else {
-    length = 0;
-  }
-
-  buf[length] = '\0';
-  return true;
+  return result.append(cachedName.get(), js_strlen(cachedName.get()));
 }
 
 mozilla::intl::TimeZone* js::DateTimeInfo::timeZone() {
