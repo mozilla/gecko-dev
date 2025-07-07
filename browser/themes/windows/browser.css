@@ -132,10 +132,10 @@
 
   @media not (prefers-contrast) {
     &:hover {
-      background-color: light-dark(hsla(0, 0%, 0%, 0.12), hsla(0, 0%, 100%, 0.22));
+      background-color: var(--toolbarbutton-hover-background);
 
       &:active {
-        background-color: light-dark(hsla(0, 0%, 0%, 0.22), hsla(0, 0%, 100%, 0.32));
+        background-color: var(--toolbarbutton-active-background);
       }
     }
 
