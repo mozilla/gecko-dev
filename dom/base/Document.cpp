@@ -12741,6 +12741,7 @@ nsresult Document::CloneDocHelper(Document* clone) const {
   clone->mType = mType;
   clone->mXMLDeclarationBits = mXMLDeclarationBits;
   clone->mBaseTarget = mBaseTarget;
+  clone->mAllowDeclarativeShadowRoots = mAllowDeclarativeShadowRoots;
 
   return NS_OK;
 }
