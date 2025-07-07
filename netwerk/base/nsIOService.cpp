@@ -45,7 +45,6 @@
 #include "mozilla/LoadInfo.h"
 #include "mozilla/net/NeckoCommon.h"
 #include "mozilla/Services.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/net/NeckoChild.h"
@@ -893,21 +892,12 @@ nsresult nsIOService::AsyncOnChannelRedirect(
     MOZ_ASSERT(!scheme.IsEmpty());
 
     if (oldChan->IsDocument()) {
-      Telemetry::AccumulateCategoricalKeyed(
-          scheme, Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::topLevel);
-#ifndef ANDROID
       mozilla::glean::networking::http_redirect_to_scheme_top_level.Get(scheme)
           .Add(1);
-#endif
     } else {
-      Telemetry::AccumulateCategoricalKeyed(
-          scheme,
-          Telemetry::LABELS_NETWORK_HTTP_REDIRECT_TO_SCHEME::subresource);
-#ifndef ANDROID
       mozilla::glean::networking::http_redirect_to_scheme_subresource
           .Get(scheme)
           .Add(1);
-#endif
     }
   }
   return NS_OK;

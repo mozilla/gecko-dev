@@ -8,6 +8,12 @@ function make_channel(url) {
   return NetUtil.newChannel({ uri: url, loadUsingSystemPrincipal: true });
 }
 
+add_setup(function () {
+  do_get_profile();
+
+  Services.fog.initializeFOG();
+});
+
 add_task(async function check_protocols() {
   // Enable the collection (during test) for all products so even products
   // that don't collect the data will be able to run the test without failure.
@@ -40,10 +46,6 @@ add_task(async function check_protocols() {
   }
 
   function make_test(protocol) {
-    do_get_profile();
-    let redirect_hist = TelemetryTestUtils.getAndClearKeyedHistogram(
-      "NETWORK_HTTP_REDIRECT_TO_SCHEME"
-    );
     return new Promise(resolve => {
       const URL = `http://localhost:${httpserv.identity.primaryPort}/redirect`;
       responseProtocol = protocol;
@@ -52,7 +54,13 @@ add_task(async function check_protocols() {
         channel.asyncOpen(new ChannelListener(resolve1))
       );
       p.then(() => {
-        TelemetryTestUtils.assertKeyedHistogramSum(redirect_hist, protocol, 1);
+        Assert.equal(
+          Glean.networking.httpRedirectToSchemeSubresource[
+            protocol
+          ].testGetValue(),
+          1,
+          "The total value recorded in httpRedirectToSchemeSubresource should be 1."
+        );
         resolve();
       });
     });
