@@ -40,7 +40,6 @@ add_task(async function test_edit_profile_custom_avatar() {
         );
 
         await editProfileCard.updateComplete;
-        await new Promise(resolve => content.requestAnimationFrame(resolve));
 
         EventUtils.synthesizeMouseAtCenter(
           editProfileCard.avatarSelectorLink,
@@ -48,15 +47,10 @@ add_task(async function test_edit_profile_custom_avatar() {
           content
         );
 
-        const avatarSelector = editProfileCard.avatarSelector;
-
         Assert.ok(
-          ContentTaskUtils.isVisible(avatarSelector),
+          ContentTaskUtils.isVisible(editProfileCard.avatarSelector),
           "Should be showing the profile avatar selector"
         );
-
-        avatarSelector.state = "custom";
-        await avatarSelector.updateComplete;
       });
     }
   );
@@ -126,15 +120,14 @@ add_task(async function test_edit_profile_custom_avatar_upload() {
         );
 
         await editProfileCard.updateComplete;
-        await new Promise(resolve => content.requestAnimationFrame(resolve));
+
+        const avatarSelector = editProfileCard.avatarSelector;
 
         EventUtils.synthesizeMouseAtCenter(
           editProfileCard.avatarSelectorLink,
           {},
           content
         );
-
-        const avatarSelector = editProfileCard.avatarSelector;
 
         Assert.ok(
           ContentTaskUtils.isVisible(avatarSelector),
@@ -258,8 +251,12 @@ add_task(async function test_avatar_selector_tabs() {
         let editProfileCard =
           content.document.querySelector("edit-profile-card").wrappedJSObject;
 
+        await ContentTaskUtils.waitForCondition(
+          () => editProfileCard.initialized,
+          "Waiting for edit-profile-card to be initialized"
+        );
+
         await editProfileCard.updateComplete;
-        await new Promise(resolve => content.requestAnimationFrame(resolve));
 
         EventUtils.synthesizeMouseAtCenter(
           editProfileCard.avatarSelectorLink,
@@ -268,16 +265,9 @@ add_task(async function test_avatar_selector_tabs() {
         );
 
         const avatarSelector = editProfileCard.avatarSelector;
-
-        await ContentTaskUtils.waitForCondition(
-          () => ContentTaskUtils.isVisible(avatarSelector),
-          "Waiting for avatar selector to become visible"
-        );
         await avatarSelector.updateComplete;
 
-        // Wait for all Lit microtask queue updates to complete so we don't run into race condition issues
-        await new Promise(resolve => content.requestAnimationFrame(resolve));
-
+        // Make sure the tab section exists
         const buttonGroup =
           avatarSelector.shadowRoot.querySelector(".button-group");
         Assert.ok(buttonGroup, "Tab section should exist");
@@ -308,10 +298,8 @@ add_task(async function test_avatar_selector_tabs() {
           "Custom tab should be inactive by default"
         );
 
-        info("Clicking custom tab");
         EventUtils.synthesizeMouseAtCenter(customTab, {}, content);
         await avatarSelector.updateComplete;
-
         Assert.equal(
           avatarSelector.state,
           "custom",
@@ -320,10 +308,8 @@ add_task(async function test_avatar_selector_tabs() {
         Assert.equal(customTab.type, "primary", "Custom tab should be active");
         Assert.equal(iconTab.type, "default", "Icon tab should be inactive");
 
-        info("Clicking icon tab");
         EventUtils.synthesizeMouseAtCenter(iconTab, {}, content);
         await avatarSelector.updateComplete;
-
         Assert.equal(
           avatarSelector.state,
           "icon",

@@ -129,7 +129,6 @@ export class EditProfileCard extends MozLitElement {
     if (RPMGetBoolPref(UPDATED_AVATAR_SELECTOR_PREF, false)) {
       document.addEventListener("click", this);
       document.addEventListener("Profiles:CustomAvatarUpload", this);
-      document.addEventListener("Profiles:AvatarSelected", this);
     }
 
     this.init().then(() => (this.initialized = true));
@@ -193,61 +192,19 @@ export class EditProfileCard extends MozLitElement {
     switch (value) {
       case "book":
         return "book-avatar";
-      case "bike":
-        return "bike-avatar";
       case "briefcase":
         return "briefcase-avatar";
-      case "canvas":
-        return "canvas-avatar";
-      case "craft":
-        return "craft-avatar";
-      case "default-favicon":
-        return "default-favicon-avatar";
-      case "diamond":
-        return "diamond-avatar";
       case "flower":
         return "flower-avatar";
-      case "folder":
-        return "folder-avatar";
-      case "hammer":
-        return "hammer-avatar";
       case "heart":
         return "heart-avatar";
-      case "heart-rate":
-        return "heart-rate-avatar";
-      case "history":
-        return "history-avatar";
-      case "leaf":
-        return "leaf-avatar";
-      case "lightbulb":
-        return "lightbulb-avatar";
-      case "makeup":
-        return "makeup-avatar";
-      case "message":
-        return "message-avatar";
-      case "musical-note":
-        return "musical-note-avatar";
-      case "palette":
-        return "palette-avatar";
-      case "paw-print":
-        return "paw-print-avatar";
-      case "plane":
-        return "plane-avatar";
-      case "present":
-        return "present-avatar";
       case "shopping":
         return "shopping-avatar";
-      case "soccer":
-        return "soccer-avatar";
-      case "sparkle-single":
-        return "sparkle-single-avatar";
       case "star":
         return "star-avatar";
-      case "video-game-controller":
-        return "video-game-controller-avatar";
-      default:
-        return "custom-avatar";
     }
+
+    return "";
   }
 
   handleEvent(event) {
@@ -276,11 +233,6 @@ export class EditProfileCard extends MozLitElement {
       case "Profiles:CustomAvatarUpload": {
         let { file } = event.detail;
         this.updateAvatar(file);
-        break;
-      }
-      case "Profiles:AvatarSelected": {
-        let { avatar } = event.detail;
-        this.updateAvatar(avatar);
         break;
       }
     }
