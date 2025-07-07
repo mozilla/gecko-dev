@@ -18,9 +18,11 @@
 
 #include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
+#include "builtin/intl/StringAsciiChars.h"
 #include "gc/AllocKind.h"
 #include "gc/GCContext.h"
 #include "icu4x/GraphemeClusterSegmenter.hpp"
+#include "icu4x/Locale.hpp"
 #include "icu4x/SentenceSegmenter.hpp"
 #include "icu4x/WordSegmenter.hpp"
 #include "js/CallArgs.h"
@@ -400,7 +402,7 @@ struct WordSegmenter {
       SegmenterBreakIteratorType<WordSegmenterBreakIteratorTwoByte>;
 
   static constexpr auto& create =
-      icu4x::capi::icu4x_WordSegmenter_create_auto_mv1;
+      icu4x::capi::icu4x_WordSegmenter_create_auto_with_content_locale_mv1;
   static constexpr auto& destroy = icu4x::capi::icu4x_WordSegmenter_destroy_mv1;
 };
 
@@ -444,17 +446,68 @@ struct SentenceSegmenter {
       SegmenterBreakIteratorType<SentenceSegmenterBreakIteratorTwoByte>;
 
   static constexpr auto& create =
-      icu4x::capi::icu4x_SentenceSegmenter_create_mv1;
+      icu4x::capi::icu4x_SentenceSegmenter_create_with_content_locale_mv1;
   static constexpr auto& destroy =
       icu4x::capi::icu4x_SentenceSegmenter_destroy_mv1;
 };
 
+class ICU4XLocaleDeleter {
+ public:
+  void operator()(icu4x::capi::Locale* ptr) {
+    icu4x::capi::icu4x_Locale_destroy_mv1(ptr);
+  }
+};
+
+using UniqueICU4XLocale =
+    mozilla::UniquePtr<icu4x::capi::Locale, ICU4XLocaleDeleter>;
+
+static UniqueICU4XLocale CreateICU4XLocale(JSContext* cx,
+                                           Handle<JSString*> str) {
+  auto* linear = str->ensureLinear(cx);
+  if (!linear) {
+    return nullptr;
+  }
+
+  intl::StringAsciiChars chars(linear);
+  if (!chars.init(cx)) {
+    return nullptr;
+  }
+
+  auto span = static_cast<mozilla::Span<const char>>(chars);
+  auto result =
+      icu4x::capi::icu4x_Locale_from_string_mv1({span.data(), span.size()});
+  if (!result.is_ok) {
+    intl::ReportInternalError(cx);
+    return nullptr;
+  }
+  return UniqueICU4XLocale{result.ok};
+}
+
 /**
- * Create a new ICU4X segmenter instance.
+ * Create a new, locale-invariant ICU4X segmenter instance.
  */
 template <typename Interface>
 static typename Interface::Segmenter* CreateSegmenter() {
   return Interface::create();
+}
+
+/**
+ * Create a new ICU4X segmenter instance, tailored for |locale|.
+ */
+template <typename Interface>
+static typename Interface::Segmenter* CreateSegmenter(
+    JSContext* cx, Handle<JSString*> locale) {
+  auto loc = CreateICU4XLocale(cx, locale);
+  if (!loc) {
+    return nullptr;
+  }
+
+  auto result = Interface::create(loc.get());
+  if (!result.is_ok) {
+    intl::ReportInternalError(cx);
+    return nullptr;
+  }
+  return result.ok;
 }
 
 static bool EnsureInternalsResolved(JSContext* cx,
@@ -506,7 +559,7 @@ static bool EnsureInternalsResolved(JSContext* cx,
       break;
     }
     case SegmenterGranularity::Word: {
-      auto* seg = CreateSegmenter<WordSegmenter>();
+      auto* seg = CreateSegmenter<WordSegmenter>(cx, locale);
       if (!seg) {
         return false;
       }
@@ -514,7 +567,7 @@ static bool EnsureInternalsResolved(JSContext* cx,
       break;
     }
     case SegmenterGranularity::Sentence: {
-      auto* seg = CreateSegmenter<SentenceSegmenter>();
+      auto* seg = CreateSegmenter<SentenceSegmenter>(cx, locale);
       if (!seg) {
         return false;
       }
