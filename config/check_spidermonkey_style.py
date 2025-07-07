@@ -68,7 +68,6 @@ included_inclnames_to_ignore = set(
         "icu4x/Date.hpp",  # ICU4X
         "icu4x/GraphemeClusterSegmenter.hpp",  # ICU4X
         "icu4x/IsoDate.hpp",  # ICU4X
-        "icu4x/Locale.hpp",  # ICU4X
         "icu4x/SentenceSegmenter.hpp",  # ICU4X
         "icu4x/WordSegmenter.hpp",  # ICU4X
         "jit/ABIFunctionTypeGenerated.h",  # generated in $OBJDIR"
