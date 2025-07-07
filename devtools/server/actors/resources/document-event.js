@@ -24,6 +24,12 @@ class DocumentEventWatcher {
     if (isWorker) {
       return;
     }
+    // Bug 1975277: ignore iframes which are destroying.
+    // The inner-window-destroyed event isn't yet fired and the actor is still
+    // registered, but it no longer has a valid window reference.
+    if (!targetActor.window) {
+      return;
+    }
 
     const onDocumentEvent = (
       name,
