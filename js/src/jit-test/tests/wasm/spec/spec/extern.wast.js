@@ -17,24 +17,24 @@
 
 // ./test/core/gc/extern.wast:1
 let $0 = instantiate(`(module
-  (type $$ft (func))
-  (type $$st (struct))
-  (type $$at (array i8))
+  (type \$ft (func))
+  (type \$st (struct))
+  (type \$at (array i8))
 
   (global externref (extern.convert_any (ref.null any)))
   (global anyref (any.convert_extern (ref.null extern)))
 
   (table 10 anyref)
 
-  (elem declare func $$f)
-  (func $$f)
+  (elem declare func \$f)
+  (func \$f)
 
-  (func (export "init") (param $$x externref)
+  (func (export "init") (param \$x externref)
     (table.set (i32.const 0) (ref.null any))
     (table.set (i32.const 1) (ref.i31 (i32.const 7)))
-    (table.set (i32.const 2) (struct.new_default $$st))
-    (table.set (i32.const 3) (array.new_default $$at (i32.const 0)))
-    (table.set (i32.const 4) (any.convert_extern (local.get $$x)))
+    (table.set (i32.const 2) (struct.new_default \$st))
+    (table.set (i32.const 3) (array.new_default \$at (i32.const 0)))
+    (table.set (i32.const 4) (any.convert_extern (local.get \$x)))
   )
 
   (func (export "internalize") (param externref) (result anyref)

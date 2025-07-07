@@ -13126,7 +13126,7 @@ assert_invalid(
 // ./test/core/simd/simd_f64x2.wast:2393
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.abs-arg-empty (result v128)
+    (func \$f64x2.abs-arg-empty (result v128)
       (f64x2.abs)
     )
   )`),
@@ -13136,7 +13136,7 @@ assert_invalid(
 // ./test/core/simd/simd_f64x2.wast:2401
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.min-1st-arg-empty (result v128)
+    (func \$f64x2.min-1st-arg-empty (result v128)
       (f64x2.min (v128.const f64x2 0 0))
     )
   )`),
@@ -13146,7 +13146,7 @@ assert_invalid(
 // ./test/core/simd/simd_f64x2.wast:2409
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.min-arg-empty (result v128)
+    (func \$f64x2.min-arg-empty (result v128)
       (f64x2.min)
     )
   )`),
@@ -13156,7 +13156,7 @@ assert_invalid(
 // ./test/core/simd/simd_f64x2.wast:2417
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.max-1st-arg-empty (result v128)
+    (func \$f64x2.max-1st-arg-empty (result v128)
       (f64x2.max (v128.const f64x2 0 0))
     )
   )`),
@@ -13166,7 +13166,7 @@ assert_invalid(
 // ./test/core/simd/simd_f64x2.wast:2425
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.max-arg-empty (result v128)
+    (func \$f64x2.max-arg-empty (result v128)
       (f64x2.max)
     )
   )`),

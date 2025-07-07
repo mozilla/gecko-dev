@@ -19,12 +19,12 @@
 
 // ./test/core/simd/simd_i64x2_cmp.wast:4
 let $0 = instantiate(`(module
-  (func (export "eq") (param $$x v128) (param $$y v128) (result v128) (i64x2.eq (local.get $$x) (local.get $$y)))
-  (func (export "ne") (param $$x v128) (param $$y v128) (result v128) (i64x2.ne (local.get $$x) (local.get $$y)))
-  (func (export "lt_s") (param $$x v128) (param $$y v128) (result v128) (i64x2.lt_s (local.get $$x) (local.get $$y)))
-  (func (export "le_s") (param $$x v128) (param $$y v128) (result v128) (i64x2.le_s (local.get $$x) (local.get $$y)))
-  (func (export "gt_s") (param $$x v128) (param $$y v128) (result v128) (i64x2.gt_s (local.get $$x) (local.get $$y)))
-  (func (export "ge_s") (param $$x v128) (param $$y v128) (result v128) (i64x2.ge_s (local.get $$x) (local.get $$y)))
+  (func (export "eq") (param \$x v128) (param \$y v128) (result v128) (i64x2.eq (local.get \$x) (local.get \$y)))
+  (func (export "ne") (param \$x v128) (param \$y v128) (result v128) (i64x2.ne (local.get \$x) (local.get \$y)))
+  (func (export "lt_s") (param \$x v128) (param \$y v128) (result v128) (i64x2.lt_s (local.get \$x) (local.get \$y)))
+  (func (export "le_s") (param \$x v128) (param \$y v128) (result v128) (i64x2.le_s (local.get \$x) (local.get \$y)))
+  (func (export "gt_s") (param \$x v128) (param \$y v128) (result v128) (i64x2.gt_s (local.get \$x) (local.get \$y)))
+  (func (export "ge_s") (param \$x v128) (param \$y v128) (result v128) (i64x2.ge_s (local.get \$x) (local.get \$y)))
 )`);
 
 // ./test/core/simd/simd_i64x2_cmp.wast:17
@@ -942,7 +942,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_cmp.wast:389
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.eq-1st-arg-empty (result v128)
+    (func \$i64x2.eq-1st-arg-empty (result v128)
       (i64x2.eq (v128.const i64x2 0 0))
     )
   )`),
@@ -952,7 +952,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_cmp.wast:397
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.eq-arg-empty (result v128)
+    (func \$i64x2.eq-arg-empty (result v128)
       (i64x2.eq)
     )
   )`),
@@ -962,7 +962,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_cmp.wast:405
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.ne-1st-arg-empty (result v128)
+    (func \$i64x2.ne-1st-arg-empty (result v128)
       (i64x2.ne (v128.const i64x2 0 0))
     )
   )`),
@@ -972,7 +972,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_cmp.wast:413
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.ne-arg-empty (result v128)
+    (func \$i64x2.ne-arg-empty (result v128)
       (i64x2.ne)
     )
   )`),

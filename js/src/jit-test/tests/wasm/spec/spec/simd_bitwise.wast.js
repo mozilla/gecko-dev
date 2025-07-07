@@ -19,14 +19,14 @@
 
 // ./test/core/simd/simd_bitwise.wast:3
 let $0 = instantiate(`(module
-  (func (export "not") (param $$0 v128) (result v128) (v128.not (local.get $$0)))
-  (func (export "and") (param $$0 v128) (param $$1 v128) (result v128) (v128.and (local.get $$0) (local.get $$1)))
-  (func (export "or") (param $$0 v128) (param $$1 v128) (result v128) (v128.or (local.get $$0) (local.get $$1)))
-  (func (export "xor") (param $$0 v128) (param $$1 v128) (result v128) (v128.xor (local.get $$0) (local.get $$1)))
-  (func (export "bitselect") (param $$0 v128) (param $$1 v128) (param $$2 v128) (result v128)
-    (v128.bitselect (local.get $$0) (local.get $$1) (local.get $$2))
+  (func (export "not") (param \$0 v128) (result v128) (v128.not (local.get \$0)))
+  (func (export "and") (param \$0 v128) (param \$1 v128) (result v128) (v128.and (local.get \$0) (local.get \$1)))
+  (func (export "or") (param \$0 v128) (param \$1 v128) (result v128) (v128.or (local.get \$0) (local.get \$1)))
+  (func (export "xor") (param \$0 v128) (param \$1 v128) (result v128) (v128.xor (local.get \$0) (local.get \$1)))
+  (func (export "bitselect") (param \$0 v128) (param \$1 v128) (param \$2 v128) (result v128)
+    (v128.bitselect (local.get \$0) (local.get \$1) (local.get \$2))
   )
-  (func (export "andnot") (param $$0 v128) (param $$1 v128) (result v128) (v128.andnot (local.get $$0) (local.get $$1)))
+  (func (export "andnot") (param \$0 v128) (param \$1 v128) (result v128) (v128.andnot (local.get \$0) (local.get \$1)))
 )`);
 
 // ./test/core/simd/simd_bitwise.wast:15
@@ -2651,7 +2651,7 @@ assert_return(() => invoke($1, `as-param`, []), []);
 // ./test/core/simd/simd_bitwise.wast:717
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.not-arg-empty (result v128)
+    (func \$v128.not-arg-empty (result v128)
       (v128.not)
     )
   )`),
@@ -2661,7 +2661,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:725
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.and-1st-arg-empty (result v128)
+    (func \$v128.and-1st-arg-empty (result v128)
       (v128.and (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2671,7 +2671,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:733
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.and-arg-empty (result v128)
+    (func \$v128.and-arg-empty (result v128)
       (v128.and)
     )
   )`),
@@ -2681,7 +2681,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:741
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.or-1st-arg-empty (result v128)
+    (func \$v128.or-1st-arg-empty (result v128)
       (v128.or (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2691,7 +2691,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:749
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.or-arg-empty (result v128)
+    (func \$v128.or-arg-empty (result v128)
       (v128.or)
     )
   )`),
@@ -2701,7 +2701,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:757
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.xor-1st-arg-empty (result v128)
+    (func \$v128.xor-1st-arg-empty (result v128)
       (v128.xor (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2711,7 +2711,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:765
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.xor-arg-empty (result v128)
+    (func \$v128.xor-arg-empty (result v128)
       (v128.xor)
     )
   )`),
@@ -2721,7 +2721,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:773
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.andnot-1st-arg-empty (result v128)
+    (func \$v128.andnot-1st-arg-empty (result v128)
       (v128.andnot (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2731,7 +2731,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:781
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.andnot-arg-empty (result v128)
+    (func \$v128.andnot-arg-empty (result v128)
       (v128.andnot)
     )
   )`),
@@ -2741,7 +2741,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:789
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.bitselect-1st-arg-empty (result v128)
+    (func \$v128.bitselect-1st-arg-empty (result v128)
       (v128.bitselect (v128.const i32x4 0 0 0 0) (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2751,7 +2751,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:797
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.bitselect-two-args-empty (result v128)
+    (func \$v128.bitselect-two-args-empty (result v128)
       (v128.bitselect (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2761,7 +2761,7 @@ assert_invalid(
 // ./test/core/simd/simd_bitwise.wast:805
 assert_invalid(
   () => instantiate(`(module
-    (func $$v128.bitselect-arg-empty (result v128)
+    (func \$v128.bitselect-arg-empty (result v128)
       (v128.bitselect)
     )
   )`),

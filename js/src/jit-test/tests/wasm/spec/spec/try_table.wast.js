@@ -17,8 +17,8 @@
 
 // ./test/core/try_table.wast:3
 let $0 = instantiate(`(module
-  (tag $$e0 (export "e0"))
-  (func (export "throw") (throw $$e0))
+  (tag \$e0 (export "e0"))
+  (func (export "throw") (throw \$e0))
 )`);
 
 // ./test/core/try_table.wast:8
@@ -26,27 +26,27 @@ register($0, `test`);
 
 // ./test/core/try_table.wast:10
 let $1 = instantiate(`(module
-  (tag $$imported-e0 (import "test" "e0"))
-  (tag $$imported-e0-alias (import "test" "e0"))
-  (func $$imported-throw (import "test" "throw"))
-  (tag $$e0)
-  (tag $$e1)
-  (tag $$e2)
-  (tag $$e-i32 (param i32))
-  (tag $$e-f32 (param f32))
-  (tag $$e-i64 (param i64))
-  (tag $$e-f64 (param f64))
+  (tag \$imported-e0 (import "test" "e0"))
+  (tag \$imported-e0-alias (import "test" "e0"))
+  (func \$imported-throw (import "test" "throw"))
+  (tag \$e0)
+  (tag \$e1)
+  (tag \$e2)
+  (tag \$e-i32 (param i32))
+  (tag \$e-f32 (param f32))
+  (tag \$e-i64 (param i64))
+  (tag \$e-f64 (param f64))
 
-  (func $$throw-if (param i32) (result i32)
+  (func \$throw-if (param i32) (result i32)
     (local.get 0)
-    (i32.const 0) (if (i32.ne) (then (throw $$e0)))
+    (i32.const 0) (if (i32.ne) (then (throw \$e0)))
     (i32.const 0)
   )
 
   (func (export "simple-throw-catch") (param i32) (result i32)
-    (block $$h
-      (try_table (result i32) (catch $$e0 $$h)
-        (if (i32.eqz (local.get 0)) (then (throw $$e0)) (else))
+    (block \$h
+      (try_table (result i32) (catch \$e0 \$h)
+        (if (i32.eqz (local.get 0)) (then (throw \$e0)) (else))
         (i32.const 42)
       )
       (return)
@@ -55,19 +55,19 @@ let $1 = instantiate(`(module
   )
 
   (func (export "unreachable-not-caught")
-    (block $$h
-      (try_table (catch_all $$h) (unreachable))
+    (block \$h
+      (try_table (catch_all \$h) (unreachable))
       (return)
     )
   )
 
-  (func $$div (param i32 i32) (result i32)
+  (func \$div (param i32 i32) (result i32)
     (local.get 0) (local.get 1) (i32.div_u)
   )
   (func (export "trap-in-callee") (param i32 i32) (result i32)
-    (block $$h
-      (try_table (result i32) (catch_all $$h)
-        (call $$div (local.get 0) (local.get 1))
+    (block \$h
+      (try_table (result i32) (catch_all \$h)
+        (call \$div (local.get 0) (local.get 1))
       )
       (return)
     )
@@ -75,16 +75,16 @@ let $1 = instantiate(`(module
   )
 
   (func (export "catch-complex-1") (param i32) (result i32)
-    (block $$h1
-      (try_table (result i32) (catch $$e1 $$h1)
-        (block $$h0
-          (try_table (result i32) (catch $$e0 $$h0)
+    (block \$h1
+      (try_table (result i32) (catch \$e1 \$h1)
+        (block \$h0
+          (try_table (result i32) (catch \$e0 \$h0)
             (if (i32.eqz (local.get 0))
-              (then (throw $$e0))
+              (then (throw \$e0))
               (else
                 (if (i32.eq (local.get 0) (i32.const 1))
-                  (then (throw $$e1))
-                  (else (throw $$e2))
+                  (then (throw \$e1))
+                  (else (throw \$e2))
                 )
               )
             )
@@ -100,15 +100,15 @@ let $1 = instantiate(`(module
   )
 
   (func (export "catch-complex-2") (param i32) (result i32)
-    (block $$h0
-      (block $$h1
-        (try_table (result i32) (catch $$e0 $$h0) (catch $$e1 $$h1)
+    (block \$h0
+      (block \$h1
+        (try_table (result i32) (catch \$e0 \$h0) (catch \$e1 \$h1)
           (if (i32.eqz (local.get 0))
-            (then (throw $$e0))
+            (then (throw \$e0))
             (else
               (if (i32.eq (local.get 0) (i32.const 1))
-                (then (throw $$e1))
-                (else (throw $$e2))
+                (then (throw \$e1))
+                (else (throw \$e2))
               )
             )
            )
@@ -122,9 +122,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch-param-i32") (param i32) (result i32)
-    (block $$h (result i32)
-      (try_table (result i32) (catch $$e-i32 $$h)
-        (throw $$e-i32 (local.get 0))
+    (block \$h (result i32)
+      (try_table (result i32) (catch \$e-i32 \$h)
+        (throw \$e-i32 (local.get 0))
         (i32.const 2)
       )
       (return)
@@ -133,9 +133,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch-param-f32") (param f32) (result f32)
-    (block $$h (result f32)
-      (try_table (result f32) (catch $$e-f32 $$h)
-        (throw $$e-f32 (local.get 0))
+    (block \$h (result f32)
+      (try_table (result f32) (catch \$e-f32 \$h)
+        (throw \$e-f32 (local.get 0))
         (f32.const 0)
       )
       (return)
@@ -144,9 +144,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch-param-i64") (param i64) (result i64)
-    (block $$h (result i64)
-      (try_table (result i64) (catch $$e-i64 $$h)
-        (throw $$e-i64 (local.get 0))
+    (block \$h (result i64)
+      (try_table (result i64) (catch \$e-i64 \$h)
+        (throw \$e-i64 (local.get 0))
         (i64.const 2)
       )
       (return)
@@ -155,9 +155,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch-param-f64") (param f64) (result f64)
-    (block $$h (result f64)
-      (try_table (result f64) (catch $$e-f64 $$h)
-        (throw $$e-f64 (local.get 0))
+    (block \$h (result f64)
+      (try_table (result f64) (catch \$e-f64 \$h)
+        (throw \$e-f64 (local.get 0))
         (f64.const 0)
       )
       (return)
@@ -166,9 +166,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch_ref-param-i32") (param i32) (result i32)
-    (block $$h (result i32 exnref)
-      (try_table (result i32) (catch_ref $$e-i32 $$h)
-        (throw $$e-i32 (local.get 0))
+    (block \$h (result i32 exnref)
+      (try_table (result i32) (catch_ref \$e-i32 \$h)
+        (throw \$e-i32 (local.get 0))
         (i32.const 2)
       )
       (return)
@@ -177,9 +177,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch_ref-param-f32") (param f32) (result f32)
-    (block $$h (result f32 exnref)
-      (try_table (result f32) (catch_ref $$e-f32 $$h)
-        (throw $$e-f32 (local.get 0))
+    (block \$h (result f32 exnref)
+      (try_table (result f32) (catch_ref \$e-f32 \$h)
+        (throw \$e-f32 (local.get 0))
         (f32.const 0)
       )
       (return)
@@ -188,9 +188,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch_ref-param-i64") (param i64) (result i64)
-    (block $$h (result i64 exnref)
-      (try_table (result i64) (catch_ref $$e-i64 $$h)
-        (throw $$e-i64 (local.get 0))
+    (block \$h (result i64 exnref)
+      (try_table (result i64) (catch_ref \$e-i64 \$h)
+        (throw \$e-i64 (local.get 0))
         (i64.const 2)
       )
       (return)
@@ -199,9 +199,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "throw-catch_ref-param-f64") (param f64) (result f64)
-    (block $$h (result f64 exnref)
-      (try_table (result f64) (catch_ref $$e-f64 $$h)
-        (throw $$e-f64 (local.get 0))
+    (block \$h (result f64 exnref)
+      (try_table (result f64) (catch_ref \$e-f64 \$h)
+        (throw \$e-f64 (local.get 0))
         (f64.const 0)
       )
       (return)
@@ -209,21 +209,21 @@ let $1 = instantiate(`(module
     (drop) (return)
   )
 
-  (func $$throw-param-i32 (param i32) (throw $$e-i32 (local.get 0)))
+  (func \$throw-param-i32 (param i32) (throw \$e-i32 (local.get 0)))
   (func (export "catch-param-i32") (param i32) (result i32)
-    (block $$h (result i32)
-      (try_table (result i32) (catch $$e-i32 $$h)
+    (block \$h (result i32)
+      (try_table (result i32) (catch \$e-i32 \$h)
         (i32.const 0)
-        (call $$throw-param-i32 (local.get 0))
+        (call \$throw-param-i32 (local.get 0))
       )
       (return)
     )
   )
 
   (func (export "catch-imported") (result i32)
-    (block $$h
-      (try_table (result i32) (catch $$imported-e0 $$h)
-        (call $$imported-throw (i32.const 1))
+    (block \$h
+      (try_table (result i32) (catch \$imported-e0 \$h)
+        (call \$imported-throw (i32.const 1))
       )
       (return)
     )
@@ -231,9 +231,9 @@ let $1 = instantiate(`(module
   )
 
   (func (export "catch-imported-alias") (result i32)
-    (block $$h
-      (try_table (result i32) (catch $$imported-e0 $$h)
-        (throw $$imported-e0-alias (i32.const 1))
+    (block \$h
+      (try_table (result i32) (catch \$imported-e0 \$h)
+        (throw \$imported-e0-alias (i32.const 1))
       )
       (return)
     )
@@ -241,28 +241,28 @@ let $1 = instantiate(`(module
   )
 
   (func (export "catchless-try") (param i32) (result i32)
-    (block $$h
-      (try_table (result i32) (catch $$e0 $$h)
-        (try_table (result i32) (call $$throw-if (local.get 0)))
+    (block \$h
+      (try_table (result i32) (catch \$e0 \$h)
+        (try_table (result i32) (call \$throw-if (local.get 0)))
       )
       (return)
     )
     (i32.const 1)
   )
 
-  (func $$throw-void (throw $$e0))
+  (func \$throw-void (throw \$e0))
   (func (export "return-call-in-try-catch")
-    (block $$h
-      (try_table (catch $$e0 $$h)
-        (return_call $$throw-void)
+    (block \$h
+      (try_table (catch \$e0 \$h)
+        (return_call \$throw-void)
       )
     )
   )
 
-  (table funcref (elem $$throw-void))
+  (table funcref (elem \$throw-void))
   (func (export "return-call-indirect-in-try-catch")
-    (block $$h
-      (try_table (catch $$e0 $$h)
+    (block \$h
+      (try_table (catch \$e0 \$h)
         (return_call_indirect (i32.const 0))
       )
     )
@@ -392,16 +392,16 @@ assert_return(() => invoke($1, `try-with-param`, []), []);
 
 // ./test/core/try_table.wast:315
 let $2 = instantiate(`(module
-  (func $$imported-throw (import "test" "throw"))
-  (tag $$e0)
+  (func \$imported-throw (import "test" "throw"))
+  (tag \$e0)
 
   (func (export "imported-mismatch") (result i32)
-    (block $$h
-      (try_table (result i32) (catch_all $$h)
-        (block $$h0
-          (try_table (result i32) (catch $$e0 $$h0)
+    (block \$h
+      (try_table (result i32) (catch_all \$h)
+        (block \$h0
+          (try_table (result i32) (catch \$e0 \$h0)
             (i32.const 1)
-            (call $$imported-throw)
+            (call \$imported-throw)
           )
           (return)
         )
@@ -421,18 +421,18 @@ assert_malformed(() => instantiate(`(module (func (catch_all))) `), `unexpected 
 
 // ./test/core/try_table.wast:344
 assert_malformed(
-  () => instantiate(`(module (tag $$e) (func (catch $$e))) `),
+  () => instantiate(`(module (tag \$e) (func (catch \$e))) `),
   `unexpected token`,
 );
 
 // ./test/core/try_table.wast:349
 let $3 = instantiate(`(module
-  (tag $$e)
-  (func (try_table (catch $$e 0) (catch $$e 0)))
-  (func (try_table (catch_all 0) (catch $$e 0)))
+  (tag \$e)
+  (func (try_table (catch \$e 0) (catch \$e 0)))
+  (func (try_table (catch_all 0) (catch \$e 0)))
   (func (try_table (catch_all 0) (catch_all 0)))
-  (func (result exnref) (try_table (catch_ref $$e 0) (catch_ref $$e 0)) (unreachable))
-  (func (result exnref) (try_table (catch_all_ref 0) (catch_ref $$e 0)) (unreachable))
+  (func (result exnref) (try_table (catch_ref \$e 0) (catch_ref \$e 0)) (unreachable))
+  (func (result exnref) (try_table (catch_all_ref 0) (catch_ref \$e 0)) (unreachable))
   (func (result exnref) (try_table (catch_all_ref 0) (catch_all_ref 0)) (unreachable))
 )`);
 
@@ -483,43 +483,43 @@ assert_invalid(
 
 // ./test/core/try_table.wast:393
 let $4 = instantiate(`(module
-  (type $$t (func))
-  (func $$dummy)
-  (elem declare func $$dummy)
+  (type \$t (func))
+  (func \$dummy)
+  (elem declare func \$dummy)
 
-  (tag $$e (param (ref $$t)))
-  (func $$throw (throw $$e (ref.func $$dummy)))
+  (tag \$e (param (ref \$t)))
+  (func \$throw (throw \$e (ref.func \$dummy)))
 
-  (func (export "catch") (result (ref null $$t))
-    (block $$l (result (ref null $$t))
-      (try_table (catch $$e $$l) (call $$throw))
+  (func (export "catch") (result (ref null \$t))
+    (block \$l (result (ref null \$t))
+      (try_table (catch \$e \$l) (call \$throw))
       (unreachable)
     )
   )
-  (func (export "catch_ref1") (result (ref null $$t))
-    (block $$l (result (ref null $$t) (ref exn))
-      (try_table (catch_ref $$e $$l) (call $$throw))
+  (func (export "catch_ref1") (result (ref null \$t))
+    (block \$l (result (ref null \$t) (ref exn))
+      (try_table (catch_ref \$e \$l) (call \$throw))
       (unreachable)
     )
     (drop)
   )
-  (func (export "catch_ref2") (result (ref null $$t))
-    (block $$l (result (ref null $$t) (ref null exn))
-      (try_table (catch_ref $$e $$l) (call $$throw))
+  (func (export "catch_ref2") (result (ref null \$t))
+    (block \$l (result (ref null \$t) (ref null exn))
+      (try_table (catch_ref \$e \$l) (call \$throw))
       (unreachable)
     )
     (drop)
   )
   (func (export "catch_all_ref1")
-    (block $$l (result (ref exn))
-      (try_table (catch_all_ref $$l) (call $$throw))
+    (block \$l (result (ref exn))
+      (try_table (catch_all_ref \$l) (call \$throw))
       (unreachable)
     )
     (drop)
   )
   (func (export "catch_all_ref2")
-    (block $$l (result (ref null exn))
-      (try_table (catch_all_ref $$l) (call $$throw))
+    (block \$l (result (ref null exn))
+      (try_table (catch_all_ref \$l) (call \$throw))
       (unreachable)
     )
     (drop)
@@ -544,11 +544,11 @@ assert_return(() => invoke($4, `catch_all_ref2`, []), []);
 // ./test/core/try_table.wast:443
 assert_invalid(
   () => instantiate(`(module
-    (type $$t (func))
-    (tag $$e (param (ref null $$t)))
-    (func (export "catch") (result (ref $$t))
-      (block $$l (result (ref $$t))
-        (try_table (catch $$e $$l))
+    (type \$t (func))
+    (tag \$e (param (ref null \$t)))
+    (func (export "catch") (result (ref \$t))
+      (block \$l (result (ref \$t))
+        (try_table (catch \$e \$l))
         (unreachable)
       )
     )
@@ -559,11 +559,11 @@ assert_invalid(
 // ./test/core/try_table.wast:456
 assert_invalid(
   () => instantiate(`(module
-    (type $$t (func))
-    (tag $$e (param (ref null $$t)))
-    (func (export "catch_ref") (result (ref $$t))
-      (block $$l (result (ref $$t) (ref exn))
-        (try_table (catch $$e $$l))
+    (type \$t (func))
+    (tag \$e (param (ref null \$t)))
+    (func (export "catch_ref") (result (ref \$t))
+      (block \$l (result (ref \$t) (ref exn))
+        (try_table (catch \$e \$l))
         (unreachable)
       )
     )

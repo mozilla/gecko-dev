@@ -17,12 +17,12 @@
 
 // ./test/core/gc/array_new_data.wast:1
 let $0 = instantiate(`(module
-  (type $$arr (array (mut i8)))
+  (type \$arr (array (mut i8)))
 
-  (data $$d "abcd")
+  (data \$d "abcd")
 
-  (func (export "array-new-data") (param i32 i32) (result (ref $$arr))
-    (array.new_data $$arr $$d (local.get 0) (local.get 1))
+  (func (export "array-new-data") (param i32 i32) (result (ref \$arr))
+    (array.new_data \$arr \$d (local.get 0) (local.get 1))
   )
 )`);
 
@@ -52,53 +52,53 @@ assert_trap(() => invoke($0, `array-new-data`, [4, 1]), `out of bounds memory ac
 
 // ./test/core/gc/array_new_data.wast:23
 let $1 = instantiate(`(module
-  (type $$a32 (array i32))
-  (type $$a64 (array i64))
+  (type \$a32 (array i32))
+  (type \$a64 (array i64))
 
-  (data $$data0 "")
-  (data $$data1 "1")
-  (data $$data2 "12")
-  (data $$data3 "123")
-  (data $$data4 "1234")
-  (data $$data7 "1234567")
-  (data $$data9 "123456789")
+  (data \$data0 "")
+  (data \$data1 "1")
+  (data \$data2 "12")
+  (data \$data3 "123")
+  (data \$data4 "1234")
+  (data \$data7 "1234567")
+  (data \$data9 "123456789")
 
   (func (export "f0")
-    (drop (array.new_data $$a32 $$data0 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a32 \$data0 (i32.const 0) (i32.const 1)))
   )
   (func (export "f1")
-    (drop (array.new_data $$a32 $$data1 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a32 \$data1 (i32.const 0) (i32.const 1)))
   )
   (func (export "f2")
-    (drop (array.new_data $$a32 $$data2 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a32 \$data2 (i32.const 0) (i32.const 1)))
   )
   (func (export "f3")
-    (drop (array.new_data $$a32 $$data3 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a32 \$data3 (i32.const 0) (i32.const 1)))
   )
   (func (export "f4")
-    (drop (array.new_data $$a32 $$data4 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a32 \$data4 (i32.const 0) (i32.const 1)))
   )
   (func (export "f9")
-    (drop (array.new_data $$a32 $$data9 (i32.const 6) (i32.const 1)))
+    (drop (array.new_data \$a32 \$data9 (i32.const 6) (i32.const 1)))
   )
 
   (func (export "g0")
-    (drop (array.new_data $$a64 $$data0 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a64 \$data0 (i32.const 0) (i32.const 1)))
   )
   (func (export "g1")
-    (drop (array.new_data $$a64 $$data1 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a64 \$data1 (i32.const 0) (i32.const 1)))
   )
   (func (export "g4")
-    (drop (array.new_data $$a64 $$data4 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a64 \$data4 (i32.const 0) (i32.const 1)))
   )
   (func (export "g7")
-    (drop (array.new_data $$a64 $$data7 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a64 \$data7 (i32.const 0) (i32.const 1)))
   )
   (func (export "g8")
-    (drop (array.new_data $$a64 $$data9 (i32.const 0) (i32.const 1)))
+    (drop (array.new_data \$a64 \$data9 (i32.const 0) (i32.const 1)))
   )
   (func (export "g9")
-    (drop (array.new_data $$a64 $$data9 (i32.const 2) (i32.const 1)))
+    (drop (array.new_data \$a64 \$data9 (i32.const 2) (i32.const 1)))
   )
 )`);
 
@@ -140,15 +140,15 @@ assert_trap(() => invoke($1, `g9`, []), `out of bounds memory access`);
 
 // ./test/core/gc/array_new_data.wast:89
 let $2 = instantiate(`(module
-  (type $$arr (array (mut i8)))
+  (type \$arr (array (mut i8)))
 
-  (data $$d "\\aa\\bb\\cc\\dd")
+  (data \$d "\\aa\\bb\\cc\\dd")
 
   (func (export "array-new-data-contents") (result i32 i32)
-    (local (ref $$arr))
-    (local.set 0 (array.new_data $$arr $$d (i32.const 1) (i32.const 2)))
-    (array.get_u $$arr (local.get 0) (i32.const 0))
-    (array.get_u $$arr (local.get 0) (i32.const 1))
+    (local (ref \$arr))
+    (local.set 0 (array.new_data \$arr \$d (i32.const 1) (i32.const 2)))
+    (array.get_u \$arr (local.get 0) (i32.const 0))
+    (array.get_u \$arr (local.get 0) (i32.const 1))
   )
 )`);
 
@@ -157,13 +157,13 @@ assert_return(() => invoke($2, `array-new-data-contents`, []), [value("i32", 187
 
 // ./test/core/gc/array_new_data.wast:105
 let $3 = instantiate(`(module
-  (type $$arr (array (mut i32)))
+  (type \$arr (array (mut i32)))
 
-  (data $$d "\\aa\\bb\\cc\\dd")
+  (data \$d "\\aa\\bb\\cc\\dd")
 
   (func (export "array-new-data-little-endian") (result i32)
-    (array.get $$arr
-               (array.new_data $$arr $$d (i32.const 0) (i32.const 1))
+    (array.get \$arr
+               (array.new_data \$arr \$d (i32.const 0) (i32.const 1))
                (i32.const 0))
   )
 )`);
@@ -173,13 +173,13 @@ assert_return(() => invoke($3, `array-new-data-little-endian`, []), [value("i32"
 
 // ./test/core/gc/array_new_data.wast:120
 let $4 = instantiate(`(module
-  (type $$arr (array (mut i16)))
+  (type \$arr (array (mut i16)))
 
-  (data $$d "\\00\\11\\22")
+  (data \$d "\\00\\11\\22")
 
   (func (export "array-new-data-unaligned") (result i32)
-    (array.get_u $$arr
-                 (array.new_data $$arr $$d (i32.const 1) (i32.const 1))
+    (array.get_u \$arr
+                 (array.new_data \$arr \$d (i32.const 1) (i32.const 1))
                  (i32.const 0))
   )
 )`);

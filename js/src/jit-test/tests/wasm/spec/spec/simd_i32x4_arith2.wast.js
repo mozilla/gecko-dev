@@ -922,7 +922,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:303
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.min_s-1st-arg-empty (result v128)
+    (func \$i32x4.min_s-1st-arg-empty (result v128)
       (i32x4.min_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -932,7 +932,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:311
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.min_s-arg-empty (result v128)
+    (func \$i32x4.min_s-arg-empty (result v128)
       (i32x4.min_s)
     )
   )`),
@@ -942,7 +942,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:319
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.min_u-1st-arg-empty (result v128)
+    (func \$i32x4.min_u-1st-arg-empty (result v128)
       (i32x4.min_u (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -952,7 +952,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:327
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.min_u-arg-empty (result v128)
+    (func \$i32x4.min_u-arg-empty (result v128)
       (i32x4.min_u)
     )
   )`),
@@ -962,7 +962,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:335
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.max_s-1st-arg-empty (result v128)
+    (func \$i32x4.max_s-1st-arg-empty (result v128)
       (i32x4.max_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -972,7 +972,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:343
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.max_s-arg-empty (result v128)
+    (func \$i32x4.max_s-arg-empty (result v128)
       (i32x4.max_s)
     )
   )`),
@@ -982,7 +982,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:351
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.max_u-1st-arg-empty (result v128)
+    (func \$i32x4.max_u-1st-arg-empty (result v128)
       (i32x4.max_u (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -992,7 +992,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:359
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.max_u-arg-empty (result v128)
+    (func \$i32x4.max_u-arg-empty (result v128)
       (i32x4.max_u)
     )
   )`),
@@ -1002,7 +1002,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith2.wast:367
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.abs-arg-empty (result v128)
+    (func \$i32x4.abs-arg-empty (result v128)
       (i32x4.abs)
     )
   )`),

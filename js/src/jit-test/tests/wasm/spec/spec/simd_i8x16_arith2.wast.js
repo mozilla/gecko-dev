@@ -1532,7 +1532,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:396
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.min_s-1st-arg-empty (result v128)
+    (func \$i8x16.min_s-1st-arg-empty (result v128)
       (i8x16.min_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1542,7 +1542,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:404
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.min_s-arg-empty (result v128)
+    (func \$i8x16.min_s-arg-empty (result v128)
       (i8x16.min_s)
     )
   )`),
@@ -1552,7 +1552,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:412
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.min_u-1st-arg-empty (result v128)
+    (func \$i8x16.min_u-1st-arg-empty (result v128)
       (i8x16.min_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1562,7 +1562,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:420
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.min_u-arg-empty (result v128)
+    (func \$i8x16.min_u-arg-empty (result v128)
       (i8x16.min_u)
     )
   )`),
@@ -1572,7 +1572,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:428
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.max_s-1st-arg-empty (result v128)
+    (func \$i8x16.max_s-1st-arg-empty (result v128)
       (i8x16.max_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1582,7 +1582,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:436
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.max_s-arg-empty (result v128)
+    (func \$i8x16.max_s-arg-empty (result v128)
       (i8x16.max_s)
     )
   )`),
@@ -1592,7 +1592,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:444
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.max_u-1st-arg-empty (result v128)
+    (func \$i8x16.max_u-1st-arg-empty (result v128)
       (i8x16.max_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1602,7 +1602,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:452
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.max_u-arg-empty (result v128)
+    (func \$i8x16.max_u-arg-empty (result v128)
       (i8x16.max_u)
     )
   )`),
@@ -1612,7 +1612,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:460
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.avgr_u-1st-arg-empty (result v128)
+    (func \$i8x16.avgr_u-1st-arg-empty (result v128)
       (i8x16.avgr_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1622,7 +1622,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:468
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.avgr_u-arg-empty (result v128)
+    (func \$i8x16.avgr_u-arg-empty (result v128)
       (i8x16.avgr_u)
     )
   )`),
@@ -1632,7 +1632,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:476
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.abs-arg-empty (result v128)
+    (func \$i8x16.abs-arg-empty (result v128)
       (i8x16.abs)
     )
   )`),
@@ -1642,7 +1642,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith2.wast:484
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.popcnt-arg-empty (result v128)
+    (func \$i8x16.popcnt-arg-empty (result v128)
       (i8x16.popcnt)
     )
   )`),

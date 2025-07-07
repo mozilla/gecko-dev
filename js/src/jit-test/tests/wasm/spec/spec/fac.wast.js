@@ -28,13 +28,13 @@ let $0 = instantiate(`(module
   )
 
   ;; Recursive factorial named
-  (func $$fac-rec-named (export "fac-rec-named") (param $$n i64) (result i64)
-    (if (result i64) (i64.eq (local.get $$n) (i64.const 0))
+  (func \$fac-rec-named (export "fac-rec-named") (param \$n i64) (result i64)
+    (if (result i64) (i64.eq (local.get \$n) (i64.const 0))
       (then (i64.const 1))
       (else
         (i64.mul
-          (local.get $$n)
-          (call $$fac-rec-named (i64.sub (local.get $$n) (i64.const 1)))
+          (local.get \$n)
+          (call \$fac-rec-named (i64.sub (local.get \$n) (i64.const 1)))
         )
       )
     )
@@ -62,25 +62,25 @@ let $0 = instantiate(`(module
   )
 
   ;; Iterative factorial named
-  (func (export "fac-iter-named") (param $$n i64) (result i64)
-    (local $$i i64)
-    (local $$res i64)
-    (local.set $$i (local.get $$n))
-    (local.set $$res (i64.const 1))
-    (block $$done
-      (loop $$loop
+  (func (export "fac-iter-named") (param \$n i64) (result i64)
+    (local \$i i64)
+    (local \$res i64)
+    (local.set \$i (local.get \$n))
+    (local.set \$res (i64.const 1))
+    (block \$done
+      (loop \$loop
         (if
-          (i64.eq (local.get $$i) (i64.const 0))
-          (then (br $$done))
+          (i64.eq (local.get \$i) (i64.const 0))
+          (then (br \$done))
           (else
-            (local.set $$res (i64.mul (local.get $$i) (local.get $$res)))
-            (local.set $$i (i64.sub (local.get $$i) (i64.const 1)))
+            (local.set \$res (i64.mul (local.get \$i) (local.get \$res)))
+            (local.set \$i (i64.sub (local.get \$i) (i64.const 1)))
           )
         )
-        (br $$loop)
+        (br \$loop)
       )
     )
-    (local.get $$res)
+    (local.get \$res)
   )
 
   ;; Optimized factorial.
@@ -99,19 +99,19 @@ let $0 = instantiate(`(module
   )
 
   ;; Iterative factorial without locals.
-  (func $$pick0 (param i64) (result i64 i64)
+  (func \$pick0 (param i64) (result i64 i64)
     (local.get 0) (local.get 0)
   )
-  (func $$pick1 (param i64 i64) (result i64 i64 i64)
+  (func \$pick1 (param i64 i64) (result i64 i64 i64)
     (local.get 0) (local.get 1) (local.get 0)
   )
   (func (export "fac-ssa") (param i64) (result i64)
     (i64.const 1) (local.get 0)
-    (loop $$l (param i64 i64) (result i64)
-      (call $$pick1) (call $$pick1) (i64.mul)
-      (call $$pick1) (i64.const 1) (i64.sub)
-      (call $$pick0) (i64.const 0) (i64.gt_u)
-      (br_if $$l)
+    (loop \$l (param i64 i64) (result i64)
+      (call \$pick1) (call \$pick1) (i64.mul)
+      (call \$pick1) (i64.const 1) (i64.sub)
+      (call \$pick0) (i64.const 0) (i64.gt_u)
+      (br_if \$l)
       (drop) (return)
     )
   )

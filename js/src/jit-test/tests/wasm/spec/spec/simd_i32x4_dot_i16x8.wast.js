@@ -265,7 +265,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_dot_i16x8.wast:94
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.dot_i16x8_s-1st-arg-empty (result v128)
+    (func \$i32x4.dot_i16x8_s-1st-arg-empty (result v128)
       (i32x4.dot_i16x8_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -275,7 +275,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_dot_i16x8.wast:102
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.dot_i16x8_s-arg-empty (result v128)
+    (func \$i32x4.dot_i16x8_s-arg-empty (result v128)
       (i32x4.dot_i16x8_s)
     )
   )`),

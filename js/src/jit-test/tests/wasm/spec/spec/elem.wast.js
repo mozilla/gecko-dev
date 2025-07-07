@@ -17,163 +17,163 @@
 
 // ./test/core/elem.wast:4
 let $0 = instantiate(`(module
-  (table $$t 10 funcref)
-  (func $$f)
-  (func $$g)
+  (table \$t 10 funcref)
+  (func \$f)
+  (func \$g)
 
   ;; Passive
   (elem funcref)
-  (elem funcref (ref.func $$f) (item ref.func $$f) (item (ref.null func)) (ref.func $$g))
+  (elem funcref (ref.func \$f) (item ref.func \$f) (item (ref.null func)) (ref.func \$g))
   (elem func)
-  (elem func $$f $$f $$g $$g)
+  (elem func \$f \$f \$g \$g)
 
-  (elem $$p1 funcref)
-  (elem $$p2 funcref (ref.func $$f) (ref.func $$f) (ref.null func) (ref.func $$g))
-  (elem $$p3 func)
-  (elem $$p4 func $$f $$f $$g $$g)
+  (elem \$p1 funcref)
+  (elem \$p2 funcref (ref.func \$f) (ref.func \$f) (ref.null func) (ref.func \$g))
+  (elem \$p3 func)
+  (elem \$p4 func \$f \$f \$g \$g)
 
   ;; Active
-  (elem (table $$t) (i32.const 0) funcref)
-  (elem (table $$t) (i32.const 0) funcref (ref.func $$f) (ref.null func))
-  (elem (table $$t) (i32.const 0) func)
-  (elem (table $$t) (i32.const 0) func $$f $$g)
-  (elem (table $$t) (offset (i32.const 0)) funcref)
-  (elem (table $$t) (offset (i32.const 0)) func $$f $$g)
+  (elem (table \$t) (i32.const 0) funcref)
+  (elem (table \$t) (i32.const 0) funcref (ref.func \$f) (ref.null func))
+  (elem (table \$t) (i32.const 0) func)
+  (elem (table \$t) (i32.const 0) func \$f \$g)
+  (elem (table \$t) (offset (i32.const 0)) funcref)
+  (elem (table \$t) (offset (i32.const 0)) func \$f \$g)
   (elem (table 0) (i32.const 0) func)
-  (elem (table 0x0) (i32.const 0) func $$f $$f)
+  (elem (table 0x0) (i32.const 0) func \$f \$f)
   (elem (table 0x000) (offset (i32.const 0)) func)
-  (elem (table 0) (offset (i32.const 0)) func $$f $$f)
-  (elem (table $$t) (i32.const 0) func)
-  (elem (table $$t) (i32.const 0) func $$f $$f)
-  (elem (table $$t) (offset (i32.const 0)) func)
-  (elem (table $$t) (offset (i32.const 0)) func $$f $$f)
+  (elem (table 0) (offset (i32.const 0)) func \$f \$f)
+  (elem (table \$t) (i32.const 0) func)
+  (elem (table \$t) (i32.const 0) func \$f \$f)
+  (elem (table \$t) (offset (i32.const 0)) func)
+  (elem (table \$t) (offset (i32.const 0)) func \$f \$f)
   (elem (offset (i32.const 0)))
-  (elem (offset (i32.const 0)) funcref (ref.func $$f) (ref.null func))
-  (elem (offset (i32.const 0)) func $$f $$f)
-  (elem (offset (i32.const 0)) $$f $$f)
+  (elem (offset (i32.const 0)) funcref (ref.func \$f) (ref.null func))
+  (elem (offset (i32.const 0)) func \$f \$f)
+  (elem (offset (i32.const 0)) \$f \$f)
   (elem (i32.const 0))
-  (elem (i32.const 0) funcref (ref.func $$f) (ref.null func))
-  (elem (i32.const 0) func $$f $$f)
-  (elem (i32.const 0) $$f $$f)
-  (elem (i32.const 0) funcref (item (ref.func $$f)) (item (ref.null func)))
+  (elem (i32.const 0) funcref (ref.func \$f) (ref.null func))
+  (elem (i32.const 0) func \$f \$f)
+  (elem (i32.const 0) \$f \$f)
+  (elem (i32.const 0) funcref (item (ref.func \$f)) (item (ref.null func)))
 
-  (elem $$a1 (table $$t) (i32.const 0) funcref)
-  (elem $$a2 (table $$t) (i32.const 0) funcref (ref.func $$f) (ref.null func))
-  (elem $$a3 (table $$t) (i32.const 0) func)
-  (elem $$a4 (table $$t) (i32.const 0) func $$f $$g)
-  (elem $$a9 (table $$t) (offset (i32.const 0)) funcref)
-  (elem $$a10 (table $$t) (offset (i32.const 0)) func $$f $$g)
-  (elem $$a11 (table 0) (i32.const 0) func)
-  (elem $$a12 (table 0x0) (i32.const 0) func $$f $$f)
-  (elem $$a13 (table 0x000) (offset (i32.const 0)) func)
-  (elem $$a14 (table 0) (offset (i32.const 0)) func $$f $$f)
-  (elem $$a15 (table $$t) (i32.const 0) func)
-  (elem $$a16 (table $$t) (i32.const 0) func $$f $$f)
-  (elem $$a17 (table $$t) (offset (i32.const 0)) func)
-  (elem $$a18 (table $$t) (offset (i32.const 0)) func $$f $$f)
-  (elem $$a19 (offset (i32.const 0)))
-  (elem $$a20 (offset (i32.const 0)) funcref (ref.func $$f) (ref.null func))
-  (elem $$a21 (offset (i32.const 0)) func $$f $$f)
-  (elem $$a22 (offset (i32.const 0)) $$f $$f)
-  (elem $$a23 (i32.const 0))
-  (elem $$a24 (i32.const 0) funcref (ref.func $$f) (ref.null func))
-  (elem $$a25 (i32.const 0) func $$f $$f)
-  (elem $$a26 (i32.const 0) $$f $$f)
+  (elem \$a1 (table \$t) (i32.const 0) funcref)
+  (elem \$a2 (table \$t) (i32.const 0) funcref (ref.func \$f) (ref.null func))
+  (elem \$a3 (table \$t) (i32.const 0) func)
+  (elem \$a4 (table \$t) (i32.const 0) func \$f \$g)
+  (elem \$a9 (table \$t) (offset (i32.const 0)) funcref)
+  (elem \$a10 (table \$t) (offset (i32.const 0)) func \$f \$g)
+  (elem \$a11 (table 0) (i32.const 0) func)
+  (elem \$a12 (table 0x0) (i32.const 0) func \$f \$f)
+  (elem \$a13 (table 0x000) (offset (i32.const 0)) func)
+  (elem \$a14 (table 0) (offset (i32.const 0)) func \$f \$f)
+  (elem \$a15 (table \$t) (i32.const 0) func)
+  (elem \$a16 (table \$t) (i32.const 0) func \$f \$f)
+  (elem \$a17 (table \$t) (offset (i32.const 0)) func)
+  (elem \$a18 (table \$t) (offset (i32.const 0)) func \$f \$f)
+  (elem \$a19 (offset (i32.const 0)))
+  (elem \$a20 (offset (i32.const 0)) funcref (ref.func \$f) (ref.null func))
+  (elem \$a21 (offset (i32.const 0)) func \$f \$f)
+  (elem \$a22 (offset (i32.const 0)) \$f \$f)
+  (elem \$a23 (i32.const 0))
+  (elem \$a24 (i32.const 0) funcref (ref.func \$f) (ref.null func))
+  (elem \$a25 (i32.const 0) func \$f \$f)
+  (elem \$a26 (i32.const 0) \$f \$f)
 
   ;; Declarative
   (elem declare funcref)
-  (elem declare funcref (ref.func $$f) (ref.func $$f) (ref.null func) (ref.func $$g))
+  (elem declare funcref (ref.func \$f) (ref.func \$f) (ref.null func) (ref.func \$g))
   (elem declare func)
-  (elem declare func $$f $$f $$g $$g)
+  (elem declare func \$f \$f \$g \$g)
 
-  (elem $$d1 declare funcref)
-  (elem $$d2 declare funcref (ref.func $$f) (ref.func $$f) (ref.null func) (ref.func $$g))
-  (elem $$d3 declare func)
-  (elem $$d4 declare func $$f $$f $$g $$g)
+  (elem \$d1 declare funcref)
+  (elem \$d2 declare funcref (ref.func \$f) (ref.func \$f) (ref.null func) (ref.func \$g))
+  (elem \$d3 declare func)
+  (elem \$d4 declare func \$f \$f \$g \$g)
 )`);
 
 // ./test/core/elem.wast:80
 let $1 = instantiate(`(module
-  (func $$f)
-  (func $$g)
+  (func \$f)
+  (func \$g)
 
-  (table $$t funcref (elem (ref.func $$f) (ref.null func) (ref.func $$g)))
+  (table \$t funcref (elem (ref.func \$f) (ref.null func) (ref.func \$g)))
 )`);
 
 // ./test/core/elem.wast:87
 let $2 = instantiate(`(module
-  (func $$f)
-  (func $$g)
+  (func \$f)
+  (func \$g)
 
-  (table $$t 10 (ref func) (ref.func $$f))
-  (elem (i32.const 3) $$g)
+  (table \$t 10 (ref func) (ref.func \$f))
+  (elem (i32.const 3) \$g)
 )`);
 
 // ./test/core/elem.wast:98
 let $3 = instantiate(`(module
   (table 10 funcref)
-  (func $$f)
-  (elem (i32.const 0) $$f)
+  (func \$f)
+  (elem (i32.const 0) \$f)
 )`);
 
 // ./test/core/elem.wast:103
 let $4 = instantiate(`(module
   (import "spectest" "table" (table 10 funcref))
-  (func $$f)
-  (elem (i32.const 0) $$f)
+  (func \$f)
+  (elem (i32.const 0) \$f)
 )`);
 
 // ./test/core/elem.wast:109
 let $5 = instantiate(`(module
   (table 10 funcref)
-  (func $$f)
-  (elem (i32.const 0) $$f)
-  (elem (i32.const 3) $$f)
-  (elem (i32.const 7) $$f)
-  (elem (i32.const 5) $$f)
-  (elem (i32.const 3) $$f)
+  (func \$f)
+  (elem (i32.const 0) \$f)
+  (elem (i32.const 3) \$f)
+  (elem (i32.const 7) \$f)
+  (elem (i32.const 5) \$f)
+  (elem (i32.const 3) \$f)
 )`);
 
 // ./test/core/elem.wast:118
 let $6 = instantiate(`(module
   (import "spectest" "table" (table 10 funcref))
-  (func $$f)
-  (elem (i32.const 9) $$f)
-  (elem (i32.const 3) $$f)
-  (elem (i32.const 7) $$f)
-  (elem (i32.const 3) $$f)
-  (elem (i32.const 5) $$f)
+  (func \$f)
+  (elem (i32.const 9) \$f)
+  (elem (i32.const 3) \$f)
+  (elem (i32.const 7) \$f)
+  (elem (i32.const 3) \$f)
+  (elem (i32.const 5) \$f)
 )`);
 
 // ./test/core/elem.wast:128
 let $7 = instantiate(`(module
   (global (import "spectest" "global_i32") i32)
   (table 1000 funcref)
-  (func $$f)
-  (elem (global.get 0) $$f)
+  (func \$f)
+  (elem (global.get 0) \$f)
 )`);
 
 // ./test/core/elem.wast:135
 let $8 = instantiate(`(module
-  (global $$g (import "spectest" "global_i32") i32)
+  (global \$g (import "spectest" "global_i32") i32)
   (table 1000 funcref)
-  (func $$f)
-  (elem (global.get $$g) $$f)
+  (func \$f)
+  (elem (global.get \$g) \$f)
 )`);
 
 // ./test/core/elem.wast:142
 let $9 = instantiate(`(module
-  (type $$out-i32 (func (result i32)))
+  (type \$out-i32 (func (result i32)))
   (table 10 funcref)
-  (elem (i32.const 7) $$const-i32-a)
-  (elem (i32.const 9) $$const-i32-b)
-  (func $$const-i32-a (type $$out-i32) (i32.const 65))
-  (func $$const-i32-b (type $$out-i32) (i32.const 66))
-  (func (export "call-7") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 7))
+  (elem (i32.const 7) \$const-i32-a)
+  (elem (i32.const 9) \$const-i32-b)
+  (func \$const-i32-a (type \$out-i32) (i32.const 65))
+  (func \$const-i32-b (type \$out-i32) (i32.const 66))
+  (func (export "call-7") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 7))
   )
-  (func (export "call-9") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 9))
+  (func (export "call-9") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 9))
   )
 )`);
 
@@ -185,17 +185,17 @@ assert_return(() => invoke($9, `call-9`, []), [value("i32", 66)]);
 
 // ./test/core/elem.wast:161
 let $10 = instantiate(`(module
-  (type $$out-i32 (func (result i32)))
+  (type \$out-i32 (func (result i32)))
   (table 11 funcref)
-  (elem (i32.const 6) funcref (ref.null func) (ref.func $$const-i32-a))
-  (elem (i32.const 9) funcref (ref.func $$const-i32-b) (ref.null func))
-  (func $$const-i32-a (type $$out-i32) (i32.const 65))
-  (func $$const-i32-b (type $$out-i32) (i32.const 66))
-  (func (export "call-7") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 7))
+  (elem (i32.const 6) funcref (ref.null func) (ref.func \$const-i32-a))
+  (elem (i32.const 9) funcref (ref.func \$const-i32-b) (ref.null func))
+  (func \$const-i32-a (type \$out-i32) (i32.const 65))
+  (func \$const-i32-b (type \$out-i32) (i32.const 66))
+  (func (export "call-7") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 7))
   )
-  (func (export "call-9") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 9))
+  (func (export "call-9") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 9))
   )
 )`);
 
@@ -208,27 +208,27 @@ assert_return(() => invoke($10, `call-9`, []), [value("i32", 66)]);
 // ./test/core/elem.wast:178
 let $11 = instantiate(`(module
   (global i32 (i32.const 0))
-  (table 1 funcref) (elem (global.get 0) $$f) (func $$f)
+  (table 1 funcref) (elem (global.get 0) \$f) (func \$f)
 )`);
 
 // ./test/core/elem.wast:182
 let $12 = instantiate(`(module
-  (global $$g i32 (i32.const 0))
-  (table 1 funcref) (elem (global.get $$g) $$f) (func $$f)
+  (global \$g i32 (i32.const 0))
+  (table 1 funcref) (elem (global.get \$g) \$f) (func \$f)
 )`);
 
 // ./test/core/elem.wast:190
 let $13 = instantiate(`(module
   (table 10 funcref)
-  (func $$f)
-  (elem (i32.const 9) $$f)
+  (func \$f)
+  (elem (i32.const 9) \$f)
 )`);
 
 // ./test/core/elem.wast:195
 let $14 = instantiate(`(module
   (import "spectest" "table" (table 10 funcref))
-  (func $$f)
-  (elem (i32.const 9) $$f)
+  (func \$f)
+  (elem (i32.const 9) \$f)
 )`);
 
 // ./test/core/elem.wast:201
@@ -258,29 +258,29 @@ let $18 = instantiate(`(module
 // ./test/core/elem.wast:220
 let $19 = instantiate(`(module
   (import "spectest" "table" (table 0 funcref))
-  (func $$f)
-  (elem (i32.const 0) $$f)
+  (func \$f)
+  (elem (i32.const 0) \$f)
 )`);
 
 // ./test/core/elem.wast:226
 let $20 = instantiate(`(module
   (import "spectest" "table" (table 0 100 funcref))
-  (func $$f)
-  (elem (i32.const 0) $$f)
+  (func \$f)
+  (elem (i32.const 0) \$f)
 )`);
 
 // ./test/core/elem.wast:232
 let $21 = instantiate(`(module
   (import "spectest" "table" (table 0 funcref))
-  (func $$f)
-  (elem (i32.const 1) $$f)
+  (func \$f)
+  (elem (i32.const 1) \$f)
 )`);
 
 // ./test/core/elem.wast:238
 let $22 = instantiate(`(module
   (import "spectest" "table" (table 0 30 funcref))
-  (func $$f)
-  (elem (i32.const 1) $$f)
+  (func \$f)
+  (elem (i32.const 1) \$f)
 )`);
 
 // ./test/core/elem.wast:247
@@ -693,8 +693,8 @@ let $60 = instantiate(`(module binary
 assert_trap(
   () => instantiate(`(module
     (table 0 funcref)
-    (func $$f)
-    (elem (i32.const 0) $$f)
+    (func \$f)
+    (elem (i32.const 0) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -703,8 +703,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (table 0 0 funcref)
-    (func $$f)
-    (elem (i32.const 0) $$f)
+    (func \$f)
+    (elem (i32.const 0) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -713,8 +713,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (table 0 1 funcref)
-    (func $$f)
-    (elem (i32.const 0) $$f)
+    (func \$f)
+    (elem (i32.const 0) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -732,8 +732,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (table 10 funcref)
-    (func $$f)
-    (elem (i32.const 10) $$f)
+    (func \$f)
+    (elem (i32.const 10) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -742,8 +742,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (import "spectest" "table" (table 10 funcref))
-    (func $$f)
-    (elem (i32.const 10) $$f)
+    (func \$f)
+    (elem (i32.const 10) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -752,8 +752,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (table 10 20 funcref)
-    (func $$f)
-    (elem (i32.const 10) $$f)
+    (func \$f)
+    (elem (i32.const 10) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -762,8 +762,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (import "spectest" "table" (table 10 funcref))
-    (func $$f)
-    (elem (i32.const 10) $$f)
+    (func \$f)
+    (elem (i32.const 10) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -772,8 +772,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (table 10 funcref)
-    (func $$f)
-    (elem (i32.const -1) $$f)
+    (func \$f)
+    (elem (i32.const -1) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -782,8 +782,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (import "spectest" "table" (table 10 funcref))
-    (func $$f)
-    (elem (i32.const -1) $$f)
+    (func \$f)
+    (elem (i32.const -1) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -792,8 +792,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (table 10 funcref)
-    (func $$f)
-    (elem (i32.const -10) $$f)
+    (func \$f)
+    (elem (i32.const -10) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -802,8 +802,8 @@ assert_trap(
 assert_trap(
   () => instantiate(`(module
     (import "spectest" "table" (table 10 funcref))
-    (func $$f)
-    (elem (i32.const -10) $$f)
+    (func \$f)
+    (elem (i32.const -10) \$f)
   )`),
   `out of bounds table access`,
 );
@@ -811,10 +811,10 @@ assert_trap(
 // ./test/core/elem.wast:698
 let $61 = instantiate(`(module
   (table 10 funcref)
-  (elem $$e (i32.const 0) func $$f)
-  (func $$f)
+  (elem \$e (i32.const 0) func \$f)
+  (func \$f)
   (func (export "init")
-    (table.init $$e (i32.const 0) (i32.const 0) (i32.const 1))
+    (table.init \$e (i32.const 0) (i32.const 0) (i32.const 1))
   )
 )`);
 
@@ -824,10 +824,10 @@ assert_trap(() => invoke($61, `init`, []), `out of bounds table access`);
 // ./test/core/elem.wast:708
 let $62 = instantiate(`(module
   (table 10 funcref)
-  (elem $$e declare func $$f)
-  (func $$f)
+  (elem \$e declare func \$f)
+  (func \$f)
   (func (export "init")
-    (table.init $$e (i32.const 0) (i32.const 0) (i32.const 1))
+    (table.init \$e (i32.const 0) (i32.const 0) (i32.const 1))
   )
 )`);
 
@@ -837,8 +837,8 @@ assert_trap(() => invoke($62, `init`, []), `out of bounds table access`);
 // ./test/core/elem.wast:721
 assert_invalid(
   () => instantiate(`(module
-    (func $$f)
-    (elem (i32.const 0) $$f)
+    (func \$f)
+    (elem (i32.const 0) \$f)
   )`),
   `unknown table`,
 );
@@ -938,9 +938,9 @@ assert_invalid(
 // ./test/core/elem.wast:815
 assert_invalid(
   () => instantiate(`(module
-    (global $$g (import "test" "g") (mut i32))
+    (global \$g (import "test" "g") (mut i32))
     (table 1 funcref)
-    (elem (global.get $$g))
+    (elem (global.get \$g))
   )`),
   `constant expression required`,
 );
@@ -1014,22 +1014,22 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (table 1 funcref)
-    (elem (i32.const 0) funcref (item (call $$f)))
-    (func $$f (result funcref) (ref.null func))
+    (elem (i32.const 0) funcref (item (call \$f)))
+    (func \$f (result funcref) (ref.null func))
   )`),
   `constant expression required`,
 );
 
 // ./test/core/elem.wast:897
 let $63 = instantiate(`(module
-  (type $$out-i32 (func (result i32)))
+  (type \$out-i32 (func (result i32)))
   (table 10 funcref)
-  (elem (i32.const 9) $$const-i32-a)
-  (elem (i32.const 9) $$const-i32-b)
-  (func $$const-i32-a (type $$out-i32) (i32.const 65))
-  (func $$const-i32-b (type $$out-i32) (i32.const 66))
-  (func (export "call-overwritten") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 9))
+  (elem (i32.const 9) \$const-i32-a)
+  (elem (i32.const 9) \$const-i32-b)
+  (func \$const-i32-a (type \$out-i32) (i32.const 65))
+  (func \$const-i32-b (type \$out-i32) (i32.const 66))
+  (func (export "call-overwritten") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 9))
   )
 )`);
 
@@ -1038,14 +1038,14 @@ assert_return(() => invoke($63, `call-overwritten`, []), [value("i32", 66)]);
 
 // ./test/core/elem.wast:910
 let $64 = instantiate(`(module
-  (type $$out-i32 (func (result i32)))
+  (type \$out-i32 (func (result i32)))
   (import "spectest" "table" (table 10 funcref))
-  (elem (i32.const 9) $$const-i32-a)
-  (elem (i32.const 9) $$const-i32-b)
-  (func $$const-i32-a (type $$out-i32) (i32.const 65))
-  (func $$const-i32-b (type $$out-i32) (i32.const 66))
-  (func (export "call-overwritten-element") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 9))
+  (elem (i32.const 9) \$const-i32-a)
+  (elem (i32.const 9) \$const-i32-b)
+  (func \$const-i32-a (type \$out-i32) (i32.const 65))
+  (func \$const-i32-b (type \$out-i32) (i32.const 66))
+  (func (export "call-overwritten-element") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 9))
   )
 )`);
 
@@ -1053,21 +1053,21 @@ let $64 = instantiate(`(module
 assert_return(() => invoke($64, `call-overwritten-element`, []), [value("i32", 66)]);
 
 // ./test/core/elem.wast:926
-let $65 = instantiate(`(module $$module1
-  (type $$out-i32 (func (result i32)))
+let $65 = instantiate(`(module \$module1
+  (type \$out-i32 (func (result i32)))
   (table (export "shared-table") 10 funcref)
-  (elem (i32.const 8) $$const-i32-a)
-  (elem (i32.const 9) $$const-i32-b)
-  (func $$const-i32-a (type $$out-i32) (i32.const 65))
-  (func $$const-i32-b (type $$out-i32) (i32.const 66))
-  (func (export "call-7") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 7))
+  (elem (i32.const 8) \$const-i32-a)
+  (elem (i32.const 9) \$const-i32-b)
+  (func \$const-i32-a (type \$out-i32) (i32.const 65))
+  (func \$const-i32-b (type \$out-i32) (i32.const 66))
+  (func (export "call-7") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 7))
   )
-  (func (export "call-8") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 8))
+  (func (export "call-8") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 8))
   )
-  (func (export "call-9") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 9))
+  (func (export "call-9") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 9))
   )
 )`);
 let $module1 = $65;
@@ -1085,13 +1085,13 @@ assert_return(() => invoke($module1, `call-8`, []), [value("i32", 65)]);
 assert_return(() => invoke($module1, `call-9`, []), [value("i32", 66)]);
 
 // ./test/core/elem.wast:950
-let $66 = instantiate(`(module $$module2
-  (type $$out-i32 (func (result i32)))
+let $66 = instantiate(`(module \$module2
+  (type \$out-i32 (func (result i32)))
   (import "module1" "shared-table" (table 10 funcref))
-  (elem (i32.const 7) $$const-i32-c)
-  (elem (i32.const 8) $$const-i32-d)
-  (func $$const-i32-c (type $$out-i32) (i32.const 67))
-  (func $$const-i32-d (type $$out-i32) (i32.const 68))
+  (elem (i32.const 7) \$const-i32-c)
+  (elem (i32.const 8) \$const-i32-d)
+  (func \$const-i32-c (type \$out-i32) (i32.const 67))
+  (func \$const-i32-d (type \$out-i32) (i32.const 68))
 )`);
 let $module2 = $66;
 
@@ -1105,13 +1105,13 @@ assert_return(() => invoke($module1, `call-8`, []), [value("i32", 68)]);
 assert_return(() => invoke($module1, `call-9`, []), [value("i32", 66)]);
 
 // ./test/core/elem.wast:963
-let $67 = instantiate(`(module $$module3
-  (type $$out-i32 (func (result i32)))
+let $67 = instantiate(`(module \$module3
+  (type \$out-i32 (func (result i32)))
   (import "module1" "shared-table" (table 10 funcref))
-  (elem (i32.const 8) $$const-i32-e)
-  (elem (i32.const 9) $$const-i32-f)
-  (func $$const-i32-e (type $$out-i32) (i32.const 69))
-  (func $$const-i32-f (type $$out-i32) (i32.const 70))
+  (elem (i32.const 8) \$const-i32-e)
+  (elem (i32.const 9) \$const-i32-f)
+  (func \$const-i32-e (type \$out-i32) (i32.const 69))
+  (func \$const-i32-f (type \$out-i32) (i32.const 70))
 )`);
 let $module3 = $67;
 
@@ -1126,7 +1126,7 @@ assert_return(() => invoke($module1, `call-9`, []), [value("i32", 70)]);
 
 // ./test/core/elem.wast:978
 assert_invalid(
-  () => instantiate(`(module (func $$f) (table 1 externref) (elem (i32.const 0) $$f))`),
+  () => instantiate(`(module (func \$f) (table 1 externref) (elem (i32.const 0) \$f))`),
   `type mismatch`,
 );
 
@@ -1139,29 +1139,29 @@ assert_invalid(
 // ./test/core/elem.wast:988
 assert_invalid(
   () => instantiate(`(module
-    (func $$f)
-    (table $$t 1 externref)
-    (elem $$e funcref (ref.func $$f))
-    (func (table.init $$t $$e (i32.const 0) (i32.const 0) (i32.const 1))))`),
+    (func \$f)
+    (table \$t 1 externref)
+    (elem \$e funcref (ref.func \$f))
+    (func (table.init \$t \$e (i32.const 0) (i32.const 0) (i32.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/elem.wast:997
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 1 funcref)
-    (elem $$e externref (ref.null extern))
-    (func (table.init $$t $$e (i32.const 0) (i32.const 0) (i32.const 1))))`),
+    (table \$t 1 funcref)
+    (elem \$e externref (ref.null extern))
+    (func (table.init \$t \$e (i32.const 0) (i32.const 0) (i32.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/elem.wast:1007
-let $68 = instantiate(`(module $$m
-  (table $$t (export "table") 2 externref)
-  (func (export "get") (param $$i i32) (result externref)
-        (table.get $$t (local.get $$i)))
-  (func (export "set") (param $$i i32) (param $$x externref)
-        (table.set $$t (local.get $$i) (local.get $$x))))`);
+let $68 = instantiate(`(module \$m
+  (table \$t (export "table") 2 externref)
+  (func (export "get") (param \$i i32) (result externref)
+        (table.get \$t (local.get \$i)))
+  (func (export "set") (param \$i i32) (param \$x externref)
+        (table.set \$t (local.get \$i) (local.get \$x))))`);
 let $m = $68;
 
 // ./test/core/elem.wast:1014
@@ -1187,7 +1187,7 @@ assert_return(() => invoke($m, `get`, [1]), [new ExternRefResult(137)]);
 
 // ./test/core/elem.wast:1025
 let $69 = instantiate(`(module
-  (import "exporter" "table" (table $$t 2 externref))
+  (import "exporter" "table" (table \$t 2 externref))
   (elem (i32.const 0) externref (ref.null extern)))`);
 
 // ./test/core/elem.wast:1029
@@ -1197,7 +1197,7 @@ assert_return(() => invoke($m, `get`, [0]), [value('externref', null)]);
 assert_return(() => invoke($m, `get`, [1]), [new ExternRefResult(137)]);
 
 // ./test/core/elem.wast:1034
-let $70 = instantiate(`(module $$module4
+let $70 = instantiate(`(module \$module4
   (func (result i32)
     i32.const 42
   )
@@ -1211,11 +1211,11 @@ register($module4, `module4`);
 // ./test/core/elem.wast:1043
 let $71 = instantiate(`(module
   (import "module4" "f" (global funcref))
-  (type $$out-i32 (func (result i32)))
+  (type \$out-i32 (func (result i32)))
   (table 10 funcref)
   (elem (offset (i32.const 0)) funcref (global.get 0))
-  (func (export "call_imported_elem") (type $$out-i32)
-    (call_indirect (type $$out-i32) (i32.const 0))
+  (func (export "call_imported_elem") (type \$out-i32)
+    (call_indirect (type \$out-i32) (i32.const 0))
   )
 )`);
 

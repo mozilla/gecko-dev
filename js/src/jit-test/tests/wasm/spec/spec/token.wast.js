@@ -43,7 +43,7 @@ let $3 = instantiate(`(module
 
 // ./test/core/token.wast:27
 let $4 = instantiate(`(module
-  (func $$f(nop))
+  (func \$f(nop))
 )`);
 
 // ./test/core/token.wast:30
@@ -61,8 +61,8 @@ let $6 = instantiate(`(module
 // ./test/core/token.wast:38
 let $7 = instantiate(`(module
   (table 1 funcref)
-  (func $$f)
-  (elem (i32.const 0)$$f)
+  (func \$f)
+  (elem (i32.const 0)\$f)
 )`);
 
 // ./test/core/token.wast:43
@@ -96,7 +96,7 @@ let $12 = instantiate(`(module
 
 // ./test/core/token.wast:66
 let $13 = instantiate(`(module
-  (func $$f;;bla
+  (func \$f;;bla
   )
 )`);
 
@@ -114,63 +114,63 @@ let $15 = instantiate(`(module
 
 // ./test/core/token.wast:82
 let $16 = instantiate(`(module
-  (func (block $$l (i32.const 0) (br_table 0 $$l)))
+  (func (block \$l (i32.const 0) (br_table 0 \$l)))
 )`);
 
 // ./test/core/token.wast:85
 assert_malformed(
-  () => instantiate(`(func (block $$l (i32.const 0) (br_table 0$$l))) `),
+  () => instantiate(`(func (block \$l (i32.const 0) (br_table 0\$l))) `),
   `unknown operator`,
 );
 
 // ./test/core/token.wast:91
 assert_malformed(
-  () => instantiate(`(func (block $$l (i32.const 0) (br_table 0$$"l"))) `),
+  () => instantiate(`(func (block \$l (i32.const 0) (br_table 0\$"l"))) `),
   `unknown operator`,
 );
 
 // ./test/core/token.wast:98
 let $17 = instantiate(`(module
-  (func (block $$l (i32.const 0) (br_table $$l 0)))
+  (func (block \$l (i32.const 0) (br_table \$l 0)))
 )`);
 
 // ./test/core/token.wast:101
 assert_malformed(
-  () => instantiate(`(func (block $$l (i32.const 0) (br_table $$l0))) `),
+  () => instantiate(`(func (block \$l (i32.const 0) (br_table \$l0))) `),
   `unknown label`,
 );
 
 // ./test/core/token.wast:107
 assert_malformed(
-  () => instantiate(`(func (block $$l (i32.const 0) (br_table $$"l"0))) `),
+  () => instantiate(`(func (block \$l (i32.const 0) (br_table \$"l"0))) `),
   `unknown operator`,
 );
 
 // ./test/core/token.wast:114
 let $18 = instantiate(`(module
-  (func (block $$l (i32.const 0) (br_table $$l $$l)))
+  (func (block \$l (i32.const 0) (br_table \$l \$l)))
 )`);
 
 // ./test/core/token.wast:117
 assert_malformed(
-  () => instantiate(`(func (block $$l (i32.const 0) (br_table $$l$$l))) `),
+  () => instantiate(`(func (block \$l (i32.const 0) (br_table \$l\$l))) `),
   `unknown label`,
 );
 
 // ./test/core/token.wast:123
 assert_malformed(
-  () => instantiate(`(func (block $$l (i32.const 0) (br_table $$"l"$$l))) `),
+  () => instantiate(`(func (block \$l (i32.const 0) (br_table \$"l"\$l))) `),
   `unknown operator`,
 );
 
 // ./test/core/token.wast:130
 let $19 = instantiate(`(module
-  (func (block $$l0 (i32.const 0) (br_table $$l0)))
+  (func (block \$l0 (i32.const 0) (br_table \$l0)))
 )`);
 
 // ./test/core/token.wast:133
 let $20 = instantiate(`(module
-  (func (block $$l$$l (i32.const 0) (br_table $$l$$l)))
+  (func (block \$l\$l (i32.const 0) (br_table \$l\$l)))
 )`);
 
 // ./test/core/token.wast:140
@@ -183,59 +183,59 @@ assert_malformed(() => instantiate(`(data"a") `), `unknown operator`);
 
 // ./test/core/token.wast:150
 let $22 = instantiate(`(module
-  (data $$l "a")
+  (data \$l "a")
 )`);
 
 // ./test/core/token.wast:153
-assert_malformed(() => instantiate(`(data $$l"a") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l"a") `), `unknown operator`);
 
 // ./test/core/token.wast:160
 let $23 = instantiate(`(module
-  (data $$l " a")
+  (data \$l " a")
 )`);
 
 // ./test/core/token.wast:163
-assert_malformed(() => instantiate(`(data $$l" a") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l" a") `), `unknown operator`);
 
 // ./test/core/token.wast:170
 let $24 = instantiate(`(module
-  (data $$l "a ")
+  (data \$l "a ")
 )`);
 
 // ./test/core/token.wast:173
-assert_malformed(() => instantiate(`(data $$l"a ") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l"a ") `), `unknown operator`);
 
 // ./test/core/token.wast:180
 let $25 = instantiate(`(module
-  (data $$l "a " "b")
+  (data \$l "a " "b")
 )`);
 
 // ./test/core/token.wast:183
-assert_malformed(() => instantiate(`(data $$l"a ""b") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l"a ""b") `), `unknown operator`);
 
 // ./test/core/token.wast:190
 let $26 = instantiate(`(module
-  (data $$l "\u{f61a}\u{f4a9}")
+  (data \$l "\u{f61a}\u{f4a9}")
 )`);
 
 // ./test/core/token.wast:193
-assert_malformed(() => instantiate(`(data $$l"\u{f61a}\u{f4a9}") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l"\u{f61a}\u{f4a9}") `), `unknown operator`);
 
 // ./test/core/token.wast:200
 let $27 = instantiate(`(module
-  (data $$l " \u{f61a}\u{f4a9}")
+  (data \$l " \u{f61a}\u{f4a9}")
 )`);
 
 // ./test/core/token.wast:203
-assert_malformed(() => instantiate(`(data $$l" \u{f61a}\u{f4a9}") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l" \u{f61a}\u{f4a9}") `), `unknown operator`);
 
 // ./test/core/token.wast:210
 let $28 = instantiate(`(module
-  (data $$l "\u{f61a}\u{f4a9} ")
+  (data \$l "\u{f61a}\u{f4a9} ")
 )`);
 
 // ./test/core/token.wast:213
-assert_malformed(() => instantiate(`(data $$l"\u{f61a}\u{f4a9} ") `), `unknown operator`);
+assert_malformed(() => instantiate(`(data \$l"\u{f61a}\u{f4a9} ") `), `unknown operator`);
 
 // ./test/core/token.wast:220
 let $29 = instantiate(`(module
@@ -304,4 +304,4 @@ assert_malformed(() => instantiate(`(func "a"0) `), `unknown operator`);
 assert_malformed(() => instantiate(`(func 0"a") `), `unknown operator`);
 
 // ./test/core/token.wast:299
-assert_malformed(() => instantiate(`(func "a"$$x) `), `unknown operator`);
+assert_malformed(() => instantiate(`(func "a"\$x) `), `unknown operator`);

@@ -18,74 +18,74 @@
 // ./test/core/call_indirect.wast:3
 let $0 = instantiate(`(module
   ;; Auxiliary definitions
-  (type $$proc (func))
-  (type $$out-i32 (func (result i32)))
-  (type $$out-i64 (func (result i64)))
-  (type $$out-f32 (func (result f32)))
-  (type $$out-f64 (func (result f64)))
-  (type $$out-f64-i32 (func (result f64 i32)))
-  (type $$over-i32 (func (param i32) (result i32)))
-  (type $$over-i64 (func (param i64) (result i64)))
-  (type $$over-f32 (func (param f32) (result f32)))
-  (type $$over-f64 (func (param f64) (result f64)))
-  (type $$over-i32-f64 (func (param i32 f64) (result i32 f64)))
-  (type $$swap-i32-i64 (func (param i32 i64) (result i64 i32)))
-  (type $$f32-i32 (func (param f32 i32) (result i32)))
-  (type $$i32-i64 (func (param i32 i64) (result i64)))
-  (type $$f64-f32 (func (param f64 f32) (result f32)))
-  (type $$i64-f64 (func (param i64 f64) (result f64)))
-  (type $$over-i32-duplicate (func (param i32) (result i32)))
-  (type $$over-i64-duplicate (func (param i64) (result i64)))
-  (type $$over-f32-duplicate (func (param f32) (result f32)))
-  (type $$over-f64-duplicate (func (param f64) (result f64)))
+  (type \$proc (func))
+  (type \$out-i32 (func (result i32)))
+  (type \$out-i64 (func (result i64)))
+  (type \$out-f32 (func (result f32)))
+  (type \$out-f64 (func (result f64)))
+  (type \$out-f64-i32 (func (result f64 i32)))
+  (type \$over-i32 (func (param i32) (result i32)))
+  (type \$over-i64 (func (param i64) (result i64)))
+  (type \$over-f32 (func (param f32) (result f32)))
+  (type \$over-f64 (func (param f64) (result f64)))
+  (type \$over-i32-f64 (func (param i32 f64) (result i32 f64)))
+  (type \$swap-i32-i64 (func (param i32 i64) (result i64 i32)))
+  (type \$f32-i32 (func (param f32 i32) (result i32)))
+  (type \$i32-i64 (func (param i32 i64) (result i64)))
+  (type \$f64-f32 (func (param f64 f32) (result f32)))
+  (type \$i64-f64 (func (param i64 f64) (result f64)))
+  (type \$over-i32-duplicate (func (param i32) (result i32)))
+  (type \$over-i64-duplicate (func (param i64) (result i64)))
+  (type \$over-f32-duplicate (func (param f32) (result f32)))
+  (type \$over-f64-duplicate (func (param f64) (result f64)))
 
-  (func $$const-i32 (type $$out-i32) (i32.const 0x132))
-  (func $$const-i64 (type $$out-i64) (i64.const 0x164))
-  (func $$const-f32 (type $$out-f32) (f32.const 0xf32))
-  (func $$const-f64 (type $$out-f64) (f64.const 0xf64))
-  (func $$const-f64-i32 (type $$out-f64-i32) (f64.const 0xf64) (i32.const 32))
+  (func \$const-i32 (type \$out-i32) (i32.const 0x132))
+  (func \$const-i64 (type \$out-i64) (i64.const 0x164))
+  (func \$const-f32 (type \$out-f32) (f32.const 0xf32))
+  (func \$const-f64 (type \$out-f64) (f64.const 0xf64))
+  (func \$const-f64-i32 (type \$out-f64-i32) (f64.const 0xf64) (i32.const 32))
 
-  (func $$id-i32 (type $$over-i32) (local.get 0))
-  (func $$id-i64 (type $$over-i64) (local.get 0))
-  (func $$id-f32 (type $$over-f32) (local.get 0))
-  (func $$id-f64 (type $$over-f64) (local.get 0))
-  (func $$id-i32-f64 (type $$over-i32-f64) (local.get 0) (local.get 1))
-  (func $$swap-i32-i64 (type $$swap-i32-i64) (local.get 1) (local.get 0))
+  (func \$id-i32 (type \$over-i32) (local.get 0))
+  (func \$id-i64 (type \$over-i64) (local.get 0))
+  (func \$id-f32 (type \$over-f32) (local.get 0))
+  (func \$id-f64 (type \$over-f64) (local.get 0))
+  (func \$id-i32-f64 (type \$over-i32-f64) (local.get 0) (local.get 1))
+  (func \$swap-i32-i64 (type \$swap-i32-i64) (local.get 1) (local.get 0))
 
-  (func $$i32-i64 (type $$i32-i64) (local.get 1))
-  (func $$i64-f64 (type $$i64-f64) (local.get 1))
-  (func $$f32-i32 (type $$f32-i32) (local.get 1))
-  (func $$f64-f32 (type $$f64-f32) (local.get 1))
+  (func \$i32-i64 (type \$i32-i64) (local.get 1))
+  (func \$i64-f64 (type \$i64-f64) (local.get 1))
+  (func \$f32-i32 (type \$f32-i32) (local.get 1))
+  (func \$f64-f32 (type \$f64-f32) (local.get 1))
 
-  (func $$over-i32-duplicate (type $$over-i32-duplicate) (local.get 0))
-  (func $$over-i64-duplicate (type $$over-i64-duplicate) (local.get 0))
-  (func $$over-f32-duplicate (type $$over-f32-duplicate) (local.get 0))
-  (func $$over-f64-duplicate (type $$over-f64-duplicate) (local.get 0))
+  (func \$over-i32-duplicate (type \$over-i32-duplicate) (local.get 0))
+  (func \$over-i64-duplicate (type \$over-i64-duplicate) (local.get 0))
+  (func \$over-f32-duplicate (type \$over-f32-duplicate) (local.get 0))
+  (func \$over-f64-duplicate (type \$over-f64-duplicate) (local.get 0))
 
   (table funcref
     (elem
-      $$const-i32 $$const-i64 $$const-f32 $$const-f64  ;; 0..3
-      $$id-i32 $$id-i64 $$id-f32 $$id-f64              ;; 4..7
-      $$f32-i32 $$i32-i64 $$f64-f32 $$i64-f64          ;; 9..11
-      $$fac-i64 $$fib-i64 $$even $$odd                 ;; 12..15
-      $$runaway $$mutual-runaway1 $$mutual-runaway2   ;; 16..18
-      $$over-i32-duplicate $$over-i64-duplicate      ;; 19..20
-      $$over-f32-duplicate $$over-f64-duplicate      ;; 21..22
-      $$fac-i32 $$fac-f32 $$fac-f64                   ;; 23..25
-      $$fib-i32 $$fib-f32 $$fib-f64                   ;; 26..28
-      $$const-f64-i32 $$id-i32-f64 $$swap-i32-i64     ;; 29..31
+      \$const-i32 \$const-i64 \$const-f32 \$const-f64  ;; 0..3
+      \$id-i32 \$id-i64 \$id-f32 \$id-f64              ;; 4..7
+      \$f32-i32 \$i32-i64 \$f64-f32 \$i64-f64          ;; 9..11
+      \$fac-i64 \$fib-i64 \$even \$odd                 ;; 12..15
+      \$runaway \$mutual-runaway1 \$mutual-runaway2   ;; 16..18
+      \$over-i32-duplicate \$over-i64-duplicate      ;; 19..20
+      \$over-f32-duplicate \$over-f64-duplicate      ;; 21..22
+      \$fac-i32 \$fac-f32 \$fac-f64                   ;; 23..25
+      \$fib-i32 \$fib-f32 \$fib-f64                   ;; 26..28
+      \$const-f64-i32 \$id-i32-f64 \$swap-i32-i64     ;; 29..31
     )
   )
 
-  (table $$t64 i64 funcref
-    (elem $$const-i32)
+  (table \$t64 i64 funcref
+    (elem \$const-i32)
   )
 
   ;; Syntax
 
   (func
     (call_indirect (i32.const 0))
-    (call_indirect $$t64 (i64.const 0))
+    (call_indirect \$t64 (i64.const 0))
     (call_indirect (param i64) (i64.const 0) (i32.const 0))
     (call_indirect (param i64) (param) (param f64 i32 i64)
       (i64.const 0) (f64.const 0) (i32.const 0) (i64.const 0) (i32.const 0)
@@ -104,7 +104,7 @@ let $0 = instantiate(`(module
       )
     ))
     (drop (i64.eqz
-      (call_indirect (type $$over-i64) (param i64) (result i64)
+      (call_indirect (type \$over-i64) (param i64) (result i64)
         (i64.const 0) (i32.const 0)
       )
     ))
@@ -113,64 +113,64 @@ let $0 = instantiate(`(module
   ;; Typing
 
   (func (export "type-i32") (result i32)
-    (call_indirect (type $$out-i32) (i32.const 0))
+    (call_indirect (type \$out-i32) (i32.const 0))
   )
   (func (export "type-i32-t64") (result i32)
-    (call_indirect $$t64 (type $$out-i32) (i64.const 0))
+    (call_indirect \$t64 (type \$out-i32) (i64.const 0))
   )
   (func (export "type-i64") (result i64)
-    (call_indirect (type $$out-i64) (i32.const 1))
+    (call_indirect (type \$out-i64) (i32.const 1))
   )
   (func (export "type-f32") (result f32)
-    (call_indirect (type $$out-f32) (i32.const 2))
+    (call_indirect (type \$out-f32) (i32.const 2))
   )
   (func (export "type-f64") (result f64)
-    (call_indirect (type $$out-f64) (i32.const 3))
+    (call_indirect (type \$out-f64) (i32.const 3))
   )
   (func (export "type-f64-i32") (result f64 i32)
-    (call_indirect (type $$out-f64-i32) (i32.const 29))
+    (call_indirect (type \$out-f64-i32) (i32.const 29))
   )
 
   (func (export "type-index") (result i64)
-    (call_indirect (type $$over-i64) (i64.const 100) (i32.const 5))
+    (call_indirect (type \$over-i64) (i64.const 100) (i32.const 5))
   )
 
   (func (export "type-first-i32") (result i32)
-    (call_indirect (type $$over-i32) (i32.const 32) (i32.const 4))
+    (call_indirect (type \$over-i32) (i32.const 32) (i32.const 4))
   )
   (func (export "type-first-i64") (result i64)
-    (call_indirect (type $$over-i64) (i64.const 64) (i32.const 5))
+    (call_indirect (type \$over-i64) (i64.const 64) (i32.const 5))
   )
   (func (export "type-first-f32") (result f32)
-    (call_indirect (type $$over-f32) (f32.const 1.32) (i32.const 6))
+    (call_indirect (type \$over-f32) (f32.const 1.32) (i32.const 6))
   )
   (func (export "type-first-f64") (result f64)
-    (call_indirect (type $$over-f64) (f64.const 1.64) (i32.const 7))
+    (call_indirect (type \$over-f64) (f64.const 1.64) (i32.const 7))
   )
 
   (func (export "type-second-i32") (result i32)
-    (call_indirect (type $$f32-i32) (f32.const 32.1) (i32.const 32) (i32.const 8))
+    (call_indirect (type \$f32-i32) (f32.const 32.1) (i32.const 32) (i32.const 8))
   )
   (func (export "type-second-i64") (result i64)
-    (call_indirect (type $$i32-i64) (i32.const 32) (i64.const 64) (i32.const 9))
+    (call_indirect (type \$i32-i64) (i32.const 32) (i64.const 64) (i32.const 9))
   )
   (func (export "type-second-f32") (result f32)
-    (call_indirect (type $$f64-f32) (f64.const 64) (f32.const 32) (i32.const 10))
+    (call_indirect (type \$f64-f32) (f64.const 64) (f32.const 32) (i32.const 10))
   )
   (func (export "type-second-f64") (result f64)
-    (call_indirect (type $$i64-f64) (i64.const 64) (f64.const 64.1) (i32.const 11))
+    (call_indirect (type \$i64-f64) (i64.const 64) (f64.const 64.1) (i32.const 11))
   )
 
   (func (export "type-all-f64-i32") (result f64 i32)
-    (call_indirect (type $$out-f64-i32) (i32.const 29))
+    (call_indirect (type \$out-f64-i32) (i32.const 29))
   )
   (func (export "type-all-i32-f64") (result i32 f64)
-    (call_indirect (type $$over-i32-f64)
+    (call_indirect (type \$over-i32-f64)
       (i32.const 1) (f64.const 2) (i32.const 30)
     )
   )
   (func (export "type-all-i32-i64") (result i64 i32)
-    (call_indirect (type $$swap-i32-i64)
+    (call_indirect (type \$swap-i32-i64)
       (i32.const 1) (i64.const 2) (i32.const 31)
     )
   )
@@ -178,31 +178,31 @@ let $0 = instantiate(`(module
   ;; Dispatch
 
   (func (export "dispatch") (param i32 i64) (result i64)
-    (call_indirect (type $$over-i64) (local.get 1) (local.get 0))
+    (call_indirect (type \$over-i64) (local.get 1) (local.get 0))
   )
 
   (func (export "dispatch-structural-i64") (param i32) (result i64)
-    (call_indirect (type $$over-i64-duplicate) (i64.const 9) (local.get 0))
+    (call_indirect (type \$over-i64-duplicate) (i64.const 9) (local.get 0))
   )
   (func (export "dispatch-structural-i32") (param i32) (result i32)
-    (call_indirect (type $$over-i32-duplicate) (i32.const 9) (local.get 0))
+    (call_indirect (type \$over-i32-duplicate) (i32.const 9) (local.get 0))
   )
   (func (export "dispatch-structural-f32") (param i32) (result f32)
-    (call_indirect (type $$over-f32-duplicate) (f32.const 9.0) (local.get 0))
+    (call_indirect (type \$over-f32-duplicate) (f32.const 9.0) (local.get 0))
   )
   (func (export "dispatch-structural-f64") (param i32) (result f64)
-    (call_indirect (type $$over-f64-duplicate) (f64.const 9.0) (local.get 0))
+    (call_indirect (type \$over-f64-duplicate) (f64.const 9.0) (local.get 0))
   )
 
   ;; Recursion
 
-  (func $$fac-i64 (export "fac-i64") (type $$over-i64)
+  (func \$fac-i64 (export "fac-i64") (type \$over-i64)
     (if (result i64) (i64.eqz (local.get 0))
       (then (i64.const 1))
       (else
         (i64.mul
           (local.get 0)
-          (call_indirect (type $$over-i64)
+          (call_indirect (type \$over-i64)
             (i64.sub (local.get 0) (i64.const 1))
             (i32.const 12)
           )
@@ -211,16 +211,16 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fib-i64 (export "fib-i64") (type $$over-i64)
+  (func \$fib-i64 (export "fib-i64") (type \$over-i64)
     (if (result i64) (i64.le_u (local.get 0) (i64.const 1))
       (then (i64.const 1))
       (else
         (i64.add
-          (call_indirect (type $$over-i64)
+          (call_indirect (type \$over-i64)
             (i64.sub (local.get 0) (i64.const 2))
             (i32.const 13)
           )
-          (call_indirect (type $$over-i64)
+          (call_indirect (type \$over-i64)
             (i64.sub (local.get 0) (i64.const 1))
             (i32.const 13)
           )
@@ -229,13 +229,13 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fac-i32 (export "fac-i32") (type $$over-i32)
+  (func \$fac-i32 (export "fac-i32") (type \$over-i32)
     (if (result i32) (i32.eqz (local.get 0))
       (then (i32.const 1))
       (else
         (i32.mul
           (local.get 0)
-          (call_indirect (type $$over-i32)
+          (call_indirect (type \$over-i32)
             (i32.sub (local.get 0) (i32.const 1))
             (i32.const 23)
           )
@@ -244,13 +244,13 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fac-f32 (export "fac-f32") (type $$over-f32)
+  (func \$fac-f32 (export "fac-f32") (type \$over-f32)
     (if (result f32) (f32.eq (local.get 0) (f32.const 0.0))
       (then (f32.const 1.0))
       (else
         (f32.mul
           (local.get 0)
-          (call_indirect (type $$over-f32)
+          (call_indirect (type \$over-f32)
             (f32.sub (local.get 0) (f32.const 1.0))
             (i32.const 24)
           )
@@ -259,13 +259,13 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fac-f64 (export "fac-f64") (type $$over-f64)
+  (func \$fac-f64 (export "fac-f64") (type \$over-f64)
     (if (result f64) (f64.eq (local.get 0) (f64.const 0.0))
       (then (f64.const 1.0))
       (else
         (f64.mul
           (local.get 0)
-          (call_indirect (type $$over-f64)
+          (call_indirect (type \$over-f64)
             (f64.sub (local.get 0) (f64.const 1.0))
             (i32.const 25)
           )
@@ -274,16 +274,16 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fib-i32 (export "fib-i32") (type $$over-i32)
+  (func \$fib-i32 (export "fib-i32") (type \$over-i32)
     (if (result i32) (i32.le_u (local.get 0) (i32.const 1))
       (then (i32.const 1))
       (else
         (i32.add
-          (call_indirect (type $$over-i32)
+          (call_indirect (type \$over-i32)
             (i32.sub (local.get 0) (i32.const 2))
             (i32.const 26)
           )
-          (call_indirect (type $$over-i32)
+          (call_indirect (type \$over-i32)
             (i32.sub (local.get 0) (i32.const 1))
             (i32.const 26)
           )
@@ -292,16 +292,16 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fib-f32 (export "fib-f32") (type $$over-f32)
+  (func \$fib-f32 (export "fib-f32") (type \$over-f32)
     (if (result f32) (f32.le (local.get 0) (f32.const 1.0))
       (then (f32.const 1.0))
       (else
         (f32.add
-          (call_indirect (type $$over-f32)
+          (call_indirect (type \$over-f32)
             (f32.sub (local.get 0) (f32.const 2.0))
             (i32.const 27)
           )
-          (call_indirect (type $$over-f32)
+          (call_indirect (type \$over-f32)
             (f32.sub (local.get 0) (f32.const 1.0))
             (i32.const 27)
           )
@@ -310,16 +310,16 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$fib-f64 (export "fib-f64") (type $$over-f64)
+  (func \$fib-f64 (export "fib-f64") (type \$over-f64)
     (if (result f64) (f64.le (local.get 0) (f64.const 1.0))
       (then (f64.const 1.0))
       (else
         (f64.add
-          (call_indirect (type $$over-f64)
+          (call_indirect (type \$over-f64)
             (f64.sub (local.get 0) (f64.const 2.0))
             (i32.const 28)
           )
-          (call_indirect (type $$over-f64)
+          (call_indirect (type \$over-f64)
             (f64.sub (local.get 0) (f64.const 1.0))
             (i32.const 28)
           )
@@ -328,22 +328,22 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$even (export "even") (param i32) (result i32)
+  (func \$even (export "even") (param i32) (result i32)
     (if (result i32) (i32.eqz (local.get 0))
       (then (i32.const 44))
       (else
-        (call_indirect (type $$over-i32)
+        (call_indirect (type \$over-i32)
           (i32.sub (local.get 0) (i32.const 1))
           (i32.const 15)
         )
       )
     )
   )
-  (func $$odd (export "odd") (param i32) (result i32)
+  (func \$odd (export "odd") (param i32) (result i32)
     (if (result i32) (i32.eqz (local.get 0))
       (then (i32.const 99))
       (else
-        (call_indirect (type $$over-i32)
+        (call_indirect (type \$over-i32)
           (i32.sub (local.get 0) (i32.const 1))
           (i32.const 14)
         )
@@ -360,82 +360,82 @@ let $0 = instantiate(`(module
   ;; implementations and be incompatible with implementations that don't do
   ;; it (or don't do it under the same circumstances).
 
-  (func $$runaway (export "runaway") (call_indirect (type $$proc) (i32.const 16)))
+  (func \$runaway (export "runaway") (call_indirect (type \$proc) (i32.const 16)))
 
-  (func $$mutual-runaway1 (export "mutual-runaway") (call_indirect (type $$proc) (i32.const 18)))
-  (func $$mutual-runaway2 (call_indirect (type $$proc) (i32.const 17)))
+  (func \$mutual-runaway1 (export "mutual-runaway") (call_indirect (type \$proc) (i32.const 18)))
+  (func \$mutual-runaway2 (call_indirect (type \$proc) (i32.const 17)))
 
   ;; As parameter of control constructs and instructions
 
   (memory 1)
 
   (func (export "as-select-first") (result i32)
-    (select (call_indirect (type $$out-i32) (i32.const 0)) (i32.const 2) (i32.const 3))
+    (select (call_indirect (type \$out-i32) (i32.const 0)) (i32.const 2) (i32.const 3))
   )
   (func (export "as-select-mid") (result i32)
-    (select (i32.const 2) (call_indirect (type $$out-i32) (i32.const 0)) (i32.const 3))
+    (select (i32.const 2) (call_indirect (type \$out-i32) (i32.const 0)) (i32.const 3))
   )
   (func (export "as-select-last") (result i32)
-    (select (i32.const 2) (i32.const 3) (call_indirect (type $$out-i32) (i32.const 0)))
+    (select (i32.const 2) (i32.const 3) (call_indirect (type \$out-i32) (i32.const 0)))
   )
 
   (func (export "as-if-condition") (result i32)
-    (if (result i32) (call_indirect (type $$out-i32) (i32.const 0)) (then (i32.const 1)) (else (i32.const 2)))
+    (if (result i32) (call_indirect (type \$out-i32) (i32.const 0)) (then (i32.const 1)) (else (i32.const 2)))
   )
 
   (func (export "as-br_if-first") (result i64)
-    (block (result i64) (br_if 0 (call_indirect (type $$out-i64) (i32.const 1)) (i32.const 2)))
+    (block (result i64) (br_if 0 (call_indirect (type \$out-i64) (i32.const 1)) (i32.const 2)))
   )
   (func (export "as-br_if-last") (result i32)
-    (block (result i32) (br_if 0 (i32.const 2) (call_indirect (type $$out-i32) (i32.const 0))))
+    (block (result i32) (br_if 0 (i32.const 2) (call_indirect (type \$out-i32) (i32.const 0))))
   )
 
   (func (export "as-br_table-first") (result f32)
-    (block (result f32) (call_indirect (type $$out-f32) (i32.const 2)) (i32.const 2) (br_table 0 0))
+    (block (result f32) (call_indirect (type \$out-f32) (i32.const 2)) (i32.const 2) (br_table 0 0))
   )
   (func (export "as-br_table-last") (result i32)
-    (block (result i32) (i32.const 2) (call_indirect (type $$out-i32) (i32.const 0)) (br_table 0 0))
+    (block (result i32) (i32.const 2) (call_indirect (type \$out-i32) (i32.const 0)) (br_table 0 0))
   )
 
   (func (export "as-store-first")
-    (call_indirect (type $$out-i32) (i32.const 0)) (i32.const 1) (i32.store)
+    (call_indirect (type \$out-i32) (i32.const 0)) (i32.const 1) (i32.store)
   )
   (func (export "as-store-last")
-    (i32.const 10) (call_indirect (type $$out-f64) (i32.const 3)) (f64.store)
+    (i32.const 10) (call_indirect (type \$out-f64) (i32.const 3)) (f64.store)
   )
 
   (func (export "as-memory.grow-value") (result i32)
-    (memory.grow (call_indirect (type $$out-i32) (i32.const 0)))
+    (memory.grow (call_indirect (type \$out-i32) (i32.const 0)))
   )
   (func (export "as-return-value") (result i32)
-    (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4)) (return)
+    (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4)) (return)
   )
   (func (export "as-drop-operand")
-    (call_indirect (type $$over-i64) (i64.const 1) (i32.const 5)) (drop)
+    (call_indirect (type \$over-i64) (i64.const 1) (i32.const 5)) (drop)
   )
   (func (export "as-br-value") (result f32)
-    (block (result f32) (br 0 (call_indirect (type $$over-f32) (f32.const 1) (i32.const 6))))
+    (block (result f32) (br 0 (call_indirect (type \$over-f32) (f32.const 1) (i32.const 6))))
   )
   (func (export "as-local.set-value") (result f64)
-    (local f64) (local.set 0 (call_indirect (type $$over-f64) (f64.const 1) (i32.const 7))) (local.get 0)
+    (local f64) (local.set 0 (call_indirect (type \$over-f64) (f64.const 1) (i32.const 7))) (local.get 0)
   )
   (func (export "as-local.tee-value") (result f64)
-    (local f64) (local.tee 0 (call_indirect (type $$over-f64) (f64.const 1) (i32.const 7)))
+    (local f64) (local.tee 0 (call_indirect (type \$over-f64) (f64.const 1) (i32.const 7)))
   )
-  (global $$a (mut f64) (f64.const 10.0))
+  (global \$a (mut f64) (f64.const 10.0))
   (func (export "as-global.set-value") (result f64)
-    (global.set $$a (call_indirect (type $$over-f64) (f64.const 1.0) (i32.const 7)))
-    (global.get $$a)
+    (global.set \$a (call_indirect (type \$over-f64) (f64.const 1.0) (i32.const 7)))
+    (global.get \$a)
   )
 
   (func (export "as-load-operand") (result i32)
-    (i32.load (call_indirect (type $$out-i32) (i32.const 0)))
+    (i32.load (call_indirect (type \$out-i32) (i32.const 0)))
   )
 
   (func (export "as-unary-operand") (result f32)
     (block (result f32)
       (f32.sqrt
-        (call_indirect (type $$over-f32) (f32.const 0x0p+0) (i32.const 6))
+        (call_indirect (type \$over-f32) (f32.const 0x0p+0) (i32.const 6))
       )
     )
   )
@@ -443,7 +443,7 @@ let $0 = instantiate(`(module
   (func (export "as-binary-left") (result i32)
     (block (result i32)
       (i32.add
-        (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4))
+        (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4))
         (i32.const 10)
       )
     )
@@ -452,7 +452,7 @@ let $0 = instantiate(`(module
     (block (result i32)
       (i32.sub
         (i32.const 10)
-        (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4))
+        (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4))
       )
     )
   )
@@ -460,7 +460,7 @@ let $0 = instantiate(`(module
   (func (export "as-test-operand") (result i32)
     (block (result i32)
       (i32.eqz
-        (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4))
+        (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4))
       )
     )
   )
@@ -468,7 +468,7 @@ let $0 = instantiate(`(module
   (func (export "as-compare-left") (result i32)
     (block (result i32)
       (i32.le_u
-        (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4))
+        (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4))
         (i32.const 10)
       )
     )
@@ -477,7 +477,7 @@ let $0 = instantiate(`(module
     (block (result i32)
       (i32.ne
         (i32.const 10)
-        (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4))
+        (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4))
       )
     )
   )
@@ -485,7 +485,7 @@ let $0 = instantiate(`(module
   (func (export "as-convert-operand") (result i64)
     (block (result i64)
       (i64.extend_i32_s
-        (call_indirect (type $$over-i32) (i32.const 1) (i32.const 4))
+        (call_indirect (type \$over-i32) (i32.const 1) (i32.const 4))
       )
     )
   )
@@ -863,29 +863,29 @@ assert_return(() => invoke($0, `as-convert-operand`, []), [value("i64", 1n)]);
 
 // ./test/core/call_indirect.wast:633
 let $1 = instantiate(`(module
-  (type $$ii-i (func (param i32 i32) (result i32)))
+  (type \$ii-i (func (param i32 i32) (result i32)))
 
-  (table $$t1 funcref (elem $$f $$g))
-  (table $$t2 funcref (elem $$h $$i $$j))
-  (table $$t3 4 funcref)
-  (elem (table $$t3) (i32.const 0) func $$g $$h)
-  (elem (table $$t3) (i32.const 3) func $$z)
+  (table \$t1 funcref (elem \$f \$g))
+  (table \$t2 funcref (elem \$h \$i \$j))
+  (table \$t3 4 funcref)
+  (elem (table \$t3) (i32.const 0) func \$g \$h)
+  (elem (table \$t3) (i32.const 3) func \$z)
 
-  (func $$f (type $$ii-i) (i32.add (local.get 0) (local.get 1)))
-  (func $$g (type $$ii-i) (i32.sub (local.get 0) (local.get 1)))
-  (func $$h (type $$ii-i) (i32.mul (local.get 0) (local.get 1)))
-  (func $$i (type $$ii-i) (i32.div_u (local.get 0) (local.get 1)))
-  (func $$j (type $$ii-i) (i32.rem_u (local.get 0) (local.get 1)))
-  (func $$z)
+  (func \$f (type \$ii-i) (i32.add (local.get 0) (local.get 1)))
+  (func \$g (type \$ii-i) (i32.sub (local.get 0) (local.get 1)))
+  (func \$h (type \$ii-i) (i32.mul (local.get 0) (local.get 1)))
+  (func \$i (type \$ii-i) (i32.div_u (local.get 0) (local.get 1)))
+  (func \$j (type \$ii-i) (i32.rem_u (local.get 0) (local.get 1)))
+  (func \$z)
 
   (func (export "call-1") (param i32 i32 i32) (result i32)
-    (call_indirect $$t1 (type $$ii-i) (local.get 0) (local.get 1) (local.get 2))
+    (call_indirect \$t1 (type \$ii-i) (local.get 0) (local.get 1) (local.get 2))
   )
   (func (export "call-2") (param i32 i32 i32) (result i32)
-    (call_indirect $$t2 (type $$ii-i) (local.get 0) (local.get 1) (local.get 2))
+    (call_indirect \$t2 (type \$ii-i) (local.get 0) (local.get 1) (local.get 2))
   )
   (func (export "call-3") (param i32 i32 i32) (result i32)
-    (call_indirect $$t3 (type $$ii-i) (local.get 0) (local.get 1) (local.get 2))
+    (call_indirect \$t3 (type \$ii-i) (local.get 0) (local.get 1) (local.get 2))
   )
 )`);
 
@@ -927,31 +927,31 @@ assert_trap(() => invoke($1, `call-3`, [2, 3, 4]), `undefined element`);
 
 // ./test/core/call_indirect.wast:678
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (type $$sig) (result i32) (param i32)     (i32.const 0) (i32.const 0)   ) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (type \$sig) (result i32) (param i32)     (i32.const 0) (i32.const 0)   ) ) `),
   `unexpected token`,
 );
 
 // ./test/core/call_indirect.wast:690
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (param i32) (type $$sig) (result i32)     (i32.const 0) (i32.const 0)   ) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (param i32) (type \$sig) (result i32)     (i32.const 0) (i32.const 0)   ) ) `),
   `unexpected token`,
 );
 
 // ./test/core/call_indirect.wast:702
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (param i32) (result i32) (type $$sig)     (i32.const 0) (i32.const 0)   ) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (param i32) (result i32) (type \$sig)     (i32.const 0) (i32.const 0)   ) ) `),
   `unexpected token`,
 );
 
 // ./test/core/call_indirect.wast:714
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (result i32) (type $$sig) (param i32)     (i32.const 0) (i32.const 0)   ) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (result i32) (type \$sig) (param i32)     (i32.const 0) (i32.const 0)   ) ) `),
   `unexpected token`,
 );
 
 // ./test/core/call_indirect.wast:726
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (result i32) (param i32) (type $$sig)     (i32.const 0) (i32.const 0)   ) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (result i32) (param i32) (type \$sig)     (i32.const 0) (i32.const 0)   ) ) `),
   `unexpected token`,
 );
 
@@ -963,31 +963,31 @@ assert_malformed(
 
 // ./test/core/call_indirect.wast:748
 assert_malformed(
-  () => instantiate(`(table 0 funcref) (func (call_indirect (param $$x i32) (i32.const 0) (i32.const 0))) `),
+  () => instantiate(`(table 0 funcref) (func (call_indirect (param \$x i32) (i32.const 0) (i32.const 0))) `),
   `unexpected token`,
 );
 
 // ./test/core/call_indirect.wast:755
 assert_malformed(
-  () => instantiate(`(type $$sig (func)) (table 0 funcref) (func (result i32)   (call_indirect (type $$sig) (result i32) (i32.const 0)) ) `),
+  () => instantiate(`(type \$sig (func)) (table 0 funcref) (func (result i32)   (call_indirect (type \$sig) (result i32) (i32.const 0)) ) `),
   `inline function type`,
 );
 
 // ./test/core/call_indirect.wast:765
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (type $$sig) (result i32) (i32.const 0)) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (type \$sig) (result i32) (i32.const 0)) ) `),
   `inline function type`,
 );
 
 // ./test/core/call_indirect.wast:775
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32) (result i32))) (table 0 funcref) (func   (call_indirect (type $$sig) (param i32) (i32.const 0) (i32.const 0)) ) `),
+  () => instantiate(`(type \$sig (func (param i32) (result i32))) (table 0 funcref) (func   (call_indirect (type \$sig) (param i32) (i32.const 0) (i32.const 0)) ) `),
   `inline function type`,
 );
 
 // ./test/core/call_indirect.wast:785
 assert_malformed(
-  () => instantiate(`(type $$sig (func (param i32 i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (type $$sig) (param i32) (result i32)     (i32.const 0) (i32.const 0)   ) ) `),
+  () => instantiate(`(type \$sig (func (param i32 i32) (result i32))) (table 0 funcref) (func (result i32)   (call_indirect (type \$sig) (param i32) (result i32)     (i32.const 0) (i32.const 0)   ) ) `),
   `inline function type`,
 );
 
@@ -995,7 +995,7 @@ assert_malformed(
 assert_invalid(
   () => instantiate(`(module
     (type (func))
-    (func $$no-table (call_indirect (type 0) (i32.const 0)))
+    (func \$no-table (call_indirect (type 0) (i32.const 0)))
   )`),
   `unknown table`,
 );
@@ -1005,7 +1005,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func))
     (table 0 funcref)
-    (func $$type-void-vs-num (i32.eqz (call_indirect (type 0) (i32.const 0))))
+    (func \$type-void-vs-num (i32.eqz (call_indirect (type 0) (i32.const 0))))
   )`),
   `type mismatch`,
 );
@@ -1015,7 +1015,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (result i64)))
     (table 0 funcref)
-    (func $$type-num-vs-num (i32.eqz (call_indirect (type 0) (i32.const 0))))
+    (func \$type-num-vs-num (i32.eqz (call_indirect (type 0) (i32.const 0))))
   )`),
   `type mismatch`,
 );
@@ -1025,7 +1025,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32)))
     (table 0 funcref)
-    (func $$arity-0-vs-1 (call_indirect (type 0) (i32.const 0)))
+    (func \$arity-0-vs-1 (call_indirect (type 0) (i32.const 0)))
   )`),
   `type mismatch`,
 );
@@ -1035,7 +1035,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param f64 i32)))
     (table 0 funcref)
-    (func $$arity-0-vs-2 (call_indirect (type 0) (i32.const 0)))
+    (func \$arity-0-vs-2 (call_indirect (type 0) (i32.const 0)))
   )`),
   `type mismatch`,
 );
@@ -1045,7 +1045,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func))
     (table 0 funcref)
-    (func $$arity-1-vs-0 (call_indirect (type 0) (i32.const 1) (i32.const 0)))
+    (func \$arity-1-vs-0 (call_indirect (type 0) (i32.const 1) (i32.const 0)))
   )`),
   `type mismatch`,
 );
@@ -1055,7 +1055,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func))
     (table 0 funcref)
-    (func $$arity-2-vs-0
+    (func \$arity-2-vs-0
       (call_indirect (type 0) (f64.const 2) (i32.const 1) (i32.const 0))
     )
   )`),
@@ -1067,7 +1067,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32)))
     (table 0 funcref)
-    (func $$type-func-void-vs-i32 (call_indirect (type 0) (i32.const 1) (nop)))
+    (func \$type-func-void-vs-i32 (call_indirect (type 0) (i32.const 1) (nop)))
   )`),
   `type mismatch`,
 );
@@ -1077,7 +1077,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32)))
     (table 0 funcref)
-    (func $$type-func-num-vs-i32 (call_indirect (type 0) (i32.const 0) (i64.const 1)))
+    (func \$type-func-num-vs-i32 (call_indirect (type 0) (i32.const 0) (i64.const 1)))
   )`),
   `type mismatch`,
 );
@@ -1087,7 +1087,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32 i32)))
     (table 0 funcref)
-    (func $$type-first-void-vs-num
+    (func \$type-first-void-vs-num
       (call_indirect (type 0) (nop) (i32.const 1) (i32.const 0))
     )
   )`),
@@ -1099,7 +1099,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32 i32)))
     (table 0 funcref)
-    (func $$type-second-void-vs-num
+    (func \$type-second-void-vs-num
       (call_indirect (type 0) (i32.const 1) (nop) (i32.const 0))
     )
   )`),
@@ -1111,7 +1111,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32 f64)))
     (table 0 funcref)
-    (func $$type-first-num-vs-num
+    (func \$type-first-num-vs-num
       (call_indirect (type 0) (f64.const 1) (i32.const 1) (i32.const 0))
     )
   )`),
@@ -1123,7 +1123,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param f64 i32)))
     (table 0 funcref)
-    (func $$type-second-num-vs-num
+    (func \$type-second-num-vs-num
       (call_indirect (type 0) (i32.const 1) (f64.const 1) (i32.const 0))
     )
   )`),
@@ -1133,12 +1133,12 @@ assert_invalid(
 // ./test/core/call_indirect.wast:918
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32))
-    (type $$sig (func (param i32)))
-    (table funcref (elem $$f))
-    (func $$type-first-empty-in-block
+    (func \$f (param i32))
+    (type \$sig (func (param i32)))
+    (table funcref (elem \$f))
+    (func \$type-first-empty-in-block
       (block
-        (call_indirect (type $$sig) (i32.const 0))
+        (call_indirect (type \$sig) (i32.const 0))
       )
     )
   )`),
@@ -1148,12 +1148,12 @@ assert_invalid(
 // ./test/core/call_indirect.wast:931
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32 i32))
-    (type $$sig (func (param i32 i32)))
-    (table funcref (elem $$f))
-    (func $$type-second-empty-in-block
+    (func \$f (param i32 i32))
+    (type \$sig (func (param i32 i32)))
+    (table funcref (elem \$f))
+    (func \$type-second-empty-in-block
       (block
-        (call_indirect (type $$sig) (i32.const 0) (i32.const 0))
+        (call_indirect (type \$sig) (i32.const 0) (i32.const 0))
       )
     )
   )`),
@@ -1163,12 +1163,12 @@ assert_invalid(
 // ./test/core/call_indirect.wast:944
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32))
-    (type $$sig (func (param i32)))
-    (table funcref (elem $$f))
-    (func $$type-first-empty-in-loop
+    (func \$f (param i32))
+    (type \$sig (func (param i32)))
+    (table funcref (elem \$f))
+    (func \$type-first-empty-in-loop
       (loop
-        (call_indirect (type $$sig) (i32.const 0))
+        (call_indirect (type \$sig) (i32.const 0))
       )
     )
   )`),
@@ -1178,12 +1178,12 @@ assert_invalid(
 // ./test/core/call_indirect.wast:957
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32 i32))
-    (type $$sig (func (param i32 i32)))
-    (table funcref (elem $$f))
-    (func $$type-second-empty-in-loop
+    (func \$f (param i32 i32))
+    (type \$sig (func (param i32 i32)))
+    (table funcref (elem \$f))
+    (func \$type-second-empty-in-loop
       (loop
-        (call_indirect (type $$sig) (i32.const 0) (i32.const 0))
+        (call_indirect (type \$sig) (i32.const 0) (i32.const 0))
       )
     )
   )`),
@@ -1193,14 +1193,14 @@ assert_invalid(
 // ./test/core/call_indirect.wast:970
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32))
-    (type $$sig (func (param i32)))
-    (table funcref (elem $$f))
-    (func $$type-first-empty-in-then
+    (func \$f (param i32))
+    (type \$sig (func (param i32)))
+    (table funcref (elem \$f))
+    (func \$type-first-empty-in-then
       (i32.const 0) (i32.const 0)
       (if
         (then
-          (call_indirect (type $$sig) (i32.const 0))
+          (call_indirect (type \$sig) (i32.const 0))
         )
       )
     )
@@ -1211,14 +1211,14 @@ assert_invalid(
 // ./test/core/call_indirect.wast:986
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32 i32))
-    (type $$sig (func (param i32 i32)))
-    (table funcref (elem $$f))
-    (func $$type-second-empty-in-then
+    (func \$f (param i32 i32))
+    (type \$sig (func (param i32 i32)))
+    (table funcref (elem \$f))
+    (func \$type-second-empty-in-then
       (i32.const 0) (i32.const 0)
       (if
         (then
-          (call_indirect (type $$sig) (i32.const 0) (i32.const 0))
+          (call_indirect (type \$sig) (i32.const 0) (i32.const 0))
         )
       )
     )
@@ -1231,7 +1231,7 @@ assert_invalid(
   () => instantiate(`(module
   (type (func))
   (table 10 externref)
-  (func $$call-indirect (call_indirect (type 0) (i32.const 0)))
+  (func \$call-indirect (call_indirect (type 0) (i32.const 0)))
   )`),
   `type mismatch`,
 );
@@ -1240,7 +1240,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (table 0 funcref)
-    (func $$unbound-type (call_indirect (type 1) (i32.const 0)))
+    (func \$unbound-type (call_indirect (type 1) (i32.const 0)))
   )`),
   `unknown type`,
 );
@@ -1249,7 +1249,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (table 0 funcref)
-    (func $$large-type (call_indirect (type 1012321300) (i32.const 0)))
+    (func \$large-type (call_indirect (type 1012321300) (i32.const 0)))
   )`),
   `unknown type`,
 );
@@ -1259,7 +1259,7 @@ assert_invalid(
   () => instantiate(`(module
     (type (func (param i32)))
     (table 1 funcref)
-    (func $$conditional-dangling-type
+    (func \$conditional-dangling-type
       (if (i32.const 1)
         (then (call_indirect (type 0xffffffff) (i32.const 0)))
       )

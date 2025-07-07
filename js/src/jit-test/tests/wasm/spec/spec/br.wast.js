@@ -18,7 +18,7 @@
 // ./test/core/br.wast:3
 let $0 = instantiate(`(module
   ;; Auxiliary definition
-  (func $$dummy)
+  (func \$dummy)
 
   (func (export "type-i32") (block (drop (i32.ctz (br 0)))))
   (func (export "type-i64") (block (drop (i64.ctz (br 0)))))
@@ -48,16 +48,16 @@ let $0 = instantiate(`(module
   )
 
   (func (export "as-block-first")
-    (block (br 0) (call $$dummy))
+    (block (br 0) (call \$dummy))
   )
   (func (export "as-block-mid")
-    (block (call $$dummy) (br 0) (call $$dummy))
+    (block (call \$dummy) (br 0) (call \$dummy))
   )
   (func (export "as-block-last")
-    (block (nop) (call $$dummy) (br 0))
+    (block (nop) (call \$dummy) (br 0))
   )
   (func (export "as-block-value") (result i32)
-    (block (result i32) (nop) (call $$dummy) (br 0 (i32.const 2)))
+    (block (result i32) (nop) (call \$dummy) (br 0 (i32.const 2)))
   )
 
   (func (export "as-loop-first") (result i32)
@@ -65,12 +65,12 @@ let $0 = instantiate(`(module
   )
   (func (export "as-loop-mid") (result i32)
     (block (result i32)
-      (loop (result i32) (call $$dummy) (br 1 (i32.const 4)) (i32.const 2))
+      (loop (result i32) (call \$dummy) (br 1 (i32.const 4)) (i32.const 2))
     )
   )
   (func (export "as-loop-last") (result i32)
     (block (result i32)
-      (loop (result i32) (nop) (call $$dummy) (br 1 (i32.const 5)))
+      (loop (result i32) (nop) (call \$dummy) (br 1 (i32.const 5)))
     )
   )
 
@@ -158,31 +158,31 @@ let $0 = instantiate(`(module
     (block (result i32) (select (br 0 (i32.const 8))))
   )
 
-  (func $$f (param i32 i32 i32) (result i32) (i32.const -1))
+  (func \$f (param i32 i32 i32) (result i32) (i32.const -1))
   (func (export "as-call-first") (result i32)
     (block (result i32)
-      (call $$f (br 0 (i32.const 12)) (i32.const 2) (i32.const 3))
+      (call \$f (br 0 (i32.const 12)) (i32.const 2) (i32.const 3))
     )
   )
   (func (export "as-call-mid") (result i32)
     (block (result i32)
-      (call $$f (i32.const 1) (br 0 (i32.const 13)) (i32.const 3))
+      (call \$f (i32.const 1) (br 0 (i32.const 13)) (i32.const 3))
     )
   )
   (func (export "as-call-last") (result i32)
     (block (result i32)
-      (call $$f (i32.const 1) (i32.const 2) (br 0 (i32.const 14)))
+      (call \$f (i32.const 1) (i32.const 2) (br 0 (i32.const 14)))
     )
   )
   (func (export "as-call-all") (result i32)
-    (block (result i32) (call $$f (br 0 (i32.const 15))))
+    (block (result i32) (call \$f (br 0 (i32.const 15))))
   )
 
-  (type $$sig (func (param i32 i32 i32) (result i32)))
-  (table funcref (elem $$f))
+  (type \$sig (func (param i32 i32 i32) (result i32)))
+  (table funcref (elem \$f))
   (func (export "as-call_indirect-func") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (br 0 (i32.const 20))
         (i32.const 1) (i32.const 2) (i32.const 3)
       )
@@ -190,7 +190,7 @@ let $0 = instantiate(`(module
   )
   (func (export "as-call_indirect-first") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (i32.const 0)
         (br 0 (i32.const 21)) (i32.const 2) (i32.const 3)
       )
@@ -198,7 +198,7 @@ let $0 = instantiate(`(module
   )
   (func (export "as-call_indirect-mid") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (i32.const 0)
         (i32.const 1) (br 0 (i32.const 22)) (i32.const 3)
       )
@@ -206,14 +206,14 @@ let $0 = instantiate(`(module
   )
   (func (export "as-call_indirect-last") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (i32.const 0)
         (i32.const 1) (i32.const 2) (br 0 (i32.const 23))
       )
     )
   )
   (func (export "as-call_indirect-all") (result i32)
-    (block (result i32) (call_indirect (type $$sig) (br 0 (i32.const 24))))
+    (block (result i32) (call_indirect (type \$sig) (br 0 (i32.const 24))))
   )
 
   (func (export "as-local.set-value") (result i32) (local f32)
@@ -222,9 +222,9 @@ let $0 = instantiate(`(module
   (func (export "as-local.tee-value") (result i32) (local i32)
     (block (result i32) (local.tee 0 (br 0 (i32.const 1))))
   )
-  (global $$a (mut i32) (i32.const 10))
+  (global \$a (mut i32) (i32.const 10))
   (func (export "as-global.set-value") (result i32)
-    (block (result i32) (global.set $$a (br 0 (i32.const 1))))
+    (block (result i32) (global.set \$a (br 0 (i32.const 1))))
   )
 
   (memory 1)
@@ -307,7 +307,7 @@ let $0 = instantiate(`(module
     (i32.add
       (i32.const 1)
       (block (result i32)
-        (call $$dummy)
+        (call \$dummy)
         (i32.add (i32.const 4) (br 0 (i32.const 8)))
       )
     )
@@ -615,7 +615,7 @@ assert_return(() => invoke($0, `nested-br_table-value-index`, []), [value("i32",
 
 // ./test/core/br.wast:470
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-empty-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-empty-vs-num (result i32)
     (block (result i32) (br 0) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -623,7 +623,7 @@ assert_invalid(
 
 // ./test/core/br.wast:477
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-void-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-void-vs-num (result i32)
     (block (result i32) (br 0 (nop)) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -631,7 +631,7 @@ assert_invalid(
 
 // ./test/core/br.wast:483
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-void-vs-num-nested (result i32)
+  () => instantiate(`(module (func \$type-arg-void-vs-num-nested (result i32)
     (block (result i32) (i32.const 0) (block (br 1)))
   ))`),
   `type mismatch`,
@@ -639,7 +639,7 @@ assert_invalid(
 
 // ./test/core/br.wast:489
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-num-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-num-vs-num (result i32)
     (block (result i32) (br 0 (i64.const 1)) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -648,7 +648,7 @@ assert_invalid(
 // ./test/core/br.wast:496
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-br
+    (func \$type-arg-empty-in-br
       (i32.const 0)
       (block (result i32) (br 0 (br 0))) (i32.eqz) (drop)
     )
@@ -659,7 +659,7 @@ assert_invalid(
 // ./test/core/br.wast:505
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-br_if
+    (func \$type-arg-empty-in-br_if
       (i32.const 0)
       (block (result i32) (br_if 0 (br 0) (i32.const 1))) (i32.eqz) (drop)
     )
@@ -670,7 +670,7 @@ assert_invalid(
 // ./test/core/br.wast:514
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-br_table
+    (func \$type-arg-empty-in-br_table
       (i32.const 0)
       (block (result i32) (br_table 0 (br 0))) (i32.eqz) (drop)
     )
@@ -681,7 +681,7 @@ assert_invalid(
 // ./test/core/br.wast:523
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-return
+    (func \$type-arg-empty-in-return
       (block (result i32)
         (return (br 0))
       )
@@ -694,7 +694,7 @@ assert_invalid(
 // ./test/core/br.wast:534
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-select
+    (func \$type-arg-empty-in-select
       (block (result i32)
         (select (br 0) (i32.const 1) (i32.const 2))
       )
@@ -707,7 +707,7 @@ assert_invalid(
 // ./test/core/br.wast:545
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-call
+    (func \$type-arg-empty-in-call
       (block (result i32)
         (call 1 (br 0))
       )
@@ -721,12 +721,12 @@ assert_invalid(
 // ./test/core/br.wast:557
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32) (result i32) (local.get 0))
-    (type $$sig (func (param i32) (result i32)))
-    (table funcref (elem $$f))
-    (func $$type-arg-empty-in-call_indirect
+    (func \$f (param i32) (result i32) (local.get 0))
+    (type \$sig (func (param i32) (result i32)))
+    (table funcref (elem \$f))
+    (func \$type-arg-empty-in-call_indirect
       (block (result i32)
-        (call_indirect (type $$sig)
+        (call_indirect (type \$sig)
           (br 0) (i32.const 0)
         )
       )
@@ -739,7 +739,7 @@ assert_invalid(
 // ./test/core/br.wast:573
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-local.set
+    (func \$type-arg-empty-in-local.set
       (local i32)
       (block (result i32)
         (local.set 0 (br 0)) (local.get 0)
@@ -753,7 +753,7 @@ assert_invalid(
 // ./test/core/br.wast:585
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-empty-in-local.tee
+    (func \$type-arg-empty-in-local.tee
       (local i32)
       (block (result i32)
         (local.tee 0 (br 0))
@@ -767,10 +767,10 @@ assert_invalid(
 // ./test/core/br.wast:597
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-arg-empty-in-global.set
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-arg-empty-in-global.set
       (block (result i32)
-        (global.set $$x (br 0)) (global.get $$x)
+        (global.set \$x (br 0)) (global.get \$x)
       )
       (i32.eqz) (drop)
     )
@@ -782,7 +782,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-arg-empty-in-memory.grow
+    (func \$type-arg-empty-in-memory.grow
       (block (result i32)
         (memory.grow (br 0))
       )
@@ -796,7 +796,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-arg-empty-in-load
+    (func \$type-arg-empty-in-load
       (block (result i32)
         (i32.load (br 0))
       )
@@ -810,7 +810,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-arg-empty-in-store
+    (func \$type-arg-empty-in-store
       (block (result i32)
         (i32.store (br 0) (i32.const 0))
       )
@@ -822,18 +822,18 @@ assert_invalid(
 
 // ./test/core/br.wast:646
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-label (br 1)))`),
+  () => instantiate(`(module (func \$unbound-label (br 1)))`),
   `unknown label`,
 );
 
 // ./test/core/br.wast:650
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-nested-label (block (block (br 5)))))`),
+  () => instantiate(`(module (func \$unbound-nested-label (block (block (br 5)))))`),
   `unknown label`,
 );
 
 // ./test/core/br.wast:654
 assert_invalid(
-  () => instantiate(`(module (func $$large-label (br 0x10000001)))`),
+  () => instantiate(`(module (func \$large-label (br 0x10000001)))`),
   `unknown label`,
 );

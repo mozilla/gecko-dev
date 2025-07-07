@@ -28,10 +28,10 @@ register($0, `test`);
 // ./test/core/multi-memory/imports2.wast:9
 let $1 = instantiate(`(module
   (import "test" "z" (memory 0))
-  (memory $$m (import "spectest" "memory") 1 2)
+  (memory \$m (import "spectest" "memory") 1 2)
   (data (memory 1) (i32.const 10) "\\10")
 
-  (func (export "load") (param i32) (result i32) (i32.load $$m (local.get 0)))
+  (func (export "load") (param i32) (result i32) (i32.load \$m (local.get 0)))
 )`);
 
 // ./test/core/multi-memory/imports2.wast:17

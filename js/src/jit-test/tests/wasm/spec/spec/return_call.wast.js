@@ -17,56 +17,56 @@
 
 // ./test/core/return_call.wast:3
 let $0 = instantiate(`(module
-  (import "spectest" "print_i32_f32" (func $$print_i32_f32 (param i32 f32)))
+  (import "spectest" "print_i32_f32" (func \$print_i32_f32 (param i32 f32)))
 
   ;; Auxiliary definitions
-  (func $$const-i32 (result i32) (i32.const 0x132))
-  (func $$const-i64 (result i64) (i64.const 0x164))
-  (func $$const-f32 (result f32) (f32.const 0xf32))
-  (func $$const-f64 (result f64) (f64.const 0xf64))
+  (func \$const-i32 (result i32) (i32.const 0x132))
+  (func \$const-i64 (result i64) (i64.const 0x164))
+  (func \$const-f32 (result f32) (f32.const 0xf32))
+  (func \$const-f64 (result f64) (f64.const 0xf64))
 
-  (func $$id-i32 (param i32) (result i32) (local.get 0))
-  (func $$id-i64 (param i64) (result i64) (local.get 0))
-  (func $$id-f32 (param f32) (result f32) (local.get 0))
-  (func $$id-f64 (param f64) (result f64) (local.get 0))
+  (func \$id-i32 (param i32) (result i32) (local.get 0))
+  (func \$id-i64 (param i64) (result i64) (local.get 0))
+  (func \$id-f32 (param f32) (result f32) (local.get 0))
+  (func \$id-f64 (param f64) (result f64) (local.get 0))
 
-  (func $$f32-i32 (param f32 i32) (result i32) (local.get 1))
-  (func $$i32-i64 (param i32 i64) (result i64) (local.get 1))
-  (func $$f64-f32 (param f64 f32) (result f32) (local.get 1))
-  (func $$i64-f64 (param i64 f64) (result f64) (local.get 1))
+  (func \$f32-i32 (param f32 i32) (result i32) (local.get 1))
+  (func \$i32-i64 (param i32 i64) (result i64) (local.get 1))
+  (func \$f64-f32 (param f64 f32) (result f32) (local.get 1))
+  (func \$i64-f64 (param i64 f64) (result f64) (local.get 1))
 
   ;; Typing
 
-  (func (export "type-i32") (result i32) (return_call $$const-i32))
-  (func (export "type-i64") (result i64) (return_call $$const-i64))
-  (func (export "type-f32") (result f32) (return_call $$const-f32))
-  (func (export "type-f64") (result f64) (return_call $$const-f64))
+  (func (export "type-i32") (result i32) (return_call \$const-i32))
+  (func (export "type-i64") (result i64) (return_call \$const-i64))
+  (func (export "type-f32") (result f32) (return_call \$const-f32))
+  (func (export "type-f64") (result f64) (return_call \$const-f64))
 
-  (func (export "type-first-i32") (result i32) (return_call $$id-i32 (i32.const 32)))
-  (func (export "type-first-i64") (result i64) (return_call $$id-i64 (i64.const 64)))
-  (func (export "type-first-f32") (result f32) (return_call $$id-f32 (f32.const 1.32)))
-  (func (export "type-first-f64") (result f64) (return_call $$id-f64 (f64.const 1.64)))
+  (func (export "type-first-i32") (result i32) (return_call \$id-i32 (i32.const 32)))
+  (func (export "type-first-i64") (result i64) (return_call \$id-i64 (i64.const 64)))
+  (func (export "type-first-f32") (result f32) (return_call \$id-f32 (f32.const 1.32)))
+  (func (export "type-first-f64") (result f64) (return_call \$id-f64 (f64.const 1.64)))
 
   (func (export "type-second-i32") (result i32)
-    (return_call $$f32-i32 (f32.const 32.1) (i32.const 32))
+    (return_call \$f32-i32 (f32.const 32.1) (i32.const 32))
   )
   (func (export "type-second-i64") (result i64)
-    (return_call $$i32-i64 (i32.const 32) (i64.const 64))
+    (return_call \$i32-i64 (i32.const 32) (i64.const 64))
   )
   (func (export "type-second-f32") (result f32)
-    (return_call $$f64-f32 (f64.const 64) (f32.const 32))
+    (return_call \$f64-f32 (f64.const 64) (f32.const 32))
   )
   (func (export "type-second-f64") (result f64)
-    (return_call $$i64-f64 (i64.const 64) (f64.const 64.1))
+    (return_call \$i64-f64 (i64.const 64) (f64.const 64.1))
   )
 
   ;; Recursion
 
-  (func $$fac-acc (export "fac-acc") (param i64 i64) (result i64)
+  (func \$fac-acc (export "fac-acc") (param i64 i64) (result i64)
     (if (result i64) (i64.eqz (local.get 0))
       (then (local.get 1))
       (else
-        (return_call $$fac-acc
+        (return_call \$fac-acc
           (i64.sub (local.get 0) (i64.const 1))
           (i64.mul (local.get 0) (local.get 1))
         )
@@ -74,38 +74,38 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$count (export "count") (param i64) (result i64)
+  (func \$count (export "count") (param i64) (result i64)
     (if (result i64) (i64.eqz (local.get 0))
       (then (local.get 0))
-      (else (return_call $$count (i64.sub (local.get 0) (i64.const 1))))
+      (else (return_call \$count (i64.sub (local.get 0) (i64.const 1))))
     )
   )
 
-  (func $$even (export "even") (param i64) (result i32)
+  (func \$even (export "even") (param i64) (result i32)
     (if (result i32) (i64.eqz (local.get 0))
       (then (i32.const 44))
-      (else (return_call $$odd (i64.sub (local.get 0) (i64.const 1))))
+      (else (return_call \$odd (i64.sub (local.get 0) (i64.const 1))))
     )
   )
-  (func $$odd (export "odd") (param i64) (result i32)
+  (func \$odd (export "odd") (param i64) (result i32)
     (if (result i32) (i64.eqz (local.get 0))
       (then (i32.const 99))
-      (else (return_call $$even (i64.sub (local.get 0) (i64.const 1))))
+      (else (return_call \$even (i64.sub (local.get 0) (i64.const 1))))
     )
   )
 
   ;; Functions with multiple parameters / multiple results
   (func (export "tailprint_i32_f32") (param i32 f32)
-    (return_call $$print_i32_f32 (local.get 0) (local.get 1))
+    (return_call \$print_i32_f32 (local.get 0) (local.get 1))
   )
 
-  (func $$swizzle (param f64 i64) (result i32 f32)
+  (func \$swizzle (param f64 i64) (result i32 f32)
     (i32.wrap_i64 (local.get 1))
     (f32.demote_f64 (local.get 0))
   )
 
   (func (export "type-f64-i64-to-i32-f32") (param f64 i64) (result i32 f32)
-    (return_call $$swizzle (local.get 0) (local.get 1))
+    (return_call \$swizzle (local.get 0) (local.get 1))
   )
 )`);
 
@@ -214,7 +214,7 @@ assert_return(
 // ./test/core/return_call.wast:140
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-void-vs-num (result i32) (return_call 1) (i32.const 0))
+    (func \$type-void-vs-num (result i32) (return_call 1) (i32.const 0))
     (func)
   )`),
   `type mismatch`,
@@ -223,7 +223,7 @@ assert_invalid(
 // ./test/core/return_call.wast:147
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-num-vs-num (result i32) (return_call 1) (i32.const 0))
+    (func \$type-num-vs-num (result i32) (return_call 1) (i32.const 0))
     (func (result i64) (i64.const 1))
   )`),
   `type mismatch`,
@@ -232,7 +232,7 @@ assert_invalid(
 // ./test/core/return_call.wast:155
 assert_invalid(
   () => instantiate(`(module
-    (func $$arity-0-vs-1 (return_call 1))
+    (func \$arity-0-vs-1 (return_call 1))
     (func (param i32))
   )`),
   `type mismatch`,
@@ -241,7 +241,7 @@ assert_invalid(
 // ./test/core/return_call.wast:162
 assert_invalid(
   () => instantiate(`(module
-    (func $$arity-0-vs-2 (return_call 1))
+    (func \$arity-0-vs-2 (return_call 1))
     (func (param f64 i32))
   )`),
   `type mismatch`,
@@ -249,20 +249,20 @@ assert_invalid(
 
 // ./test/core/return_call.wast:170
 let $1 = instantiate(`(module
-  (func $$arity-1-vs-0 (i32.const 1) (return_call 1))
+  (func \$arity-1-vs-0 (i32.const 1) (return_call 1))
   (func)
 )`);
 
 // ./test/core/return_call.wast:175
 let $2 = instantiate(`(module
-  (func $$arity-2-vs-0 (f64.const 2) (i32.const 1) (return_call 1))
+  (func \$arity-2-vs-0 (f64.const 2) (i32.const 1) (return_call 1))
   (func)
 )`);
 
 // ./test/core/return_call.wast:180
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-first-void-vs-num (return_call 1 (nop) (i32.const 1)))
+    (func \$type-first-void-vs-num (return_call 1 (nop) (i32.const 1)))
     (func (param i32 i32))
   )`),
   `type mismatch`,
@@ -271,7 +271,7 @@ assert_invalid(
 // ./test/core/return_call.wast:187
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-second-void-vs-num (return_call 1 (i32.const 1) (nop)))
+    (func \$type-second-void-vs-num (return_call 1 (i32.const 1) (nop)))
     (func (param i32 i32))
   )`),
   `type mismatch`,
@@ -280,7 +280,7 @@ assert_invalid(
 // ./test/core/return_call.wast:194
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-first-num-vs-num (return_call 1 (f64.const 1) (i32.const 1)))
+    (func \$type-first-num-vs-num (return_call 1 (f64.const 1) (i32.const 1)))
     (func (param i32 f64))
   )`),
   `type mismatch`,
@@ -289,7 +289,7 @@ assert_invalid(
 // ./test/core/return_call.wast:201
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-second-num-vs-num (return_call 1 (i32.const 1) (f64.const 1)))
+    (func \$type-second-num-vs-num (return_call 1 (i32.const 1) (f64.const 1)))
     (func (param f64 i32))
   )`),
   `type mismatch`,
@@ -298,9 +298,9 @@ assert_invalid(
 // ./test/core/return_call.wast:208
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (result i32 i32) unreachable)
+    (func \$f (result i32 i32) unreachable)
     (func (result i32)
-      return_call $$f
+      return_call \$f
     )
   )`),
   `type mismatch`,
@@ -308,12 +308,12 @@ assert_invalid(
 
 // ./test/core/return_call.wast:220
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-func (return_call 1)))`),
+  () => instantiate(`(module (func \$unbound-func (return_call 1)))`),
   `unknown function`,
 );
 
 // ./test/core/return_call.wast:224
 assert_invalid(
-  () => instantiate(`(module (func $$large-func (return_call 1012321300)))`),
+  () => instantiate(`(module (func \$large-func (return_call 1012321300)))`),
   `unknown function`,
 );

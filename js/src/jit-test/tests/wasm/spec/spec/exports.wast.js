@@ -37,22 +37,22 @@ let $5 = instantiate(`(module (func (export "a") (export "b") (param i32)))`);
 let $6 = instantiate(`(module (func) (export "a" (func 0)))`);
 
 // ./test/core/exports.wast:11
-let $7 = instantiate(`(module (func $$a (export "a")))`);
+let $7 = instantiate(`(module (func \$a (export "a")))`);
 
 // ./test/core/exports.wast:12
-let $8 = instantiate(`(module (func $$a) (export "a" (func $$a)))`);
+let $8 = instantiate(`(module (func \$a) (export "a" (func \$a)))`);
 
 // ./test/core/exports.wast:13
 let $9 = instantiate(`(module (export "a" (func 0)) (func))`);
 
 // ./test/core/exports.wast:14
-let $10 = instantiate(`(module (export "a" (func $$a)) (func $$a))`);
+let $10 = instantiate(`(module (export "a" (func \$a)) (func \$a))`);
 
 // ./test/core/exports.wast:16
-let $11 = instantiate(`(module $$Func
-  (export "e" (func $$f))
-  (func $$f (param $$n i32) (result i32)
-    (return (i32.add (local.get $$n) (i32.const 1)))
+let $11 = instantiate(`(module \$Func
+  (export "e" (func \$f))
+  (func \$f (param \$n i32) (result i32)
+    (return (i32.add (local.get \$n) (i32.const 1)))
   )
 )`);
 let $Func = $11;
@@ -67,7 +67,7 @@ assert_return(() => invoke($Func, `e`, [42]), [value("i32", 43)]);
 let $12 = instantiate(`(module)`);
 
 // ./test/core/exports.wast:25
-let $13 = instantiate(`(module $$Other1)`);
+let $13 = instantiate(`(module \$Other1)`);
 let $Other1 = $13;
 
 // ./test/core/exports.wast:26
@@ -137,7 +137,7 @@ assert_invalid(
 
 // ./test/core/exports.wast:70
 assert_invalid(
-  () => instantiate(`(module (tag $$t0 (export "t0")) (tag $$t1 (export "t0")))`),
+  () => instantiate(`(module (tag \$t0 (export "t0")) (tag \$t1 (export "t0")))`),
   `duplicate export name`,
 );
 
@@ -157,21 +157,21 @@ let $18 = instantiate(`(module (global (export "a") i32 (i32.const 0)))`);
 let $19 = instantiate(`(module (global i32 (i32.const 0)) (export "a" (global 0)))`);
 
 // ./test/core/exports.wast:84
-let $20 = instantiate(`(module (global $$a (export "a") i32 (i32.const 0)))`);
+let $20 = instantiate(`(module (global \$a (export "a") i32 (i32.const 0)))`);
 
 // ./test/core/exports.wast:85
-let $21 = instantiate(`(module (global $$a i32 (i32.const 0)) (export "a" (global $$a)))`);
+let $21 = instantiate(`(module (global \$a i32 (i32.const 0)) (export "a" (global \$a)))`);
 
 // ./test/core/exports.wast:86
 let $22 = instantiate(`(module (export "a" (global 0)) (global i32 (i32.const 0)))`);
 
 // ./test/core/exports.wast:87
-let $23 = instantiate(`(module (export "a" (global $$a)) (global $$a i32 (i32.const 0)))`);
+let $23 = instantiate(`(module (export "a" (global \$a)) (global \$a i32 (i32.const 0)))`);
 
 // ./test/core/exports.wast:89
-let $24 = instantiate(`(module $$Global
-  (export "e" (global $$g))
-  (global $$g i32 (i32.const 42))
+let $24 = instantiate(`(module \$Global
+  (export "e" (global \$g))
+  (global \$g i32 (i32.const 42))
 )`);
 let $Global = $24;
 
@@ -185,7 +185,7 @@ assert_return(() => get($Global, `e`), [value("i32", 42)]);
 let $25 = instantiate(`(module)`);
 
 // ./test/core/exports.wast:96
-let $26 = instantiate(`(module $$Other2)`);
+let $26 = instantiate(`(module \$Other2)`);
 let $Other2 = $26;
 
 // ./test/core/exports.wast:97
@@ -258,16 +258,16 @@ let $32 = instantiate(`(module (table 0 funcref) (export "a" (table 0)))`);
 let $33 = instantiate(`(module (table 0 1 funcref) (export "a" (table 0)))`);
 
 // ./test/core/exports.wast:143
-let $34 = instantiate(`(module (table $$a (export "a") 0 funcref))`);
+let $34 = instantiate(`(module (table \$a (export "a") 0 funcref))`);
 
 // ./test/core/exports.wast:144
-let $35 = instantiate(`(module (table $$a (export "a") 0 1 funcref))`);
+let $35 = instantiate(`(module (table \$a (export "a") 0 1 funcref))`);
 
 // ./test/core/exports.wast:145
-let $36 = instantiate(`(module (table $$a 0 funcref) (export "a" (table $$a)))`);
+let $36 = instantiate(`(module (table \$a 0 funcref) (export "a" (table \$a)))`);
 
 // ./test/core/exports.wast:146
-let $37 = instantiate(`(module (table $$a 0 1 funcref) (export "a" (table $$a)))`);
+let $37 = instantiate(`(module (table \$a 0 1 funcref) (export "a" (table \$a)))`);
 
 // ./test/core/exports.wast:147
 let $38 = instantiate(`(module (export "a" (table 0)) (table 0 funcref))`);
@@ -276,10 +276,10 @@ let $38 = instantiate(`(module (export "a" (table 0)) (table 0 funcref))`);
 let $39 = instantiate(`(module (export "a" (table 0)) (table 0 1 funcref))`);
 
 // ./test/core/exports.wast:149
-let $40 = instantiate(`(module (export "a" (table $$a)) (table $$a 0 funcref))`);
+let $40 = instantiate(`(module (export "a" (table \$a)) (table \$a 0 funcref))`);
 
 // ./test/core/exports.wast:150
-let $41 = instantiate(`(module (export "a" (table $$a)) (table $$a 0 1 funcref))`);
+let $41 = instantiate(`(module (export "a" (table \$a)) (table \$a 0 1 funcref))`);
 
 // ./test/core/exports.wast:154
 assert_invalid(() => instantiate(`(module (export "a" (table 0)))`), `unknown table`);
@@ -345,16 +345,16 @@ let $46 = instantiate(`(module (memory 0) (export "a" (memory 0)))`);
 let $47 = instantiate(`(module (memory 0 1) (export "a" (memory 0)))`);
 
 // ./test/core/exports.wast:199
-let $48 = instantiate(`(module (memory $$a (export "a") 0))`);
+let $48 = instantiate(`(module (memory \$a (export "a") 0))`);
 
 // ./test/core/exports.wast:200
-let $49 = instantiate(`(module (memory $$a (export "a") 0 1))`);
+let $49 = instantiate(`(module (memory \$a (export "a") 0 1))`);
 
 // ./test/core/exports.wast:201
-let $50 = instantiate(`(module (memory $$a 0) (export "a" (memory $$a)))`);
+let $50 = instantiate(`(module (memory \$a 0) (export "a" (memory \$a)))`);
 
 // ./test/core/exports.wast:202
-let $51 = instantiate(`(module (memory $$a 0 1) (export "a" (memory $$a)))`);
+let $51 = instantiate(`(module (memory \$a 0 1) (export "a" (memory \$a)))`);
 
 // ./test/core/exports.wast:203
 let $52 = instantiate(`(module (export "a" (memory 0)) (memory 0))`);
@@ -363,10 +363,10 @@ let $52 = instantiate(`(module (export "a" (memory 0)) (memory 0))`);
 let $53 = instantiate(`(module (export "a" (memory 0)) (memory 0 1))`);
 
 // ./test/core/exports.wast:205
-let $54 = instantiate(`(module (export "a" (memory $$a)) (memory $$a 0))`);
+let $54 = instantiate(`(module (export "a" (memory \$a)) (memory \$a 0))`);
 
 // ./test/core/exports.wast:206
-let $55 = instantiate(`(module (export "a" (memory $$a)) (memory $$a 0 1))`);
+let $55 = instantiate(`(module (export "a" (memory \$a)) (memory \$a 0 1))`);
 
 // ./test/core/exports.wast:210
 assert_invalid(() => instantiate(`(module (export "a" (memory 0)))`), `unknown memory`);

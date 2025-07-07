@@ -18143,7 +18143,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4.wast:2341
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.abs-arg-empty (result v128)
+    (func \$f32x4.abs-arg-empty (result v128)
       (f32x4.abs)
     )
   )`),
@@ -18153,7 +18153,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4.wast:2349
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.min-1st-arg-empty (result v128)
+    (func \$f32x4.min-1st-arg-empty (result v128)
       (f32x4.min (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -18163,7 +18163,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4.wast:2357
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.min-arg-empty (result v128)
+    (func \$f32x4.min-arg-empty (result v128)
       (f32x4.min)
     )
   )`),
@@ -18173,7 +18173,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4.wast:2365
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.max-1st-arg-empty (result v128)
+    (func \$f32x4.max-1st-arg-empty (result v128)
       (f32x4.max (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -18183,7 +18183,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4.wast:2373
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.max-arg-empty (result v128)
+    (func \$f32x4.max-arg-empty (result v128)
       (f32x4.max)
     )
   )`),

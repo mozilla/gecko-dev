@@ -837,3 +837,127 @@ diff --git a/js/src/jit-test/tests/wasm/spec/spec/table.wast.js b/js/src/jit-tes
  
  // ./test/core/table.wast:50
  let $15 = instantiate(`(module (table i64 0 funcref))`);
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/LB.wast.js b/js/src/jit-test/tests/wasm/spec/threads/LB.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/LB.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/LB.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/LB.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `
+ 
+@@ -89,7 +93,7 @@ let $3 = instantiate(`(module \$Check
+     ;; allowed results: (L_0 = 0 || L_0 = 1) && (L_1 = 0 || L_1 = 1)
+ 
+     (i32.or (i32.eq (local.get 0) (i32.const 1)) (i32.eq (local.get 0) (i32.const 0)))
+-    (i32.or (i32.eq (local.get 1) (i32.const 1)) (i32.eq (local.get 0) (i32.const 0)))
++    (i32.or (i32.eq (local.get 1) (i32.const 1)) (i32.eq (local.get 1) (i32.const 0)))
+     (i32.and)
+     (return)
+   )
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/LB_atomic.wast.js b/js/src/jit-test/tests/wasm/spec/threads/LB_atomic.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/LB_atomic.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/LB_atomic.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/LB_atomic.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `
+ 
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/MP.wast.js b/js/src/jit-test/tests/wasm/spec/threads/MP.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/MP.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/MP.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/MP.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `
+ 
+@@ -86,7 +90,7 @@ let $3 = instantiate(`(module \$Check
+     ;; allowed results: (L_0 = 0 || L_0 = 1) && (L_1 = 0 || L_1 = 42)
+ 
+     (i32.or (i32.eq (local.get 0) (i32.const 1)) (i32.eq (local.get 0) (i32.const 0)))
+-    (i32.or (i32.eq (local.get 1) (i32.const 42)) (i32.eq (local.get 0) (i32.const 0)))
++    (i32.or (i32.eq (local.get 1) (i32.const 42)) (i32.eq (local.get 1) (i32.const 0)))
+     (i32.and)
+     (return)
+   )
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/MP_atomic.wast.js b/js/src/jit-test/tests/wasm/spec/threads/MP_atomic.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/MP_atomic.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/MP_atomic.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/MP_atomic.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `
+ 
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/MP_wait.wast.js b/js/src/jit-test/tests/wasm/spec/threads/MP_wait.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/MP_wait.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/MP_wait.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/MP_wait.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `
+ 
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/SB.wast.js b/js/src/jit-test/tests/wasm/spec/threads/SB.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/SB.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/SB.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/SB.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `
+ 
+@@ -89,7 +93,7 @@ let $3 = instantiate(`(module \$Check
+     ;; allowed results: (L_0 = 0 || L_0 = 1) && (L_1 = 0 || L_1 = 1)
+ 
+     (i32.or (i32.eq (local.get 0) (i32.const 1)) (i32.eq (local.get 0) (i32.const 0)))
+-    (i32.or (i32.eq (local.get 1) (i32.const 1)) (i32.eq (local.get 0) (i32.const 0)))
++    (i32.or (i32.eq (local.get 1) (i32.const 1)) (i32.eq (local.get 1) (i32.const 0)))
+     (i32.and)
+     (return)
+   )
+diff --git a/js/src/jit-test/tests/wasm/spec/threads/SB_atomic.wast.js b/js/src/jit-test/tests/wasm/spec/threads/SB_atomic.wast.js
+--- a/js/src/jit-test/tests/wasm/spec/threads/SB_atomic.wast.js
++++ b/js/src/jit-test/tests/wasm/spec/threads/SB_atomic.wast.js
+@@ -21,6 +21,10 @@ let $0 = instantiate(`(module \$Mem
+ )`);
+ let $Mem = $0;
+ 
++// Missing in source test:
++// https://github.com/WebAssembly/threads/pull/217
++register($Mem, `mem`);
++
+ // ./test/core/threads/SB_atomic.wast:5
+ let $T1 = new Thread($Mem, "$Mem", `

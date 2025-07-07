@@ -1351,7 +1351,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith.wast:360
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.neg-arg-empty (result v128)
+    (func \$i8x16.neg-arg-empty (result v128)
       (i8x16.neg)
     )
   )`),
@@ -1361,7 +1361,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith.wast:368
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.add-1st-arg-empty (result v128)
+    (func \$i8x16.add-1st-arg-empty (result v128)
       (i8x16.add (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1371,7 +1371,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith.wast:376
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.add-arg-empty (result v128)
+    (func \$i8x16.add-arg-empty (result v128)
       (i8x16.add)
     )
   )`),
@@ -1381,7 +1381,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith.wast:384
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.sub-1st-arg-empty (result v128)
+    (func \$i8x16.sub-1st-arg-empty (result v128)
       (i8x16.sub (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1391,7 +1391,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_arith.wast:392
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.sub-arg-empty (result v128)
+    (func \$i8x16.sub-arg-empty (result v128)
       (i8x16.sub)
     )
   )`),

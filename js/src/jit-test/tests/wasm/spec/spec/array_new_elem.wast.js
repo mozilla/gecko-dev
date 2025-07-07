@@ -17,16 +17,16 @@
 
 // ./test/core/gc/array_new_elem.wast:3
 let $0 = instantiate(`(module
-  (type $$arr (array i31ref))
+  (type \$arr (array i31ref))
 
-  (elem $$e i31ref
+  (elem \$e i31ref
     (ref.i31 (i32.const 0xaa))
     (ref.i31 (i32.const 0xbb))
     (ref.i31 (i32.const 0xcc))
     (ref.i31 (i32.const 0xdd)))
 
-  (func (export "array-new-elem") (param i32 i32) (result (ref $$arr))
-    (array.new_elem $$arr $$e (local.get 0) (local.get 1))
+  (func (export "array-new-elem") (param i32 i32) (result (ref \$arr))
+    (array.new_elem \$arr \$e (local.get 0) (local.get 1))
   )
 )`);
 
@@ -56,19 +56,19 @@ assert_trap(() => invoke($0, `array-new-elem`, [4, 1]), `out of bounds table acc
 
 // ./test/core/gc/array_new_elem.wast:29
 let $1 = instantiate(`(module
-  (type $$arr (array i31ref))
+  (type \$arr (array i31ref))
 
-  (elem $$e i31ref
+  (elem \$e i31ref
     (ref.i31 (i32.const 0xaa))
     (ref.i31 (i32.const 0xbb))
     (ref.i31 (i32.const 0xcc))
     (ref.i31 (i32.const 0xdd)))
 
   (func (export "array-new-elem-contents") (result i32 i32)
-    (local (ref $$arr))
-    (local.set 0 (array.new_elem $$arr $$e (i32.const 1) (i32.const 2)))
-    (i31.get_u (array.get $$arr (local.get 0) (i32.const 0)))
-    (i31.get_u (array.get $$arr (local.get 0) (i32.const 1)))
+    (local (ref \$arr))
+    (local.set 0 (array.new_elem \$arr \$e (i32.const 1) (i32.const 2)))
+    (i31.get_u (array.get \$arr (local.get 0) (i32.const 0)))
+    (i31.get_u (array.get \$arr (local.get 0) (i32.const 1)))
   )
 )`);
 
@@ -77,16 +77,16 @@ assert_return(() => invoke($1, `array-new-elem-contents`, []), [value("i32", 187
 
 // ./test/core/gc/array_new_elem.wast:51
 let $2 = instantiate(`(module
-  (type $$arr (array funcref))
+  (type \$arr (array funcref))
 
-  (elem $$e func $$aa $$bb $$cc $$dd)
-  (func $$aa (result i32) (i32.const 0xaa))
-  (func $$bb (result i32) (i32.const 0xbb))
-  (func $$cc (result i32) (i32.const 0xcc))
-  (func $$dd (result i32) (i32.const 0xdd))
+  (elem \$e func \$aa \$bb \$cc \$dd)
+  (func \$aa (result i32) (i32.const 0xaa))
+  (func \$bb (result i32) (i32.const 0xbb))
+  (func \$cc (result i32) (i32.const 0xcc))
+  (func \$dd (result i32) (i32.const 0xdd))
 
-  (func (export "array-new-elem") (param i32 i32) (result (ref $$arr))
-    (array.new_elem $$arr $$e (local.get 0) (local.get 1))
+  (func (export "array-new-elem") (param i32 i32) (result (ref \$arr))
+    (array.new_elem \$arr \$e (local.get 0) (local.get 1))
   )
 )`);
 
@@ -116,26 +116,26 @@ assert_trap(() => invoke($2, `array-new-elem`, [4, 1]), `out of bounds table acc
 
 // ./test/core/gc/array_new_elem.wast:77
 let $3 = instantiate(`(module
-  (type $$f (func (result i32)))
-  (type $$arr (array funcref))
+  (type \$f (func (result i32)))
+  (type \$arr (array funcref))
 
-  (elem $$e func $$aa $$bb $$cc $$dd)
-  (func $$aa (result i32) (i32.const 0xaa))
-  (func $$bb (result i32) (i32.const 0xbb))
-  (func $$cc (result i32) (i32.const 0xcc))
-  (func $$dd (result i32) (i32.const 0xdd))
+  (elem \$e func \$aa \$bb \$cc \$dd)
+  (func \$aa (result i32) (i32.const 0xaa))
+  (func \$bb (result i32) (i32.const 0xbb))
+  (func \$cc (result i32) (i32.const 0xcc))
+  (func \$dd (result i32) (i32.const 0xdd))
 
-  (table $$t 2 2 funcref)
+  (table \$t 2 2 funcref)
 
   (func (export "array-new-elem-contents") (result i32 i32)
-    (local (ref $$arr))
-    (local.set 0 (array.new_elem $$arr $$e (i32.const 1) (i32.const 2)))
+    (local (ref \$arr))
+    (local.set 0 (array.new_elem \$arr \$e (i32.const 1) (i32.const 2)))
 
-    (table.set $$t (i32.const 0) (array.get $$arr (local.get 0) (i32.const 0)))
-    (table.set $$t (i32.const 1) (array.get $$arr (local.get 0) (i32.const 1)))
+    (table.set \$t (i32.const 0) (array.get \$arr (local.get 0) (i32.const 0)))
+    (table.set \$t (i32.const 1) (array.get \$arr (local.get 0) (i32.const 1)))
 
-    (call_indirect (type $$f) (i32.const 0))
-    (call_indirect (type $$f) (i32.const 1))
+    (call_indirect (type \$f) (i32.const 0))
+    (call_indirect (type \$f) (i32.const 1))
 
   )
 )`);

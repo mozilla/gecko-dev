@@ -1648,7 +1648,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:535
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.neg-arg-empty (result v128)
+    (func \$i32x4.neg-arg-empty (result v128)
       (i32x4.neg)
     )
   )`),
@@ -1658,7 +1658,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:543
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.add-1st-arg-empty (result v128)
+    (func \$i32x4.add-1st-arg-empty (result v128)
       (i32x4.add (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -1668,7 +1668,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:551
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.add-arg-empty (result v128)
+    (func \$i32x4.add-arg-empty (result v128)
       (i32x4.add)
     )
   )`),
@@ -1678,7 +1678,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:559
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.sub-1st-arg-empty (result v128)
+    (func \$i32x4.sub-1st-arg-empty (result v128)
       (i32x4.sub (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -1688,7 +1688,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:567
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.sub-arg-empty (result v128)
+    (func \$i32x4.sub-arg-empty (result v128)
       (i32x4.sub)
     )
   )`),
@@ -1698,7 +1698,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:575
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.mul-1st-arg-empty (result v128)
+    (func \$i32x4.mul-1st-arg-empty (result v128)
       (i32x4.mul (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -1708,7 +1708,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_arith.wast:583
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.mul-arg-empty (result v128)
+    (func \$i32x4.mul-arg-empty (result v128)
       (i32x4.mul)
     )
   )`),

@@ -3394,7 +3394,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_rounding.wast:392
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.ceil-arg-empty (result v128)
+    (func \$f32x4.ceil-arg-empty (result v128)
       (f32x4.ceil)
     )
   )`),
@@ -3404,7 +3404,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_rounding.wast:400
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.floor-arg-empty (result v128)
+    (func \$f32x4.floor-arg-empty (result v128)
       (f32x4.floor)
     )
   )`),
@@ -3414,7 +3414,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_rounding.wast:408
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.trunc-arg-empty (result v128)
+    (func \$f32x4.trunc-arg-empty (result v128)
       (f32x4.trunc)
     )
   )`),
@@ -3424,7 +3424,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_rounding.wast:416
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.nearest-arg-empty (result v128)
+    (func \$f32x4.nearest-arg-empty (result v128)
       (f32x4.nearest)
     )
   )`),

@@ -1475,7 +1475,7 @@ assert_return(
 
 // ./test/core/simd/simd_splat.wast:347
 let $3 = instantiate(`(module
-  (global $$g (mut v128) (v128.const f32x4 0.0 0.0 0.0 0.0))
+  (global \$g (mut v128) (v128.const f32x4 0.0 0.0 0.0 0.0))
   (func (export "as-br-value1") (param i32) (result v128)
     (block (result v128) (br 0 (i8x16.splat (local.get 0)))))
   (func (export "as-return-value1") (param i32) (result v128)
@@ -1484,8 +1484,8 @@ let $3 = instantiate(`(module
     (local.set 1 (i32x4.splat (local.get 0)))
     (return (local.get 1)))
   (func (export "as-global_set-value1") (param f32) (result v128)
-    (global.set $$g (f32x4.splat (local.get 0)))
-    (return (global.get $$g)))
+    (global.set \$g (f32x4.splat (local.get 0)))
+    (return (global.get \$g)))
   (func (export "as-br-value2") (param i64) (result v128)
     (block (result v128) (br 0 (i64x2.splat (local.get 0)))))
   (func (export "as-return-value2") (param i64) (result v128)
@@ -1494,8 +1494,8 @@ let $3 = instantiate(`(module
     (local.set 1 (i64x2.splat (local.get 0)))
     (return (local.get 1)))
   (func (export "as-global_set-value2") (param f64) (result v128)
-    (global.set $$g (f64x2.splat (local.get 0)))
-    (return (global.get $$g)))
+    (global.set \$g (f64x2.splat (local.get 0)))
+    (return (global.get \$g)))
 )`);
 
 // ./test/core/simd/simd_splat.wast:371
@@ -1549,7 +1549,7 @@ assert_return(
 // ./test/core/simd/simd_splat.wast:383
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.splat-arg-empty (result v128)
+    (func \$i8x16.splat-arg-empty (result v128)
       (i8x16.splat)
     )
   )`),
@@ -1559,7 +1559,7 @@ assert_invalid(
 // ./test/core/simd/simd_splat.wast:391
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.splat-arg-empty (result v128)
+    (func \$i16x8.splat-arg-empty (result v128)
       (i16x8.splat)
     )
   )`),
@@ -1569,7 +1569,7 @@ assert_invalid(
 // ./test/core/simd/simd_splat.wast:399
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.splat-arg-empty (result v128)
+    (func \$i32x4.splat-arg-empty (result v128)
       (i32x4.splat)
     )
   )`),
@@ -1579,7 +1579,7 @@ assert_invalid(
 // ./test/core/simd/simd_splat.wast:407
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.splat-arg-empty (result v128)
+    (func \$f32x4.splat-arg-empty (result v128)
       (f32x4.splat)
     )
   )`),
@@ -1589,7 +1589,7 @@ assert_invalid(
 // ./test/core/simd/simd_splat.wast:415
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.splat-arg-empty (result v128)
+    (func \$i64x2.splat-arg-empty (result v128)
       (i64x2.splat)
     )
   )`),
@@ -1599,7 +1599,7 @@ assert_invalid(
 // ./test/core/simd/simd_splat.wast:423
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.splat-arg-empty (result v128)
+    (func \$f64x2.splat-arg-empty (result v128)
       (f64x2.splat)
     )
   )`),

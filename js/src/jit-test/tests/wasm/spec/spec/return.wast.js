@@ -18,7 +18,7 @@
 // ./test/core/return.wast:3
 let $0 = instantiate(`(module
   ;; Auxiliary definition
-  (func $$dummy)
+  (func \$dummy)
 
   (func (export "type-i32") (drop (i32.ctz (return))))
   (func (export "type-i64") (drop (i64.ctz (return))))
@@ -45,36 +45,36 @@ let $0 = instantiate(`(module
     (return (i32.const 1)) (i32.const 2)
   )
   (func (export "as-func-mid") (result i32)
-    (call $$dummy) (return (i32.const 2)) (i32.const 3)
+    (call \$dummy) (return (i32.const 2)) (i32.const 3)
   )
   (func (export "as-func-last")
-    (nop) (call $$dummy) (return)
+    (nop) (call \$dummy) (return)
   )
   (func (export "as-func-value") (result i32)
-    (nop) (call $$dummy) (return (i32.const 3))
+    (nop) (call \$dummy) (return (i32.const 3))
   )
 
   (func (export "as-block-first")
-    (block (return) (call $$dummy))
+    (block (return) (call \$dummy))
   )
   (func (export "as-block-mid")
-    (block (call $$dummy) (return) (call $$dummy))
+    (block (call \$dummy) (return) (call \$dummy))
   )
   (func (export "as-block-last")
-    (block (nop) (call $$dummy) (return))
+    (block (nop) (call \$dummy) (return))
   )
   (func (export "as-block-value") (result i32)
-    (block (result i32) (nop) (call $$dummy) (return (i32.const 2)))
+    (block (result i32) (nop) (call \$dummy) (return (i32.const 2)))
   )
 
   (func (export "as-loop-first") (result i32)
     (loop (result i32) (return (i32.const 3)) (i32.const 2))
   )
   (func (export "as-loop-mid") (result i32)
-    (loop (result i32) (call $$dummy) (return (i32.const 4)) (i32.const 2))
+    (loop (result i32) (call \$dummy) (return (i32.const 4)) (i32.const 2))
   )
   (func (export "as-loop-last") (result i32)
-    (loop (result i32) (nop) (call $$dummy) (return (i32.const 5)))
+    (loop (result i32) (nop) (call \$dummy) (return (i32.const 5)))
   )
 
   (func (export "as-br-value") (result i32)
@@ -139,36 +139,36 @@ let $0 = instantiate(`(module
     (select (i32.const 0) (i32.const 1) (return (i32.const 7)))
   )
 
-  (func $$f (param i32 i32 i32) (result i32) (i32.const -1))
+  (func \$f (param i32 i32 i32) (result i32) (i32.const -1))
   (func (export "as-call-first") (result i32)
-    (call $$f (return (i32.const 12)) (i32.const 2) (i32.const 3))
+    (call \$f (return (i32.const 12)) (i32.const 2) (i32.const 3))
   )
   (func (export "as-call-mid") (result i32)
-    (call $$f (i32.const 1) (return (i32.const 13)) (i32.const 3))
+    (call \$f (i32.const 1) (return (i32.const 13)) (i32.const 3))
   )
   (func (export "as-call-last") (result i32)
-    (call $$f (i32.const 1) (i32.const 2) (return (i32.const 14)))
+    (call \$f (i32.const 1) (i32.const 2) (return (i32.const 14)))
   )
 
-  (type $$sig (func (param i32 i32 i32) (result i32)))
-  (table funcref (elem $$f))
+  (type \$sig (func (param i32 i32 i32) (result i32)))
+  (table funcref (elem \$f))
   (func (export "as-call_indirect-func") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (return (i32.const 20)) (i32.const 1) (i32.const 2) (i32.const 3)
     )
   )
   (func (export "as-call_indirect-first") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 0) (return (i32.const 21)) (i32.const 2) (i32.const 3)
     )
   )
   (func (export "as-call_indirect-mid") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 0) (i32.const 1) (return (i32.const 22)) (i32.const 3)
     )
   )
   (func (export "as-call_indirect-last") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 0) (i32.const 1) (i32.const 2) (return (i32.const 23))
     )
   )
@@ -179,9 +179,9 @@ let $0 = instantiate(`(module
   (func (export "as-local.tee-value") (result i32) (local i32)
     (local.tee 0 (return (i32.const 1)))
   )
-  (global $$a (mut i32) (i32.const 0))
+  (global \$a (mut i32) (i32.const 0))
   (func (export "as-global.set-value") (result i32)
-    (global.set $$a (return (i32.const 1)))
+    (global.set \$a (return (i32.const 1)))
   )
 
   (memory 1)
@@ -428,14 +428,14 @@ assert_return(() => invoke($0, `as-memory.grow-size`, []), [value("i32", 40)]);
 
 // ./test/core/return.wast:310
 assert_invalid(
-  () => instantiate(`(module (func $$type-value-empty-vs-num (result i32) (return)))`),
+  () => instantiate(`(module (func \$type-value-empty-vs-num (result i32) (return)))`),
   `type mismatch`,
 );
 
 // ./test/core/return.wast:314
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-block (result i32)
+    (func \$type-value-empty-vs-num-in-block (result i32)
       (i32.const 0)
       (block (return))
     )
@@ -446,7 +446,7 @@ assert_invalid(
 // ./test/core/return.wast:323
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-loop (result i32)
+    (func \$type-value-empty-vs-num-in-loop (result i32)
       (i32.const 0)
       (loop (return))
     )
@@ -457,7 +457,7 @@ assert_invalid(
 // ./test/core/return.wast:332
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-then (result i32)
+    (func \$type-value-empty-vs-num-in-then (result i32)
       (i32.const 0) (i32.const 0)
       (if (then (return)))
     )
@@ -468,7 +468,7 @@ assert_invalid(
 // ./test/core/return.wast:341
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-else (result i32)
+    (func \$type-value-empty-vs-num-in-else (result i32)
       (i32.const 0) (i32.const 0)
       (if (result i32) (then (i32.const 0)) (else (return))) (drop)
     )
@@ -479,7 +479,7 @@ assert_invalid(
 // ./test/core/return.wast:350
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-br (result i32)
+    (func \$type-value-empty-vs-num-in-br (result i32)
       (i32.const 0)
       (block (br 0 (return)))
     )
@@ -490,7 +490,7 @@ assert_invalid(
 // ./test/core/return.wast:359
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-br_if (result i32)
+    (func \$type-value-empty-vs-num-in-br_if (result i32)
       (i32.const 0)
       (block (br_if 0 (return) (i32.const 1)))
     )
@@ -501,7 +501,7 @@ assert_invalid(
 // ./test/core/return.wast:368
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-br_table (result i32)
+    (func \$type-value-empty-vs-num-in-br_table (result i32)
       (i32.const 0)
       (block (br_table 0 (return)))
     )
@@ -512,7 +512,7 @@ assert_invalid(
 // ./test/core/return.wast:377
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-return (result i32)
+    (func \$type-value-empty-vs-num-in-return (result i32)
       (return (return))
     )
   )`),
@@ -522,7 +522,7 @@ assert_invalid(
 // ./test/core/return.wast:385
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-select (result i32)
+    (func \$type-value-empty-vs-num-in-select (result i32)
       (select (return) (i32.const 1) (i32.const 2))
     )
   )`),
@@ -532,7 +532,7 @@ assert_invalid(
 // ./test/core/return.wast:393
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-call (result i32)
+    (func \$type-value-empty-vs-num-in-call (result i32)
       (call 1 (return))
     )
     (func (param i32) (result i32) (local.get 0))
@@ -543,12 +543,12 @@ assert_invalid(
 // ./test/core/return.wast:402
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32) (result i32) (local.get 0))
-    (type $$sig (func (param i32) (result i32)))
-    (table funcref (elem $$f))
-    (func $$type-value-empty-vs-num-in-call_indirect (result i32)
+    (func \$f (param i32) (result i32) (local.get 0))
+    (type \$sig (func (param i32) (result i32)))
+    (table funcref (elem \$f))
+    (func \$type-value-empty-vs-num-in-call_indirect (result i32)
       (block (result i32)
-        (call_indirect (type $$sig)
+        (call_indirect (type \$sig)
           (return) (i32.const 0)
         )
       )
@@ -560,7 +560,7 @@ assert_invalid(
 // ./test/core/return.wast:417
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-local.set (result i32)
+    (func \$type-value-empty-vs-num-in-local.set (result i32)
       (local i32)
       (local.set 0 (return)) (local.get 0)
     )
@@ -571,7 +571,7 @@ assert_invalid(
 // ./test/core/return.wast:426
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-value-empty-vs-num-in-local.tee (result i32)
+    (func \$type-value-empty-vs-num-in-local.tee (result i32)
       (local i32)
       (local.tee 0 (return))
     )
@@ -582,9 +582,9 @@ assert_invalid(
 // ./test/core/return.wast:435
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-value-empty-vs-num-in-global.set (result i32)
-      (global.set $$x (return)) (global.get $$x)
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-value-empty-vs-num-in-global.set (result i32)
+      (global.set \$x (return)) (global.get \$x)
     )
   )`),
   `type mismatch`,
@@ -594,7 +594,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-value-empty-vs-num-in-memory.grow (result i32)
+    (func \$type-value-empty-vs-num-in-memory.grow (result i32)
       (memory.grow (return))
     )
   )`),
@@ -605,7 +605,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-value-empty-vs-num-in-load (result i32)
+    (func \$type-value-empty-vs-num-in-load (result i32)
       (i32.load (return))
     )
   )`),
@@ -616,7 +616,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-value-empty-vs-num-in-store (result i32)
+    (func \$type-value-empty-vs-num-in-store (result i32)
       (i32.store (return) (i32.const 1))
     )
   )`),
@@ -625,12 +625,12 @@ assert_invalid(
 
 // ./test/core/return.wast:471
 assert_invalid(
-  () => instantiate(`(module (func $$type-value-void-vs-num (result f64) (return (nop))))`),
+  () => instantiate(`(module (func \$type-value-void-vs-num (result f64) (return (nop))))`),
   `type mismatch`,
 );
 
 // ./test/core/return.wast:475
 assert_invalid(
-  () => instantiate(`(module (func $$type-value-num-vs-num (result f64) (return (i64.const 1))))`),
+  () => instantiate(`(module (func \$type-value-num-vs-num (result f64) (return (i64.const 1))))`),
   `type mismatch`,
 );

@@ -3830,8 +3830,8 @@ assert_return(
 
 // ./test/core/simd/simd_lane.wast:830
 let $4 = instantiate(`(module
-  (global $$g (mut v128) (v128.const f32x4 0.0 0.0 0.0 0.0))
-  (global $$h (mut v128) (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
+  (global \$g (mut v128) (v128.const f32x4 0.0 0.0 0.0 0.0))
+  (global \$h (mut v128) (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
   (func (export "as-if-condition-value") (param v128) (result i32)
     (if (result i32) (i8x16.extract_lane_s 0 (local.get 0)) (then (i32.const 0xff)) (else (i32.const 0))))
   (func (export "as-return-value-1") (param v128 i32) (result v128)
@@ -3840,21 +3840,21 @@ let $4 = instantiate(`(module
     (local.set 1 (i32x4.extract_lane 0 (local.get 0)))
     (return (local.get 1)))
   (func (export "as-global_set-value-1") (param v128 f32) (result v128)
-    (global.set $$g (f32x4.replace_lane 0 (local.get 0) (local.get 1)))
-    (return (global.get $$g)))
+    (global.set \$g (f32x4.replace_lane 0 (local.get 0) (local.get 1)))
+    (return (global.get \$g)))
 
    (func (export "as-return-value-2") (param v128 v128) (result v128)
     (return (i8x16.swizzle (local.get 0) (local.get 1))))
   (func (export "as-global_set-value-2") (param v128 v128) (result v128)
-    (global.set $$h (i8x16.shuffle 0 1 2 3 4 5 6 7 24 25 26 27 28 29 30 31 (local.get 0) (local.get 1)))
-    (return (global.get $$h)))
+    (global.set \$h (i8x16.shuffle 0 1 2 3 4 5 6 7 24 25 26 27 28 29 30 31 (local.get 0) (local.get 1)))
+    (return (global.get \$h)))
 
   (func (export "as-local_set-value-1") (param v128) (result i64) (local i64)
     (local.set 1 (i64x2.extract_lane 0 (local.get 0)))
     (return (local.get 1)))
   (func (export "as-global_set-value-3") (param v128 f64) (result v128)
-    (global.set $$g (f64x2.replace_lane 0 (local.get 0) (local.get 1)))
-    (return (global.get $$g)))
+    (global.set \$g (f64x2.replace_lane 0 (local.get 0) (local.get 1)))
+    (return (global.get \$g)))
 )`);
 
 // ./test/core/simd/simd_lane.wast:858
@@ -4002,14 +4002,14 @@ assert_malformed(
 
 // ./test/core/simd/simd_lane.wast:901
 assert_malformed(
-  () => instantiate(`(func $$i8x16.extract_lane_s-1st-arg-empty (result i32)   (i8x16.extract_lane_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)) ) `),
+  () => instantiate(`(func \$i8x16.extract_lane_s-1st-arg-empty (result i32)   (i8x16.extract_lane_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:909
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.extract_lane_s-2nd-arg-empty (result i32)
+    (func \$i8x16.extract_lane_s-2nd-arg-empty (result i32)
       (i8x16.extract_lane_s 0)
     )
   )`),
@@ -4018,20 +4018,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:917
 assert_malformed(
-  () => instantiate(`(func $$i8x16.extract_lane_s-arg-empty (result i32)   (i8x16.extract_lane_s) ) `),
+  () => instantiate(`(func \$i8x16.extract_lane_s-arg-empty (result i32)   (i8x16.extract_lane_s) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:925
 assert_malformed(
-  () => instantiate(`(func $$i16x8.extract_lane_u-1st-arg-empty (result i32)   (i16x8.extract_lane_u (v128.const i16x8 0 0 0 0 0 0 0 0)) ) `),
+  () => instantiate(`(func \$i16x8.extract_lane_u-1st-arg-empty (result i32)   (i16x8.extract_lane_u (v128.const i16x8 0 0 0 0 0 0 0 0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:933
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extract_lane_u-2nd-arg-empty (result i32)
+    (func \$i16x8.extract_lane_u-2nd-arg-empty (result i32)
       (i16x8.extract_lane_u 0)
     )
   )`),
@@ -4040,20 +4040,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:941
 assert_malformed(
-  () => instantiate(`(func $$i16x8.extract_lane_u-arg-empty (result i32)   (i16x8.extract_lane_u) ) `),
+  () => instantiate(`(func \$i16x8.extract_lane_u-arg-empty (result i32)   (i16x8.extract_lane_u) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:949
 assert_malformed(
-  () => instantiate(`(func $$i32x4.extract_lane-1st-arg-empty (result i32)   (i32x4.extract_lane (v128.const i32x4 0 0 0 0)) ) `),
+  () => instantiate(`(func \$i32x4.extract_lane-1st-arg-empty (result i32)   (i32x4.extract_lane (v128.const i32x4 0 0 0 0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:957
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extract_lane-2nd-arg-empty (result i32)
+    (func \$i32x4.extract_lane-2nd-arg-empty (result i32)
       (i32x4.extract_lane 0)
     )
   )`),
@@ -4062,20 +4062,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:965
 assert_malformed(
-  () => instantiate(`(func $$i32x4.extract_lane-arg-empty (result i32)   (i32x4.extract_lane) ) `),
+  () => instantiate(`(func \$i32x4.extract_lane-arg-empty (result i32)   (i32x4.extract_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:973
 assert_malformed(
-  () => instantiate(`(func $$i64x2.extract_lane-1st-arg-empty (result i64)   (i64x2.extract_lane (v128.const i64x2 0 0)) ) `),
+  () => instantiate(`(func \$i64x2.extract_lane-1st-arg-empty (result i64)   (i64x2.extract_lane (v128.const i64x2 0 0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:981
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.extract_lane-2nd-arg-empty (result i64)
+    (func \$i64x2.extract_lane-2nd-arg-empty (result i64)
       (i64x2.extract_lane 0)
     )
   )`),
@@ -4084,20 +4084,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:989
 assert_malformed(
-  () => instantiate(`(func $$i64x2.extract_lane-arg-empty (result i64)   (i64x2.extract_lane) ) `),
+  () => instantiate(`(func \$i64x2.extract_lane-arg-empty (result i64)   (i64x2.extract_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:997
 assert_malformed(
-  () => instantiate(`(func $$f32x4.extract_lane-1st-arg-empty (result f32)   (f32x4.extract_lane (v128.const f32x4 0 0 0 0)) ) `),
+  () => instantiate(`(func \$f32x4.extract_lane-1st-arg-empty (result f32)   (f32x4.extract_lane (v128.const f32x4 0 0 0 0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1005
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.extract_lane-2nd-arg-empty (result f32)
+    (func \$f32x4.extract_lane-2nd-arg-empty (result f32)
       (f32x4.extract_lane 0)
     )
   )`),
@@ -4106,20 +4106,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1013
 assert_malformed(
-  () => instantiate(`(func $$f32x4.extract_lane-arg-empty (result f32)   (f32x4.extract_lane) ) `),
+  () => instantiate(`(func \$f32x4.extract_lane-arg-empty (result f32)   (f32x4.extract_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1021
 assert_malformed(
-  () => instantiate(`(func $$f64x2.extract_lane-1st-arg-empty (result f64)   (f64x2.extract_lane (v128.const f64x2 0 0)) ) `),
+  () => instantiate(`(func \$f64x2.extract_lane-1st-arg-empty (result f64)   (f64x2.extract_lane (v128.const f64x2 0 0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1029
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.extract_lane-2nd-arg-empty (result f64)
+    (func \$f64x2.extract_lane-2nd-arg-empty (result f64)
       (f64x2.extract_lane 0)
     )
   )`),
@@ -4128,20 +4128,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1037
 assert_malformed(
-  () => instantiate(`(func $$f64x2.extract_lane-arg-empty (result f64)   (f64x2.extract_lane) ) `),
+  () => instantiate(`(func \$f64x2.extract_lane-arg-empty (result f64)   (f64x2.extract_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1045
 assert_malformed(
-  () => instantiate(`(func $$i8x16.replace_lane-1st-arg-empty (result v128)   (i8x16.replace_lane (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) (i32.const 1)) ) `),
+  () => instantiate(`(func \$i8x16.replace_lane-1st-arg-empty (result v128)   (i8x16.replace_lane (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0) (i32.const 1)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1053
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.replace_lane-2nd-arg-empty (result v128)
+    (func \$i8x16.replace_lane-2nd-arg-empty (result v128)
       (i8x16.replace_lane 0 (i32.const 1))
     )
   )`),
@@ -4151,7 +4151,7 @@ assert_invalid(
 // ./test/core/simd/simd_lane.wast:1061
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.replace_lane-3rd-arg-empty (result v128)
+    (func \$i8x16.replace_lane-3rd-arg-empty (result v128)
       (i8x16.replace_lane 0 (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4160,20 +4160,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1069
 assert_malformed(
-  () => instantiate(`(func $$i8x16.replace_lane-arg-empty (result v128)   (i8x16.replace_lane) ) `),
+  () => instantiate(`(func \$i8x16.replace_lane-arg-empty (result v128)   (i8x16.replace_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1077
 assert_malformed(
-  () => instantiate(`(func $$i16x8.replace_lane-1st-arg-empty (result v128)   (i16x8.replace_lane (v128.const i16x8 0 0 0 0 0 0 0 0) (i32.const 1)) ) `),
+  () => instantiate(`(func \$i16x8.replace_lane-1st-arg-empty (result v128)   (i16x8.replace_lane (v128.const i16x8 0 0 0 0 0 0 0 0) (i32.const 1)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1085
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.replace_lane-2nd-arg-empty (result v128)
+    (func \$i16x8.replace_lane-2nd-arg-empty (result v128)
       (i16x8.replace_lane 0 (i32.const 1))
     )
   )`),
@@ -4183,7 +4183,7 @@ assert_invalid(
 // ./test/core/simd/simd_lane.wast:1093
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.replace_lane-3rd-arg-empty (result v128)
+    (func \$i16x8.replace_lane-3rd-arg-empty (result v128)
       (i16x8.replace_lane 0 (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4192,20 +4192,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1101
 assert_malformed(
-  () => instantiate(`(func $$i16x8.replace_lane-arg-empty (result v128)   (i16x8.replace_lane) ) `),
+  () => instantiate(`(func \$i16x8.replace_lane-arg-empty (result v128)   (i16x8.replace_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1109
 assert_malformed(
-  () => instantiate(`(func $$i32x4.replace_lane-1st-arg-empty (result v128)   (i32x4.replace_lane (v128.const i32x4 0 0 0 0) (i32.const 1)) ) `),
+  () => instantiate(`(func \$i32x4.replace_lane-1st-arg-empty (result v128)   (i32x4.replace_lane (v128.const i32x4 0 0 0 0) (i32.const 1)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1117
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.replace_lane-2nd-arg-empty (result v128)
+    (func \$i32x4.replace_lane-2nd-arg-empty (result v128)
       (i32x4.replace_lane 0 (i32.const 1))
     )
   )`),
@@ -4215,7 +4215,7 @@ assert_invalid(
 // ./test/core/simd/simd_lane.wast:1125
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.replace_lane-3rd-arg-empty (result v128)
+    (func \$i32x4.replace_lane-3rd-arg-empty (result v128)
       (i32x4.replace_lane 0 (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4224,20 +4224,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1133
 assert_malformed(
-  () => instantiate(`(func $$i32x4.replace_lane-arg-empty (result v128)   (i32x4.replace_lane) ) `),
+  () => instantiate(`(func \$i32x4.replace_lane-arg-empty (result v128)   (i32x4.replace_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1141
 assert_malformed(
-  () => instantiate(`(func $$f32x4.replace_lane-1st-arg-empty (result v128)   (f32x4.replace_lane (v128.const f32x4 0 0 0 0) (f32.const 1.0)) ) `),
+  () => instantiate(`(func \$f32x4.replace_lane-1st-arg-empty (result v128)   (f32x4.replace_lane (v128.const f32x4 0 0 0 0) (f32.const 1.0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1149
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.replace_lane-2nd-arg-empty (result v128)
+    (func \$f32x4.replace_lane-2nd-arg-empty (result v128)
       (f32x4.replace_lane 0 (f32.const 1.0))
     )
   )`),
@@ -4247,7 +4247,7 @@ assert_invalid(
 // ./test/core/simd/simd_lane.wast:1157
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.replace_lane-3rd-arg-empty (result v128)
+    (func \$f32x4.replace_lane-3rd-arg-empty (result v128)
       (f32x4.replace_lane 0 (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -4256,20 +4256,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1165
 assert_malformed(
-  () => instantiate(`(func $$f32x4.replace_lane-arg-empty (result v128)   (f32x4.replace_lane) ) `),
+  () => instantiate(`(func \$f32x4.replace_lane-arg-empty (result v128)   (f32x4.replace_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1173
 assert_malformed(
-  () => instantiate(`(func $$i64x2.replace_lane-1st-arg-empty (result v128)   (i64x2.replace_lane (v128.const i64x2 0 0) (i64.const 1)) ) `),
+  () => instantiate(`(func \$i64x2.replace_lane-1st-arg-empty (result v128)   (i64x2.replace_lane (v128.const i64x2 0 0) (i64.const 1)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1181
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.replace_lane-2nd-arg-empty (result v128)
+    (func \$i64x2.replace_lane-2nd-arg-empty (result v128)
       (i64x2.replace_lane 0 (i64.const 1))
     )
   )`),
@@ -4279,7 +4279,7 @@ assert_invalid(
 // ./test/core/simd/simd_lane.wast:1189
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.replace_lane-3rd-arg-empty (result v128)
+    (func \$i64x2.replace_lane-3rd-arg-empty (result v128)
       (i64x2.replace_lane 0 (v128.const i64x2 0 0))
     )
   )`),
@@ -4288,20 +4288,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1197
 assert_malformed(
-  () => instantiate(`(func $$i64x2.replace_lane-arg-empty (result v128)   (i64x2.replace_lane) ) `),
+  () => instantiate(`(func \$i64x2.replace_lane-arg-empty (result v128)   (i64x2.replace_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1205
 assert_malformed(
-  () => instantiate(`(func $$f64x2.replace_lane-1st-arg-empty (result v128)   (f64x2.replace_lane (v128.const f64x2 0 0) (f64.const 1.0)) ) `),
+  () => instantiate(`(func \$f64x2.replace_lane-1st-arg-empty (result v128)   (f64x2.replace_lane (v128.const f64x2 0 0) (f64.const 1.0)) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1213
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.replace_lane-2nd-arg-empty (result v128)
+    (func \$f64x2.replace_lane-2nd-arg-empty (result v128)
       (f64x2.replace_lane 0 (f64.const 1.0))
     )
   )`),
@@ -4311,7 +4311,7 @@ assert_invalid(
 // ./test/core/simd/simd_lane.wast:1221
 assert_invalid(
   () => instantiate(`(module
-    (func $$f64x2.replace_lane-3rd-arg-empty (result v128)
+    (func \$f64x2.replace_lane-3rd-arg-empty (result v128)
       (f64x2.replace_lane 0 (v128.const f64x2 0 0))
     )
   )`),
@@ -4320,20 +4320,20 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1229
 assert_malformed(
-  () => instantiate(`(func $$f64x2.replace_lane-arg-empty (result v128)   (f64x2.replace_lane) ) `),
+  () => instantiate(`(func \$f64x2.replace_lane-arg-empty (result v128)   (f64x2.replace_lane) ) `),
   `unexpected token`,
 );
 
 // ./test/core/simd/simd_lane.wast:1237
 assert_malformed(
-  () => instantiate(`(func $$i8x16.shuffle-1st-arg-empty (result v128)   (i8x16.shuffle     (v128.const i8x16 0 1 2 3 5 6 6 7 8 9 10 11 12 13 14 15)     (v128.const i8x16 1 2 3 5 6 6 7 8 9 10 11 12 13 14 15 16)   ) ) `),
+  () => instantiate(`(func \$i8x16.shuffle-1st-arg-empty (result v128)   (i8x16.shuffle     (v128.const i8x16 0 1 2 3 5 6 6 7 8 9 10 11 12 13 14 15)     (v128.const i8x16 1 2 3 5 6 6 7 8 9 10 11 12 13 14 15 16)   ) ) `),
   `invalid lane length`,
 );
 
 // ./test/core/simd/simd_lane.wast:1248
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.shuffle-2nd-arg-empty (result v128)
+    (func \$i8x16.shuffle-2nd-arg-empty (result v128)
       (i8x16.shuffle 0 1 2 3 5 6 6 7 8 9 10 11 12 13 14 15
         (v128.const i8x16 1 2 3 5 6 6 7 8 9 10 11 12 13 14 15 16)
       )
@@ -4344,6 +4344,6 @@ assert_invalid(
 
 // ./test/core/simd/simd_lane.wast:1258
 assert_malformed(
-  () => instantiate(`(func $$i8x16.shuffle-arg-empty (result v128)   (i8x16.shuffle) ) `),
+  () => instantiate(`(func \$i8x16.shuffle-arg-empty (result v128)   (i8x16.shuffle) ) `),
   `invalid lane length`,
 );

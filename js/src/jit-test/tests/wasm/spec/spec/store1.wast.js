@@ -16,7 +16,7 @@
 // ./test/core/multi-memory/store1.wast
 
 // ./test/core/multi-memory/store1.wast:1
-let $0 = instantiate(`(module $$M1
+let $0 = instantiate(`(module \$M1
   (memory (export "mem") 1)
 
   (func (export "load") (param i32) (result i64)
@@ -32,7 +32,7 @@ let $M1 = $0;
 register($0, `M1`);
 
 // ./test/core/multi-memory/store1.wast:13
-let $1 = instantiate(`(module $$M2
+let $1 = instantiate(`(module \$M2
   (memory (export "mem") 1)
 
   (func (export "load") (param i32) (result i64)
@@ -61,21 +61,21 @@ assert_return(() => invoke($M2, `load`, [0]), [value("i64", 2n)]);
 
 // ./test/core/multi-memory/store1.wast:30
 let $2 = instantiate(`(module
-  (memory $$mem1 (import "M1" "mem") 1)
-  (memory $$mem2 (import "M2" "mem") 1)
+  (memory \$mem1 (import "M1" "mem") 1)
+  (memory \$mem2 (import "M2" "mem") 1)
 
   (func (export "load1") (param i32) (result i64)
-    (i64.load $$mem1 (local.get 0))
+    (i64.load \$mem1 (local.get 0))
   )
   (func (export "load2") (param i32) (result i64)
-    (i64.load $$mem2 (local.get 0))
+    (i64.load \$mem2 (local.get 0))
   )
 
   (func (export "store1") (param i32 i64)
-    (i64.store $$mem1 (local.get 0) (local.get 1))
+    (i64.store \$mem1 (local.get 0) (local.get 1))
   )
   (func (export "store2") (param i32 i64)
-    (i64.store $$mem2 (local.get 0) (local.get 1))
+    (i64.store \$mem2 (local.get 0) (local.get 1))
   )
 )`);
 

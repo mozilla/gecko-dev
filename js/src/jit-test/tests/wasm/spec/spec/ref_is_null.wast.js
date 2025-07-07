@@ -17,45 +17,45 @@
 
 // ./test/core/ref_is_null.wast:1
 let $0 = instantiate(`(module
-  (type $$t (func))
-  (func $$dummy)
+  (type \$t (func))
+  (func \$dummy)
 
-  (func $$f1 (export "funcref") (param $$x funcref) (result i32)
-    (ref.is_null (local.get $$x))
+  (func \$f1 (export "funcref") (param \$x funcref) (result i32)
+    (ref.is_null (local.get \$x))
   )
-  (func $$f2 (export "externref") (param $$x externref) (result i32)
-    (ref.is_null (local.get $$x))
+  (func \$f2 (export "externref") (param \$x externref) (result i32)
+    (ref.is_null (local.get \$x))
   )
-  (func $$f3 (param $$x (ref null $$t)) (result i32)
-    (ref.is_null (local.get $$x))
+  (func \$f3 (param \$x (ref null \$t)) (result i32)
+    (ref.is_null (local.get \$x))
   )
-  (func $$f3' (export "ref-null") (result i32)
-    (call $$f3 (ref.null $$t))
+  (func \$f3' (export "ref-null") (result i32)
+    (call \$f3 (ref.null \$t))
   )
 
-  (table $$t1 2 funcref)
-  (table $$t2 2 externref)
-  (table $$t3 2 (ref null $$t))
-  (elem (table $$t1) (i32.const 1) func $$dummy)
-  (elem (table $$t3) (i32.const 1) (ref $$t) (ref.func $$dummy))
+  (table \$t1 2 funcref)
+  (table \$t2 2 externref)
+  (table \$t3 2 (ref null \$t))
+  (elem (table \$t1) (i32.const 1) func \$dummy)
+  (elem (table \$t3) (i32.const 1) (ref \$t) (ref.func \$dummy))
 
-  (func (export "init") (param $$r externref)
-    (table.set $$t2 (i32.const 1) (local.get $$r))
+  (func (export "init") (param \$r externref)
+    (table.set \$t2 (i32.const 1) (local.get \$r))
   )
   (func (export "deinit")
-    (table.set $$t1 (i32.const 1) (ref.null func))
-    (table.set $$t2 (i32.const 1) (ref.null extern))
-    (table.set $$t3 (i32.const 1) (ref.null $$t))
+    (table.set \$t1 (i32.const 1) (ref.null func))
+    (table.set \$t2 (i32.const 1) (ref.null extern))
+    (table.set \$t3 (i32.const 1) (ref.null \$t))
   )
 
-  (func (export "funcref-elem") (param $$x i32) (result i32)
-    (call $$f1 (table.get $$t1 (local.get $$x)))
+  (func (export "funcref-elem") (param \$x i32) (result i32)
+    (call \$f1 (table.get \$t1 (local.get \$x)))
   )
-  (func (export "externref-elem") (param $$x i32) (result i32)
-    (call $$f2 (table.get $$t2 (local.get $$x)))
+  (func (export "externref-elem") (param \$x i32) (result i32)
+    (call \$f2 (table.get \$t2 (local.get \$x)))
   )
-  (func (export "ref-elem") (param $$x i32) (result i32)
-    (call $$f3 (table.get $$t3 (local.get $$x)))
+  (func (export "ref-elem") (param \$x i32) (result i32)
+    (call \$f3 (table.get \$t3 (local.get \$x)))
   )
 )`);
 
@@ -115,20 +115,20 @@ assert_return(() => invoke($0, `ref-elem`, [1]), [value("i32", 1)]);
 
 // ./test/core/ref_is_null.wast:71
 let $1 = instantiate(`(module
-  (type $$t (func))
-  (func (param $$r (ref $$t)) (drop (ref.is_null (local.get $$r))))
-  (func (param $$r (ref func)) (drop (ref.is_null (local.get $$r))))
-  (func (param $$r (ref extern)) (drop (ref.is_null (local.get $$r))))
+  (type \$t (func))
+  (func (param \$r (ref \$t)) (drop (ref.is_null (local.get \$r))))
+  (func (param \$r (ref func)) (drop (ref.is_null (local.get \$r))))
+  (func (param \$r (ref extern)) (drop (ref.is_null (local.get \$r))))
 )`);
 
 // ./test/core/ref_is_null.wast:78
 assert_invalid(
-  () => instantiate(`(module (func $$ref-vs-num (param i32) (ref.is_null (local.get 0))))`),
+  () => instantiate(`(module (func \$ref-vs-num (param i32) (ref.is_null (local.get 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/ref_is_null.wast:82
 assert_invalid(
-  () => instantiate(`(module (func $$ref-vs-empty (ref.is_null)))`),
+  () => instantiate(`(module (func \$ref-vs-empty (ref.is_null)))`),
   `type mismatch`,
 );

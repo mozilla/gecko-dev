@@ -20,42 +20,42 @@ let $0 = instantiate(`(module
   (global (import "spectest" "global_i32") i32)
   (global (import "spectest" "global_i64") i64)
 
-  (global $$a i32 (i32.const -2))
+  (global \$a i32 (i32.const -2))
   (global (;3;) f32 (f32.const -3))
   (global (;4;) f64 (f64.const -4))
-  (global $$b i64 (i64.const -5))
+  (global \$b i64 (i64.const -5))
 
-  (global $$x (mut i32) (i32.const -12))
+  (global \$x (mut i32) (i32.const -12))
   (global (;7;) (mut f32) (f32.const -13))
   (global (;8;) (mut f64) (f64.const -14))
-  (global $$y (mut i64) (i64.const -15))
+  (global \$y (mut i64) (i64.const -15))
 
-  (global $$z1 i32 (global.get 0))
-  (global $$z2 i64 (global.get 1))
-  (global $$z3 i32 (i32.add (i32.sub (i32.mul (i32.const 20) (i32.const 2)) (i32.const 2)) (i32.const 4)))
-  (global $$z4 i64 (i64.add (i64.sub (i64.mul (i64.const 20) (i64.const 2)) (i64.const 2)) (i64.const 5)))
-  (global $$z5 i32 (i32.add (global.get 0) (i32.const 42)))
-  (global $$z6 i64 (i64.add (global.get 1) (i64.const 42)))
+  (global \$z1 i32 (global.get 0))
+  (global \$z2 i64 (global.get 1))
+  (global \$z3 i32 (i32.add (i32.sub (i32.mul (i32.const 20) (i32.const 2)) (i32.const 2)) (i32.const 4)))
+  (global \$z4 i64 (i64.add (i64.sub (i64.mul (i64.const 20) (i64.const 2)) (i64.const 2)) (i64.const 5)))
+  (global \$z5 i32 (i32.add (global.get 0) (i32.const 42)))
+  (global \$z6 i64 (i64.add (global.get 1) (i64.const 42)))
 
-  (global $$r externref (ref.null extern))
-  (global $$mr (mut externref) (ref.null extern))
+  (global \$r externref (ref.null extern))
+  (global \$mr (mut externref) (ref.null extern))
   (global funcref (ref.null func))
 
-  (func (export "get-a") (result i32) (global.get $$a))
-  (func (export "get-b") (result i64) (global.get $$b))
-  (func (export "get-r") (result externref) (global.get $$r))
-  (func (export "get-mr") (result externref) (global.get $$mr))
-  (func (export "get-x") (result i32) (global.get $$x))
-  (func (export "get-y") (result i64) (global.get $$y))
-  (func (export "get-z1") (result i32) (global.get $$z1))
-  (func (export "get-z2") (result i64) (global.get $$z2))
-  (func (export "get-z3") (result i32) (global.get $$z3))
-  (func (export "get-z4") (result i64) (global.get $$z4))
-  (func (export "get-z5") (result i32) (global.get $$z5))
-  (func (export "get-z6") (result i64) (global.get $$z6))
-  (func (export "set-x") (param i32) (global.set $$x (local.get 0)))
-  (func (export "set-y") (param i64) (global.set $$y (local.get 0)))
-  (func (export "set-mr") (param externref) (global.set $$mr (local.get 0)))
+  (func (export "get-a") (result i32) (global.get \$a))
+  (func (export "get-b") (result i64) (global.get \$b))
+  (func (export "get-r") (result externref) (global.get \$r))
+  (func (export "get-mr") (result externref) (global.get \$mr))
+  (func (export "get-x") (result i32) (global.get \$x))
+  (func (export "get-y") (result i64) (global.get \$y))
+  (func (export "get-z1") (result i32) (global.get \$z1))
+  (func (export "get-z2") (result i64) (global.get \$z2))
+  (func (export "get-z3") (result i32) (global.get \$z3))
+  (func (export "get-z4") (result i64) (global.get \$z4))
+  (func (export "get-z5") (result i32) (global.get \$z5))
+  (func (export "get-z6") (result i64) (global.get \$z6))
+  (func (export "set-x") (param i32) (global.set \$x (local.get 0)))
+  (func (export "set-y") (param i64) (global.set \$y (local.get 0)))
+  (func (export "set-mr") (param externref) (global.set \$mr (local.get 0)))
 
   (func (export "get-3") (result f32) (global.get 3))
   (func (export "get-4") (result f64) (global.get 4))
@@ -68,146 +68,146 @@ let $0 = instantiate(`(module
 
   (memory 1)
 
-  (func $$dummy)
+  (func \$dummy)
 
   (func (export "as-select-first") (result i32)
-    (select (global.get $$x) (i32.const 2) (i32.const 3))
+    (select (global.get \$x) (i32.const 2) (i32.const 3))
   )
   (func (export "as-select-mid") (result i32)
-    (select (i32.const 2) (global.get $$x) (i32.const 3))
+    (select (i32.const 2) (global.get \$x) (i32.const 3))
   )
   (func (export "as-select-last") (result i32)
-    (select (i32.const 2) (i32.const 3) (global.get $$x))
+    (select (i32.const 2) (i32.const 3) (global.get \$x))
   )
 
   (func (export "as-loop-first") (result i32)
     (loop (result i32)
-      (global.get $$x) (call $$dummy) (call $$dummy)
+      (global.get \$x) (call \$dummy) (call \$dummy)
     )
   )
   (func (export "as-loop-mid") (result i32)
     (loop (result i32)
-      (call $$dummy) (global.get $$x) (call $$dummy)
+      (call \$dummy) (global.get \$x) (call \$dummy)
     )
   )
   (func (export "as-loop-last") (result i32)
     (loop (result i32)
-      (call $$dummy) (call $$dummy) (global.get $$x)
+      (call \$dummy) (call \$dummy) (global.get \$x)
     )
   )
 
   (func (export "as-if-condition") (result i32)
-    (if (result i32) (global.get $$x)
-      (then (call $$dummy) (i32.const 2))
-      (else (call $$dummy) (i32.const 3))
+    (if (result i32) (global.get \$x)
+      (then (call \$dummy) (i32.const 2))
+      (else (call \$dummy) (i32.const 3))
     )
   )
   (func (export "as-if-then") (result i32)
     (if (result i32) (i32.const 1)
-      (then (global.get $$x)) (else (i32.const 2))
+      (then (global.get \$x)) (else (i32.const 2))
     )
   )
   (func (export "as-if-else") (result i32)
     (if (result i32) (i32.const 0)
-      (then (i32.const 2)) (else (global.get $$x))
+      (then (i32.const 2)) (else (global.get \$x))
     )
   )
 
   (func (export "as-br_if-first") (result i32)
     (block (result i32)
-      (br_if 0 (global.get $$x) (i32.const 2))
+      (br_if 0 (global.get \$x) (i32.const 2))
       (return (i32.const 3))
     )
   )
   (func (export "as-br_if-last") (result i32)
     (block (result i32)
-      (br_if 0 (i32.const 2) (global.get $$x))
+      (br_if 0 (i32.const 2) (global.get \$x))
       (return (i32.const 3))
     )
   )
 
   (func (export "as-br_table-first") (result i32)
     (block (result i32)
-      (global.get $$x) (i32.const 2) (br_table 0 0)
+      (global.get \$x) (i32.const 2) (br_table 0 0)
     )
   )
   (func (export "as-br_table-last") (result i32)
     (block (result i32)
-      (i32.const 2) (global.get $$x) (br_table 0 0)
+      (i32.const 2) (global.get \$x) (br_table 0 0)
     )
   )
 
-  (func $$func (param i32 i32) (result i32) (local.get 0))
-  (type $$check (func (param i32 i32) (result i32)))
-  (table funcref (elem $$func))
+  (func \$func (param i32 i32) (result i32) (local.get 0))
+  (type \$check (func (param i32 i32) (result i32)))
+  (table funcref (elem \$func))
   (func (export "as-call_indirect-first") (result i32)
     (block (result i32)
-      (call_indirect (type $$check)
-        (global.get $$x) (i32.const 2) (i32.const 0)
+      (call_indirect (type \$check)
+        (global.get \$x) (i32.const 2) (i32.const 0)
       )
     )
   )
   (func (export "as-call_indirect-mid") (result i32)
     (block (result i32)
-      (call_indirect (type $$check)
-        (i32.const 2) (global.get $$x) (i32.const 0)
+      (call_indirect (type \$check)
+        (i32.const 2) (global.get \$x) (i32.const 0)
       )
     )
   )
  (func (export "as-call_indirect-last") (result i32)
     (block (result i32)
-      (call_indirect (type $$check)
-        (i32.const 2) (i32.const 0) (global.get $$x)
+      (call_indirect (type \$check)
+        (i32.const 2) (i32.const 0) (global.get \$x)
       )
     )
   )
 
   (func (export "as-store-first")
-    (global.get $$x) (i32.const 1) (i32.store)
+    (global.get \$x) (i32.const 1) (i32.store)
   )
   (func (export "as-store-last")
-    (i32.const 0) (global.get $$x) (i32.store)
+    (i32.const 0) (global.get \$x) (i32.store)
   )
   (func (export "as-load-operand") (result i32)
-    (i32.load (global.get $$x))
+    (i32.load (global.get \$x))
   )
   (func (export "as-memory.grow-value") (result i32)
-    (memory.grow (global.get $$x))
+    (memory.grow (global.get \$x))
   )
 
-  (func $$f (param i32) (result i32) (local.get 0))
+  (func \$f (param i32) (result i32) (local.get 0))
   (func (export "as-call-value") (result i32)
-    (call $$f (global.get $$x))
+    (call \$f (global.get \$x))
   )
 
   (func (export "as-return-value") (result i32)
-    (global.get $$x) (return)
+    (global.get \$x) (return)
   )
   (func (export "as-drop-operand")
-    (drop (global.get $$x))
+    (drop (global.get \$x))
   )
   (func (export "as-br-value") (result i32)
-    (block (result i32) (br 0 (global.get $$x)))
+    (block (result i32) (br 0 (global.get \$x)))
   )
 
   (func (export "as-local.set-value") (param i32) (result i32)
-    (local.set 0 (global.get $$x))
+    (local.set 0 (global.get \$x))
     (local.get 0)
   )
   (func (export "as-local.tee-value") (param i32) (result i32)
-    (local.tee 0 (global.get $$x))
+    (local.tee 0 (global.get \$x))
   )
   (func (export "as-global.set-value") (result i32)
-    (global.set $$x (global.get $$x))
-    (global.get $$x)
+    (global.set \$x (global.get \$x))
+    (global.get \$x)
   )
 
   (func (export "as-unary-operand") (result i32)
-    (i32.eqz (global.get $$x))
+    (i32.eqz (global.get \$x))
   )
   (func (export "as-binary-operand") (result i32)
     (i32.mul
-      (global.get $$x) (global.get $$x)
+      (global.get \$x) (global.get \$x)
     )
   )
   (func (export "as-compare-operand") (result i32)
@@ -512,7 +512,7 @@ assert_invalid(
 let $3 = instantiate(`(module (global i32 (i32.const 0)) (global i32 (global.get 0)))`);
 
 // ./test/core/global.wast:374
-let $4 = instantiate(`(module (global $$g i32 (i32.const 0)) (global i32 (global.get $$g)))`);
+let $4 = instantiate(`(module (global \$g i32 (i32.const 0)) (global i32 (global.get \$g)))`);
 
 // ./test/core/global.wast:376
 assert_invalid(
@@ -659,9 +659,9 @@ assert_invalid(
 // ./test/core/global.wast:502
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty
-      (global.set $$x)
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty
+      (global.set \$x)
     )
   )`),
   `type mismatch`,
@@ -670,10 +670,10 @@ assert_invalid(
 // ./test/core/global.wast:511
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-block
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-block
       (i32.const 0)
-      (block (global.set $$x))
+      (block (global.set \$x))
     )
   )`),
   `type mismatch`,
@@ -682,10 +682,10 @@ assert_invalid(
 // ./test/core/global.wast:521
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-loop
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-loop
       (i32.const 0)
-      (loop (global.set $$x))
+      (loop (global.set \$x))
     )
   )`),
   `type mismatch`,
@@ -694,10 +694,10 @@ assert_invalid(
 // ./test/core/global.wast:531
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-then
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-then
       (i32.const 0) (i32.const 0)
-      (if (then (global.set $$x)))
+      (if (then (global.set \$x)))
     )
   )`),
   `type mismatch`,
@@ -706,10 +706,10 @@ assert_invalid(
 // ./test/core/global.wast:541
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-else
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-else
       (i32.const 0) (i32.const 0)
-      (if (result i32) (then (i32.const 0)) (else (global.set $$x)))
+      (if (result i32) (then (i32.const 0)) (else (global.set \$x)))
     )
   )`),
   `type mismatch`,
@@ -718,10 +718,10 @@ assert_invalid(
 // ./test/core/global.wast:551
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-br
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-br
       (i32.const 0)
-      (block (br 0 (global.set $$x)))
+      (block (br 0 (global.set \$x)))
     )
   )`),
   `type mismatch`,
@@ -730,10 +730,10 @@ assert_invalid(
 // ./test/core/global.wast:561
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-br_if
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-br_if
       (i32.const 0)
-      (block (br_if 0 (global.set $$x)))
+      (block (br_if 0 (global.set \$x)))
     )
   )`),
   `type mismatch`,
@@ -742,10 +742,10 @@ assert_invalid(
 // ./test/core/global.wast:571
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-br_table
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-br_table
       (i32.const 0)
-      (block (br_table 0 (global.set $$x)))
+      (block (br_table 0 (global.set \$x)))
     )
   )`),
   `type mismatch`,
@@ -754,9 +754,9 @@ assert_invalid(
 // ./test/core/global.wast:581
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-return
-      (return (global.set $$x))
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-return
+      (return (global.set \$x))
     )
   )`),
   `type mismatch`,
@@ -765,9 +765,9 @@ assert_invalid(
 // ./test/core/global.wast:590
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-select
-      (select (global.set $$x) (i32.const 1) (i32.const 2))
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-select
+      (select (global.set \$x) (i32.const 1) (i32.const 2))
     )
   )`),
   `type mismatch`,
@@ -776,9 +776,9 @@ assert_invalid(
 // ./test/core/global.wast:599
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-global.set-value-empty-in-call
-      (call 1 (global.set $$x))
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-global.set-value-empty-in-call
+      (call 1 (global.set \$x))
     )
     (func (param i32) (result i32) (local.get 0))
   )`),
@@ -788,14 +788,14 @@ assert_invalid(
 // ./test/core/global.wast:609
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$f (param i32) (result i32) (local.get 0))
-    (type $$sig (func (param i32) (result i32)))
-    (table funcref (elem $$f))
-    (func $$type-global.set-value-empty-in-call_indirect
+    (global \$x (mut i32) (i32.const 0))
+    (func \$f (param i32) (result i32) (local.get 0))
+    (type \$sig (func (param i32) (result i32)))
+    (table funcref (elem \$f))
+    (func \$type-global.set-value-empty-in-call_indirect
       (block (result i32)
-        (call_indirect (type $$sig)
-          (global.set $$x) (i32.const 0)
+        (call_indirect (type \$sig)
+          (global.set \$x) (i32.const 0)
         )
       )
     )
@@ -813,27 +813,27 @@ register($7, `G`);
 
 // ./test/core/global.wast:634
 let $8 = instantiate(`(module
-  (global $$g0 (import "G" "g") i32)
-  (global $$g1 i32 (i32.const 8))
-  (global $$g2 i32 (global.get $$g0))
-  (global $$g3 i32 (global.get $$g1))
+  (global \$g0 (import "G" "g") i32)
+  (global \$g1 i32 (i32.const 8))
+  (global \$g2 i32 (global.get \$g0))
+  (global \$g3 i32 (global.get \$g1))
 
-  (global $$gf funcref (ref.func $$f))
-  (func $$f)
+  (global \$gf funcref (ref.func \$f))
+  (func \$f)
 
-  (table $$t 10 funcref (ref.null func))
-  (elem (table $$t) (global.get $$g2) funcref (ref.func $$f))
-  (elem (table $$t) (global.get $$g3) funcref (global.get $$gf))
+  (table \$t 10 funcref (ref.null func))
+  (elem (table \$t) (global.get \$g2) funcref (ref.func \$f))
+  (elem (table \$t) (global.get \$g3) funcref (global.get \$gf))
 
-  (memory $$m 1)
-  (data (global.get $$g2) "\\44\\44\\44\\44")
-  (data (global.get $$g3) "\\88\\88\\88\\88")
+  (memory \$m 1)
+  (data (global.get \$g2) "\\44\\44\\44\\44")
+  (data (global.get \$g3) "\\88\\88\\88\\88")
 
-  (func (export "get-elem") (param $$i i32) (result funcref)
-    (table.get $$t (local.get $$i))
+  (func (export "get-elem") (param \$i i32) (result funcref)
+    (table.get \$t (local.get \$i))
   )
-  (func (export "get-data") (param $$i i32) (result i32)
-    (i32.load (local.get $$i))
+  (func (export "get-data") (param \$i i32) (result i32)
+    (i32.load (local.get \$i))
   )
 )`);
 
@@ -855,8 +855,8 @@ assert_return(() => invoke($8, `get-data`, [8]), [value("i32", -2004318072)]);
 // ./test/core/global.wast:666
 assert_invalid(
   () => instantiate(`(module 
-    (global $$g1 i32 (global.get $$g2))
-    (global $$g2 i32 (i32.const 0))
+    (global \$g1 i32 (global.get \$g2))
+    (global \$g2 i32 (i32.const 0))
   )`),
   `unknown global`,
 );
@@ -864,26 +864,26 @@ assert_invalid(
 // ./test/core/global.wast:674
 assert_invalid(
   () => instantiate(`(module
-    (global $$g funcref (ref.null func))
-    (table $$t 10 funcref (global.get $$g))
+    (global \$g funcref (ref.null func))
+    (table \$t 10 funcref (global.get \$g))
   )`),
   `unknown global`,
 );
 
 // ./test/core/global.wast:685
 assert_malformed(
-  () => instantiate(`(global $$foo i32 (i32.const 0)) (global $$foo i32 (i32.const 0)) `),
+  () => instantiate(`(global \$foo i32 (i32.const 0)) (global \$foo i32 (i32.const 0)) `),
   `duplicate global`,
 );
 
 // ./test/core/global.wast:692
 assert_malformed(
-  () => instantiate(`(import "" "" (global $$foo i32)) (global $$foo i32 (i32.const 0)) `),
+  () => instantiate(`(import "" "" (global \$foo i32)) (global \$foo i32 (i32.const 0)) `),
   `duplicate global`,
 );
 
 // ./test/core/global.wast:699
 assert_malformed(
-  () => instantiate(`(import "" "" (global $$foo i32)) (import "" "" (global $$foo i32)) `),
+  () => instantiate(`(import "" "" (global \$foo i32)) (import "" "" (global \$foo i32)) `),
   `duplicate global`,
 );

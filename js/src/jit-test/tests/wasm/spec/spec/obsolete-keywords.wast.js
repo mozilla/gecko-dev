@@ -29,37 +29,37 @@ assert_malformed(
 
 // ./test/core/obsolete-keywords.wast:19
 assert_malformed(
-  () => instantiate(`(func (local $$i i32) (drop (get_local $$i))) `),
+  () => instantiate(`(func (local \$i i32) (drop (get_local \$i))) `),
   `unknown operator get_local`,
 );
 
 // ./test/core/obsolete-keywords.wast:26
 assert_malformed(
-  () => instantiate(`(func (local $$i i32) (set_local $$i (i32.const 0))) `),
+  () => instantiate(`(func (local \$i i32) (set_local \$i (i32.const 0))) `),
   `unknown operator set_local`,
 );
 
 // ./test/core/obsolete-keywords.wast:33
 assert_malformed(
-  () => instantiate(`(func (local $$i i32) (drop (tee_local $$i (i32.const 0)))) `),
+  () => instantiate(`(func (local \$i i32) (drop (tee_local \$i (i32.const 0)))) `),
   `unknown operator tee_local`,
 );
 
 // ./test/core/obsolete-keywords.wast:40
 assert_malformed(
-  () => instantiate(`(global $$g anyfunc (ref.null func)) `),
+  () => instantiate(`(global \$g anyfunc (ref.null func)) `),
   `unknown operator anyfunc`,
 );
 
 // ./test/core/obsolete-keywords.wast:47
 assert_malformed(
-  () => instantiate(`(global $$g i32 (i32.const 0)) (func (drop (get_global $$g))) `),
+  () => instantiate(`(global \$g i32 (i32.const 0)) (func (drop (get_global \$g))) `),
   `unknown operator get_global`,
 );
 
 // ./test/core/obsolete-keywords.wast:55
 assert_malformed(
-  () => instantiate(`(global $$g (mut i32) (i32.const 0)) (func (set_global $$g (i32.const 0))) `),
+  () => instantiate(`(global \$g (mut i32) (i32.const 0)) (func (set_global \$g (i32.const 0))) `),
   `unknown operator set_global`,
 );
 

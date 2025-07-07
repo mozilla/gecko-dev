@@ -19,12 +19,12 @@
 
 // ./test/core/simd/simd_f32x4_cmp.wast:3
 let $0 = instantiate(`(module
-  (func (export "eq") (param $$x v128) (param $$y v128) (result v128) (f32x4.eq (local.get $$x) (local.get $$y)))
-  (func (export "ne") (param $$x v128) (param $$y v128) (result v128) (f32x4.ne (local.get $$x) (local.get $$y)))
-  (func (export "lt") (param $$x v128) (param $$y v128) (result v128) (f32x4.lt (local.get $$x) (local.get $$y)))
-  (func (export "le") (param $$x v128) (param $$y v128) (result v128) (f32x4.le (local.get $$x) (local.get $$y)))
-  (func (export "gt") (param $$x v128) (param $$y v128) (result v128) (f32x4.gt (local.get $$x) (local.get $$y)))
-  (func (export "ge") (param $$x v128) (param $$y v128) (result v128) (f32x4.ge (local.get $$x) (local.get $$y)))
+  (func (export "eq") (param \$x v128) (param \$y v128) (result v128) (f32x4.eq (local.get \$x) (local.get \$y)))
+  (func (export "ne") (param \$x v128) (param \$y v128) (result v128) (f32x4.ne (local.get \$x) (local.get \$y)))
+  (func (export "lt") (param \$x v128) (param \$y v128) (result v128) (f32x4.lt (local.get \$x) (local.get \$y)))
+  (func (export "le") (param \$x v128) (param \$y v128) (result v128) (f32x4.le (local.get \$x) (local.get \$y)))
+  (func (export "gt") (param \$x v128) (param \$y v128) (result v128) (f32x4.gt (local.get \$x) (local.get \$y)))
+  (func (export "ge") (param \$x v128) (param \$y v128) (result v128) (f32x4.ge (local.get \$x) (local.get \$y)))
 )`);
 
 // ./test/core/simd/simd_f32x4_cmp.wast:13
@@ -47249,37 +47249,37 @@ assert_invalid(
 
 // ./test/core/simd/simd_f32x4_cmp.wast:7789
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (f4x32.eq (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (f4x32.eq (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_f32x4_cmp.wast:7790
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (f4x32.ge (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (f4x32.ge (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_f32x4_cmp.wast:7791
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (f4x32.gt (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (f4x32.gt (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_f32x4_cmp.wast:7792
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (f4x32.le (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (f4x32.le (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_f32x4_cmp.wast:7793
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (f4x32.lt (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (f4x32.lt (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_f32x4_cmp.wast:7794
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (f4x32.ne (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (f4x32.ne (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
@@ -47583,7 +47583,7 @@ assert_return(() => invoke($1, `as-param`, []), []);
 // ./test/core/simd/simd_f32x4_cmp.wast:8072
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.eq-1st-arg-empty (result v128)
+    (func \$f32x4.eq-1st-arg-empty (result v128)
       (f32x4.eq (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -47593,7 +47593,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8080
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.eq-arg-empty (result v128)
+    (func \$f32x4.eq-arg-empty (result v128)
       (f32x4.eq)
     )
   )`),
@@ -47603,7 +47603,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8088
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.ne-1st-arg-empty (result v128)
+    (func \$f32x4.ne-1st-arg-empty (result v128)
       (f32x4.ne (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -47613,7 +47613,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8096
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.ne-arg-empty (result v128)
+    (func \$f32x4.ne-arg-empty (result v128)
       (f32x4.ne)
     )
   )`),
@@ -47623,7 +47623,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8104
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.lt-1st-arg-empty (result v128)
+    (func \$f32x4.lt-1st-arg-empty (result v128)
       (f32x4.lt (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -47633,7 +47633,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8112
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.lt-arg-empty (result v128)
+    (func \$f32x4.lt-arg-empty (result v128)
       (f32x4.lt)
     )
   )`),
@@ -47643,7 +47643,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8120
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.le-1st-arg-empty (result v128)
+    (func \$f32x4.le-1st-arg-empty (result v128)
       (f32x4.le (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -47653,7 +47653,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8128
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.le-arg-empty (result v128)
+    (func \$f32x4.le-arg-empty (result v128)
       (f32x4.le)
     )
   )`),
@@ -47663,7 +47663,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8136
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.gt-1st-arg-empty (result v128)
+    (func \$f32x4.gt-1st-arg-empty (result v128)
       (f32x4.gt (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -47673,7 +47673,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8144
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.gt-arg-empty (result v128)
+    (func \$f32x4.gt-arg-empty (result v128)
       (f32x4.gt)
     )
   )`),
@@ -47683,7 +47683,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8152
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.ge-1st-arg-empty (result v128)
+    (func \$f32x4.ge-1st-arg-empty (result v128)
       (f32x4.ge (v128.const f32x4 0 0 0 0))
     )
   )`),
@@ -47693,7 +47693,7 @@ assert_invalid(
 // ./test/core/simd/simd_f32x4_cmp.wast:8160
 assert_invalid(
   () => instantiate(`(module
-    (func $$f32x4.ge-arg-empty (result v128)
+    (func \$f32x4.ge-arg-empty (result v128)
       (f32x4.ge)
     )
   )`),

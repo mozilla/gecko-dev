@@ -17,18 +17,18 @@
 
 // ./test/core/ref_null.wast:1
 let $0 = instantiate(`(module
-  (type $$t (func))
+  (type \$t (func))
   (func (export "anyref") (result anyref) (ref.null any))
   (func (export "funcref") (result funcref) (ref.null func))
   (func (export "exnref") (result exnref) (ref.null exn))
   (func (export "externref") (result externref) (ref.null extern))
-  (func (export "ref") (result (ref null $$t)) (ref.null $$t))
+  (func (export "ref") (result (ref null \$t)) (ref.null \$t))
 
   (global anyref (ref.null any))
   (global funcref (ref.null func))
   (global exnref (ref.null exn))
   (global externref (ref.null extern))
-  (global (ref null $$t) (ref.null $$t))
+  (global (ref null \$t) (ref.null \$t))
 )`);
 
 // ./test/core/ref_null.wast:16
@@ -49,20 +49,20 @@ assert_return(() => invoke($0, `ref`, []), [null]);
 
 // ./test/core/ref_null.wast:23
 let $1 = instantiate(`(module
-  (type $$t (func))
-  (global $$null nullref (ref.null none))
-  (global $$nullfunc nullfuncref (ref.null nofunc))
-  (global $$nullexn nullexnref (ref.null noexn))
-  (global $$nullextern nullexternref (ref.null noextern))
-  (func (export "anyref") (result anyref) (global.get $$null))
-  (func (export "nullref") (result nullref) (global.get $$null))
-  (func (export "funcref") (result funcref) (global.get $$nullfunc))
-  (func (export "nullfuncref") (result nullfuncref) (global.get $$nullfunc))
-  (func (export "exnref") (result exnref) (global.get $$nullexn))
-  (func (export "nullexnref") (result nullexnref) (global.get $$nullexn))
-  (func (export "externref") (result externref) (global.get $$nullextern))
-  (func (export "nullexternref") (result nullexternref) (global.get $$nullextern))
-  (func (export "ref") (result (ref null $$t)) (global.get $$nullfunc))
+  (type \$t (func))
+  (global \$null nullref (ref.null none))
+  (global \$nullfunc nullfuncref (ref.null nofunc))
+  (global \$nullexn nullexnref (ref.null noexn))
+  (global \$nullextern nullexternref (ref.null noextern))
+  (func (export "anyref") (result anyref) (global.get \$null))
+  (func (export "nullref") (result nullref) (global.get \$null))
+  (func (export "funcref") (result funcref) (global.get \$nullfunc))
+  (func (export "nullfuncref") (result nullfuncref) (global.get \$nullfunc))
+  (func (export "exnref") (result exnref) (global.get \$nullexn))
+  (func (export "nullexnref") (result nullexnref) (global.get \$nullexn))
+  (func (export "externref") (result externref) (global.get \$nullextern))
+  (func (export "nullexternref") (result nullexternref) (global.get \$nullextern))
+  (func (export "ref") (result (ref null \$t)) (global.get \$nullfunc))
 
   (global anyref (ref.null any))
   (global anyref (ref.null none))
@@ -76,8 +76,8 @@ let $1 = instantiate(`(module
   (global nullfuncref (ref.null nofunc))
   (global nullexnref (ref.null noexn))
   (global nullexternref (ref.null noextern))
-  (global (ref null $$t) (ref.null $$t))
-  (global (ref null $$t) (ref.null nofunc))
+  (global (ref null \$t) (ref.null \$t))
+  (global (ref null \$t) (ref.null nofunc))
 )`);
 
 // ./test/core/ref_null.wast:55

@@ -17,8 +17,8 @@
 
 // ./test/core/float_exprs.wast:6
 let $0 = instantiate(`(module
-  (func (export "f64.no_contraction") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.add (f64.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f64.no_contraction") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.add (f64.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:11
@@ -79,10 +79,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:19
 let $1 = instantiate(`(module
-  (func (export "f32.no_fma") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.add (f32.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
-  (func (export "f64.no_fma") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.add (f64.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f32.no_fma") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.add (f32.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
+  (func (export "f64.no_fma") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.add (f64.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:26
@@ -195,10 +195,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:40
 let $2 = instantiate(`(module
-  (func (export "f32.no_fold_add_zero") (param $$x f32) (result f32)
-    (f32.add (local.get $$x) (f32.const 0.0)))
-  (func (export "f64.no_fold_add_zero") (param $$x f64) (result f64)
-    (f64.add (local.get $$x) (f64.const 0.0)))
+  (func (export "f32.no_fold_add_zero") (param \$x f32) (result f32)
+    (f32.add (local.get \$x) (f32.const 0.0)))
+  (func (export "f64.no_fold_add_zero") (param \$x f64) (result f64)
+    (f64.add (local.get \$x) (f64.const 0.0)))
 )`);
 
 // ./test/core/float_exprs.wast:47
@@ -223,10 +223,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:54
 let $3 = instantiate(`(module
-  (func (export "f32.no_fold_zero_sub") (param $$x f32) (result f32)
-    (f32.sub (f32.const 0.0) (local.get $$x)))
-  (func (export "f64.no_fold_zero_sub") (param $$x f64) (result f64)
-    (f64.sub (f64.const 0.0) (local.get $$x)))
+  (func (export "f32.no_fold_zero_sub") (param \$x f32) (result f32)
+    (f32.sub (f32.const 0.0) (local.get \$x)))
+  (func (export "f64.no_fold_zero_sub") (param \$x f64) (result f64)
+    (f64.sub (f64.const 0.0) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:61
@@ -251,10 +251,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:68
 let $4 = instantiate(`(module
-  (func (export "f32.no_fold_sub_zero") (param $$x f32) (result f32)
-    (f32.sub (local.get $$x) (f32.const 0.0)))
-  (func (export "f64.no_fold_sub_zero") (param $$x f64) (result f64)
-    (f64.sub (local.get $$x) (f64.const 0.0)))
+  (func (export "f32.no_fold_sub_zero") (param \$x f32) (result f32)
+    (f32.sub (local.get \$x) (f32.const 0.0)))
+  (func (export "f64.no_fold_sub_zero") (param \$x f64) (result f64)
+    (f64.sub (local.get \$x) (f64.const 0.0)))
 )`);
 
 // ./test/core/float_exprs.wast:75
@@ -273,10 +273,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:80
 let $5 = instantiate(`(module
-  (func (export "f32.no_fold_mul_zero") (param $$x f32) (result f32)
-    (f32.mul (local.get $$x) (f32.const 0.0)))
-  (func (export "f64.no_fold_mul_zero") (param $$x f64) (result f64)
-    (f64.mul (local.get $$x) (f64.const 0.0)))
+  (func (export "f32.no_fold_mul_zero") (param \$x f32) (result f32)
+    (f32.mul (local.get \$x) (f32.const 0.0)))
+  (func (export "f64.no_fold_mul_zero") (param \$x f64) (result f64)
+    (f64.mul (local.get \$x) (f64.const 0.0)))
 )`);
 
 // ./test/core/float_exprs.wast:87
@@ -313,10 +313,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:99
 let $6 = instantiate(`(module
-  (func (export "f32.no_fold_mul_one") (param $$x f32) (result f32)
-    (f32.mul (local.get $$x) (f32.const 1.0)))
-  (func (export "f64.no_fold_mul_one") (param $$x f64) (result f64)
-    (f64.mul (local.get $$x) (f64.const 1.0)))
+  (func (export "f32.no_fold_mul_one") (param \$x f32) (result f32)
+    (f32.mul (local.get \$x) (f32.const 1.0)))
+  (func (export "f64.no_fold_mul_one") (param \$x f64) (result f64)
+    (f64.mul (local.get \$x) (f64.const 1.0)))
 )`);
 
 // ./test/core/float_exprs.wast:106
@@ -335,10 +335,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:111
 let $7 = instantiate(`(module
-  (func (export "f32.no_fold_zero_div") (param $$x f32) (result f32)
-    (f32.div (f32.const 0.0) (local.get $$x)))
-  (func (export "f64.no_fold_zero_div") (param $$x f64) (result f64)
-    (f64.div (f64.const 0.0) (local.get $$x)))
+  (func (export "f32.no_fold_zero_div") (param \$x f32) (result f32)
+    (f32.div (f32.const 0.0) (local.get \$x)))
+  (func (export "f64.no_fold_zero_div") (param \$x f64) (result f64)
+    (f64.div (f64.const 0.0) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:118
@@ -383,10 +383,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:129
 let $8 = instantiate(`(module
-  (func (export "f32.no_fold_div_one") (param $$x f32) (result f32)
-    (f32.div (local.get $$x) (f32.const 1.0)))
-  (func (export "f64.no_fold_div_one") (param $$x f64) (result f64)
-    (f64.div (local.get $$x) (f64.const 1.0)))
+  (func (export "f32.no_fold_div_one") (param \$x f32) (result f32)
+    (f32.div (local.get \$x) (f32.const 1.0)))
+  (func (export "f64.no_fold_div_one") (param \$x f64) (result f64)
+    (f64.div (local.get \$x) (f64.const 1.0)))
 )`);
 
 // ./test/core/float_exprs.wast:136
@@ -405,10 +405,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:141
 let $9 = instantiate(`(module
-  (func (export "f32.no_fold_div_neg1") (param $$x f32) (result f32)
-    (f32.div (local.get $$x) (f32.const -1.0)))
-  (func (export "f64.no_fold_div_neg1") (param $$x f64) (result f64)
-    (f64.div (local.get $$x) (f64.const -1.0)))
+  (func (export "f32.no_fold_div_neg1") (param \$x f32) (result f32)
+    (f32.div (local.get \$x) (f32.const -1.0)))
+  (func (export "f64.no_fold_div_neg1") (param \$x f64) (result f64)
+    (f64.div (local.get \$x) (f64.const -1.0)))
 )`);
 
 // ./test/core/float_exprs.wast:148
@@ -427,10 +427,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:153
 let $10 = instantiate(`(module
-  (func (export "f32.no_fold_neg0_sub") (param $$x f32) (result f32)
-    (f32.sub (f32.const -0.0) (local.get $$x)))
-  (func (export "f64.no_fold_neg0_sub") (param $$x f64) (result f64)
-    (f64.sub (f64.const -0.0) (local.get $$x)))
+  (func (export "f32.no_fold_neg0_sub") (param \$x f32) (result f32)
+    (f32.sub (f32.const -0.0) (local.get \$x)))
+  (func (export "f64.no_fold_neg0_sub") (param \$x f64) (result f64)
+    (f64.sub (f64.const -0.0) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:160
@@ -449,10 +449,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:165
 let $11 = instantiate(`(module
-  (func (export "f32.no_fold_neg1_mul") (param $$x f32) (result f32)
-    (f32.mul (f32.const -1.0) (local.get $$x)))
-  (func (export "f64.no_fold_neg1_mul") (param $$x f64) (result f64)
-    (f64.mul (f64.const -1.0) (local.get $$x)))
+  (func (export "f32.no_fold_neg1_mul") (param \$x f32) (result f32)
+    (f32.mul (f32.const -1.0) (local.get \$x)))
+  (func (export "f64.no_fold_neg1_mul") (param \$x f64) (result f64)
+    (f64.mul (f64.const -1.0) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:172
@@ -471,10 +471,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:177
 let $12 = instantiate(`(module
-  (func (export "f32.no_fold_eq_self") (param $$x f32) (result i32)
-    (f32.eq (local.get $$x) (local.get $$x)))
-  (func (export "f64.no_fold_eq_self") (param $$x f64) (result i32)
-    (f64.eq (local.get $$x) (local.get $$x)))
+  (func (export "f32.no_fold_eq_self") (param \$x f32) (result i32)
+    (f32.eq (local.get \$x) (local.get \$x)))
+  (func (export "f64.no_fold_eq_self") (param \$x f64) (result i32)
+    (f64.eq (local.get \$x) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:184
@@ -493,10 +493,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:189
 let $13 = instantiate(`(module
-  (func (export "f32.no_fold_ne_self") (param $$x f32) (result i32)
-    (f32.ne (local.get $$x) (local.get $$x)))
-  (func (export "f64.no_fold_ne_self") (param $$x f64) (result i32)
-    (f64.ne (local.get $$x) (local.get $$x)))
+  (func (export "f32.no_fold_ne_self") (param \$x f32) (result i32)
+    (f32.ne (local.get \$x) (local.get \$x)))
+  (func (export "f64.no_fold_ne_self") (param \$x f64) (result i32)
+    (f64.ne (local.get \$x) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:196
@@ -515,10 +515,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:201
 let $14 = instantiate(`(module
-  (func (export "f32.no_fold_sub_self") (param $$x f32) (result f32)
-    (f32.sub (local.get $$x) (local.get $$x)))
-  (func (export "f64.no_fold_sub_self") (param $$x f64) (result f64)
-    (f64.sub (local.get $$x) (local.get $$x)))
+  (func (export "f32.no_fold_sub_self") (param \$x f32) (result f32)
+    (f32.sub (local.get \$x) (local.get \$x)))
+  (func (export "f64.no_fold_sub_self") (param \$x f64) (result f64)
+    (f64.sub (local.get \$x) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:208
@@ -543,10 +543,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:215
 let $15 = instantiate(`(module
-  (func (export "f32.no_fold_div_self") (param $$x f32) (result f32)
-    (f32.div (local.get $$x) (local.get $$x)))
-  (func (export "f64.no_fold_div_self") (param $$x f64) (result f64)
-    (f64.div (local.get $$x) (local.get $$x)))
+  (func (export "f32.no_fold_div_self") (param \$x f32) (result f32)
+    (f32.div (local.get \$x) (local.get \$x)))
+  (func (export "f64.no_fold_div_self") (param \$x f64) (result f64)
+    (f64.div (local.get \$x) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:222
@@ -583,10 +583,10 @@ assert_return(() => invoke($15, `f64.no_fold_div_self`, [value("f64", -0)]), [`c
 
 // ./test/core/float_exprs.wast:233
 let $16 = instantiate(`(module
-  (func (export "f32.no_fold_div_3") (param $$x f32) (result f32)
-    (f32.div (local.get $$x) (f32.const 3.0)))
-  (func (export "f64.no_fold_div_3") (param $$x f64) (result f64)
-    (f64.div (local.get $$x) (f64.const 3.0)))
+  (func (export "f32.no_fold_div_3") (param \$x f32) (result f32)
+    (f32.div (local.get \$x) (f32.const 3.0)))
+  (func (export "f64.no_fold_div_3") (param \$x f64) (result f64)
+    (f64.div (local.get \$x) (f64.const 3.0)))
 )`);
 
 // ./test/core/float_exprs.wast:240
@@ -675,10 +675,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:253
 let $17 = instantiate(`(module
-  (func (export "f32.no_factor") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.add (f32.mul (local.get $$x) (local.get $$z)) (f32.mul (local.get $$y) (local.get $$z))))
-  (func (export "f64.no_factor") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.add (f64.mul (local.get $$x) (local.get $$z)) (f64.mul (local.get $$y) (local.get $$z))))
+  (func (export "f32.no_factor") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.add (f32.mul (local.get \$x) (local.get \$z)) (f32.mul (local.get \$y) (local.get \$z))))
+  (func (export "f64.no_factor") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.add (f64.mul (local.get \$x) (local.get \$z)) (f64.mul (local.get \$y) (local.get \$z))))
 )`);
 
 // ./test/core/float_exprs.wast:260
@@ -787,10 +787,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:273
 let $18 = instantiate(`(module
-  (func (export "f32.no_distribute") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.mul (f32.add (local.get $$x) (local.get $$y)) (local.get $$z)))
-  (func (export "f64.no_distribute") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.mul (f64.add (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f32.no_distribute") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.mul (f32.add (local.get \$x) (local.get \$y)) (local.get \$z)))
+  (func (export "f64.no_distribute") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.mul (f64.add (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:280
@@ -899,10 +899,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:293
 let $19 = instantiate(`(module
-  (func (export "f32.no_regroup_div_mul") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.mul (local.get $$x) (f32.div (local.get $$y) (local.get $$z))))
-  (func (export "f64.no_regroup_div_mul") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.mul (local.get $$x) (f64.div (local.get $$y) (local.get $$z))))
+  (func (export "f32.no_regroup_div_mul") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.mul (local.get \$x) (f32.div (local.get \$y) (local.get \$z))))
+  (func (export "f64.no_regroup_div_mul") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.mul (local.get \$x) (f64.div (local.get \$y) (local.get \$z))))
 )`);
 
 // ./test/core/float_exprs.wast:300
@@ -1011,10 +1011,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:313
 let $20 = instantiate(`(module
-  (func (export "f32.no_regroup_mul_div") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.div (f32.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
-  (func (export "f64.no_regroup_mul_div") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.div (f64.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f32.no_regroup_mul_div") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.div (f32.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
+  (func (export "f64.no_regroup_mul_div") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.div (f64.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:320
@@ -1123,10 +1123,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:333
 let $21 = instantiate(`(module
-  (func (export "f32.no_reassociate_add") (param $$x f32) (param $$y f32) (param $$z f32) (param $$w f32) (result f32)
-    (f32.add (f32.add (f32.add (local.get $$x) (local.get $$y)) (local.get $$z)) (local.get $$w)))
-  (func (export "f64.no_reassociate_add") (param $$x f64) (param $$y f64) (param $$z f64) (param $$w f64) (result f64)
-    (f64.add (f64.add (f64.add (local.get $$x) (local.get $$y)) (local.get $$z)) (local.get $$w)))
+  (func (export "f32.no_reassociate_add") (param \$x f32) (param \$y f32) (param \$z f32) (param \$w f32) (result f32)
+    (f32.add (f32.add (f32.add (local.get \$x) (local.get \$y)) (local.get \$z)) (local.get \$w)))
+  (func (export "f64.no_reassociate_add") (param \$x f64) (param \$y f64) (param \$z f64) (param \$w f64) (result f64)
+    (f64.add (f64.add (f64.add (local.get \$x) (local.get \$y)) (local.get \$z)) (local.get \$w)))
 )`);
 
 // ./test/core/float_exprs.wast:340
@@ -1251,10 +1251,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:353
 let $22 = instantiate(`(module
-  (func (export "f32.no_reassociate_mul") (param $$x f32) (param $$y f32) (param $$z f32) (param $$w f32) (result f32)
-    (f32.mul (f32.mul (f32.mul (local.get $$x) (local.get $$y)) (local.get $$z)) (local.get $$w)))
-  (func (export "f64.no_reassociate_mul") (param $$x f64) (param $$y f64) (param $$z f64) (param $$w f64) (result f64)
-    (f64.mul (f64.mul (f64.mul (local.get $$x) (local.get $$y)) (local.get $$z)) (local.get $$w)))
+  (func (export "f32.no_reassociate_mul") (param \$x f32) (param \$y f32) (param \$z f32) (param \$w f32) (result f32)
+    (f32.mul (f32.mul (f32.mul (local.get \$x) (local.get \$y)) (local.get \$z)) (local.get \$w)))
+  (func (export "f64.no_reassociate_mul") (param \$x f64) (param \$y f64) (param \$z f64) (param \$w f64) (result f64)
+    (f64.mul (f64.mul (f64.mul (local.get \$x) (local.get \$y)) (local.get \$z)) (local.get \$w)))
 )`);
 
 // ./test/core/float_exprs.wast:360
@@ -1379,10 +1379,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:373
 let $23 = instantiate(`(module
-  (func (export "f32.no_fold_div_0") (param $$x f32) (result f32)
-    (f32.div (local.get $$x) (f32.const 0.0)))
-  (func (export "f64.no_fold_div_0") (param $$x f64) (result f64)
-    (f64.div (local.get $$x) (f64.const 0.0)))
+  (func (export "f32.no_fold_div_0") (param \$x f32) (result f32)
+    (f32.div (local.get \$x) (f32.const 0.0)))
+  (func (export "f64.no_fold_div_0") (param \$x f64) (result f64)
+    (f64.div (local.get \$x) (f64.const 0.0)))
 )`);
 
 // ./test/core/float_exprs.wast:380
@@ -1463,10 +1463,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:399
 let $24 = instantiate(`(module
-  (func (export "f32.no_fold_div_neg0") (param $$x f32) (result f32)
-    (f32.div (local.get $$x) (f32.const -0.0)))
-  (func (export "f64.no_fold_div_neg0") (param $$x f64) (result f64)
-    (f64.div (local.get $$x) (f64.const -0.0)))
+  (func (export "f32.no_fold_div_neg0") (param \$x f32) (result f32)
+    (f32.div (local.get \$x) (f32.const -0.0)))
+  (func (export "f64.no_fold_div_neg0") (param \$x f64) (result f64)
+    (f64.div (local.get \$x) (f64.const -0.0)))
 )`);
 
 // ./test/core/float_exprs.wast:406
@@ -1547,12 +1547,12 @@ assert_return(
 
 // ./test/core/float_exprs.wast:425
 let $25 = instantiate(`(module
-  (func (export "f32.no_fold_to_hypot") (param $$x f32) (param $$y f32) (result f32)
-    (f32.sqrt (f32.add (f32.mul (local.get $$x) (local.get $$x))
-                       (f32.mul (local.get $$y) (local.get $$y)))))
-  (func (export "f64.no_fold_to_hypot") (param $$x f64) (param $$y f64) (result f64)
-    (f64.sqrt (f64.add (f64.mul (local.get $$x) (local.get $$x))
-                       (f64.mul (local.get $$y) (local.get $$y)))))
+  (func (export "f32.no_fold_to_hypot") (param \$x f32) (param \$y f32) (result f32)
+    (f32.sqrt (f32.add (f32.mul (local.get \$x) (local.get \$x))
+                       (f32.mul (local.get \$y) (local.get \$y)))))
+  (func (export "f64.no_fold_to_hypot") (param \$x f64) (param \$y f64) (result f64)
+    (f64.sqrt (f64.add (f64.mul (local.get \$x) (local.get \$x))
+                       (f64.mul (local.get \$y) (local.get \$y)))))
 )`);
 
 // ./test/core/float_exprs.wast:434
@@ -1657,8 +1657,8 @@ assert_return(
 
 // ./test/core/float_exprs.wast:447
 let $26 = instantiate(`(module
-  (func (export "f32.no_approximate_reciprocal") (param $$x f32) (result f32)
-    (f32.div (f32.const 1.0) (local.get $$x)))
+  (func (export "f32.no_approximate_reciprocal") (param \$x f32) (result f32)
+    (f32.div (f32.const 1.0) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:452
@@ -1701,10 +1701,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:460
 let $27 = instantiate(`(module
-  (func (export "f32.no_approximate_reciprocal_sqrt") (param $$x f32) (result f32)
-    (f32.div (f32.const 1.0) (f32.sqrt (local.get $$x))))
-  (func (export "f64.no_fuse_reciprocal_sqrt") (param $$x f64) (result f64)
-    (f64.div (f64.const 1.0) (f64.sqrt (local.get $$x))))
+  (func (export "f32.no_approximate_reciprocal_sqrt") (param \$x f32) (result f32)
+    (f32.div (f32.const 1.0) (f32.sqrt (local.get \$x))))
+  (func (export "f64.no_fuse_reciprocal_sqrt") (param \$x f64) (result f64)
+    (f64.div (f64.const 1.0) (f64.sqrt (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:467
@@ -1793,8 +1793,8 @@ assert_return(
 
 // ./test/core/float_exprs.wast:481
 let $28 = instantiate(`(module
-  (func (export "f32.no_approximate_sqrt_reciprocal") (param $$x f32) (result f32)
-    (f32.sqrt (f32.div (f32.const 1.0) (local.get $$x))))
+  (func (export "f32.no_approximate_sqrt_reciprocal") (param \$x f32) (result f32)
+    (f32.sqrt (f32.div (f32.const 1.0) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:486
@@ -1901,10 +1901,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:523
 let $30 = instantiate(`(module
-  (func (export "f32.no_fold_add_sub") (param $$x f32) (param $$y f32) (result f32)
-    (f32.sub (f32.add (local.get $$x) (local.get $$y)) (local.get $$y)))
-  (func (export "f64.no_fold_add_sub") (param $$x f64) (param $$y f64) (result f64)
-    (f64.sub (f64.add (local.get $$x) (local.get $$y)) (local.get $$y)))
+  (func (export "f32.no_fold_add_sub") (param \$x f32) (param \$y f32) (result f32)
+    (f32.sub (f32.add (local.get \$x) (local.get \$y)) (local.get \$y)))
+  (func (export "f64.no_fold_add_sub") (param \$x f64) (param \$y f64) (result f64)
+    (f64.sub (f64.add (local.get \$x) (local.get \$y)) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:530
@@ -2007,10 +2007,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:544
 let $31 = instantiate(`(module
-  (func (export "f32.no_fold_sub_add") (param $$x f32) (param $$y f32) (result f32)
-    (f32.add (f32.sub (local.get $$x) (local.get $$y)) (local.get $$y)))
-  (func (export "f64.no_fold_sub_add") (param $$x f64) (param $$y f64) (result f64)
-    (f64.add (f64.sub (local.get $$x) (local.get $$y)) (local.get $$y)))
+  (func (export "f32.no_fold_sub_add") (param \$x f32) (param \$y f32) (result f32)
+    (f32.add (f32.sub (local.get \$x) (local.get \$y)) (local.get \$y)))
+  (func (export "f64.no_fold_sub_add") (param \$x f64) (param \$y f64) (result f64)
+    (f64.add (f64.sub (local.get \$x) (local.get \$y)) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:551
@@ -2113,10 +2113,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:565
 let $32 = instantiate(`(module
-  (func (export "f32.no_fold_mul_div") (param $$x f32) (param $$y f32) (result f32)
-    (f32.div (f32.mul (local.get $$x) (local.get $$y)) (local.get $$y)))
-  (func (export "f64.no_fold_mul_div") (param $$x f64) (param $$y f64) (result f64)
-    (f64.div (f64.mul (local.get $$x) (local.get $$y)) (local.get $$y)))
+  (func (export "f32.no_fold_mul_div") (param \$x f32) (param \$y f32) (result f32)
+    (f32.div (f32.mul (local.get \$x) (local.get \$y)) (local.get \$y)))
+  (func (export "f64.no_fold_mul_div") (param \$x f64) (param \$y f64) (result f64)
+    (f64.div (f64.mul (local.get \$x) (local.get \$y)) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:572
@@ -2221,10 +2221,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:586
 let $33 = instantiate(`(module
-  (func (export "f32.no_fold_div_mul") (param $$x f32) (param $$y f32) (result f32)
-    (f32.mul (f32.div (local.get $$x) (local.get $$y)) (local.get $$y)))
-  (func (export "f64.no_fold_div_mul") (param $$x f64) (param $$y f64) (result f64)
-    (f64.mul (f64.div (local.get $$x) (local.get $$y)) (local.get $$y)))
+  (func (export "f32.no_fold_div_mul") (param \$x f32) (param \$y f32) (result f32)
+    (f32.mul (f32.div (local.get \$x) (local.get \$y)) (local.get \$y)))
+  (func (export "f64.no_fold_div_mul") (param \$x f64) (param \$y f64) (result f64)
+    (f64.mul (f64.div (local.get \$x) (local.get \$y)) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:593
@@ -2329,10 +2329,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:607
 let $34 = instantiate(`(module
-  (func (export "f32.no_fold_div2_mul2") (param $$x f32) (result f32)
-    (f32.mul (f32.div (local.get $$x) (f32.const 2.0)) (f32.const 2.0)))
-  (func (export "f64.no_fold_div2_mul2") (param $$x f64) (result f64)
-    (f64.mul (f64.div (local.get $$x) (f64.const 2.0)) (f64.const 2.0)))
+  (func (export "f32.no_fold_div2_mul2") (param \$x f32) (result f32)
+    (f32.mul (f32.div (local.get \$x) (f32.const 2.0)) (f32.const 2.0)))
+  (func (export "f64.no_fold_div2_mul2") (param \$x f64) (result f64)
+    (f64.mul (f64.div (local.get \$x) (f64.const 2.0)) (f64.const 2.0)))
 )`);
 
 // ./test/core/float_exprs.wast:614
@@ -2355,8 +2355,8 @@ assert_return(
 
 // ./test/core/float_exprs.wast:619
 let $35 = instantiate(`(module
-  (func (export "no_fold_demote_promote") (param $$x f64) (result f64)
-    (f64.promote_f32 (f32.demote_f64 (local.get $$x))))
+  (func (export "no_fold_demote_promote") (param \$x f64) (result f64)
+    (f64.promote_f32 (f32.demote_f64 (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:624
@@ -2401,8 +2401,8 @@ assert_return(
 
 // ./test/core/float_exprs.wast:633
 let $36 = instantiate(`(module
-  (func (export "no_fold_promote_demote") (param $$x f32) (result f32)
-    (f32.demote_f64 (f64.promote_f32 (local.get $$x))))
+  (func (export "no_fold_promote_demote") (param \$x f32) (result f32)
+    (f32.demote_f64 (f64.promote_f32 (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:638
@@ -2495,10 +2495,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:655
 let $37 = instantiate(`(module
-  (func (export "no_demote_mixed_add") (param $$x f64) (param $$y f32) (result f32)
-    (f32.demote_f64 (f64.add (local.get $$x) (f64.promote_f32 (local.get $$y)))))
-  (func (export "no_demote_mixed_add_commuted") (param $$y f32) (param $$x f64) (result f32)
-    (f32.demote_f64 (f64.add (f64.promote_f32 (local.get $$y)) (local.get $$x))))
+  (func (export "no_demote_mixed_add") (param \$x f64) (param \$y f32) (result f32)
+    (f32.demote_f64 (f64.add (local.get \$x) (f64.promote_f32 (local.get \$y)))))
+  (func (export "no_demote_mixed_add_commuted") (param \$y f32) (param \$x f64) (result f32)
+    (f32.demote_f64 (f64.add (f64.promote_f32 (local.get \$y)) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:662
@@ -2593,10 +2593,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:677
 let $38 = instantiate(`(module
-  (func (export "no_demote_mixed_sub") (param $$x f64) (param $$y f32) (result f32)
-    (f32.demote_f64 (f64.sub (local.get $$x) (f64.promote_f32 (local.get $$y)))))
-  (func (export "no_demote_mixed_sub_commuted") (param $$y f32) (param $$x f64) (result f32)
-    (f32.demote_f64 (f64.sub (f64.promote_f32 (local.get $$y)) (local.get $$x))))
+  (func (export "no_demote_mixed_sub") (param \$x f64) (param \$y f32) (result f32)
+    (f32.demote_f64 (f64.sub (local.get \$x) (f64.promote_f32 (local.get \$y)))))
+  (func (export "no_demote_mixed_sub_commuted") (param \$y f32) (param \$x f64) (result f32)
+    (f32.demote_f64 (f64.sub (f64.promote_f32 (local.get \$y)) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:684
@@ -2691,10 +2691,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:699
 let $39 = instantiate(`(module
-  (func (export "no_demote_mixed_mul") (param $$x f64) (param $$y f32) (result f32)
-    (f32.demote_f64 (f64.mul (local.get $$x) (f64.promote_f32 (local.get $$y)))))
-  (func (export "no_demote_mixed_mul_commuted") (param $$y f32) (param $$x f64) (result f32)
-    (f32.demote_f64 (f64.mul (f64.promote_f32 (local.get $$y)) (local.get $$x))))
+  (func (export "no_demote_mixed_mul") (param \$x f64) (param \$y f32) (result f32)
+    (f32.demote_f64 (f64.mul (local.get \$x) (f64.promote_f32 (local.get \$y)))))
+  (func (export "no_demote_mixed_mul_commuted") (param \$y f32) (param \$x f64) (result f32)
+    (f32.demote_f64 (f64.mul (f64.promote_f32 (local.get \$y)) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:706
@@ -2789,10 +2789,10 @@ assert_return(
 
 // ./test/core/float_exprs.wast:721
 let $40 = instantiate(`(module
-  (func (export "no_demote_mixed_div") (param $$x f64) (param $$y f32) (result f32)
-    (f32.demote_f64 (f64.div (local.get $$x) (f64.promote_f32 (local.get $$y)))))
-  (func (export "no_demote_mixed_div_commuted") (param $$y f32) (param $$x f64) (result f32)
-    (f32.demote_f64 (f64.div (f64.promote_f32 (local.get $$y)) (local.get $$x))))
+  (func (export "no_demote_mixed_div") (param \$x f64) (param \$y f32) (result f32)
+    (f32.demote_f64 (f64.div (local.get \$x) (f64.promote_f32 (local.get \$y)))))
+  (func (export "no_demote_mixed_div_commuted") (param \$y f32) (param \$x f64) (result f32)
+    (f32.demote_f64 (f64.div (f64.promote_f32 (local.get \$y)) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:728
@@ -2887,38 +2887,38 @@ assert_return(
 
 // ./test/core/float_exprs.wast:742
 let $41 = instantiate(`(module
-  (func (export "f32.i32.no_fold_trunc_s_convert_s") (param $$x f32) (result f32)
-    (f32.convert_i32_s (i32.trunc_f32_s (local.get $$x))))
-  (func (export "f32.i32.no_fold_trunc_u_convert_s") (param $$x f32) (result f32)
-    (f32.convert_i32_s (i32.trunc_f32_u (local.get $$x))))
-  (func (export "f32.i32.no_fold_trunc_s_convert_u") (param $$x f32) (result f32)
-    (f32.convert_i32_u (i32.trunc_f32_s (local.get $$x))))
-  (func (export "f32.i32.no_fold_trunc_u_convert_u") (param $$x f32) (result f32)
-    (f32.convert_i32_u (i32.trunc_f32_u (local.get $$x))))
-  (func (export "f64.i32.no_fold_trunc_s_convert_s") (param $$x f64) (result f64)
-    (f64.convert_i32_s (i32.trunc_f64_s (local.get $$x))))
-  (func (export "f64.i32.no_fold_trunc_u_convert_s") (param $$x f64) (result f64)
-    (f64.convert_i32_s (i32.trunc_f64_u (local.get $$x))))
-  (func (export "f64.i32.no_fold_trunc_s_convert_u") (param $$x f64) (result f64)
-    (f64.convert_i32_u (i32.trunc_f64_s (local.get $$x))))
-  (func (export "f64.i32.no_fold_trunc_u_convert_u") (param $$x f64) (result f64)
-    (f64.convert_i32_u (i32.trunc_f64_u (local.get $$x))))
-  (func (export "f32.i64.no_fold_trunc_s_convert_s") (param $$x f32) (result f32)
-    (f32.convert_i64_s (i64.trunc_f32_s (local.get $$x))))
-  (func (export "f32.i64.no_fold_trunc_u_convert_s") (param $$x f32) (result f32)
-    (f32.convert_i64_s (i64.trunc_f32_u (local.get $$x))))
-  (func (export "f32.i64.no_fold_trunc_s_convert_u") (param $$x f32) (result f32)
-    (f32.convert_i64_u (i64.trunc_f32_s (local.get $$x))))
-  (func (export "f32.i64.no_fold_trunc_u_convert_u") (param $$x f32) (result f32)
-    (f32.convert_i64_u (i64.trunc_f32_u (local.get $$x))))
-  (func (export "f64.i64.no_fold_trunc_s_convert_s") (param $$x f64) (result f64)
-    (f64.convert_i64_s (i64.trunc_f64_s (local.get $$x))))
-  (func (export "f64.i64.no_fold_trunc_u_convert_s") (param $$x f64) (result f64)
-    (f64.convert_i64_s (i64.trunc_f64_u (local.get $$x))))
-  (func (export "f64.i64.no_fold_trunc_s_convert_u") (param $$x f64) (result f64)
-    (f64.convert_i64_u (i64.trunc_f64_s (local.get $$x))))
-  (func (export "f64.i64.no_fold_trunc_u_convert_u") (param $$x f64) (result f64)
-    (f64.convert_i64_u (i64.trunc_f64_u (local.get $$x))))
+  (func (export "f32.i32.no_fold_trunc_s_convert_s") (param \$x f32) (result f32)
+    (f32.convert_i32_s (i32.trunc_f32_s (local.get \$x))))
+  (func (export "f32.i32.no_fold_trunc_u_convert_s") (param \$x f32) (result f32)
+    (f32.convert_i32_s (i32.trunc_f32_u (local.get \$x))))
+  (func (export "f32.i32.no_fold_trunc_s_convert_u") (param \$x f32) (result f32)
+    (f32.convert_i32_u (i32.trunc_f32_s (local.get \$x))))
+  (func (export "f32.i32.no_fold_trunc_u_convert_u") (param \$x f32) (result f32)
+    (f32.convert_i32_u (i32.trunc_f32_u (local.get \$x))))
+  (func (export "f64.i32.no_fold_trunc_s_convert_s") (param \$x f64) (result f64)
+    (f64.convert_i32_s (i32.trunc_f64_s (local.get \$x))))
+  (func (export "f64.i32.no_fold_trunc_u_convert_s") (param \$x f64) (result f64)
+    (f64.convert_i32_s (i32.trunc_f64_u (local.get \$x))))
+  (func (export "f64.i32.no_fold_trunc_s_convert_u") (param \$x f64) (result f64)
+    (f64.convert_i32_u (i32.trunc_f64_s (local.get \$x))))
+  (func (export "f64.i32.no_fold_trunc_u_convert_u") (param \$x f64) (result f64)
+    (f64.convert_i32_u (i32.trunc_f64_u (local.get \$x))))
+  (func (export "f32.i64.no_fold_trunc_s_convert_s") (param \$x f32) (result f32)
+    (f32.convert_i64_s (i64.trunc_f32_s (local.get \$x))))
+  (func (export "f32.i64.no_fold_trunc_u_convert_s") (param \$x f32) (result f32)
+    (f32.convert_i64_s (i64.trunc_f32_u (local.get \$x))))
+  (func (export "f32.i64.no_fold_trunc_s_convert_u") (param \$x f32) (result f32)
+    (f32.convert_i64_u (i64.trunc_f32_s (local.get \$x))))
+  (func (export "f32.i64.no_fold_trunc_u_convert_u") (param \$x f32) (result f32)
+    (f32.convert_i64_u (i64.trunc_f32_u (local.get \$x))))
+  (func (export "f64.i64.no_fold_trunc_s_convert_s") (param \$x f64) (result f64)
+    (f64.convert_i64_s (i64.trunc_f64_s (local.get \$x))))
+  (func (export "f64.i64.no_fold_trunc_u_convert_s") (param \$x f64) (result f64)
+    (f64.convert_i64_s (i64.trunc_f64_u (local.get \$x))))
+  (func (export "f64.i64.no_fold_trunc_s_convert_u") (param \$x f64) (result f64)
+    (f64.convert_i64_u (i64.trunc_f64_s (local.get \$x))))
+  (func (export "f64.i64.no_fold_trunc_u_convert_u") (param \$x f64) (result f64)
+    (f64.convert_i64_u (i64.trunc_f64_u (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:777
@@ -3116,23 +3116,23 @@ assert_return(
 // ./test/core/float_exprs.wast:817
 let $42 = instantiate(`(module
   (memory 1 1)
-  (func (export "init") (param $$i i32) (param $$x f32) (f32.store (local.get $$i) (local.get $$x)))
+  (func (export "init") (param \$i i32) (param \$x f32) (f32.store (local.get \$i) (local.get \$x)))
 
-  (func (export "run") (param $$n i32) (param $$z f32)
-    (local $$i i32)
-    (block $$exit
-      (loop $$cont
+  (func (export "run") (param \$n i32) (param \$z f32)
+    (local \$i i32)
+    (block \$exit
+      (loop \$cont
         (f32.store
-          (local.get $$i)
-          (f32.div (f32.load (local.get $$i)) (local.get $$z))
+          (local.get \$i)
+          (f32.div (f32.load (local.get \$i)) (local.get \$z))
         )
-        (local.set $$i (i32.add (local.get $$i) (i32.const 4)))
-        (br_if $$cont (i32.lt_u (local.get $$i) (local.get $$n)))
+        (local.set \$i (i32.add (local.get \$i) (i32.const 4)))
+        (br_if \$cont (i32.lt_u (local.get \$i) (local.get \$n)))
       )
     )
   )
 
-  (func (export "check") (param $$i i32) (result f32) (f32.load (local.get $$i)))
+  (func (export "check") (param \$i i32) (result f32) (f32.load (local.get \$i)))
 )`);
 
 // ./test/core/float_exprs.wast:838
@@ -3177,23 +3177,23 @@ assert_return(() => invoke($42, `check`, [12]), [value("f32", 5.133333)]);
 // ./test/core/float_exprs.wast:852
 let $43 = instantiate(`(module
   (memory 1 1)
-  (func (export "init") (param $$i i32) (param $$x f64) (f64.store (local.get $$i) (local.get $$x)))
+  (func (export "init") (param \$i i32) (param \$x f64) (f64.store (local.get \$i) (local.get \$x)))
 
-  (func (export "run") (param $$n i32) (param $$z f64)
-    (local $$i i32)
-    (block $$exit
-      (loop $$cont
+  (func (export "run") (param \$n i32) (param \$z f64)
+    (local \$i i32)
+    (block \$exit
+      (loop \$cont
         (f64.store
-          (local.get $$i)
-          (f64.div (f64.load (local.get $$i)) (local.get $$z))
+          (local.get \$i)
+          (f64.div (f64.load (local.get \$i)) (local.get \$z))
         )
-        (local.set $$i (i32.add (local.get $$i) (i32.const 8)))
-        (br_if $$cont (i32.lt_u (local.get $$i) (local.get $$n)))
+        (local.set \$i (i32.add (local.get \$i) (i32.const 8)))
+        (br_if \$cont (i32.lt_u (local.get \$i) (local.get \$n)))
       )
     )
   )
 
-  (func (export "check") (param $$i i32) (result f64) (f64.load (local.get $$i)))
+  (func (export "check") (param \$i i32) (result f64) (f64.load (local.get \$i)))
 )`);
 
 // ./test/core/float_exprs.wast:873
@@ -3237,15 +3237,15 @@ assert_return(() => invoke($43, `check`, [24]), [value("f64", 5.133333333333334)
 
 // ./test/core/float_exprs.wast:889
 let $44 = instantiate(`(module
-  (func (export "f32.ult") (param $$x f32) (param $$y f32) (result i32) (i32.eqz (f32.ge (local.get $$x) (local.get $$y))))
-  (func (export "f32.ule") (param $$x f32) (param $$y f32) (result i32) (i32.eqz (f32.gt (local.get $$x) (local.get $$y))))
-  (func (export "f32.ugt") (param $$x f32) (param $$y f32) (result i32) (i32.eqz (f32.le (local.get $$x) (local.get $$y))))
-  (func (export "f32.uge") (param $$x f32) (param $$y f32) (result i32) (i32.eqz (f32.lt (local.get $$x) (local.get $$y))))
+  (func (export "f32.ult") (param \$x f32) (param \$y f32) (result i32) (i32.eqz (f32.ge (local.get \$x) (local.get \$y))))
+  (func (export "f32.ule") (param \$x f32) (param \$y f32) (result i32) (i32.eqz (f32.gt (local.get \$x) (local.get \$y))))
+  (func (export "f32.ugt") (param \$x f32) (param \$y f32) (result i32) (i32.eqz (f32.le (local.get \$x) (local.get \$y))))
+  (func (export "f32.uge") (param \$x f32) (param \$y f32) (result i32) (i32.eqz (f32.lt (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.ult") (param $$x f64) (param $$y f64) (result i32) (i32.eqz (f64.ge (local.get $$x) (local.get $$y))))
-  (func (export "f64.ule") (param $$x f64) (param $$y f64) (result i32) (i32.eqz (f64.gt (local.get $$x) (local.get $$y))))
-  (func (export "f64.ugt") (param $$x f64) (param $$y f64) (result i32) (i32.eqz (f64.le (local.get $$x) (local.get $$y))))
-  (func (export "f64.uge") (param $$x f64) (param $$y f64) (result i32) (i32.eqz (f64.lt (local.get $$x) (local.get $$y))))
+  (func (export "f64.ult") (param \$x f64) (param \$y f64) (result i32) (i32.eqz (f64.ge (local.get \$x) (local.get \$y))))
+  (func (export "f64.ule") (param \$x f64) (param \$y f64) (result i32) (i32.eqz (f64.gt (local.get \$x) (local.get \$y))))
+  (func (export "f64.ugt") (param \$x f64) (param \$y f64) (result i32) (i32.eqz (f64.le (local.get \$x) (local.get \$y))))
+  (func (export "f64.uge") (param \$x f64) (param \$y f64) (result i32) (i32.eqz (f64.lt (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:901
@@ -3382,15 +3382,15 @@ assert_return(
 
 // ./test/core/float_exprs.wast:936
 let $45 = instantiate(`(module
-  (func (export "f32.no_fold_lt_select") (param $$x f32) (param $$y f32) (result f32) (select (local.get $$x) (local.get $$y) (f32.lt (local.get $$x) (local.get $$y))))
-  (func (export "f32.no_fold_le_select") (param $$x f32) (param $$y f32) (result f32) (select (local.get $$x) (local.get $$y) (f32.le (local.get $$x) (local.get $$y))))
-  (func (export "f32.no_fold_gt_select") (param $$x f32) (param $$y f32) (result f32) (select (local.get $$x) (local.get $$y) (f32.gt (local.get $$x) (local.get $$y))))
-  (func (export "f32.no_fold_ge_select") (param $$x f32) (param $$y f32) (result f32) (select (local.get $$x) (local.get $$y) (f32.ge (local.get $$x) (local.get $$y))))
+  (func (export "f32.no_fold_lt_select") (param \$x f32) (param \$y f32) (result f32) (select (local.get \$x) (local.get \$y) (f32.lt (local.get \$x) (local.get \$y))))
+  (func (export "f32.no_fold_le_select") (param \$x f32) (param \$y f32) (result f32) (select (local.get \$x) (local.get \$y) (f32.le (local.get \$x) (local.get \$y))))
+  (func (export "f32.no_fold_gt_select") (param \$x f32) (param \$y f32) (result f32) (select (local.get \$x) (local.get \$y) (f32.gt (local.get \$x) (local.get \$y))))
+  (func (export "f32.no_fold_ge_select") (param \$x f32) (param \$y f32) (result f32) (select (local.get \$x) (local.get \$y) (f32.ge (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.no_fold_lt_select") (param $$x f64) (param $$y f64) (result f64) (select (local.get $$x) (local.get $$y) (f64.lt (local.get $$x) (local.get $$y))))
-  (func (export "f64.no_fold_le_select") (param $$x f64) (param $$y f64) (result f64) (select (local.get $$x) (local.get $$y) (f64.le (local.get $$x) (local.get $$y))))
-  (func (export "f64.no_fold_gt_select") (param $$x f64) (param $$y f64) (result f64) (select (local.get $$x) (local.get $$y) (f64.gt (local.get $$x) (local.get $$y))))
-  (func (export "f64.no_fold_ge_select") (param $$x f64) (param $$y f64) (result f64) (select (local.get $$x) (local.get $$y) (f64.ge (local.get $$x) (local.get $$y))))
+  (func (export "f64.no_fold_lt_select") (param \$x f64) (param \$y f64) (result f64) (select (local.get \$x) (local.get \$y) (f64.lt (local.get \$x) (local.get \$y))))
+  (func (export "f64.no_fold_le_select") (param \$x f64) (param \$y f64) (result f64) (select (local.get \$x) (local.get \$y) (f64.le (local.get \$x) (local.get \$y))))
+  (func (export "f64.no_fold_gt_select") (param \$x f64) (param \$y f64) (result f64) (select (local.get \$x) (local.get \$y) (f64.gt (local.get \$x) (local.get \$y))))
+  (func (export "f64.no_fold_ge_select") (param \$x f64) (param \$y f64) (result f64) (select (local.get \$x) (local.get \$y) (f64.ge (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:948
@@ -3635,45 +3635,45 @@ assert_return(
 
 // ./test/core/float_exprs.wast:983
 let $46 = instantiate(`(module
-  (func (export "f32.no_fold_lt_if") (param $$x f32) (param $$y f32) (result f32)
-    (if (result f32) (f32.lt (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f32.no_fold_lt_if") (param \$x f32) (param \$y f32) (result f32)
+    (if (result f32) (f32.lt (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
-  (func (export "f32.no_fold_le_if") (param $$x f32) (param $$y f32) (result f32)
-    (if (result f32) (f32.le (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f32.no_fold_le_if") (param \$x f32) (param \$y f32) (result f32)
+    (if (result f32) (f32.le (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
-  (func (export "f32.no_fold_gt_if") (param $$x f32) (param $$y f32) (result f32)
-    (if (result f32) (f32.gt (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f32.no_fold_gt_if") (param \$x f32) (param \$y f32) (result f32)
+    (if (result f32) (f32.gt (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
-  (func (export "f32.no_fold_ge_if") (param $$x f32) (param $$y f32) (result f32)
-    (if (result f32) (f32.ge (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f32.no_fold_ge_if") (param \$x f32) (param \$y f32) (result f32)
+    (if (result f32) (f32.ge (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
 
-  (func (export "f64.no_fold_lt_if") (param $$x f64) (param $$y f64) (result f64)
-    (if (result f64) (f64.lt (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f64.no_fold_lt_if") (param \$x f64) (param \$y f64) (result f64)
+    (if (result f64) (f64.lt (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
-  (func (export "f64.no_fold_le_if") (param $$x f64) (param $$y f64) (result f64)
-    (if (result f64) (f64.le (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f64.no_fold_le_if") (param \$x f64) (param \$y f64) (result f64)
+    (if (result f64) (f64.le (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
-  (func (export "f64.no_fold_gt_if") (param $$x f64) (param $$y f64) (result f64)
-    (if (result f64) (f64.gt (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f64.no_fold_gt_if") (param \$x f64) (param \$y f64) (result f64)
+    (if (result f64) (f64.gt (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
-  (func (export "f64.no_fold_ge_if") (param $$x f64) (param $$y f64) (result f64)
-    (if (result f64) (f64.ge (local.get $$x) (local.get $$y))
-      (then (local.get $$x)) (else (local.get $$y))
+  (func (export "f64.no_fold_ge_if") (param \$x f64) (param \$y f64) (result f64)
+    (if (result f64) (f64.ge (local.get \$x) (local.get \$y))
+      (then (local.get \$x)) (else (local.get \$y))
     )
   )
 )`);
@@ -3920,15 +3920,15 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1062
 let $47 = instantiate(`(module
-  (func (export "f32.no_fold_lt_select_to_abs") (param $$x f32) (result f32) (select (f32.neg (local.get $$x)) (local.get $$x) (f32.lt (local.get $$x) (f32.const 0.0))))
-  (func (export "f32.no_fold_le_select_to_abs") (param $$x f32) (result f32) (select (f32.neg (local.get $$x)) (local.get $$x) (f32.le (local.get $$x) (f32.const -0.0))))
-  (func (export "f32.no_fold_gt_select_to_abs") (param $$x f32) (result f32) (select (local.get $$x) (f32.neg (local.get $$x)) (f32.gt (local.get $$x) (f32.const -0.0))))
-  (func (export "f32.no_fold_ge_select_to_abs") (param $$x f32) (result f32) (select (local.get $$x) (f32.neg (local.get $$x)) (f32.ge (local.get $$x) (f32.const 0.0))))
+  (func (export "f32.no_fold_lt_select_to_abs") (param \$x f32) (result f32) (select (f32.neg (local.get \$x)) (local.get \$x) (f32.lt (local.get \$x) (f32.const 0.0))))
+  (func (export "f32.no_fold_le_select_to_abs") (param \$x f32) (result f32) (select (f32.neg (local.get \$x)) (local.get \$x) (f32.le (local.get \$x) (f32.const -0.0))))
+  (func (export "f32.no_fold_gt_select_to_abs") (param \$x f32) (result f32) (select (local.get \$x) (f32.neg (local.get \$x)) (f32.gt (local.get \$x) (f32.const -0.0))))
+  (func (export "f32.no_fold_ge_select_to_abs") (param \$x f32) (result f32) (select (local.get \$x) (f32.neg (local.get \$x)) (f32.ge (local.get \$x) (f32.const 0.0))))
 
-  (func (export "f64.no_fold_lt_select_to_abs") (param $$x f64) (result f64) (select (f64.neg (local.get $$x)) (local.get $$x) (f64.lt (local.get $$x) (f64.const 0.0))))
-  (func (export "f64.no_fold_le_select_to_abs") (param $$x f64) (result f64) (select (f64.neg (local.get $$x)) (local.get $$x) (f64.le (local.get $$x) (f64.const -0.0))))
-  (func (export "f64.no_fold_gt_select_to_abs") (param $$x f64) (result f64) (select (local.get $$x) (f64.neg (local.get $$x)) (f64.gt (local.get $$x) (f64.const -0.0))))
-  (func (export "f64.no_fold_ge_select_to_abs") (param $$x f64) (result f64) (select (local.get $$x) (f64.neg (local.get $$x)) (f64.ge (local.get $$x) (f64.const 0.0))))
+  (func (export "f64.no_fold_lt_select_to_abs") (param \$x f64) (result f64) (select (f64.neg (local.get \$x)) (local.get \$x) (f64.lt (local.get \$x) (f64.const 0.0))))
+  (func (export "f64.no_fold_le_select_to_abs") (param \$x f64) (result f64) (select (f64.neg (local.get \$x)) (local.get \$x) (f64.le (local.get \$x) (f64.const -0.0))))
+  (func (export "f64.no_fold_gt_select_to_abs") (param \$x f64) (result f64) (select (local.get \$x) (f64.neg (local.get \$x)) (f64.gt (local.get \$x) (f64.const -0.0))))
+  (func (export "f64.no_fold_ge_select_to_abs") (param \$x f64) (result f64) (select (local.get \$x) (f64.neg (local.get \$x)) (f64.ge (local.get \$x) (f64.const 0.0))))
 )`);
 
 // ./test/core/float_exprs.wast:1074
@@ -4109,45 +4109,45 @@ assert_return(() => invoke($47, `f64.no_fold_ge_select_to_abs`, [value("f64", -0
 
 // ./test/core/float_exprs.wast:1109
 let $48 = instantiate(`(module
-  (func (export "f32.no_fold_lt_if_to_abs") (param $$x f32) (result f32)
-    (if (result f32) (f32.lt (local.get $$x) (f32.const 0.0))
-      (then (f32.neg (local.get $$x))) (else (local.get $$x))
+  (func (export "f32.no_fold_lt_if_to_abs") (param \$x f32) (result f32)
+    (if (result f32) (f32.lt (local.get \$x) (f32.const 0.0))
+      (then (f32.neg (local.get \$x))) (else (local.get \$x))
     )
   )
-  (func (export "f32.no_fold_le_if_to_abs") (param $$x f32) (result f32)
-    (if (result f32) (f32.le (local.get $$x) (f32.const -0.0))
-      (then (f32.neg (local.get $$x))) (else (local.get $$x))
+  (func (export "f32.no_fold_le_if_to_abs") (param \$x f32) (result f32)
+    (if (result f32) (f32.le (local.get \$x) (f32.const -0.0))
+      (then (f32.neg (local.get \$x))) (else (local.get \$x))
     )
   )
-  (func (export "f32.no_fold_gt_if_to_abs") (param $$x f32) (result f32)
-    (if (result f32) (f32.gt (local.get $$x) (f32.const -0.0))
-      (then (local.get $$x)) (else (f32.neg (local.get $$x)))
+  (func (export "f32.no_fold_gt_if_to_abs") (param \$x f32) (result f32)
+    (if (result f32) (f32.gt (local.get \$x) (f32.const -0.0))
+      (then (local.get \$x)) (else (f32.neg (local.get \$x)))
     )
   )
-  (func (export "f32.no_fold_ge_if_to_abs") (param $$x f32) (result f32)
-    (if (result f32) (f32.ge (local.get $$x) (f32.const 0.0))
-      (then (local.get $$x)) (else (f32.neg (local.get $$x)))
+  (func (export "f32.no_fold_ge_if_to_abs") (param \$x f32) (result f32)
+    (if (result f32) (f32.ge (local.get \$x) (f32.const 0.0))
+      (then (local.get \$x)) (else (f32.neg (local.get \$x)))
     )
   )
 
-  (func (export "f64.no_fold_lt_if_to_abs") (param $$x f64) (result f64)
-    (if (result f64) (f64.lt (local.get $$x) (f64.const 0.0))
-      (then (f64.neg (local.get $$x))) (else (local.get $$x))
+  (func (export "f64.no_fold_lt_if_to_abs") (param \$x f64) (result f64)
+    (if (result f64) (f64.lt (local.get \$x) (f64.const 0.0))
+      (then (f64.neg (local.get \$x))) (else (local.get \$x))
     )
   )
-  (func (export "f64.no_fold_le_if_to_abs") (param $$x f64) (result f64)
-    (if (result f64) (f64.le (local.get $$x) (f64.const -0.0))
-      (then (f64.neg (local.get $$x))) (else (local.get $$x))
+  (func (export "f64.no_fold_le_if_to_abs") (param \$x f64) (result f64)
+    (if (result f64) (f64.le (local.get \$x) (f64.const -0.0))
+      (then (f64.neg (local.get \$x))) (else (local.get \$x))
     )
   )
-  (func (export "f64.no_fold_gt_if_to_abs") (param $$x f64) (result f64)
-    (if (result f64) (f64.gt (local.get $$x) (f64.const -0.0))
-      (then (local.get $$x)) (else (f64.neg (local.get $$x)))
+  (func (export "f64.no_fold_gt_if_to_abs") (param \$x f64) (result f64)
+    (if (result f64) (f64.gt (local.get \$x) (f64.const -0.0))
+      (then (local.get \$x)) (else (f64.neg (local.get \$x)))
     )
   )
-  (func (export "f64.no_fold_ge_if_to_abs") (param $$x f64) (result f64)
-    (if (result f64) (f64.ge (local.get $$x) (f64.const 0.0))
-      (then (local.get $$x)) (else (f64.neg (local.get $$x)))
+  (func (export "f64.no_fold_ge_if_to_abs") (param \$x f64) (result f64)
+    (if (result f64) (f64.ge (local.get \$x) (f64.const 0.0))
+      (then (local.get \$x)) (else (f64.neg (local.get \$x)))
     )
   )
 )`);
@@ -4334,18 +4334,18 @@ assert_return(
 // ./test/core/float_exprs.wast:1204
 let $50 = instantiate(`(module
   (func (export "calculate") (result f32)
-    (local $$x f32)
-    (local $$r f32)
-    (local $$q f32)
-    (local $$z0 f32)
-    (local $$z1 f32)
-    (local.set $$x (f32.const 156.25))
-    (local.set $$r (f32.const 208.333333334))
-    (local.set $$q (f32.const 1.77951304201))
-    (local.set $$z0 (f32.div (f32.mul (f32.neg (local.get $$r)) (local.get $$x)) (f32.sub (f32.mul (local.get $$x) (local.get $$q)) (local.get $$r))))
-    (local.set $$z1 (f32.div (f32.mul (f32.neg (local.get $$r)) (local.get $$x)) (f32.sub (f32.mul (local.get $$x) (local.get $$q)) (local.get $$r))))
-    (block (br_if 0 (f32.eq (local.get $$z0) (local.get $$z1))) (unreachable))
-    (local.get $$z1)
+    (local \$x f32)
+    (local \$r f32)
+    (local \$q f32)
+    (local \$z0 f32)
+    (local \$z1 f32)
+    (local.set \$x (f32.const 156.25))
+    (local.set \$r (f32.const 208.333333334))
+    (local.set \$q (f32.const 1.77951304201))
+    (local.set \$z0 (f32.div (f32.mul (f32.neg (local.get \$r)) (local.get \$x)) (f32.sub (f32.mul (local.get \$x) (local.get \$q)) (local.get \$r))))
+    (local.set \$z1 (f32.div (f32.mul (f32.neg (local.get \$r)) (local.get \$x)) (f32.sub (f32.mul (local.get \$x) (local.get \$q)) (local.get \$r))))
+    (block (br_if 0 (f32.eq (local.get \$z0) (local.get \$z1))) (unreachable))
+    (local.get \$z1)
   )
 )`);
 
@@ -4355,18 +4355,18 @@ assert_return(() => invoke($50, `calculate`, []), [value("f32", -466.92685)]);
 // ./test/core/float_exprs.wast:1223
 let $51 = instantiate(`(module
   (func (export "calculate") (result f64)
-    (local $$x f64)
-    (local $$r f64)
-    (local $$q f64)
-    (local $$z0 f64)
-    (local $$z1 f64)
-    (local.set $$x (f64.const 156.25))
-    (local.set $$r (f64.const 208.333333334))
-    (local.set $$q (f64.const 1.77951304201))
-    (local.set $$z0 (f64.div (f64.mul (f64.neg (local.get $$r)) (local.get $$x)) (f64.sub (f64.mul (local.get $$x) (local.get $$q)) (local.get $$r))))
-    (local.set $$z1 (f64.div (f64.mul (f64.neg (local.get $$r)) (local.get $$x)) (f64.sub (f64.mul (local.get $$x) (local.get $$q)) (local.get $$r))))
-    (block (br_if 0 (f64.eq (local.get $$z0) (local.get $$z1))) (unreachable))
-    (local.get $$z1)
+    (local \$x f64)
+    (local \$r f64)
+    (local \$q f64)
+    (local \$z0 f64)
+    (local \$z1 f64)
+    (local.set \$x (f64.const 156.25))
+    (local.set \$r (f64.const 208.333333334))
+    (local.set \$q (f64.const 1.77951304201))
+    (local.set \$z0 (f64.div (f64.mul (f64.neg (local.get \$r)) (local.get \$x)) (f64.sub (f64.mul (local.get \$x) (local.get \$q)) (local.get \$r))))
+    (local.set \$z1 (f64.div (f64.mul (f64.neg (local.get \$r)) (local.get \$x)) (f64.sub (f64.mul (local.get \$x) (local.get \$q)) (local.get \$r))))
+    (block (br_if 0 (f64.eq (local.get \$z0) (local.get \$z1))) (unreachable))
+    (local.get \$z1)
   )
 )`);
 
@@ -4375,8 +4375,8 @@ assert_return(() => invoke($51, `calculate`, []), [value("f64", -466.92695630173
 
 // ./test/core/float_exprs.wast:1245
 let $52 = instantiate(`(module
-  (func (export "llvm_pr26746") (param $$x f32) (result f32)
-    (f32.sub (f32.const 0.0) (f32.sub (f32.const -0.0) (local.get $$x)))
+  (func (export "llvm_pr26746") (param \$x f32) (result f32)
+    (f32.sub (f32.const 0.0) (f32.sub (f32.const -0.0) (local.get \$x)))
   )
 )`);
 
@@ -4385,8 +4385,8 @@ assert_return(() => invoke($52, `llvm_pr26746`, [value("f32", -0)]), [value("f32
 
 // ./test/core/float_exprs.wast:1256
 let $53 = instantiate(`(module
-  (func (export "llvm_pr27153") (param $$x i32) (result f32)
-    (f32.add (f32.convert_i32_s (i32.and (local.get $$x) (i32.const 268435455))) (f32.const -8388608.0))
+  (func (export "llvm_pr27153") (param \$x i32) (result f32)
+    (f32.add (f32.convert_i32_s (i32.and (local.get \$x) (i32.const 268435455))) (f32.const -8388608.0))
   )
 )`);
 
@@ -4395,9 +4395,9 @@ assert_return(() => invoke($53, `llvm_pr27153`, [33554434]), [value("f32", 25165
 
 // ./test/core/float_exprs.wast:1267
 let $54 = instantiate(`(module
-  (func (export "llvm_pr27036") (param $$x i32) (param $$y i32) (result f32)
-    (f32.add (f32.convert_i32_s (i32.or (local.get $$x) (i32.const -25034805)))
-             (f32.convert_i32_s (i32.and (local.get $$y) (i32.const 14942208))))
+  (func (export "llvm_pr27036") (param \$x i32) (param \$y i32) (result f32)
+    (f32.add (f32.convert_i32_s (i32.or (local.get \$x) (i32.const -25034805)))
+             (f32.convert_i32_s (i32.and (local.get \$y) (i32.const 14942208))))
   )
 )`);
 
@@ -4406,16 +4406,16 @@ assert_return(() => invoke($54, `llvm_pr27036`, [-25034805, 14942208]), [value("
 
 // ./test/core/float_exprs.wast:1284
 let $55 = instantiate(`(module
-  (func (export "thepast0") (param $$a f64) (param $$b f64) (param $$c f64) (param $$d f64) (result f64)
-    (f64.div (f64.mul (local.get $$a) (local.get $$b)) (f64.mul (local.get $$c) (local.get $$d)))
+  (func (export "thepast0") (param \$a f64) (param \$b f64) (param \$c f64) (param \$d f64) (result f64)
+    (f64.div (f64.mul (local.get \$a) (local.get \$b)) (f64.mul (local.get \$c) (local.get \$d)))
   )
 
-  (func (export "thepast1") (param $$a f64) (param $$b f64) (param $$c f64) (result f64)
-    (f64.sub (f64.mul (local.get $$a) (local.get $$b)) (local.get $$c))
+  (func (export "thepast1") (param \$a f64) (param \$b f64) (param \$c f64) (result f64)
+    (f64.sub (f64.mul (local.get \$a) (local.get \$b)) (local.get \$c))
   )
 
-  (func (export "thepast2") (param $$a f32) (param $$b f32) (param $$c f32) (result f32)
-    (f32.mul (f32.mul (local.get $$a) (local.get $$b)) (local.get $$c))
+  (func (export "thepast2") (param \$a f32) (param \$b f32) (param \$c f32) (result f32)
+    (f32.mul (f32.mul (local.get \$a) (local.get \$b)) (local.get \$c))
   )
 )`);
 
@@ -4454,8 +4454,8 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1305
 let $56 = instantiate(`(module
-  (func (export "inverse") (param $$x f32) (result f32)
-    (f32.div (f32.const 1.0) (local.get $$x))
+  (func (export "inverse") (param \$x f32) (result f32)
+    (f32.div (f32.const 1.0) (local.get \$x))
   )
 )`);
 
@@ -4464,12 +4464,12 @@ assert_return(() => invoke($56, `inverse`, [value("f32", 96)]), [value("f32", 0.
 
 // ./test/core/float_exprs.wast:1316
 let $57 = instantiate(`(module
-  (func (export "f32_sqrt_minus_2") (param $$x f32) (result f32)
-    (f32.sub (f32.sqrt (local.get $$x)) (f32.const 2.0))
+  (func (export "f32_sqrt_minus_2") (param \$x f32) (result f32)
+    (f32.sub (f32.sqrt (local.get \$x)) (f32.const 2.0))
   )
 
-  (func (export "f64_sqrt_minus_2") (param $$x f64) (result f64)
-    (f64.sub (f64.sqrt (local.get $$x)) (f64.const 2.0))
+  (func (export "f64_sqrt_minus_2") (param \$x f64) (result f64)
+    (f64.sub (f64.sqrt (local.get \$x)) (f64.const 2.0))
   )
 )`);
 
@@ -4481,11 +4481,11 @@ assert_return(() => invoke($57, `f64_sqrt_minus_2`, [value("f64", 4)]), [value("
 
 // ./test/core/float_exprs.wast:1331
 let $58 = instantiate(`(module
-  (func (export "f32.no_fold_recip_recip") (param $$x f32) (result f32)
-    (f32.div (f32.const 1.0) (f32.div (f32.const 1.0) (local.get $$x))))
+  (func (export "f32.no_fold_recip_recip") (param \$x f32) (result f32)
+    (f32.div (f32.const 1.0) (f32.div (f32.const 1.0) (local.get \$x))))
 
-  (func (export "f64.no_fold_recip_recip") (param $$x f64) (result f64)
-    (f64.div (f64.const 1.0) (f64.div (f64.const 1.0) (local.get $$x))))
+  (func (export "f64.no_fold_recip_recip") (param \$x f64) (result f64)
+    (f64.div (f64.const 1.0) (f64.div (f64.const 1.0) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:1339
@@ -4602,13 +4602,13 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1363
 let $59 = instantiate(`(module
-  (func (export "f32.no_algebraic_factoring") (param $$x f32) (param $$y f32) (result f32)
-    (f32.mul (f32.add (local.get $$x) (local.get $$y))
-             (f32.sub (local.get $$x) (local.get $$y))))
+  (func (export "f32.no_algebraic_factoring") (param \$x f32) (param \$y f32) (result f32)
+    (f32.mul (f32.add (local.get \$x) (local.get \$y))
+             (f32.sub (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.no_algebraic_factoring") (param $$x f64) (param $$y f64) (result f64)
-    (f64.mul (f64.add (local.get $$x) (local.get $$y))
-             (f64.sub (local.get $$x) (local.get $$y))))
+  (func (export "f64.no_algebraic_factoring") (param \$x f64) (param \$y f64) (result f64)
+    (f64.mul (f64.add (local.get \$x) (local.get \$y))
+             (f64.sub (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1373
@@ -4713,13 +4713,13 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1387
 let $60 = instantiate(`(module
-  (func (export "f32.no_algebraic_factoring") (param $$x f32) (param $$y f32) (result f32)
-    (f32.sub (f32.mul (local.get $$x) (local.get $$x))
-             (f32.mul (local.get $$y) (local.get $$y))))
+  (func (export "f32.no_algebraic_factoring") (param \$x f32) (param \$y f32) (result f32)
+    (f32.sub (f32.mul (local.get \$x) (local.get \$x))
+             (f32.mul (local.get \$y) (local.get \$y))))
 
-  (func (export "f64.no_algebraic_factoring") (param $$x f64) (param $$y f64) (result f64)
-    (f64.sub (f64.mul (local.get $$x) (local.get $$x))
-             (f64.mul (local.get $$y) (local.get $$y))))
+  (func (export "f64.no_algebraic_factoring") (param \$x f64) (param \$y f64) (result f64)
+    (f64.sub (f64.mul (local.get \$x) (local.get \$x))
+             (f64.mul (local.get \$y) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1397
@@ -4829,28 +4829,28 @@ let $61 = instantiate(`(module
   ))
 
   (func (export "f32.simple_x4_sum")
-    (param $$i i32)
-    (param $$j i32)
-    (param $$k i32)
-    (local $$x0 f32) (local $$x1 f32) (local $$x2 f32) (local $$x3 f32)
-    (local $$y0 f32) (local $$y1 f32) (local $$y2 f32) (local $$y3 f32)
-    (local.set $$x0 (f32.load offset=0 (local.get $$i)))
-    (local.set $$x1 (f32.load offset=4 (local.get $$i)))
-    (local.set $$x2 (f32.load offset=8 (local.get $$i)))
-    (local.set $$x3 (f32.load offset=12 (local.get $$i)))
-    (local.set $$y0 (f32.load offset=0 (local.get $$j)))
-    (local.set $$y1 (f32.load offset=4 (local.get $$j)))
-    (local.set $$y2 (f32.load offset=8 (local.get $$j)))
-    (local.set $$y3 (f32.load offset=12 (local.get $$j)))
-    (f32.store offset=0 (local.get $$k) (f32.add (local.get $$x0) (local.get $$y0)))
-    (f32.store offset=4 (local.get $$k) (f32.add (local.get $$x1) (local.get $$y1)))
-    (f32.store offset=8 (local.get $$k) (f32.add (local.get $$x2) (local.get $$y2)))
-    (f32.store offset=12 (local.get $$k) (f32.add (local.get $$x3) (local.get $$y3)))
+    (param \$i i32)
+    (param \$j i32)
+    (param \$k i32)
+    (local \$x0 f32) (local \$x1 f32) (local \$x2 f32) (local \$x3 f32)
+    (local \$y0 f32) (local \$y1 f32) (local \$y2 f32) (local \$y3 f32)
+    (local.set \$x0 (f32.load offset=0 (local.get \$i)))
+    (local.set \$x1 (f32.load offset=4 (local.get \$i)))
+    (local.set \$x2 (f32.load offset=8 (local.get \$i)))
+    (local.set \$x3 (f32.load offset=12 (local.get \$i)))
+    (local.set \$y0 (f32.load offset=0 (local.get \$j)))
+    (local.set \$y1 (f32.load offset=4 (local.get \$j)))
+    (local.set \$y2 (f32.load offset=8 (local.get \$j)))
+    (local.set \$y3 (f32.load offset=12 (local.get \$j)))
+    (f32.store offset=0 (local.get \$k) (f32.add (local.get \$x0) (local.get \$y0)))
+    (f32.store offset=4 (local.get \$k) (f32.add (local.get \$x1) (local.get \$y1)))
+    (f32.store offset=8 (local.get \$k) (f32.add (local.get \$x2) (local.get \$y2)))
+    (f32.store offset=12 (local.get \$k) (f32.add (local.get \$x3) (local.get \$y3)))
   )
 
   (func (export "f32.load")
-    (param $$k i32) (result f32)
-    (f32.load (local.get $$k))
+    (param \$k i32) (result f32)
+    (f32.load (local.get \$k))
   )
 )`);
 
@@ -4887,28 +4887,28 @@ let $62 = instantiate(`(module
   ))
 
   (func (export "f64.simple_x4_sum")
-    (param $$i i32)
-    (param $$j i32)
-    (param $$k i32)
-    (local $$x0 f64) (local $$x1 f64) (local $$x2 f64) (local $$x3 f64)
-    (local $$y0 f64) (local $$y1 f64) (local $$y2 f64) (local $$y3 f64)
-    (local.set $$x0 (f64.load offset=0 (local.get $$i)))
-    (local.set $$x1 (f64.load offset=8 (local.get $$i)))
-    (local.set $$x2 (f64.load offset=16 (local.get $$i)))
-    (local.set $$x3 (f64.load offset=24 (local.get $$i)))
-    (local.set $$y0 (f64.load offset=0 (local.get $$j)))
-    (local.set $$y1 (f64.load offset=8 (local.get $$j)))
-    (local.set $$y2 (f64.load offset=16 (local.get $$j)))
-    (local.set $$y3 (f64.load offset=24 (local.get $$j)))
-    (f64.store offset=0 (local.get $$k) (f64.add (local.get $$x0) (local.get $$y0)))
-    (f64.store offset=8 (local.get $$k) (f64.add (local.get $$x1) (local.get $$y1)))
-    (f64.store offset=16 (local.get $$k) (f64.add (local.get $$x2) (local.get $$y2)))
-    (f64.store offset=24 (local.get $$k) (f64.add (local.get $$x3) (local.get $$y3)))
+    (param \$i i32)
+    (param \$j i32)
+    (param \$k i32)
+    (local \$x0 f64) (local \$x1 f64) (local \$x2 f64) (local \$x3 f64)
+    (local \$y0 f64) (local \$y1 f64) (local \$y2 f64) (local \$y3 f64)
+    (local.set \$x0 (f64.load offset=0 (local.get \$i)))
+    (local.set \$x1 (f64.load offset=8 (local.get \$i)))
+    (local.set \$x2 (f64.load offset=16 (local.get \$i)))
+    (local.set \$x3 (f64.load offset=24 (local.get \$i)))
+    (local.set \$y0 (f64.load offset=0 (local.get \$j)))
+    (local.set \$y1 (f64.load offset=8 (local.get \$j)))
+    (local.set \$y2 (f64.load offset=16 (local.get \$j)))
+    (local.set \$y3 (f64.load offset=24 (local.get \$j)))
+    (f64.store offset=0 (local.get \$k) (f64.add (local.get \$x0) (local.get \$y0)))
+    (f64.store offset=8 (local.get \$k) (f64.add (local.get \$x1) (local.get \$y1)))
+    (f64.store offset=16 (local.get \$k) (f64.add (local.get \$x2) (local.get \$y2)))
+    (f64.store offset=24 (local.get \$k) (f64.add (local.get \$x3) (local.get \$y3)))
   )
 
   (func (export "f64.load")
-    (param $$k i32) (result f64)
-    (f64.load (local.get $$k))
+    (param \$k i32) (result f64)
+    (f64.load (local.get \$k))
   )
 )`);
 
@@ -4990,47 +4990,47 @@ let $63 = instantiate(`(module
     "\\60\\70\\dc\\b7\\c8\\83\\e1\\42\\f5\\be\\ad\\62\\94\\ad\\8d\\a1"
   ))
 
-  (func (export "f32.kahan_sum") (param $$p i32) (param $$n i32) (result f32)
-    (local $$sum f32)
-    (local $$c f32)
-    (local $$t f32)
-    (block $$exit
-      (loop $$top
-        (local.set $$t
+  (func (export "f32.kahan_sum") (param \$p i32) (param \$n i32) (result f32)
+    (local \$sum f32)
+    (local \$c f32)
+    (local \$t f32)
+    (block \$exit
+      (loop \$top
+        (local.set \$t
           (f32.sub
             (f32.sub
-              (local.tee $$sum
+              (local.tee \$sum
                 (f32.add
-                  (local.get $$c)
-                  (local.tee $$t
-                    (f32.sub (f32.load (local.get $$p)) (local.get $$t))
+                  (local.get \$c)
+                  (local.tee \$t
+                    (f32.sub (f32.load (local.get \$p)) (local.get \$t))
                   )
                 )
               )
-              (local.get $$c)
+              (local.get \$c)
             )
-            (local.get $$t)
+            (local.get \$t)
           )
         )
-        (local.set $$p (i32.add (local.get $$p) (i32.const 4)))
-        (local.set $$c (local.get $$sum))
-        (br_if $$top (local.tee $$n (i32.add (local.get $$n) (i32.const -1))))
+        (local.set \$p (i32.add (local.get \$p) (i32.const 4)))
+        (local.set \$c (local.get \$sum))
+        (br_if \$top (local.tee \$n (i32.add (local.get \$n) (i32.const -1))))
       )
     )
-    (local.get $$sum)
+    (local.get \$sum)
   )
 
-  (func (export "f32.plain_sum") (param $$p i32) (param $$n i32) (result f32)
-    (local $$sum f32)
-    (block $$exit
-      (loop $$top
-        (local.set $$sum (f32.add (local.get $$sum) (f32.load (local.get $$p))))
-        (local.set $$p (i32.add (local.get $$p) (i32.const 4)))
-        (local.set $$n (i32.add (local.get $$n) (i32.const -1)))
-        (br_if $$top (local.get $$n))
+  (func (export "f32.plain_sum") (param \$p i32) (param \$n i32) (result f32)
+    (local \$sum f32)
+    (block \$exit
+      (loop \$top
+        (local.set \$sum (f32.add (local.get \$sum) (f32.load (local.get \$p))))
+        (local.set \$p (i32.add (local.get \$p) (i32.const 4)))
+        (local.set \$n (i32.add (local.get \$n) (i32.const -1)))
+        (br_if \$top (local.get \$n))
       )
     )
-    (local.get $$sum)
+    (local.get \$sum)
   )
 )`);
 
@@ -5051,47 +5051,47 @@ let $64 = instantiate(`(module
   (memory (data "\\13\\05\\84\\42\\5d\\a2\\2c\\c6\\43\\db\\55\\a9\\cd\\da\\55\\e3\\73\\fc\\58\\d6\\ba\\d5\\00\\fd\\83\\35\\42\\88\\8b\\13\\5d\\38\\4a\\47\\0d\\72\\73\\a1\\1a\\ef\\c4\\45\\17\\57\\d8\\c9\\46\\e0\\8d\\6c\\e1\\37\\70\\c8\\83\\5b\\55\\5e\\5a\\2d\\73\\1e\\56\\c8\\e1\\6d\\69\\14\\78\\0a\\8a\\5a\\64\\3a\\09\\c7\\a8\\87\\c5\\f0\\d3\\5d\\e6\\03\\fc\\93\\be\\26\\ca\\d6\\a9\\91\\60\\bd\\b0\\ed\\ae\\f7\\30\\7e\\92\\3a\\6f\\a7\\59\\8e\\aa\\7d\\bf\\67\\58\\2a\\54\\f8\\4e\\fe\\ed\\35\\58\\a6\\51\\bf\\42\\e5\\4b\\66\\27\\24\\6d\\7f\\42\\2d\\28\\92\\18\\ec\\08\\ae\\e7\\55\\da\\b1\\a6\\65\\a5\\72\\50\\47\\1b\\b8\\a9\\54\\d7\\a6\\06\\5b\\0f\\42\\58\\83\\8a\\17\\82\\c6\\10\\43\\a0\\c0\\2e\\6d\\bc\\5a\\85\\53\\72\\7f\\ad\\44\\bc\\30\\3c\\55\\b2\\24\\9a\\74\\3a\\9e\\e1\\d8\\0f\\70\\fc\\a9\\3a\\cd\\93\\4b\\ec\\e3\\7e\\dd\\5d\\27\\cd\\f8\\a0\\9d\\1c\\11\\c0\\57\\2e\\fd\\c8\\13\\32\\cc\\3a\\1a\\7d\\a3\\41\\55\\ed\\c3\\82\\49\\2a\\04\\1e\\ef\\73\\b9\\2e\\2e\\e3\\5f\\f4\\df\\e6\\b2\\33\\0c\\39\\3f\\6f\\44\\6a\\03\\c1\\42\\b9\\fa\\b1\\c8\\ed\\a5\\58\\99\\7f\\ed\\b4\\72\\9e\\79\\eb\\fb\\43\\82\\45\\aa\\bb\\95\\d2\\ff\\28\\9e\\f6\\a1\\ad\\95\\d6\\55\\95\\0d\\6f\\60\\11\\c7\\78\\3e\\49\\f2\\7e\\48\\f4\\a2\\71\\d0\\13\\8e\\b3\\de\\99\\52\\e3\\45\\74\\ea\\76\\0e\\1b\\2a\\c8\\ee\\14\\01\\c4\\50\\5b\\36\\3c\\ef\\ba\\72\\a2\\a6\\08\\f8\\7b\\36\\9d\\f9\\ef\\0b\\c7\\56\\2d\\5c\\f0\\9d\\5d\\de\\fc\\b8\\ad\\0f\\64\\0e\\97\\15\\32\\26\\c2\\31\\e6\\05\\1e\\ef\\cb\\17\\1b\\6d\\15\\0b\\74\\5d\\d3\\2e\\f8\\6b\\86\\b4\\ba\\73\\52\\53\\99\\a9\\76\\20\\45\\c9\\40\\80\\6b\\14\\ed\\a1\\fa\\80\\46\\e6\\26\\d2\\e6\\98\\c4\\57\\bf\\c4\\1c\\a4\\90\\7a\\36\\94\\14\\ba\\15\\89\\6e\\e6\\9c\\37\\8c\\f4\\de\\12\\22\\5d\\a1\\79\\50\\67\\0d\\3d\\7a\\e9\\d4\\aa\\2e\\7f\\2a\\7a\\30\\3d\\ea\\5d\\12\\48\\fe\\e1\\18\\cd\\a4\\57\\a2\\87\\3e\\b6\\9a\\8b\\db\\da\\9d\\78\\9c\\cf\\8d\\b1\\4f\\90\\b4\\34\\e0\\9d\\f6\\ca\\fe\\4c\\3b\\78\\6d\\0a\\5c\\18\\9f\\61\\b9\\dd\\b4\\e0\\0f\\76\\e0\\1b\\69\\0d\\5e\\58\\73\\70\\5e\\0e\\2d\\a1\\7d\\ff\\20\\eb\\91\\34\\92\\ac\\38\\72\\2a\\1f\\8e\\71\\2e\\6a\\f1\\af\\c7\\27\\70\\d9\\c4\\57\\f7\\d2\\3c\\1d\\b8\\f0\\f0\\64\\cf\\dc\\ae\\be\\a3\\cc\\3e\\22\\7d\\4e\\69\\21\\63\\17\\ed\\03\\02\\54\\9a\\0f\\50\\4e\\13\\5a\\35\\a1\\22\\a4\\df\\86\\c2\\74\\79\\16\\b8\\69\\69\\a0\\52\\5d\\11\\64\\bd\\5b\\93\\fc\\69\\a0\\f4\\13\\d0\\81\\51\\dd\\fa\\0c\\15\\c3\\7a\\c9\\62\\7a\\a9\\1d\\c9\\e6\\5a\\b3\\5b\\97\\02\\3c\\64\\22\\12\\3c\\22\\90\\64\\2d\\30\\54\\4c\\b4\\a1\\22\\09\\57\\22\\5e\\8e\\38\\2b\\02\\a8\\ae\\f6\\be\\0d\\2b\\f2\\03\\ad\\fa\\10\\01\\71\\77\\2a\\30\\02\\95\\f6\\00\\3e\\d0\\c4\\8d\\34\\19\\50\\21\\0a\\bc\\50\\da\\3c\\30\\d6\\3a\\31\\94\\8d\\3a\\fe\\ef\\14\\57\\9d\\4b\\93\\00\\96\\24\\0c\\6f\\fd\\bc\\23\\76\\02\\6c\\eb\\52\\72\\80\\11\\7e\\80\\3a\\13\\12\\38\\1d\\38\\49\\95\\40\\27\\8a\\44\\7b\\e8\\dc\\6d\\8c\\8c\\8e\\3c\\b5\\b3\\18\\0e\\f6\\08\\1a\\84\\41\\35\\ff\\8b\\b8\\93\\40\\ea\\e1\\51\\1d\\89\\a5\\8d\\42\\68\\29\\ea\\2f\\c1\\7a\\52\\eb\\90\\5d\\4d\\d6\\80\\e3\\d7\\75\\48\\ce\\ed\\d3\\01\\1c\\8d\\5b\\a5\\94\\0d\\78\\cf\\f1\\06\\13\\2f\\98\\02\\a4\\6d\\2e\\6c\\f2\\d5\\74\\29\\89\\4c\\f9\\03\\f5\\c7\\18\\ad\\7a\\f0\\68\\f8\\5c\\d6\\59\\87\\6e\\d6\\3f\\06\\be\\86\\20\\e3\\41\\91\\22\\f3\\6e\\8b\\f0\\68\\1c\\57\\a7\\fc\\b0\\7c\\9e\\99\\0b\\96\\1a\\89\\5f\\e6\\0d\\7c\\08\\51\\a0\\a2\\67\\9a\\47\\00\\93\\6b\\f9\\28\\f0\\68\\db\\62\\f1\\e0\\65\\2c\\53\\33\\e0\\a7\\ca\\11\\42\\30\\f6\\af\\01\\c1\\65\\3d\\32\\01\\6f\\ab\\2e\\be\\d3\\8b\\be\\14\\c3\\ff\\ec\\fb\\f0\\f9\\c5\\0c\\05\\6f\\01\\09\\6b\\e3\\34\\31\\0c\\1f\\66\\a6\\42\\bc\\1a\\87\\49\\16\\16\\8c\\b0\\90\\0d\\34\\8c\\0a\\e1\\09\\5e\\10\\a4\\6b\\56\\cc\\f0\\c9\\bb\\dc\\b8\\5c\\ce\\f6\\cc\\8d\\75\\7e\\b3\\07\\88\\04\\2f\\b4\\5e\\c9\\e3\\4a\\23\\73\\19\\62\\6c\\9a\\03\\76\\44\\86\\9c\\60\\fc\\db\\72\\8f\\27\\a0\\dd\\b3\\c5\\da\\ff\\f9\\ec\\6a\\b1\\7b\\d3\\cf\\50\\37\\c9\\7a\\78\\0c\\e4\\3a\\b6\\f5\\e6\\f4\\98\\6e\\42\\7d\\35\\73\\8b\\45\\c0\\56\\97\\cd\\6d\\ce\\cf\\ad\\31\\b3\\c3\\54\\fa\\ef\\d5\\c0\\f4\\6a\\5f\\54\\e7\\49\\3e\\33\\0a\\30\\38\\fd\\d9\\05\\ff\\a5\\3f\\57\\46\\14\\b5\\91\\17\\ca\\6b\\98\\23\\7a\\65\\b3\\6c\\02\\b4\\cc\\79\\5d\\58\\d8\\b3\\d5\\94\\ae\\f4\\6d\\75\\65\\f7\\92\\bf\\7e\\47\\4c\\3c\\ee\\db\\ac\\f1\\32\\5d\\fb\\6f\\41\\1c\\34\\c8\\83\\4f\\c2\\58\\01\\be\\05\\3e\\66\\16\\a6\\04\\6d\\5d\\4f\\86\\09\\27\\82\\25\\12\\cd\\3a\\cd\\ce\\6b\\bc\\ca\\ac\\28\\9b\\ee\\6a\\25\\86\\9e\\45\\70\\c6\\d2\\bd\\3b\\7d\\42\\e5\\27\\af\\c7\\1d\\f4\\81\\c8\\b3\\76\\8a\\a8\\36\\a3\\ae\\2a\\e6\\18\\e1\\36\\22\\ad\\f6\\25\\72\\b0\\39\\8b\\01\\9a\\22\\7b\\84\\c3\\2d\\5f\\72\\a4\\98\\ac\\15\\70\\e7\\d4\\18\\e2\\7d\\d2\\30\\7c\\33\\08\\cd\\ca\\c4\\22\\85\\88\\75\\81\\c6\\4a\\74\\58\\8d\\e0\\e8\\ac\\c5\\ab\\75\\5a\\f4\\28\\12\\f0\\18\\45\\52\\f2\\97\\b2\\93\\41\\6f\\8d\\7f\\db\\70\\fb\\a3\\5d\\1f\\a7\\8d\\98\\20\\2b\\22\\9f\\3a\\01\\b5\\8b\\1b\\d2\\cb\\14\\03\\0e\\14\\14\\d2\\19\\5a\\1f\\ce\\5e\\cd\\81\\79\\15\\01\\ca\\de\\73\\74\\8c\\56\\20\\9f\\77\\2d\\25\\16\\f6\\61\\51\\1d\\a4\\8e\\9b\\98\\a5\\c6\\ec\\a8\\45\\57\\82\\59\\78\\0d\\90\\b4\\df\\51\\b0\\c3\\82\\94\\cc\\b3\\53\\09\\15\\6d\\96\\6c\\3a\\40\\47\\b7\\4a\\7a\\05\\2f\\a1\\1e\\8c\\9d\\a0\\20\\88\\fb\\52\\b7\\9f\\f3\\f3\\bb\\5f\\e7\\8a\\61\\a7\\21\\b1\\ac\\fa\\09\\aa\\a4\\6c\\bc\\24\\80\\ba\\2a\\e9\\65\\ff\\70\\ff\\cc\\fa\\65\\87\\76\\f3\\c5\\15\\ce\\cb\\e8\\42\\31\\00\\0c\\91\\57\\d9\\e0\\9d\\35\\54\\24\\ad\\a4\\d8\\f9\\08\\67\\63\\c8\\cf\\81\\dd\\90\\a2\\d7\\c4\\07\\4a\\e6\\10\\6f\\67\\e7\\27\\d4\\23\\59\\18\\f2\\a8\\9d\\5f\\d8\\94\\30\\aa\\54\\86\\4f\\87\\9d\\82\\b5\\26\\ca\\a6\\96\\bf\\cf\\55\\f9\\9d\\37\\01\\19\\48\\43\\c5\\94\\6c\\f3\\74\\97\\58\\4c\\3c\\9d\\08\\e8\\04\\c2\\58\\30\\76\\e1\\a0\\f8\\ea\\e9\\c5\\ae\\cf\\78\\9e\\a9\\0c\\ac\\b3\\44\\42\\e0\\bc\\5d\\1b\\9c\\49\\58\\4a\\1c\\19\\49\\c1\\3a\\ea\\f5\\eb\\3b\\81\\a9\\4b\\70\\0c\\cc\\9e\\1a\\d3\\2f\\b7\\52\\2f\\20\\3b\\eb\\64\\51\\1d\\a0\\2d\\b2\\3e\\be\\13\\85\\48\\92\\32\\2e\\db\\5c\\a1\\e7\\8c\\45\\91\\35\\01\\0a\\93\\c2\\eb\\09\\ce\\f3\\d2\\22\\24\\d0\\8c\\cc\\1d\\9d\\38\\c8\\4d\\e3\\82\\cc\\64\\15\\06\\2d\\e7\\01\\2f\\ab\\bb\\b5\\04\\4c\\92\\1c\\7a\\d6\\3f\\e8\\5f\\31\\15\\0c\\dc\\e4\\31\\b4\\c4\\25\\3e\\2a\\aa\\00\\9e\\c8\\e5\\21\\7a\\7f\\29\\f1\\c0\\af\\1d\\5e\\e8\\63\\39\\ad\\f8\\7e\\6c\\c8\\c5\\7f\\c2\\a8\\97\\27\\0a\\d9\\f4\\21\\6a\\ea\\03\\09\\fb\\f7\\96\\3b\\83\\79\\5f\\7c\\4b\\30\\9f\\56\\35\\de\\b4\\73\\d4\\95\\f0\\14\\c3\\74\\2f\\0d\\a3\\1d\\4e\\8d\\31\\24\\b3\\1a\\84\\85\\62\\5a\\7b\\3c\\14\\39\\17\\e6\\6d\\eb\\37\\c2\\00\\58\\5b\\0b\\e3\\3c\\8a\\62\\e1\\f8\\35\\4b\\56\\e2\\87\\60\\8b\\be\\a7\\38\\91\\77\\54\\a9\\5a\\24\\25\\90\\9f\\a5\\42\\77\\f3\\5c\\39\\df\\ff\\74\\07\\76\\a1\\cd\\1f\\62\\0b\\81\\81\\68\\af\\05\\c1\\c0\\7f\\26\\ee\\c0\\91\\a3\\6a\\7d\\29\\61\\45\\27\\e5\\57\\88\\dc\\0d\\97\\04\\1a\\33\\a9\\44\\8a\\da\\02\\10\\45\\3f\\8e\\55\\a6\\76\\8c\\4d\\e3\\f1\\89\\83\\c8\\d0\\f8\\9b\\50\\77\\9f\\47\\df\\4c\\9c\\66\\0d\\aa\\18\\b8\\5f\\4f\\c4\\01\\ce\\dc\\84\\ac\\46\\9e\\69\\e1\\76\\45\\6b\\61\\89\\e4\\5d\\94\\bb\\11\\83\\9f\\78\\d8\\0a\\d2\\f5\\7e\\5d\\43\\ea\\bc\\10\\f1\\3a\\c9\\e2\\64\\fb\\53\\65\\d0\\c7\\b4\\a7\\fb\\d4\\05\\53\\25\\d0\\cd\\29\\88\\00\\56\\25\\24\\7d\\5d\\b4\\f3\\41\\9f\\e9\\b5\\f7\\ae\\64\\2c\\e3\\c9\\6d\\d5\\84\\3a\\72\\12\\b8\\7a\\d9\\1b\\09\\e8\\38\\da\\26\\4f\\04\\ce\\03\\71\\6e\\8a\\44\\7b\\5c\\81\\59\\9c\\d2\\e4\\c3\\ba\\59\\a6\\e5\\28\\a7\\8f\\9a\\e4\\d5\\4e\\b9\\ca\\7f\\cb\\75\\b8\\2b\\43\\3e\\b3\\15\\46\\b1\\a5\\bc\\9d\\9e\\38\\15\\f1\\bd\\1b\\21\\aa\\f1\\82\\00\\95\\fc\\a7\\77\\47\\39\\a7\\33\\43\\92\\d7\\52\\40\\4b\\06\\81\\8a\\a0\\bd\\f1\\6b\\99\\84\\42\\5b\\e2\\3b\\c5\\5e\\12\\5c\\28\\4d\\b6\\0e\\4e\\c8\\5c\\e8\\01\\8a\\c5\\e7\\e4\\9d\\42\\ee\\5d\\9c\\c4\\eb\\eb\\68\\09\\27\\92\\95\\9a\\11\\54\\73\\c4\\12\\80\\fb\\7d\\fe\\c5\\08\\60\\7f\\36\\41\\e0\\10\\ba\\d6\\2b\\6c\\f1\\b4\\17\\fe\\26\\34\\e3\\4b\\f8\\a8\\e3\\91\\be\\4f\\2a\\fc\\da\\81\\b8\\e7\\fe\\d5\\26\\50\\47\\f3\\1a\\65\\32\\81\\e0\\05\\b8\\4f\\32\\31\\26\\00\\4a\\53\\97\\c2\\c3\\0e\\2e\\a1\\26\\54\\ab\\05\\8e\\56\\2f\\7d\\af\\22\\84\\68\\a5\\8b\\97\\f6\\a4\\fd\\a8\\cc\\75\\41\\96\\86\\fd\\27\\3d\\29\\86\\8d\\7f\\4c\\d4\\8e\\73\\41\\f4\\1e\\e2\\dd\\58\\27\\97\\ce\\9c\\94\\cf\\7a\\04\\2f\\dc\\ed"
   ))
 
-  (func (export "f64.kahan_sum") (param $$p i32) (param $$n i32) (result f64)
-    (local $$sum f64)
-    (local $$c f64)
-    (local $$t f64)
-    (block $$exit
-      (loop $$top
-        (local.set $$t
+  (func (export "f64.kahan_sum") (param \$p i32) (param \$n i32) (result f64)
+    (local \$sum f64)
+    (local \$c f64)
+    (local \$t f64)
+    (block \$exit
+      (loop \$top
+        (local.set \$t
           (f64.sub
             (f64.sub
-              (local.tee $$sum
+              (local.tee \$sum
                 (f64.add
-                  (local.get $$c)
-                  (local.tee $$t
-                    (f64.sub (f64.load (local.get $$p)) (local.get $$t))
+                  (local.get \$c)
+                  (local.tee \$t
+                    (f64.sub (f64.load (local.get \$p)) (local.get \$t))
                   )
                 )
               )
-              (local.get $$c)
+              (local.get \$c)
             )
-            (local.get $$t)
+            (local.get \$t)
           )
         )
-        (local.set $$p (i32.add (local.get $$p) (i32.const 8)))
-        (local.set $$c (local.get $$sum))
-        (br_if $$top (local.tee $$n (i32.add (local.get $$n) (i32.const -1))))
+        (local.set \$p (i32.add (local.get \$p) (i32.const 8)))
+        (local.set \$c (local.get \$sum))
+        (br_if \$top (local.tee \$n (i32.add (local.get \$n) (i32.const -1))))
       )
     )
-    (local.get $$sum)
+    (local.get \$sum)
   )
 
-  (func (export "f64.plain_sum") (param $$p i32) (param $$n i32) (result f64)
-    (local $$sum f64)
-    (block $$exit
-      (loop $$top
-        (local.set $$sum (f64.add (local.get $$sum) (f64.load (local.get $$p))))
-        (local.set $$p (i32.add (local.get $$p) (i32.const 8)))
-        (local.set $$n (i32.add (local.get $$n) (i32.const -1)))
-        (br_if $$top (local.get $$n))
+  (func (export "f64.plain_sum") (param \$p i32) (param \$n i32) (result f64)
+    (local \$sum f64)
+    (block \$exit
+      (loop \$top
+        (local.set \$sum (f64.add (local.get \$sum) (f64.load (local.get \$p))))
+        (local.set \$p (i32.add (local.get \$p) (i32.const 8)))
+        (local.set \$n (i32.add (local.get \$n) (i32.const -1)))
+        (br_if \$top (local.get \$n))
       )
     )
-    (local.get $$sum)
+    (local.get \$sum)
   )
 )`);
 
@@ -5113,11 +5113,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1640
 let $65 = instantiate(`(module
-  (func (export "f32.no_fold_neg_sub") (param $$x f32) (param $$y f32) (result f32)
-    (f32.neg (f32.sub (local.get $$x) (local.get $$y))))
+  (func (export "f32.no_fold_neg_sub") (param \$x f32) (param \$y f32) (result f32)
+    (f32.neg (f32.sub (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.no_fold_neg_sub") (param $$x f64) (param $$y f64) (result f64)
-    (f64.neg (f64.sub (local.get $$x) (local.get $$y))))
+  (func (export "f64.no_fold_neg_sub") (param \$x f64) (param \$y f64) (result f64)
+    (f64.neg (f64.sub (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1648
@@ -5170,11 +5170,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1660
 let $66 = instantiate(`(module
-  (func (export "f32.no_fold_neg_add") (param $$x f32) (param $$y f32) (result f32)
-    (f32.neg (f32.add (local.get $$x) (local.get $$y))))
+  (func (export "f32.no_fold_neg_add") (param \$x f32) (param \$y f32) (result f32)
+    (f32.neg (f32.add (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.no_fold_neg_add") (param $$x f64) (param $$y f64) (result f64)
-    (f64.neg (f64.add (local.get $$x) (local.get $$y))))
+  (func (export "f64.no_fold_neg_add") (param \$x f64) (param \$y f64) (result f64)
+    (f64.neg (f64.add (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1668
@@ -5227,11 +5227,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1680
 let $67 = instantiate(`(module
-  (func (export "f32.no_fold_add_neg_neg") (param $$x f32) (param $$y f32) (result f32)
-    (f32.add (f32.neg (local.get $$x)) (f32.neg (local.get $$y))))
+  (func (export "f32.no_fold_add_neg_neg") (param \$x f32) (param \$y f32) (result f32)
+    (f32.add (f32.neg (local.get \$x)) (f32.neg (local.get \$y))))
 
-  (func (export "f64.no_fold_add_neg_neg") (param $$x f64) (param $$y f64) (result f64)
-    (f64.add (f64.neg (local.get $$x)) (f64.neg (local.get $$y))))
+  (func (export "f64.no_fold_add_neg_neg") (param \$x f64) (param \$y f64) (result f64)
+    (f64.add (f64.neg (local.get \$x)) (f64.neg (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1688
@@ -5284,11 +5284,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1700
 let $68 = instantiate(`(module
-  (func (export "f32.no_fold_add_neg") (param $$x f32) (result f32)
-    (f32.add (f32.neg (local.get $$x)) (local.get $$x)))
+  (func (export "f32.no_fold_add_neg") (param \$x f32) (result f32)
+    (f32.add (f32.neg (local.get \$x)) (local.get \$x)))
 
-  (func (export "f64.no_fold_add_neg") (param $$x f64) (result f64)
-    (f64.add (f64.neg (local.get $$x)) (local.get $$x)))
+  (func (export "f64.no_fold_add_neg") (param \$x f64) (result f64)
+    (f64.add (f64.neg (local.get \$x)) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:1708
@@ -5317,17 +5317,17 @@ assert_return(() => invoke($68, `f64.no_fold_add_neg`, [value("f64", -Infinity)]
 
 // ./test/core/float_exprs.wast:1720
 let $69 = instantiate(`(module
-  (func (export "f32.no_fold_6x_via_add") (param $$x f32) (result f32)
+  (func (export "f32.no_fold_6x_via_add") (param \$x f32) (result f32)
     (f32.add (f32.add (f32.add (f32.add (f32.add
-    (local.get $$x)
-    (local.get $$x)) (local.get $$x)) (local.get $$x))
-    (local.get $$x)) (local.get $$x)))
+    (local.get \$x)
+    (local.get \$x)) (local.get \$x)) (local.get \$x))
+    (local.get \$x)) (local.get \$x)))
 
-  (func (export "f64.no_fold_6x_via_add") (param $$x f64) (result f64)
+  (func (export "f64.no_fold_6x_via_add") (param \$x f64) (result f64)
     (f64.add (f64.add (f64.add (f64.add (f64.add
-    (local.get $$x)
-    (local.get $$x)) (local.get $$x)) (local.get $$x))
-    (local.get $$x)) (local.get $$x)))
+    (local.get \$x)
+    (local.get \$x)) (local.get \$x)) (local.get \$x))
+    (local.get \$x)) (local.get \$x)))
 )`);
 
 // ./test/core/float_exprs.wast:1734
@@ -5416,11 +5416,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1749
 let $70 = instantiate(`(module
-  (func (export "f32.no_fold_div_div") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.div (f32.div (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f32.no_fold_div_div") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.div (f32.div (local.get \$x) (local.get \$y)) (local.get \$z)))
 
-  (func (export "f64.no_fold_div_div") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.div (f64.div (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f64.no_fold_div_div") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.div (f64.div (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:1757
@@ -5533,11 +5533,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1773
 let $71 = instantiate(`(module
-  (func (export "f32.no_fold_mul_divs") (param $$x f32) (param $$y f32) (param $$z f32) (param $$w f32) (result f32)
-    (f32.mul (f32.div (local.get $$x) (local.get $$y)) (f32.div (local.get $$z) (local.get $$w))))
+  (func (export "f32.no_fold_mul_divs") (param \$x f32) (param \$y f32) (param \$z f32) (param \$w f32) (result f32)
+    (f32.mul (f32.div (local.get \$x) (local.get \$y)) (f32.div (local.get \$z) (local.get \$w))))
 
-  (func (export "f64.no_fold_mul_divs") (param $$x f64) (param $$y f64) (param $$z f64) (param $$w f64) (result f64)
-    (f64.mul (f64.div (local.get $$x) (local.get $$y)) (f64.div (local.get $$z) (local.get $$w))))
+  (func (export "f64.no_fold_mul_divs") (param \$x f64) (param \$y f64) (param \$z f64) (param \$w f64) (result f64)
+    (f64.mul (f64.div (local.get \$x) (local.get \$y)) (f64.div (local.get \$z) (local.get \$w))))
 )`);
 
 // ./test/core/float_exprs.wast:1781
@@ -5656,11 +5656,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1795
 let $72 = instantiate(`(module
-  (func (export "f32.no_fold_add_divs") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.add (f32.div (local.get $$x) (local.get $$z)) (f32.div (local.get $$y) (local.get $$z))))
+  (func (export "f32.no_fold_add_divs") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.add (f32.div (local.get \$x) (local.get \$z)) (f32.div (local.get \$y) (local.get \$z))))
 
-  (func (export "f64.no_fold_add_divs") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.add (f64.div (local.get $$x) (local.get $$z)) (f64.div (local.get $$y) (local.get $$z))))
+  (func (export "f64.no_fold_add_divs") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.add (f64.div (local.get \$x) (local.get \$z)) (f64.div (local.get \$y) (local.get \$z))))
 )`);
 
 // ./test/core/float_exprs.wast:1803
@@ -5773,11 +5773,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1817
 let $73 = instantiate(`(module
-  (func (export "f32.no_fold_sqrt_square") (param $$x f32) (result f32)
-    (f32.sqrt (f32.mul (local.get $$x) (local.get $$x))))
+  (func (export "f32.no_fold_sqrt_square") (param \$x f32) (result f32)
+    (f32.sqrt (f32.mul (local.get \$x) (local.get \$x))))
 
-  (func (export "f64.no_fold_sqrt_square") (param $$x f64) (result f64)
-    (f64.sqrt (f64.mul (local.get $$x) (local.get $$x))))
+  (func (export "f64.no_fold_sqrt_square") (param \$x f64) (result f64)
+    (f64.sqrt (f64.mul (local.get \$x) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:1825
@@ -5868,11 +5868,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1839
 let $74 = instantiate(`(module
-  (func (export "f32.no_fold_mul_sqrts") (param $$x f32) (param $$y f32) (result f32)
-    (f32.mul (f32.sqrt (local.get $$x)) (f32.sqrt (local.get $$y))))
+  (func (export "f32.no_fold_mul_sqrts") (param \$x f32) (param \$y f32) (result f32)
+    (f32.mul (f32.sqrt (local.get \$x)) (f32.sqrt (local.get \$y))))
 
-  (func (export "f64.no_fold_mul_sqrts") (param $$x f64) (param $$y f64) (result f64)
-    (f64.mul (f64.sqrt (local.get $$x)) (f64.sqrt (local.get $$y))))
+  (func (export "f64.no_fold_mul_sqrts") (param \$x f64) (param \$y f64) (result f64)
+    (f64.mul (f64.sqrt (local.get \$x)) (f64.sqrt (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1847
@@ -5975,11 +5975,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1861
 let $75 = instantiate(`(module
-  (func (export "f32.no_fold_div_sqrts") (param $$x f32) (param $$y f32) (result f32)
-    (f32.div (f32.sqrt (local.get $$x)) (f32.sqrt (local.get $$y))))
+  (func (export "f32.no_fold_div_sqrts") (param \$x f32) (param \$y f32) (result f32)
+    (f32.div (f32.sqrt (local.get \$x)) (f32.sqrt (local.get \$y))))
 
-  (func (export "f64.no_fold_div_sqrts") (param $$x f64) (param $$y f64) (result f64)
-    (f64.div (f64.sqrt (local.get $$x)) (f64.sqrt (local.get $$y))))
+  (func (export "f64.no_fold_div_sqrts") (param \$x f64) (param \$y f64) (result f64)
+    (f64.div (f64.sqrt (local.get \$x)) (f64.sqrt (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:1869
@@ -6082,11 +6082,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1883
 let $76 = instantiate(`(module
-  (func (export "f32.no_fold_mul_sqrt_div") (param $$x f32) (param $$y f32) (result f32)
-    (f32.div (f32.mul (local.get $$x) (f32.sqrt (local.get $$y))) (local.get $$y)))
+  (func (export "f32.no_fold_mul_sqrt_div") (param \$x f32) (param \$y f32) (result f32)
+    (f32.div (f32.mul (local.get \$x) (f32.sqrt (local.get \$y))) (local.get \$y)))
 
-  (func (export "f64.no_fold_mul_sqrt_div") (param $$x f64) (param $$y f64) (result f64)
-    (f64.div (f64.mul (local.get $$x) (f64.sqrt (local.get $$y))) (local.get $$y)))
+  (func (export "f64.no_fold_mul_sqrt_div") (param \$x f64) (param \$y f64) (result f64)
+    (f64.div (f64.mul (local.get \$x) (f64.sqrt (local.get \$y))) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:1891
@@ -6187,11 +6187,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1906
 let $77 = instantiate(`(module
-  (func (export "f32.no_flush_intermediate_subnormal") (param $$x f32) (param $$y f32) (param $$z f32) (result f32)
-    (f32.mul (f32.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f32.no_flush_intermediate_subnormal") (param \$x f32) (param \$y f32) (param \$z f32) (result f32)
+    (f32.mul (f32.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
 
-  (func (export "f64.no_flush_intermediate_subnormal") (param $$x f64) (param $$y f64) (param $$z f64) (result f64)
-    (f64.mul (f64.mul (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f64.no_flush_intermediate_subnormal") (param \$x f64) (param \$y f64) (param \$z f64) (result f64)
+    (f64.mul (f64.mul (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:1914
@@ -6218,26 +6218,26 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1920
 let $78 = instantiate(`(module
-  (func (export "f32.recoding_eq") (param $$x f32) (param $$y f32) (result i32)
-    (f32.eq (f32.mul (local.get $$x) (local.get $$y)) (local.get $$x)))
+  (func (export "f32.recoding_eq") (param \$x f32) (param \$y f32) (result i32)
+    (f32.eq (f32.mul (local.get \$x) (local.get \$y)) (local.get \$x)))
 
-  (func (export "f32.recoding_le") (param $$x f32) (param $$y f32) (result i32)
-    (f32.le (f32.mul (local.get $$x) (local.get $$y)) (local.get $$x)))
+  (func (export "f32.recoding_le") (param \$x f32) (param \$y f32) (result i32)
+    (f32.le (f32.mul (local.get \$x) (local.get \$y)) (local.get \$x)))
 
-  (func (export "f32.recoding_lt") (param $$x f32) (param $$y f32) (result i32)
-    (f32.lt (f32.mul (local.get $$x) (local.get $$y)) (local.get $$x)))
+  (func (export "f32.recoding_lt") (param \$x f32) (param \$y f32) (result i32)
+    (f32.lt (f32.mul (local.get \$x) (local.get \$y)) (local.get \$x)))
 
-  (func (export "f64.recoding_eq") (param $$x f64) (param $$y f64) (result i32)
-    (f64.eq (f64.mul (local.get $$x) (local.get $$y)) (local.get $$x)))
+  (func (export "f64.recoding_eq") (param \$x f64) (param \$y f64) (result i32)
+    (f64.eq (f64.mul (local.get \$x) (local.get \$y)) (local.get \$x)))
 
-  (func (export "f64.recoding_le") (param $$x f64) (param $$y f64) (result i32)
-    (f64.le (f64.mul (local.get $$x) (local.get $$y)) (local.get $$x)))
+  (func (export "f64.recoding_le") (param \$x f64) (param \$y f64) (result i32)
+    (f64.le (f64.mul (local.get \$x) (local.get \$y)) (local.get \$x)))
 
-  (func (export "f64.recoding_lt") (param $$x f64) (param $$y f64) (result i32)
-    (f64.lt (f64.mul (local.get $$x) (local.get $$y)) (local.get $$x)))
+  (func (export "f64.recoding_lt") (param \$x f64) (param \$y f64) (result i32)
+    (f64.lt (f64.mul (local.get \$x) (local.get \$y)) (local.get \$x)))
 
-  (func (export "recoding_demote") (param $$x f64) (param $$y f32) (result f32)
-    (f32.mul (f32.demote_f64 (local.get $$x)) (local.get $$y)))
+  (func (export "recoding_demote") (param \$x f64) (param \$y f32) (result f32)
+    (f32.mul (f32.demote_f64 (local.get \$x)) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:1943
@@ -6323,11 +6323,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1964
 let $79 = instantiate(`(module
-  (func (export "f32.no_extended_precision_div") (param $$x f32) (param $$y f32) (param $$z f32) (result i32)
-    (f32.eq (f32.div (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f32.no_extended_precision_div") (param \$x f32) (param \$y f32) (param \$z f32) (result i32)
+    (f32.eq (f32.div (local.get \$x) (local.get \$y)) (local.get \$z)))
 
-  (func (export "f64.no_extended_precision_div") (param $$x f64) (param $$y f64) (param $$z f64) (result i32)
-    (f64.eq (f64.div (local.get $$x) (local.get $$y)) (local.get $$z)))
+  (func (export "f64.no_extended_precision_div") (param \$x f64) (param \$y f64) (param \$z f64) (result i32)
+    (f64.eq (f64.div (local.get \$x) (local.get \$y)) (local.get \$z)))
 )`);
 
 // ./test/core/float_exprs.wast:1972
@@ -6352,11 +6352,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:1980
 let $80 = instantiate(`(module
-  (func (export "f32.no_distribute_exact") (param $$x f32) (result f32)
-    (f32.add (f32.mul (f32.const -8.0) (local.get $$x)) (f32.mul (f32.const 8.0) (local.get $$x))))
+  (func (export "f32.no_distribute_exact") (param \$x f32) (result f32)
+    (f32.add (f32.mul (f32.const -8.0) (local.get \$x)) (f32.mul (f32.const 8.0) (local.get \$x))))
 
-  (func (export "f64.no_distribute_exact") (param $$x f64) (result f64)
-    (f64.add (f64.mul (f64.const -8.0) (local.get $$x)) (f64.mul (f64.const 8.0) (local.get $$x))))
+  (func (export "f64.no_distribute_exact") (param \$x f64) (result f64)
+    (f64.add (f64.mul (f64.const -8.0) (local.get \$x)) (f64.mul (f64.const 8.0) (local.get \$x))))
 )`);
 
 // ./test/core/float_exprs.wast:1988
@@ -6502,17 +6502,17 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2045
 let $82 = instantiate(`(module
-  (func (export "f32.compute_radix") (param $$0 f32) (param $$1 f32) (result f32)
-    (loop $$label$$0
-      (br_if $$label$$0
+  (func (export "f32.compute_radix") (param \$0 f32) (param \$1 f32) (result f32)
+    (loop \$label\$0
+      (br_if \$label\$0
         (f32.eq
           (f32.add
             (f32.sub
               (f32.add
-                (local.tee $$0 (f32.add (local.get $$0) (local.get $$0)))
+                (local.tee \$0 (f32.add (local.get \$0) (local.get \$0)))
                 (f32.const 1)
               )
-              (local.get $$0)
+              (local.get \$0)
             )
             (f32.const -1)
           )
@@ -6520,37 +6520,37 @@ let $82 = instantiate(`(module
         )
       )
     )
-    (loop $$label$$2
-      (br_if $$label$$2
+    (loop \$label\$2
+      (br_if \$label\$2
         (f32.ne
           (f32.sub
             (f32.sub
               (f32.add
-                (local.get $$0)
-                (local.tee $$1 (f32.add (local.get $$1) (f32.const 1)))
+                (local.get \$0)
+                (local.tee \$1 (f32.add (local.get \$1) (f32.const 1)))
               )
-              (local.get $$0)
+              (local.get \$0)
             )
-            (local.get $$1)
+            (local.get \$1)
           )
           (f32.const 0)
         )
       )
     )
-    (local.get $$1)
+    (local.get \$1)
   )
 
-  (func (export "f64.compute_radix") (param $$0 f64) (param $$1 f64) (result f64)
-    (loop $$label$$0
-      (br_if $$label$$0
+  (func (export "f64.compute_radix") (param \$0 f64) (param \$1 f64) (result f64)
+    (loop \$label\$0
+      (br_if \$label\$0
         (f64.eq
           (f64.add
             (f64.sub
               (f64.add
-                (local.tee $$0 (f64.add (local.get $$0) (local.get $$0)))
+                (local.tee \$0 (f64.add (local.get \$0) (local.get \$0)))
                 (f64.const 1)
               )
-              (local.get $$0)
+              (local.get \$0)
             )
             (f64.const -1)
           )
@@ -6558,24 +6558,24 @@ let $82 = instantiate(`(module
         )
       )
     )
-    (loop $$label$$2
-      (br_if $$label$$2
+    (loop \$label\$2
+      (br_if \$label\$2
         (f64.ne
           (f64.sub
             (f64.sub
               (f64.add
-                (local.get $$0)
-                (local.tee $$1 (f64.add (local.get $$1) (f64.const 1)))
+                (local.get \$0)
+                (local.tee \$1 (f64.add (local.get \$1) (f64.const 1)))
               )
-              (local.get $$0)
+              (local.get \$0)
             )
-            (local.get $$1)
+            (local.get \$1)
           )
           (f64.const 0)
         )
       )
     )
-    (local.get $$1)
+    (local.get \$1)
   )
 )`);
 
@@ -6593,11 +6593,11 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2129
 let $83 = instantiate(`(module
-  (func (export "f32.no_fold_sub1_mul_add") (param $$x f32) (param $$y f32) (result f32)
-    (f32.add (f32.mul (f32.sub (local.get $$x) (f32.const 1.0)) (local.get $$y)) (local.get $$y)))
+  (func (export "f32.no_fold_sub1_mul_add") (param \$x f32) (param \$y f32) (result f32)
+    (f32.add (f32.mul (f32.sub (local.get \$x) (f32.const 1.0)) (local.get \$y)) (local.get \$y)))
 
-  (func (export "f64.no_fold_sub1_mul_add") (param $$x f64) (param $$y f64) (result f64)
-    (f64.add (f64.mul (f64.sub (local.get $$x) (f64.const 1.0)) (local.get $$y)) (local.get $$y)))
+  (func (export "f64.no_fold_sub1_mul_add") (param \$x f64) (param \$y f64) (result f64)
+    (f64.add (f64.mul (f64.sub (local.get \$x) (f64.const 1.0)) (local.get \$y)) (local.get \$y)))
 )`);
 
 // ./test/core/float_exprs.wast:2137
@@ -6620,17 +6620,17 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2143
 let $84 = instantiate(`(module
-  (func (export "f32.no_fold_add_le_monotonicity") (param $$x f32) (param $$y f32) (param $$z f32) (result i32)
-    (f32.le (f32.add (local.get $$x) (local.get $$z)) (f32.add (local.get $$y) (local.get $$z))))
+  (func (export "f32.no_fold_add_le_monotonicity") (param \$x f32) (param \$y f32) (param \$z f32) (result i32)
+    (f32.le (f32.add (local.get \$x) (local.get \$z)) (f32.add (local.get \$y) (local.get \$z))))
 
-  (func (export "f32.no_fold_add_ge_monotonicity") (param $$x f32) (param $$y f32) (param $$z f32) (result i32)
-    (f32.ge (f32.add (local.get $$x) (local.get $$z)) (f32.add (local.get $$y) (local.get $$z))))
+  (func (export "f32.no_fold_add_ge_monotonicity") (param \$x f32) (param \$y f32) (param \$z f32) (result i32)
+    (f32.ge (f32.add (local.get \$x) (local.get \$z)) (f32.add (local.get \$y) (local.get \$z))))
 
-  (func (export "f64.no_fold_add_le_monotonicity") (param $$x f64) (param $$y f64) (param $$z f64) (result i32)
-    (f64.le (f64.add (local.get $$x) (local.get $$z)) (f64.add (local.get $$y) (local.get $$z))))
+  (func (export "f64.no_fold_add_le_monotonicity") (param \$x f64) (param \$y f64) (param \$z f64) (result i32)
+    (f64.le (f64.add (local.get \$x) (local.get \$z)) (f64.add (local.get \$y) (local.get \$z))))
 
-  (func (export "f64.no_fold_add_ge_monotonicity") (param $$x f64) (param $$y f64) (param $$z f64) (result i32)
-    (f64.ge (f64.add (local.get $$x) (local.get $$z)) (f64.add (local.get $$y) (local.get $$z))))
+  (func (export "f64.no_fold_add_ge_monotonicity") (param \$x f64) (param \$y f64) (param \$z f64) (result i32)
+    (f64.ge (f64.add (local.get \$x) (local.get \$z)) (f64.add (local.get \$y) (local.get \$z))))
 )`);
 
 // ./test/core/float_exprs.wast:2157
@@ -6675,29 +6675,29 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2164
 let $85 = instantiate(`(module
-  (func (export "f32.not_lt") (param $$x f32) (param $$y f32) (result i32)
-    (i32.eqz (f32.lt (local.get $$x) (local.get $$y))))
+  (func (export "f32.not_lt") (param \$x f32) (param \$y f32) (result i32)
+    (i32.eqz (f32.lt (local.get \$x) (local.get \$y))))
 
-  (func (export "f32.not_le") (param $$x f32) (param $$y f32) (result i32)
-    (i32.eqz (f32.le (local.get $$x) (local.get $$y))))
+  (func (export "f32.not_le") (param \$x f32) (param \$y f32) (result i32)
+    (i32.eqz (f32.le (local.get \$x) (local.get \$y))))
 
-  (func (export "f32.not_gt") (param $$x f32) (param $$y f32) (result i32)
-    (i32.eqz (f32.gt (local.get $$x) (local.get $$y))))
+  (func (export "f32.not_gt") (param \$x f32) (param \$y f32) (result i32)
+    (i32.eqz (f32.gt (local.get \$x) (local.get \$y))))
 
-  (func (export "f32.not_ge") (param $$x f32) (param $$y f32) (result i32)
-    (i32.eqz (f32.ge (local.get $$x) (local.get $$y))))
+  (func (export "f32.not_ge") (param \$x f32) (param \$y f32) (result i32)
+    (i32.eqz (f32.ge (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.not_lt") (param $$x f64) (param $$y f64) (result i32)
-    (i32.eqz (f64.lt (local.get $$x) (local.get $$y))))
+  (func (export "f64.not_lt") (param \$x f64) (param \$y f64) (result i32)
+    (i32.eqz (f64.lt (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.not_le") (param $$x f64) (param $$y f64) (result i32)
-    (i32.eqz (f64.le (local.get $$x) (local.get $$y))))
+  (func (export "f64.not_le") (param \$x f64) (param \$y f64) (result i32)
+    (i32.eqz (f64.le (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.not_gt") (param $$x f64) (param $$y f64) (result i32)
-    (i32.eqz (f64.gt (local.get $$x) (local.get $$y))))
+  (func (export "f64.not_gt") (param \$x f64) (param \$y f64) (result i32)
+    (i32.eqz (f64.gt (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.not_ge") (param $$x f64) (param $$y f64) (result i32)
-    (i32.eqz (f64.ge (local.get $$x) (local.get $$y))))
+  (func (export "f64.not_ge") (param \$x f64) (param \$y f64) (result i32)
+    (i32.eqz (f64.ge (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:2190
@@ -6790,16 +6790,16 @@ assert_return(() => invoke($86, `f64.epsilon`, []), [value("f64", 0.000000000000
 // ./test/core/float_exprs.wast:2218
 let $87 = instantiate(`(module
   (func (export "f32.epsilon") (result f32)
-    (local $$x f32)
-    (local $$result f32)
-    (local.set $$x (f32.const 1))
-    (loop $$loop
-      (br_if $$loop
+    (local \$x f32)
+    (local \$result f32)
+    (local.set \$x (f32.const 1))
+    (loop \$loop
+      (br_if \$loop
         (f32.gt
           (f32.add
-            (local.tee $$x
+            (local.tee \$x
               (f32.mul
-                (local.tee $$result (local.get $$x))
+                (local.tee \$result (local.get \$x))
                 (f32.const 0.5)
               )
             )
@@ -6809,20 +6809,20 @@ let $87 = instantiate(`(module
         )
       )
     )
-    (local.get $$result)
+    (local.get \$result)
   )
 
   (func (export "f64.epsilon") (result f64)
-    (local $$x f64)
-    (local $$result f64)
-    (local.set $$x (f64.const 1))
-    (loop $$loop
-      (br_if $$loop
+    (local \$x f64)
+    (local \$result f64)
+    (local.set \$x (f64.const 1))
+    (loop \$loop
+      (br_if \$loop
         (f64.gt
           (f64.add
-            (local.tee $$x
+            (local.tee \$x
               (f64.mul
-                (local.tee $$result (local.get $$x))
+                (local.tee \$result (local.get \$x))
                 (f64.const 0.5)
               )
             )
@@ -6832,7 +6832,7 @@ let $87 = instantiate(`(module
         )
       )
     )
-    (local.get $$result)
+    (local.get \$result)
   )
 )`);
 
@@ -6844,23 +6844,23 @@ assert_return(() => invoke($87, `f64.epsilon`, []), [value("f64", 0.000000000000
 
 // ./test/core/float_exprs.wast:2272
 let $88 = instantiate(`(module
-  (func (export "f32.no_trichotomy_lt") (param $$x f32) (param $$y f32) (result i32)
-    (i32.or (f32.lt (local.get $$x) (local.get $$y)) (f32.ge (local.get $$x) (local.get $$y))))
-  (func (export "f32.no_trichotomy_le") (param $$x f32) (param $$y f32) (result i32)
-    (i32.or (f32.le (local.get $$x) (local.get $$y)) (f32.gt (local.get $$x) (local.get $$y))))
-  (func (export "f32.no_trichotomy_gt") (param $$x f32) (param $$y f32) (result i32)
-    (i32.or (f32.gt (local.get $$x) (local.get $$y)) (f32.le (local.get $$x) (local.get $$y))))
-  (func (export "f32.no_trichotomy_ge") (param $$x f32) (param $$y f32) (result i32)
-    (i32.or (f32.ge (local.get $$x) (local.get $$y)) (f32.lt (local.get $$x) (local.get $$y))))
+  (func (export "f32.no_trichotomy_lt") (param \$x f32) (param \$y f32) (result i32)
+    (i32.or (f32.lt (local.get \$x) (local.get \$y)) (f32.ge (local.get \$x) (local.get \$y))))
+  (func (export "f32.no_trichotomy_le") (param \$x f32) (param \$y f32) (result i32)
+    (i32.or (f32.le (local.get \$x) (local.get \$y)) (f32.gt (local.get \$x) (local.get \$y))))
+  (func (export "f32.no_trichotomy_gt") (param \$x f32) (param \$y f32) (result i32)
+    (i32.or (f32.gt (local.get \$x) (local.get \$y)) (f32.le (local.get \$x) (local.get \$y))))
+  (func (export "f32.no_trichotomy_ge") (param \$x f32) (param \$y f32) (result i32)
+    (i32.or (f32.ge (local.get \$x) (local.get \$y)) (f32.lt (local.get \$x) (local.get \$y))))
 
-  (func (export "f64.no_trichotomy_lt") (param $$x f64) (param $$y f64) (result i32)
-    (i32.or (f64.lt (local.get $$x) (local.get $$y)) (f64.ge (local.get $$x) (local.get $$y))))
-  (func (export "f64.no_trichotomy_le") (param $$x f64) (param $$y f64) (result i32)
-    (i32.or (f64.le (local.get $$x) (local.get $$y)) (f64.gt (local.get $$x) (local.get $$y))))
-  (func (export "f64.no_trichotomy_gt") (param $$x f64) (param $$y f64) (result i32)
-    (i32.or (f64.gt (local.get $$x) (local.get $$y)) (f64.le (local.get $$x) (local.get $$y))))
-  (func (export "f64.no_trichotomy_ge") (param $$x f64) (param $$y f64) (result i32)
-    (i32.or (f64.ge (local.get $$x) (local.get $$y)) (f64.lt (local.get $$x) (local.get $$y))))
+  (func (export "f64.no_trichotomy_lt") (param \$x f64) (param \$y f64) (result i32)
+    (i32.or (f64.lt (local.get \$x) (local.get \$y)) (f64.ge (local.get \$x) (local.get \$y))))
+  (func (export "f64.no_trichotomy_le") (param \$x f64) (param \$y f64) (result i32)
+    (i32.or (f64.le (local.get \$x) (local.get \$y)) (f64.gt (local.get \$x) (local.get \$y))))
+  (func (export "f64.no_trichotomy_gt") (param \$x f64) (param \$y f64) (result i32)
+    (i32.or (f64.gt (local.get \$x) (local.get \$y)) (f64.le (local.get \$x) (local.get \$y))))
+  (func (export "f64.no_trichotomy_ge") (param \$x f64) (param \$y f64) (result i32)
+    (i32.or (f64.ge (local.get \$x) (local.get \$y)) (f64.lt (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/float_exprs.wast:2292
@@ -6938,80 +6938,80 @@ assert_return(
 // ./test/core/float_exprs.wast:2304
 let $89 = instantiate(`(module
   (func (export "f32.arithmetic_nan_bitpattern")
-        (param $$x i32) (param $$y i32) (result i32)
+        (param \$x i32) (param \$y i32) (result i32)
     (i32.and (i32.reinterpret_f32
                (f32.div
-                 (f32.reinterpret_i32 (local.get $$x))
-                 (f32.reinterpret_i32 (local.get $$y))))
+                 (f32.reinterpret_i32 (local.get \$x))
+                 (f32.reinterpret_i32 (local.get \$y))))
              (i32.const 0x7fc00000)))
   (func (export "f32.canonical_nan_bitpattern")
-        (param $$x i32) (param $$y i32) (result i32)
+        (param \$x i32) (param \$y i32) (result i32)
     (i32.and (i32.reinterpret_f32
                (f32.div
-                 (f32.reinterpret_i32 (local.get $$x))
-                 (f32.reinterpret_i32 (local.get $$y))))
+                 (f32.reinterpret_i32 (local.get \$x))
+                 (f32.reinterpret_i32 (local.get \$y))))
              (i32.const 0x7fffffff)))
   (func (export "f32.nonarithmetic_nan_bitpattern")
-        (param $$x i32) (result i32)
-    (i32.reinterpret_f32 (f32.neg (f32.reinterpret_i32 (local.get $$x)))))
+        (param \$x i32) (result i32)
+    (i32.reinterpret_f32 (f32.neg (f32.reinterpret_i32 (local.get \$x)))))
 
   (func (export "f64.arithmetic_nan_bitpattern")
-        (param $$x i64) (param $$y i64) (result i64)
+        (param \$x i64) (param \$y i64) (result i64)
     (i64.and (i64.reinterpret_f64
                (f64.div
-                 (f64.reinterpret_i64 (local.get $$x))
-                 (f64.reinterpret_i64 (local.get $$y))))
+                 (f64.reinterpret_i64 (local.get \$x))
+                 (f64.reinterpret_i64 (local.get \$y))))
              (i64.const 0x7ff8000000000000)))
   (func (export "f64.canonical_nan_bitpattern")
-        (param $$x i64) (param $$y i64) (result i64)
+        (param \$x i64) (param \$y i64) (result i64)
     (i64.and (i64.reinterpret_f64
                (f64.div
-                 (f64.reinterpret_i64 (local.get $$x))
-                 (f64.reinterpret_i64 (local.get $$y))))
+                 (f64.reinterpret_i64 (local.get \$x))
+                 (f64.reinterpret_i64 (local.get \$y))))
              (i64.const 0x7fffffffffffffff)))
   (func (export "f64.nonarithmetic_nan_bitpattern")
-        (param $$x i64) (result i64)
-    (i64.reinterpret_f64 (f64.neg (f64.reinterpret_i64 (local.get $$x)))))
+        (param \$x i64) (result i64)
+    (i64.reinterpret_f64 (f64.neg (f64.reinterpret_i64 (local.get \$x)))))
 
   ;; Versions of no_fold testcases that only care about NaN bitpatterns.
-  (func (export "f32.no_fold_sub_zero") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.sub (f32.reinterpret_i32 (local.get $$x)) (f32.const 0.0)))
+  (func (export "f32.no_fold_sub_zero") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.sub (f32.reinterpret_i32 (local.get \$x)) (f32.const 0.0)))
              (i32.const 0x7fc00000)))
-  (func (export "f32.no_fold_neg0_sub") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.sub (f32.const -0.0) (f32.reinterpret_i32 (local.get $$x))))
+  (func (export "f32.no_fold_neg0_sub") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.sub (f32.const -0.0) (f32.reinterpret_i32 (local.get \$x))))
              (i32.const 0x7fc00000)))
-  (func (export "f32.no_fold_mul_one") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.mul (f32.reinterpret_i32 (local.get $$x)) (f32.const 1.0)))
+  (func (export "f32.no_fold_mul_one") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.mul (f32.reinterpret_i32 (local.get \$x)) (f32.const 1.0)))
              (i32.const 0x7fc00000)))
-  (func (export "f32.no_fold_neg1_mul") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.mul (f32.const -1.0) (f32.reinterpret_i32 (local.get $$x))))
+  (func (export "f32.no_fold_neg1_mul") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.mul (f32.const -1.0) (f32.reinterpret_i32 (local.get \$x))))
              (i32.const 0x7fc00000)))
-  (func (export "f32.no_fold_div_one") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.div (f32.reinterpret_i32 (local.get $$x)) (f32.const 1.0)))
+  (func (export "f32.no_fold_div_one") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.div (f32.reinterpret_i32 (local.get \$x)) (f32.const 1.0)))
              (i32.const 0x7fc00000)))
-  (func (export "f32.no_fold_div_neg1") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.div (f32.reinterpret_i32 (local.get $$x)) (f32.const -1.0)))
+  (func (export "f32.no_fold_div_neg1") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.div (f32.reinterpret_i32 (local.get \$x)) (f32.const -1.0)))
              (i32.const 0x7fc00000)))
-  (func (export "f64.no_fold_sub_zero") (param $$x i64) (result i64)
-    (i64.and (i64.reinterpret_f64 (f64.sub (f64.reinterpret_i64 (local.get $$x)) (f64.const 0.0)))
+  (func (export "f64.no_fold_sub_zero") (param \$x i64) (result i64)
+    (i64.and (i64.reinterpret_f64 (f64.sub (f64.reinterpret_i64 (local.get \$x)) (f64.const 0.0)))
              (i64.const 0x7ff8000000000000)))
-  (func (export "f64.no_fold_neg0_sub") (param $$x i64) (result i64)
-    (i64.and (i64.reinterpret_f64 (f64.sub (f64.const -0.0) (f64.reinterpret_i64 (local.get $$x))))
+  (func (export "f64.no_fold_neg0_sub") (param \$x i64) (result i64)
+    (i64.and (i64.reinterpret_f64 (f64.sub (f64.const -0.0) (f64.reinterpret_i64 (local.get \$x))))
              (i64.const 0x7ff8000000000000)))
-  (func (export "f64.no_fold_mul_one") (param $$x i64) (result i64)
-    (i64.and (i64.reinterpret_f64 (f64.mul (f64.reinterpret_i64 (local.get $$x)) (f64.const 1.0)))
+  (func (export "f64.no_fold_mul_one") (param \$x i64) (result i64)
+    (i64.and (i64.reinterpret_f64 (f64.mul (f64.reinterpret_i64 (local.get \$x)) (f64.const 1.0)))
              (i64.const 0x7ff8000000000000)))
-  (func (export "f64.no_fold_neg1_mul") (param $$x i64) (result i64)
-    (i64.and (i64.reinterpret_f64 (f64.mul (f64.const -1.0) (f64.reinterpret_i64 (local.get $$x))))
+  (func (export "f64.no_fold_neg1_mul") (param \$x i64) (result i64)
+    (i64.and (i64.reinterpret_f64 (f64.mul (f64.const -1.0) (f64.reinterpret_i64 (local.get \$x))))
              (i64.const 0x7ff8000000000000)))
-  (func (export "f64.no_fold_div_one") (param $$x i64) (result i64)
-    (i64.and (i64.reinterpret_f64 (f64.div (f64.reinterpret_i64 (local.get $$x)) (f64.const 1.0)))
+  (func (export "f64.no_fold_div_one") (param \$x i64) (result i64)
+    (i64.and (i64.reinterpret_f64 (f64.div (f64.reinterpret_i64 (local.get \$x)) (f64.const 1.0)))
              (i64.const 0x7ff8000000000000)))
-  (func (export "f64.no_fold_div_neg1") (param $$x i64) (result i64)
-    (i64.and (i64.reinterpret_f64 (f64.div (f64.reinterpret_i64 (local.get $$x)) (f64.const -1.0)))
+  (func (export "f64.no_fold_div_neg1") (param \$x i64) (result i64)
+    (i64.and (i64.reinterpret_f64 (f64.div (f64.reinterpret_i64 (local.get \$x)) (f64.const -1.0)))
              (i64.const 0x7ff8000000000000)))
-  (func (export "no_fold_promote_demote") (param $$x i32) (result i32)
-    (i32.and (i32.reinterpret_f32 (f32.demote_f64 (f64.promote_f32 (f32.reinterpret_i32 (local.get $$x)))))
+  (func (export "no_fold_promote_demote") (param \$x i32) (result i32)
+    (i32.and (i32.reinterpret_f32 (f32.demote_f64 (f64.promote_f32 (f32.reinterpret_i32 (local.get \$x)))))
              (i32.const 0x7fc00000)))
 )`);
 
@@ -7207,24 +7207,24 @@ assert_return(() => invoke($89, `no_fold_promote_demote`, [2141192192]), [value(
 // ./test/core/float_exprs.wast:2420
 let $90 = instantiate(`(module
   (func (export "dot_product_example")
-        (param $$x0 f64) (param $$x1 f64) (param $$x2 f64) (param $$x3 f64)
-        (param $$y0 f64) (param $$y1 f64) (param $$y2 f64) (param $$y3 f64)
+        (param \$x0 f64) (param \$x1 f64) (param \$x2 f64) (param \$x3 f64)
+        (param \$y0 f64) (param \$y1 f64) (param \$y2 f64) (param \$y3 f64)
         (result f64)
     (f64.add (f64.add (f64.add
-      (f64.mul (local.get $$x0) (local.get $$y0))
-      (f64.mul (local.get $$x1) (local.get $$y1)))
-      (f64.mul (local.get $$x2) (local.get $$y2)))
-      (f64.mul (local.get $$x3) (local.get $$y3)))
+      (f64.mul (local.get \$x0) (local.get \$y0))
+      (f64.mul (local.get \$x1) (local.get \$y1)))
+      (f64.mul (local.get \$x2) (local.get \$y2)))
+      (f64.mul (local.get \$x3) (local.get \$y3)))
   )
 
   (func (export "with_binary_sum_collapse")
-        (param $$x0 f64) (param $$x1 f64) (param $$x2 f64) (param $$x3 f64)
-        (param $$y0 f64) (param $$y1 f64) (param $$y2 f64) (param $$y3 f64)
+        (param \$x0 f64) (param \$x1 f64) (param \$x2 f64) (param \$x3 f64)
+        (param \$y0 f64) (param \$y1 f64) (param \$y2 f64) (param \$y3 f64)
         (result f64)
-      (f64.add (f64.add (f64.mul (local.get $$x0) (local.get $$y0))
-                        (f64.mul (local.get $$x1) (local.get $$y1)))
-               (f64.add (f64.mul (local.get $$x2) (local.get $$y2))
-                        (f64.mul (local.get $$x3) (local.get $$y3))))
+      (f64.add (f64.add (f64.mul (local.get \$x0) (local.get \$y0))
+                        (f64.mul (local.get \$x1) (local.get \$y1)))
+               (f64.add (f64.mul (local.get \$x2) (local.get \$y2))
+                        (f64.mul (local.get \$x3) (local.get \$y3))))
   )
 )`);
 
@@ -7261,13 +7261,13 @@ assert_return(
 // ./test/core/float_exprs.wast:2454
 let $91 = instantiate(`(module
   (func (export "f32.contract2fma")
-        (param $$x f32) (param $$y f32) (result f32)
-    (f32.sqrt (f32.sub (f32.mul (local.get $$x) (local.get $$x))
-                       (f32.mul (local.get $$y) (local.get $$y)))))
+        (param \$x f32) (param \$y f32) (result f32)
+    (f32.sqrt (f32.sub (f32.mul (local.get \$x) (local.get \$x))
+                       (f32.mul (local.get \$y) (local.get \$y)))))
   (func (export "f64.contract2fma")
-        (param $$x f64) (param $$y f64) (result f64)
-    (f64.sqrt (f64.sub (f64.mul (local.get $$x) (local.get $$x))
-                       (f64.mul (local.get $$y) (local.get $$y)))))
+        (param \$x f64) (param \$y f64) (result f64)
+    (f64.sqrt (f64.sub (f64.mul (local.get \$x) (local.get \$x))
+                       (f64.mul (local.get \$y) (local.get \$y)))))
 )`);
 
 // ./test/core/float_exprs.wast:2465
@@ -7312,11 +7312,11 @@ assert_return(
 // ./test/core/float_exprs.wast:2475
 let $92 = instantiate(`(module
   (func (export "f32.division_by_small_number")
-        (param $$a f32) (param $$b f32) (param $$c f32) (result f32)
-    (f32.sub (local.get $$a) (f32.div (local.get $$b) (local.get $$c))))
+        (param \$a f32) (param \$b f32) (param \$c f32) (result f32)
+    (f32.sub (local.get \$a) (f32.div (local.get \$b) (local.get \$c))))
   (func (export "f64.division_by_small_number")
-        (param $$a f64) (param $$b f64) (param $$c f64) (result f64)
-    (f64.sub (local.get $$a) (f64.div (local.get $$b) (local.get $$c))))
+        (param \$a f64) (param \$b f64) (param \$c f64) (result f64)
+    (f64.sub (local.get \$a) (f64.div (local.get \$b) (local.get \$c))))
 )`);
 
 // ./test/core/float_exprs.wast:2484
@@ -7341,9 +7341,9 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2490
 let $93 = instantiate(`(module
-  (func (export "f32.golden_ratio") (param $$a f32) (param $$b f32) (param $$c f32) (result f32)
+  (func (export "f32.golden_ratio") (param \$a f32) (param \$b f32) (param \$c f32) (result f32)
     (f32.mul (local.get 0) (f32.add (local.get 1) (f32.sqrt (local.get 2)))))
-  (func (export "f64.golden_ratio") (param $$a f64) (param $$b f64) (param $$c f64) (result f64)
+  (func (export "f64.golden_ratio") (param \$a f64) (param \$b f64) (param \$c f64) (result f64)
     (f64.mul (local.get 0) (f64.add (local.get 1) (f64.sqrt (local.get 2)))))
 )`);
 
@@ -7369,15 +7369,15 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2503
 let $94 = instantiate(`(module
-  (func (export "f32.silver_means") (param $$n f32) (result f32)
+  (func (export "f32.silver_means") (param \$n f32) (result f32)
     (f32.mul (f32.const 0.5)
-             (f32.add (local.get $$n)
-                      (f32.sqrt (f32.add (f32.mul (local.get $$n) (local.get $$n))
+             (f32.add (local.get \$n)
+                      (f32.sqrt (f32.add (f32.mul (local.get \$n) (local.get \$n))
                                          (f32.const 4.0))))))
-  (func (export "f64.silver_means") (param $$n f64) (result f64)
+  (func (export "f64.silver_means") (param \$n f64) (result f64)
     (f64.mul (f64.const 0.5)
-             (f64.add (local.get $$n)
-                      (f64.sqrt (f64.add (f64.mul (local.get $$n) (local.get $$n))
+             (f64.add (local.get \$n)
+                      (f64.sqrt (f64.add (f64.mul (local.get \$n) (local.get \$n))
                                          (f64.const 4.0))))))
 )`);
 
@@ -7434,8 +7434,8 @@ assert_return(
 
 // ./test/core/float_exprs.wast:2532
 let $95 = instantiate(`(module
-  (func (export "point_four") (param $$four f64) (param $$ten f64) (result i32)
-    (f64.lt (f64.div (local.get $$four) (local.get $$ten)) (f64.const 0.4)))
+  (func (export "point_four") (param \$four f64) (param \$ten f64) (result i32)
+    (f64.lt (f64.div (local.get \$four) (local.get \$ten)) (f64.const 0.4)))
 )`);
 
 // ./test/core/float_exprs.wast:2537
@@ -7515,14 +7515,14 @@ assert_return(() => invoke($96, `tau`, [11]), [value("f64", 6.283185307179586)])
 
 // ./test/core/float_exprs.wast:2612
 let $97 = instantiate(`(module
-  (func (export "f32.no_fold_conditional_inc") (param $$x f32) (param $$y f32) (result f32)
-    (select (local.get $$x)
-            (f32.add (local.get $$x) (f32.const 1.0))
-            (f32.lt (local.get $$y) (f32.const 0.0))))
-  (func (export "f64.no_fold_conditional_inc") (param $$x f64) (param $$y f64) (result f64)
-    (select (local.get $$x)
-            (f64.add (local.get $$x) (f64.const 1.0))
-            (f64.lt (local.get $$y) (f64.const 0.0))))
+  (func (export "f32.no_fold_conditional_inc") (param \$x f32) (param \$y f32) (result f32)
+    (select (local.get \$x)
+            (f32.add (local.get \$x) (f32.const 1.0))
+            (f32.lt (local.get \$y) (f32.const 0.0))))
+  (func (export "f64.no_fold_conditional_inc") (param \$x f64) (param \$y f64) (result f64)
+    (select (local.get \$x)
+            (f64.add (local.get \$x) (f64.const 1.0))
+            (f64.lt (local.get \$y) (f64.const 0.0))))
 )`);
 
 // ./test/core/float_exprs.wast:2623

@@ -18,7 +18,7 @@
 // ./test/core/br_table.wast:3
 let $0 = instantiate(`(module
   ;; Auxiliary definition
-  (func $$dummy)
+  (func \$dummy)
 
   (func (export "type-i32")
     (block (drop (i32.ctz (br_table 0 0 (i32.const 0)))))
@@ -609,17 +609,17 @@ let $0 = instantiate(`(module
   )
 
   (func (export "as-block-first")
-    (block (br_table 0 0 0 (i32.const 0)) (call $$dummy))
+    (block (br_table 0 0 0 (i32.const 0)) (call \$dummy))
   )
   (func (export "as-block-mid")
-    (block (call $$dummy) (br_table 0 0 0 (i32.const 0)) (call $$dummy))
+    (block (call \$dummy) (br_table 0 0 0 (i32.const 0)) (call \$dummy))
   )
   (func (export "as-block-last")
-    (block (nop) (call $$dummy) (br_table 0 0 0 (i32.const 0)))
+    (block (nop) (call \$dummy) (br_table 0 0 0 (i32.const 0)))
   )
   (func (export "as-block-value") (result i32)
     (block (result i32)
-      (nop) (call $$dummy) (br_table 0 0 0 (i32.const 2) (i32.const 0))
+      (nop) (call \$dummy) (br_table 0 0 0 (i32.const 2) (i32.const 0))
     )
   )
 
@@ -628,14 +628,14 @@ let $0 = instantiate(`(module
   )
   (func (export "as-loop-mid") (result i32)
     (loop (result i32)
-      (call $$dummy)
+      (call \$dummy)
       (br_table 1 1 1 (i32.const 4) (i32.const -1))
       (i32.const 2)
     )
   )
   (func (export "as-loop-last") (result i32)
     (loop (result i32)
-      (nop) (call $$dummy) (br_table 1 1 1 (i32.const 5) (i32.const 1))
+      (nop) (call \$dummy) (br_table 1 1 1 (i32.const 5) (i32.const 1))
     )
   )
 
@@ -729,34 +729,34 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$f (param i32 i32 i32) (result i32) (i32.const -1))
+  (func \$f (param i32 i32 i32) (result i32) (i32.const -1))
   (func (export "as-call-first") (result i32)
     (block (result i32)
-      (call $$f
+      (call \$f
         (br_table 0 (i32.const 12) (i32.const 1)) (i32.const 2) (i32.const 3)
       )
     )
   )
   (func (export "as-call-mid") (result i32)
     (block (result i32)
-      (call $$f
+      (call \$f
         (i32.const 1) (br_table 0 (i32.const 13) (i32.const 1)) (i32.const 3)
       )
     )
   )
   (func (export "as-call-last") (result i32)
     (block (result i32)
-      (call $$f
+      (call \$f
         (i32.const 1) (i32.const 2) (br_table 0 (i32.const 14) (i32.const 1))
       )
     )
   )
 
-  (type $$sig (func (param i32 i32 i32) (result i32)))
-  (table funcref (elem $$f))
+  (type \$sig (func (param i32 i32 i32) (result i32)))
+  (table funcref (elem \$f))
   (func (export "as-call_indirect-first") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (br_table 0 (i32.const 20) (i32.const 1)) (i32.const 1) (i32.const 2)
         (i32.const 3)
       )
@@ -764,7 +764,7 @@ let $0 = instantiate(`(module
   )
   (func (export "as-call_indirect-mid") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (i32.const 0) (br_table 0 (i32.const 21) (i32.const 1)) (i32.const 2)
         (i32.const 3)
       )
@@ -772,7 +772,7 @@ let $0 = instantiate(`(module
   )
   (func (export "as-call_indirect-last") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (i32.const 0) (i32.const 1) (br_table 0 (i32.const 22) (i32.const 1))
         (i32.const 3)
       )
@@ -780,7 +780,7 @@ let $0 = instantiate(`(module
   )
   (func (export "as-call_indirect-func") (result i32)
     (block (result i32)
-      (call_indirect (type $$sig)
+      (call_indirect (type \$sig)
         (i32.const 0) (i32.const 1) (i32.const 2)
         (br_table 0 (i32.const 23) (i32.const 1))
       )
@@ -801,10 +801,10 @@ let $0 = instantiate(`(module
       (i32.const -1)
     )
   )
-  (global $$a (mut i32) (i32.const 10))
+  (global \$a (mut i32) (i32.const 10))
   (func (export "as-global.set-value") (result i32)
     (block (result i32)
-      (global.set $$a (br_table 0 (i32.const 1) (i32.const 1)))
+      (global.set \$a (br_table 0 (i32.const 1) (i32.const 1)))
       (i32.const -1)
     )
   )
@@ -1011,9 +1011,9 @@ let $0 = instantiate(`(module
   )
 
   (func (export "meet-externref") (param i32) (param externref) (result externref)
-    (block $$l1 (result externref)
-      (block $$l2 (result externref)
-        (br_table $$l1 $$l2 $$l1 (local.get 1) (local.get 0))
+    (block \$l1 (result externref)
+      (block \$l2 (result externref)
+        (br_table \$l1 \$l2 \$l1 (local.get 1) (local.get 0))
       )
     )
   )
@@ -1030,51 +1030,51 @@ let $0 = instantiate(`(module
     (drop)
   )
 
-  (type $$t (func))
-  (func $$tf)
-  (table $$t (ref null $$t) (elem $$tf))
+  (type \$t (func))
+  (func \$tf)
+  (table \$t (ref null \$t) (elem \$tf))
   (func (export "meet-funcref-1") (param i32) (result (ref null func))
-    (block $$l1 (result (ref null func))
-      (block $$l2 (result (ref null $$t))
-        (br_table $$l1 $$l1 $$l2 (table.get $$t (i32.const 0)) (local.get 0))
+    (block \$l1 (result (ref null func))
+      (block \$l2 (result (ref null \$t))
+        (br_table \$l1 \$l1 \$l2 (table.get \$t (i32.const 0)) (local.get 0))
       )
     )
   )
   (func (export "meet-funcref-2") (param i32) (result (ref null func))
-    (block $$l1 (result (ref null func))
-      (block $$l2 (result (ref null $$t))
-        (br_table $$l2 $$l2 $$l1 (table.get $$t (i32.const 0)) (local.get 0))
+    (block \$l1 (result (ref null func))
+      (block \$l2 (result (ref null \$t))
+        (br_table \$l2 \$l2 \$l1 (table.get \$t (i32.const 0)) (local.get 0))
       )
     )
   )
   (func (export "meet-funcref-3") (param i32) (result (ref null func))
-    (block $$l1 (result (ref null func))
-      (block $$l2 (result (ref null $$t))
-        (br_table $$l2 $$l1 $$l2 (table.get $$t (i32.const 0)) (local.get 0))
+    (block \$l1 (result (ref null func))
+      (block \$l2 (result (ref null \$t))
+        (br_table \$l2 \$l1 \$l2 (table.get \$t (i32.const 0)) (local.get 0))
       )
     )
   )
   (func (export "meet-funcref-4") (param i32) (result (ref null func))
-    (block $$l1 (result (ref null func))
-      (block $$l2 (result (ref null $$t))
-        (br_table $$l1 $$l2 $$l1 (table.get $$t (i32.const 0)) (local.get 0))
+    (block \$l1 (result (ref null func))
+      (block \$l2 (result (ref null \$t))
+        (br_table \$l1 \$l2 \$l1 (table.get \$t (i32.const 0)) (local.get 0))
       )
     )
   )
 
   (func (export "meet-nullref") (param i32) (result (ref null func))
-    (block $$l1 (result (ref null func))
-      (block $$l2 (result (ref null $$t))
-        (br_table $$l1 $$l2 $$l1 (ref.null $$t) (local.get 0))
+    (block \$l1 (result (ref null func))
+      (block \$l2 (result (ref null \$t))
+        (br_table \$l1 \$l2 \$l1 (ref.null \$t) (local.get 0))
       )
     )
   )
 
   (func (export "meet-multi-ref") (param i32) (result (ref null func))
-    (block $$l1 (result (ref null func))
-      (block $$l2 (result (ref null $$t))
-        (block $$l3 (result (ref $$t))
-          (br_table $$l3 $$l2 $$l1 (ref.func $$tf) (local.get 0))
+    (block \$l1 (result (ref null func))
+      (block \$l2 (result (ref null \$t))
+        (block \$l3 (result (ref \$t))
+          (br_table \$l3 \$l2 \$l1 (ref.func \$tf) (local.get 0))
         )
       )
     )
@@ -1566,7 +1566,7 @@ assert_return(() => invoke($0, `meet-funcref-4`, [2]), [new RefWithType('funcref
 
 // ./test/core/br_table.wast:1266
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-void-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-void-vs-num (result i32)
     (block (br_table 0 (i32.const 1)) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -1574,7 +1574,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1273
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-empty-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-empty-vs-num (result i32)
     (block (br_table 0) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -1582,7 +1582,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1280
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-void-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-void-vs-num (result i32)
     (block (result i32) (br_table 0 (nop) (i32.const 1)) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -1590,7 +1590,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1286
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-num-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-num-vs-num (result i32)
     (block (result i32)
       (br_table 0 0 0 (i64.const 1) (i32.const 1)) (i32.const 1)
     )
@@ -1600,7 +1600,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1294
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-num-vs-arg-num
+  () => instantiate(`(module (func \$type-arg-num-vs-arg-num
     (block
       (block (result f32)
         (br_table 0 1 (f32.const 0) (i32.const 0))
@@ -1625,7 +1625,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1316
 assert_invalid(
-  () => instantiate(`(module (func $$type-index-void-vs-i32
+  () => instantiate(`(module (func \$type-index-void-vs-i32
     (block (br_table 0 0 0 (nop)))
   ))`),
   `type mismatch`,
@@ -1633,7 +1633,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1322
 assert_invalid(
-  () => instantiate(`(module (func $$type-index-num-vs-i32
+  () => instantiate(`(module (func \$type-index-num-vs-i32
     (block (br_table 0 (i64.const 0)))
   ))`),
   `type mismatch`,
@@ -1641,7 +1641,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1328
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-index-void-vs-i32 (result i32)
+  () => instantiate(`(module (func \$type-arg-index-void-vs-i32 (result i32)
     (block (result i32) (br_table 0 0 (i32.const 0) (nop)) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -1649,7 +1649,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1334
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-void-vs-num-nested (result i32)
+  () => instantiate(`(module (func \$type-arg-void-vs-num-nested (result i32)
     (block (result i32) (i32.const 0) (block (br_table 1 (i32.const 0))))
   ))`),
   `type mismatch`,
@@ -1657,7 +1657,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1340
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-index-num-vs-i32 (result i32)
+  () => instantiate(`(module (func \$type-arg-index-num-vs-i32 (result i32)
     (block (result i32)
       (br_table 0 0 (i32.const 0) (i64.const 0)) (i32.const 1)
     )
@@ -1667,7 +1667,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1349
 assert_invalid(
-  () => instantiate(`(module (func $$type-arg-void-vs-num (result i32)
+  () => instantiate(`(module (func \$type-arg-void-vs-num (result i32)
     (block (br_table 0 (i32.const 1)) (i32.const 1))
   ))`),
   `type mismatch`,
@@ -1676,7 +1676,7 @@ assert_invalid(
 // ./test/core/br_table.wast:1356
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-index-empty-in-then
+    (func \$type-arg-index-empty-in-then
       (block
         (i32.const 0) (i32.const 0)
         (if (result i32) (then (br_table 0)))
@@ -1690,7 +1690,7 @@ assert_invalid(
 // ./test/core/br_table.wast:1368
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-value-empty-in-then
+    (func \$type-arg-value-empty-in-then
       (block
         (i32.const 0) (i32.const 0)
         (if (result i32) (then (br_table 0 (i32.const 1))))
@@ -1704,7 +1704,7 @@ assert_invalid(
 // ./test/core/br_table.wast:1380
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-index-empty-in-return
+    (func \$type-arg-index-empty-in-return
       (block (result i32)
         (return (br_table 0))
       )
@@ -1717,7 +1717,7 @@ assert_invalid(
 // ./test/core/br_table.wast:1391
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-arg-value-empty-in-return
+    (func \$type-arg-value-empty-in-return
       (block (result i32)
         (return (br_table 0 (i32.const 1)))
       )
@@ -1757,7 +1757,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1429
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-label
+  () => instantiate(`(module (func \$unbound-label
     (block (br_table 2 1 (i32.const 1)))
   ))`),
   `unknown label`,
@@ -1765,7 +1765,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1435
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-nested-label
+  () => instantiate(`(module (func \$unbound-nested-label
     (block (block (br_table 0 5 (i32.const 1))))
   ))`),
   `unknown label`,
@@ -1773,7 +1773,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1441
 assert_invalid(
-  () => instantiate(`(module (func $$large-label
+  () => instantiate(`(module (func \$large-label
     (block (br_table 0 0x10000001 0 (i32.const 1)))
   ))`),
   `unknown label`,
@@ -1781,7 +1781,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1448
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-label-default
+  () => instantiate(`(module (func \$unbound-label-default
     (block (br_table 1 2 (i32.const 1)))
   ))`),
   `unknown label`,
@@ -1789,7 +1789,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1454
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-nested-label-default
+  () => instantiate(`(module (func \$unbound-nested-label-default
     (block (block (br_table 0 5 (i32.const 1))))
   ))`),
   `unknown label`,
@@ -1797,7 +1797,7 @@ assert_invalid(
 
 // ./test/core/br_table.wast:1460
 assert_invalid(
-  () => instantiate(`(module (func $$large-label-default
+  () => instantiate(`(module (func \$large-label-default
     (block (br_table 0 0 0x10000001 (i32.const 1)))
   ))`),
   `unknown label`,

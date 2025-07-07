@@ -20,7 +20,7 @@ let $0 = instantiate(`(module
   (tag)
   (tag (param i32))
   (tag (export "t2") (param i32))
-  (tag $$t3 (param i32 f32))
+  (tag \$t3 (param i32 f32))
   (export "t3" (tag 3))
 )`);
 
@@ -29,8 +29,8 @@ register($0, `test`);
 
 // ./test/core/tag.wast:13
 let $1 = instantiate(`(module
-  (tag $$t0 (import "test" "t2") (param i32))
-  (import "test" "t3" (tag $$t1 (param i32 f32)))
+  (tag \$t0 (import "test" "t2") (param i32))
+  (import "test" "t3" (tag \$t1 (param i32 f32)))
 )`);
 
 // ./test/core/tag.wast:18
@@ -42,10 +42,10 @@ assert_invalid(
 // ./test/core/tag.wast:26
 let $2 = instantiate(`(module
   (rec
-    (type $$t1 (func))
-    (type $$t2 (func))
+    (type \$t1 (func))
+    (type \$t2 (func))
   )
-  (tag (export "tag") (type $$t1))
+  (tag (export "tag") (type \$t1))
 )`);
 
 // ./test/core/tag.wast:34
@@ -54,20 +54,20 @@ register($2, `M`);
 // ./test/core/tag.wast:36
 let $3 = instantiate(`(module
   (rec
-    (type $$t1 (func))
-    (type $$t2 (func))
+    (type \$t1 (func))
+    (type \$t2 (func))
   )
-  (tag (import "M" "tag") (type $$t1))
+  (tag (import "M" "tag") (type \$t1))
 )`);
 
 // ./test/core/tag.wast:44
 assert_unlinkable(
   () => instantiate(`(module
     (rec
-      (type $$t1 (func))
-      (type $$t2 (func))
+      (type \$t1 (func))
+      (type \$t2 (func))
     )
-    (tag (import "M" "tag") (type $$t2))
+    (tag (import "M" "tag") (type \$t2))
   )`),
   `incompatible import`,
 );
@@ -75,8 +75,8 @@ assert_unlinkable(
 // ./test/core/tag.wast:55
 assert_unlinkable(
   () => instantiate(`(module
-    (type $$t (func))
-    (tag (import "M" "tag") (type $$t))
+    (type \$t (func))
+    (tag (import "M" "tag") (type \$t))
   )`),
   `incompatible import`,
 );

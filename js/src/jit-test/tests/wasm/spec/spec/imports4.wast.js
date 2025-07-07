@@ -27,8 +27,8 @@ register($0, `test`);
 // ./test/core/multi-memory/imports4.wast:8
 let $1 = instantiate(`(module
   (import "test" "memory-2-4" (memory 1))
-  (memory $$m (import "spectest" "memory") 0 3)  ;; actual has max size 2
-  (func (export "grow") (param i32) (result i32) (memory.grow $$m (local.get 0)))
+  (memory \$m (import "spectest" "memory") 0 3)  ;; actual has max size 2
+  (func (export "grow") (param i32) (result i32) (memory.grow \$m (local.get 0)))
 )`);
 
 // ./test/core/multi-memory/imports4.wast:13
@@ -47,11 +47,11 @@ assert_return(() => invoke($1, `grow`, [1]), [value("i32", -1)]);
 assert_return(() => invoke($1, `grow`, [0]), [value("i32", 2)]);
 
 // ./test/core/multi-memory/imports4.wast:19
-let $2 = instantiate(`(module $$Mgm
+let $2 = instantiate(`(module \$Mgm
   (memory 0)
   (memory 0)
-  (memory $$m (export "memory") 1) ;; initial size is 1
-  (func (export "grow") (result i32) (memory.grow $$m (i32.const 1)))
+  (memory \$m (export "memory") 1) ;; initial size is 1
+  (func (export "grow") (result i32) (memory.grow \$m (i32.const 1)))
 )`);
 let $Mgm = $2;
 
@@ -62,13 +62,13 @@ register($Mgm, `grown-memory`);
 assert_return(() => invoke($Mgm, `grow`, []), [value("i32", 1)]);
 
 // ./test/core/multi-memory/imports4.wast:28
-let $3 = instantiate(`(module $$Mgim1
+let $3 = instantiate(`(module \$Mgim1
   ;; imported memory limits should match, because external memory size is 2 now
   (import "test" "memory-2-4" (memory 1))
-  (memory $$m (export "memory") (import "grown-memory" "memory") 2) 
+  (memory \$m (export "memory") (import "grown-memory" "memory") 2) 
   (memory 0)
   (memory 0)
-  (func (export "grow") (result i32) (memory.grow $$m (i32.const 1)))
+  (func (export "grow") (result i32) (memory.grow \$m (i32.const 1)))
 )`);
 let $Mgim1 = $3;
 
@@ -79,13 +79,13 @@ register($Mgim1, `grown-imported-memory`);
 assert_return(() => invoke($Mgim1, `grow`, []), [value("i32", 2)]);
 
 // ./test/core/multi-memory/imports4.wast:39
-let $4 = instantiate(`(module $$Mgim2
+let $4 = instantiate(`(module \$Mgim2
   ;; imported memory limits should match, because external memory size is 3 now
   (import "test" "memory-2-4" (memory 1))
-  (memory $$m (import "grown-imported-memory" "memory") 3)
+  (memory \$m (import "grown-imported-memory" "memory") 3)
   (memory 0)
   (memory 0)
-  (func (export "size") (result i32) (memory.size $$m))
+  (func (export "size") (result i32) (memory.size \$m))
 )`);
 let $Mgim2 = $4;
 

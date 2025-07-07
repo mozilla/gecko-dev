@@ -19,16 +19,16 @@
 
 // ./test/core/simd/simd_i16x8_cmp.wast:4
 let $0 = instantiate(`(module
-  (func (export "eq") (param $$x v128) (param $$y v128) (result v128) (i16x8.eq (local.get $$x) (local.get $$y)))
-  (func (export "ne") (param $$x v128) (param $$y v128) (result v128) (i16x8.ne (local.get $$x) (local.get $$y)))
-  (func (export "lt_s") (param $$x v128) (param $$y v128) (result v128) (i16x8.lt_s (local.get $$x) (local.get $$y)))
-  (func (export "lt_u") (param $$x v128) (param $$y v128) (result v128) (i16x8.lt_u (local.get $$x) (local.get $$y)))
-  (func (export "le_s") (param $$x v128) (param $$y v128) (result v128) (i16x8.le_s (local.get $$x) (local.get $$y)))
-  (func (export "le_u") (param $$x v128) (param $$y v128) (result v128) (i16x8.le_u (local.get $$x) (local.get $$y)))
-  (func (export "gt_s") (param $$x v128) (param $$y v128) (result v128) (i16x8.gt_s (local.get $$x) (local.get $$y)))
-  (func (export "gt_u") (param $$x v128) (param $$y v128) (result v128) (i16x8.gt_u (local.get $$x) (local.get $$y)))
-  (func (export "ge_s") (param $$x v128) (param $$y v128) (result v128) (i16x8.ge_s (local.get $$x) (local.get $$y)))
-  (func (export "ge_u") (param $$x v128) (param $$y v128) (result v128) (i16x8.ge_u (local.get $$x) (local.get $$y)))
+  (func (export "eq") (param \$x v128) (param \$y v128) (result v128) (i16x8.eq (local.get \$x) (local.get \$y)))
+  (func (export "ne") (param \$x v128) (param \$y v128) (result v128) (i16x8.ne (local.get \$x) (local.get \$y)))
+  (func (export "lt_s") (param \$x v128) (param \$y v128) (result v128) (i16x8.lt_s (local.get \$x) (local.get \$y)))
+  (func (export "lt_u") (param \$x v128) (param \$y v128) (result v128) (i16x8.lt_u (local.get \$x) (local.get \$y)))
+  (func (export "le_s") (param \$x v128) (param \$y v128) (result v128) (i16x8.le_s (local.get \$x) (local.get \$y)))
+  (func (export "le_u") (param \$x v128) (param \$y v128) (result v128) (i16x8.le_u (local.get \$x) (local.get \$y)))
+  (func (export "gt_s") (param \$x v128) (param \$y v128) (result v128) (i16x8.gt_s (local.get \$x) (local.get \$y)))
+  (func (export "gt_u") (param \$x v128) (param \$y v128) (result v128) (i16x8.gt_u (local.get \$x) (local.get \$y)))
+  (func (export "ge_s") (param \$x v128) (param \$y v128) (result v128) (i16x8.ge_s (local.get \$x) (local.get \$y)))
+  (func (export "ge_u") (param \$x v128) (param \$y v128) (result v128) (i16x8.ge_u (local.get \$x) (local.get \$y)))
 )`);
 
 // ./test/core/simd/simd_i16x8_cmp.wast:23
@@ -4171,7 +4171,7 @@ assert_return(() => invoke($1, `as-param`, []), []);
 // ./test/core/simd/simd_i16x8_cmp.wast:1742
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.eq-1st-arg-empty (result v128)
+    (func \$i16x8.eq-1st-arg-empty (result v128)
       (i16x8.eq (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4181,7 +4181,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1750
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.eq-arg-empty (result v128)
+    (func \$i16x8.eq-arg-empty (result v128)
       (i16x8.eq)
     )
   )`),
@@ -4191,7 +4191,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1758
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.ne-1st-arg-empty (result v128)
+    (func \$i16x8.ne-1st-arg-empty (result v128)
       (i16x8.ne (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4201,7 +4201,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1766
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.ne-arg-empty (result v128)
+    (func \$i16x8.ne-arg-empty (result v128)
       (i16x8.ne)
     )
   )`),
@@ -4211,7 +4211,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1774
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.lt_s-1st-arg-empty (result v128)
+    (func \$i16x8.lt_s-1st-arg-empty (result v128)
       (i16x8.lt_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4221,7 +4221,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1782
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.lt_s-arg-empty (result v128)
+    (func \$i16x8.lt_s-arg-empty (result v128)
       (i16x8.lt_s)
     )
   )`),
@@ -4231,7 +4231,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1790
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.lt_u-1st-arg-empty (result v128)
+    (func \$i16x8.lt_u-1st-arg-empty (result v128)
       (i16x8.lt_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4241,7 +4241,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1798
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.lt_u-arg-empty (result v128)
+    (func \$i16x8.lt_u-arg-empty (result v128)
       (i16x8.lt_u)
     )
   )`),
@@ -4251,7 +4251,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1806
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.le_s-1st-arg-empty (result v128)
+    (func \$i16x8.le_s-1st-arg-empty (result v128)
       (i16x8.le_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4261,7 +4261,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1814
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.le_s-arg-empty (result v128)
+    (func \$i16x8.le_s-arg-empty (result v128)
       (i16x8.le_s)
     )
   )`),
@@ -4271,7 +4271,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1822
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.le_u-1st-arg-empty (result v128)
+    (func \$i16x8.le_u-1st-arg-empty (result v128)
       (i16x8.le_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4281,7 +4281,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1830
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.le_u-arg-empty (result v128)
+    (func \$i16x8.le_u-arg-empty (result v128)
       (i16x8.le_u)
     )
   )`),
@@ -4291,7 +4291,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1838
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.gt_s-1st-arg-empty (result v128)
+    (func \$i16x8.gt_s-1st-arg-empty (result v128)
       (i16x8.gt_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4301,7 +4301,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1846
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.gt_s-arg-empty (result v128)
+    (func \$i16x8.gt_s-arg-empty (result v128)
       (i16x8.gt_s)
     )
   )`),
@@ -4311,7 +4311,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1854
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.gt_u-1st-arg-empty (result v128)
+    (func \$i16x8.gt_u-1st-arg-empty (result v128)
       (i16x8.gt_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4321,7 +4321,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1862
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.gt_u-arg-empty (result v128)
+    (func \$i16x8.gt_u-arg-empty (result v128)
       (i16x8.gt_u)
     )
   )`),
@@ -4331,7 +4331,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1870
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.ge_s-1st-arg-empty (result v128)
+    (func \$i16x8.ge_s-1st-arg-empty (result v128)
       (i16x8.ge_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4341,7 +4341,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1878
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.ge_s-arg-empty (result v128)
+    (func \$i16x8.ge_s-arg-empty (result v128)
       (i16x8.ge_s)
     )
   )`),
@@ -4351,7 +4351,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1886
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.ge_u-1st-arg-empty (result v128)
+    (func \$i16x8.ge_u-1st-arg-empty (result v128)
       (i16x8.ge_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4361,7 +4361,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_cmp.wast:1894
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.ge_u-arg-empty (result v128)
+    (func \$i16x8.ge_u-arg-empty (result v128)
       (i16x8.ge_u)
     )
   )`),

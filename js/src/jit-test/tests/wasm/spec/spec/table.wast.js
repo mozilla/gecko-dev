@@ -46,7 +46,7 @@ let $7 = instantiate(`(module (table 1 (ref null func)))`);
 let $8 = instantiate(`(module (table 1 (ref null extern)))`);
 
 // ./test/core/table.wast:14
-let $9 = instantiate(`(module (table 1 (ref null $$t)) (type $$t (func)))`);
+let $9 = instantiate(`(module (table 1 (ref null \$t)) (type \$t (func)))`);
 
 // ./test/core/table.wast:16
 let $10 = instantiate(`(module (table 0 funcref) (table 0 funcref))`);
@@ -68,7 +68,7 @@ assert_invalid(() => instantiate(`(module (elem (i32.const 0)))`), `unknown tabl
 
 // ./test/core/table.wast:24
 assert_invalid(
-  () => instantiate(`(module (elem (i32.const 0) $$f) (func $$f))`),
+  () => instantiate(`(module (elem (i32.const 0) \$f) (func \$f))`),
   `unknown table`,
 );
 
@@ -150,7 +150,7 @@ assert_invalid(() => instantiate(`(module (elem (i32.const 0)))`), `unknown tabl
 
 // ./test/core/table.wast:76
 assert_invalid(
-  () => instantiate(`(module (elem (i32.const 0) $$f) (func $$f))`),
+  () => instantiate(`(module (elem (i32.const 0) \$f) (func \$f))`),
   `unknown table`,
 );
 
@@ -168,7 +168,7 @@ assert_invalid(
 
 // ./test/core/table.wast:86
 assert_invalid(
-  () => instantiate(`(module (type $$t (func)) (table 1 (ref $$t) (ref.null func)))`),
+  () => instantiate(`(module (type \$t (func)) (table 1 (ref \$t) (ref.null func)))`),
   `type mismatch`,
 );
 
@@ -186,15 +186,15 @@ assert_invalid(() => instantiate(`(module (table 0 (ref extern)))`), `type misma
 
 // ./test/core/table.wast:102
 assert_invalid(
-  () => instantiate(`(module (type $$t (func)) (table 0 (ref $$t)))`),
+  () => instantiate(`(module (type \$t (func)) (table 0 (ref \$t)))`),
   `type mismatch`,
 );
 
 // ./test/core/table.wast:110
 let $26 = instantiate(`(module
-  (global (export "g") (ref $$f) (ref.func $$f))
-  (type $$f (func))
-  (func $$f)
+  (global (export "g") (ref \$f) (ref.func \$f))
+  (type \$f (func))
+  (func \$f)
 )`);
 
 // ./test/core/table.wast:115
@@ -202,22 +202,22 @@ register($26, `M`);
 
 // ./test/core/table.wast:117
 let $27 = instantiate(`(module
-  (global $$g (import "M" "g") (ref $$dummy))
+  (global \$g (import "M" "g") (ref \$dummy))
 
-  (type $$dummy (func))
-  (func $$dummy)
+  (type \$dummy (func))
+  (func \$dummy)
 
-  (table $$t1 10 funcref)
-  (table $$t2 10 funcref (ref.func $$dummy))
-  (table $$t3 10 (ref $$dummy) (ref.func $$dummy))
-  (table $$t4 10 funcref (global.get $$g))
-  (table $$t5 10 (ref $$dummy) (global.get $$g))
+  (table \$t1 10 funcref)
+  (table \$t2 10 funcref (ref.func \$dummy))
+  (table \$t3 10 (ref \$dummy) (ref.func \$dummy))
+  (table \$t4 10 funcref (global.get \$g))
+  (table \$t5 10 (ref \$dummy) (global.get \$g))
 
-  (func (export "get1") (result funcref) (table.get $$t1 (i32.const 1)))
-  (func (export "get2") (result funcref) (table.get $$t2 (i32.const 4)))
-  (func (export "get3") (result funcref) (table.get $$t3 (i32.const 7)))
-  (func (export "get4") (result funcref) (table.get $$t4 (i32.const 8)))
-  (func (export "get5") (result funcref) (table.get $$t5 (i32.const 9)))
+  (func (export "get1") (result funcref) (table.get \$t1 (i32.const 1)))
+  (func (export "get2") (result funcref) (table.get \$t2 (i32.const 4)))
+  (func (export "get3") (result funcref) (table.get \$t3 (i32.const 7)))
+  (func (export "get4") (result funcref) (table.get \$t4 (i32.const 8)))
+  (func (export "get5") (result funcref) (table.get \$t5 (i32.const 9)))
 )`);
 
 // ./test/core/table.wast:136
@@ -238,8 +238,8 @@ assert_return(() => invoke($27, `get5`, []), [new RefWithType('funcref')]);
 // ./test/core/table.wast:143
 assert_invalid(
   () => instantiate(`(module
-    (type $$f (func))
-    (table 10 (ref $$f))
+    (type \$f (func))
+    (table 10 (ref \$f))
   )`),
   `type mismatch`,
 );
@@ -247,8 +247,8 @@ assert_invalid(
 // ./test/core/table.wast:151
 assert_invalid(
   () => instantiate(`(module
-    (type $$f (func))
-    (table 0 (ref $$f))
+    (type \$f (func))
+    (table 0 (ref \$f))
   )`),
   `type mismatch`,
 );
@@ -256,26 +256,26 @@ assert_invalid(
 // ./test/core/table.wast:159
 assert_invalid(
   () => instantiate(`(module
-    (type $$f (func))
-    (table 0 0 (ref $$f))
+    (type \$f (func))
+    (table 0 0 (ref \$f))
   )`),
   `type mismatch`,
 );
 
 // ./test/core/table.wast:170
 assert_malformed(
-  () => instantiate(`(table $$foo 1 funcref) (table $$foo 1 funcref) `),
+  () => instantiate(`(table \$foo 1 funcref) (table \$foo 1 funcref) `),
   `duplicate table`,
 );
 
 // ./test/core/table.wast:177
 assert_malformed(
-  () => instantiate(`(import "" "" (table $$foo 1 funcref)) (table $$foo 1 funcref) `),
+  () => instantiate(`(import "" "" (table \$foo 1 funcref)) (table \$foo 1 funcref) `),
   `duplicate table`,
 );
 
 // ./test/core/table.wast:184
 assert_malformed(
-  () => instantiate(`(import "" "" (table $$foo 1 funcref)) (import "" "" (table $$foo 1 funcref)) `),
+  () => instantiate(`(import "" "" (table \$foo 1 funcref)) (import "" "" (table \$foo 1 funcref)) `),
   `duplicate table`,
 );

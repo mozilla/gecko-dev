@@ -110,26 +110,26 @@ let $0 = instantiate(`(module
     )
   )
 
-  (func $$dummy)
+  (func \$dummy)
 
   (func (export "as-block-first") (param i32) (result i32)
-    (block (result i32) (local.tee 0 (i32.const 1)) (call $$dummy))
+    (block (result i32) (local.tee 0 (i32.const 1)) (call \$dummy))
   )
   (func (export "as-block-mid") (param i32) (result i32)
-    (block (result i32) (call $$dummy) (local.tee 0 (i32.const 1)) (call $$dummy))
+    (block (result i32) (call \$dummy) (local.tee 0 (i32.const 1)) (call \$dummy))
   )
   (func (export "as-block-last") (param i32) (result i32)
-    (block (result i32) (call $$dummy) (call $$dummy) (local.tee 0 (i32.const 1)))
+    (block (result i32) (call \$dummy) (call \$dummy) (local.tee 0 (i32.const 1)))
   )
 
   (func (export "as-loop-first") (param i32) (result i32)
-    (loop (result i32) (local.tee 0 (i32.const 3)) (call $$dummy))
+    (loop (result i32) (local.tee 0 (i32.const 3)) (call \$dummy))
   )
   (func (export "as-loop-mid") (param i32) (result i32)
-    (loop (result i32) (call $$dummy) (local.tee 0 (i32.const 4)) (call $$dummy))
+    (loop (result i32) (call \$dummy) (local.tee 0 (i32.const 4)) (call \$dummy))
   )
   (func (export "as-loop-last") (param i32) (result i32)
-    (loop (result i32) (call $$dummy) (call $$dummy) (local.tee 0 (i32.const 5)))
+    (loop (result i32) (call \$dummy) (call \$dummy) (local.tee 0 (i32.const 5)))
   )
 
   (func (export "as-br-value") (param i32) (result i32)
@@ -194,36 +194,36 @@ let $0 = instantiate(`(module
     (select (i32.const 0) (i32.const 1) (local.tee 0 (i32.const 7)))
   )
 
-  (func $$f (param i32 i32 i32) (result i32) (i32.const -1))
+  (func \$f (param i32 i32 i32) (result i32) (i32.const -1))
   (func (export "as-call-first") (param i32) (result i32)
-    (call $$f (local.tee 0 (i32.const 12)) (i32.const 2) (i32.const 3))
+    (call \$f (local.tee 0 (i32.const 12)) (i32.const 2) (i32.const 3))
   )
   (func (export "as-call-mid") (param i32) (result i32)
-    (call $$f (i32.const 1) (local.tee 0 (i32.const 13)) (i32.const 3))
+    (call \$f (i32.const 1) (local.tee 0 (i32.const 13)) (i32.const 3))
   )
   (func (export "as-call-last") (param i32) (result i32)
-    (call $$f (i32.const 1) (i32.const 2) (local.tee 0 (i32.const 14)))
+    (call \$f (i32.const 1) (i32.const 2) (local.tee 0 (i32.const 14)))
   )
 
-  (type $$sig (func (param i32 i32 i32) (result i32)))
-  (table funcref (elem $$f))
+  (type \$sig (func (param i32 i32 i32) (result i32)))
+  (table funcref (elem \$f))
   (func (export "as-call_indirect-first") (param i32) (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (local.tee 0 (i32.const 1)) (i32.const 2) (i32.const 3) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-mid") (param i32) (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (local.tee 0 (i32.const 2)) (i32.const 3) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-last") (param i32) (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.const 2) (local.tee 0 (i32.const 3)) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-index") (param i32) (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.const 2) (i32.const 3) (local.tee 0 (i32.const 0))
     )
   )
@@ -234,9 +234,9 @@ let $0 = instantiate(`(module
   (func (export "as-local.tee-value") (param i32) (result i32)
     (local.tee 0 (local.tee 0 (i32.const 1)))
   )
-  (global $$g (mut i32) (i32.const 0))
+  (global \$g (mut i32) (i32.const 0))
   (func (export "as-global.set-value") (local i32)
-    (global.set $$g (local.tee 0 (i32.const 1)))
+    (global.set \$g (local.tee 0 (i32.const 1)))
   )
 
   (memory 1)
@@ -469,92 +469,92 @@ assert_return(
 
 // ./test/core/local_tee.wast:370
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-num-vs-num (result i64) (local i32) (local.tee 0 (i32.const 0))))`),
+  () => instantiate(`(module (func \$type-local-num-vs-num (result i64) (local i32) (local.tee 0 (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:374
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-num-vs-num (local f32) (i32.eqz (local.tee 0 (f32.const 0)))))`),
+  () => instantiate(`(module (func \$type-local-num-vs-num (local f32) (i32.eqz (local.tee 0 (f32.const 0)))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:378
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-num-vs-num (local f64 i64) (f64.neg (local.tee 1 (i64.const 0)))))`),
+  () => instantiate(`(module (func \$type-local-num-vs-num (local f64 i64) (f64.neg (local.tee 1 (i64.const 0)))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:383
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-void-vs-num (local i32) (local.tee 0 (nop))))`),
+  () => instantiate(`(module (func \$type-local-arg-void-vs-num (local i32) (local.tee 0 (nop))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:387
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-num-vs-num (local i32) (local.tee 0 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-local-arg-num-vs-num (local i32) (local.tee 0 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:391
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-num-vs-num (local f32) (local.tee 0 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-local-arg-num-vs-num (local f32) (local.tee 0 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:395
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-num-vs-num (local f64 i64) (local.tee 1 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-local-arg-num-vs-num (local f64 i64) (local.tee 1 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:403
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-num-vs-num (param i32) (result i64) (local.get 0)))`),
+  () => instantiate(`(module (func \$type-param-num-vs-num (param i32) (result i64) (local.get 0)))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:407
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-num-vs-num (param f32) (i32.eqz (local.get 0))))`),
+  () => instantiate(`(module (func \$type-param-num-vs-num (param f32) (i32.eqz (local.get 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:411
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-num-vs-num (param f64 i64) (f64.neg (local.get 1))))`),
+  () => instantiate(`(module (func \$type-param-num-vs-num (param f64 i64) (f64.neg (local.get 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:416
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-void-vs-num (param i32) (local.tee 0 (nop))))`),
+  () => instantiate(`(module (func \$type-param-arg-void-vs-num (param i32) (local.tee 0 (nop))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:420
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-num-vs-num (param i32) (local.tee 0 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-param-arg-num-vs-num (param i32) (local.tee 0 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:424
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-num-vs-num (param f32) (local.tee 0 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-param-arg-num-vs-num (param f32) (local.tee 0 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:428
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-num-vs-num (param f64 i64) (local.tee 1 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-param-arg-num-vs-num (param f64 i64) (local.tee 1 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:433
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num (param i32)
+    (func \$type-param-arg-empty-vs-num (param i32)
       (local.tee 0) (drop)
     )
   )`),
@@ -564,7 +564,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:441
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-block (param i32)
+    (func \$type-param-arg-empty-vs-num-in-block (param i32)
       (i32.const 0)
       (block (local.tee 0) (drop))
     )
@@ -575,7 +575,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:450
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-loop (param i32)
+    (func \$type-param-arg-empty-vs-num-in-loop (param i32)
       (i32.const 0)
       (loop (local.tee 0) (drop))
     )
@@ -586,7 +586,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:459
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-then (param i32)
+    (func \$type-param-arg-empty-vs-num-in-then (param i32)
       (i32.const 0) (i32.const 0)
       (if (then (local.tee 0) (drop)))
     )
@@ -597,7 +597,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:468
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-else (param i32)
+    (func \$type-param-arg-empty-vs-num-in-else (param i32)
       (i32.const 0) (i32.const 0)
       (if (result i32) (then (i32.const 0)) (else (local.tee 0))) (drop)
     )
@@ -608,7 +608,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:477
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-br (param i32)
+    (func \$type-param-arg-empty-vs-num-in-br (param i32)
       (i32.const 0)
       (block (br 0 (local.tee 0)) (drop))
     )
@@ -619,7 +619,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:486
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-br_if (param i32)
+    (func \$type-param-arg-empty-vs-num-in-br_if (param i32)
       (i32.const 0)
       (block (br_if 0 (local.tee 0) (i32.const 1)) (drop))
     )
@@ -630,7 +630,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:495
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-br_table (param i32)
+    (func \$type-param-arg-empty-vs-num-in-br_table (param i32)
       (i32.const 0)
       (block (br_table 0 (local.tee 0)) (drop))
     )
@@ -641,7 +641,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:504
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-return (param i32)
+    (func \$type-param-arg-empty-vs-num-in-return (param i32)
       (return (local.tee 0)) (drop)
     )
   )`),
@@ -651,7 +651,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:512
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-select (param i32)
+    (func \$type-param-arg-empty-vs-num-in-select (param i32)
       (select (local.tee 0) (i32.const 1) (i32.const 2)) (drop)
     )
   )`),
@@ -661,7 +661,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:520
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-call (param i32)
+    (func \$type-param-arg-empty-vs-num-in-call (param i32)
       (call 1 (local.tee 0)) (drop)
     )
     (func (param i32) (result i32) (local.get 0))
@@ -672,12 +672,12 @@ assert_invalid(
 // ./test/core/local_tee.wast:529
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32) (result i32) (local.get 0))
-    (type $$sig (func (param i32) (result i32)))
-    (table funcref (elem $$f))
-    (func $$type-param-arg-empty-vs-num-in-call_indirect (param i32)
+    (func \$f (param i32) (result i32) (local.get 0))
+    (type \$sig (func (param i32) (result i32)))
+    (table funcref (elem \$f))
+    (func \$type-param-arg-empty-vs-num-in-call_indirect (param i32)
       (block (result i32)
-        (call_indirect (type $$sig)
+        (call_indirect (type \$sig)
           (local.tee 0) (i32.const 0)
         )
         (drop)
@@ -690,7 +690,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:545
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-local.set (param i32)
+    (func \$type-param-arg-empty-vs-num-in-local.set (param i32)
       (local.set 0 (local.tee 0)) (local.get 0) (drop)
     )
   )`),
@@ -700,7 +700,7 @@ assert_invalid(
 // ./test/core/local_tee.wast:553
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-local.tee (param i32)
+    (func \$type-param-arg-empty-vs-num-in-local.tee (param i32)
       (local.tee 0 (local.tee 0)) (drop)
     )
   )`),
@@ -710,9 +710,9 @@ assert_invalid(
 // ./test/core/local_tee.wast:561
 assert_invalid(
   () => instantiate(`(module
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-param-arg-empty-vs-num-in-global.set (param i32)
-      (global.set $$x (local.tee 0)) (global.get $$x) (drop)
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-param-arg-empty-vs-num-in-global.set (param i32)
+      (global.set \$x (local.tee 0)) (global.get \$x) (drop)
     )
   )`),
   `type mismatch`,
@@ -722,7 +722,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-param-arg-empty-vs-num-in-memory.grow (param i32)
+    (func \$type-param-arg-empty-vs-num-in-memory.grow (param i32)
       (memory.grow (local.tee 0)) (drop)
     )
   )`),
@@ -733,7 +733,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-param-arg-empty-vs-num-in-load (param i32)
+    (func \$type-param-arg-empty-vs-num-in-load (param i32)
       (i32.load (local.tee 0)) (drop)
     )
   )`),
@@ -744,7 +744,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-param-arg-empty-vs-num-in-store (param i32)
+    (func \$type-param-arg-empty-vs-num-in-store (param i32)
       (i32.store (local.tee 0) (i32.const 1))
     )
   )`),
@@ -753,32 +753,32 @@ assert_invalid(
 
 // ./test/core/local_tee.wast:598
 assert_invalid(
-  () => instantiate(`(module (func $$type-mixed-arg-num-vs-num (param f32) (local i32) (local.tee 1 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-mixed-arg-num-vs-num (param f32) (local i32) (local.tee 1 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:602
 assert_invalid(
-  () => instantiate(`(module (func $$type-mixed-arg-num-vs-num (param i64 i32) (local f32) (local.tee 1 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-mixed-arg-num-vs-num (param i64 i32) (local f32) (local.tee 1 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:606
 assert_invalid(
-  () => instantiate(`(module (func $$type-mixed-arg-num-vs-num (param i64) (local f64 i64) (local.tee 1 (i64.const 0))))`),
+  () => instantiate(`(module (func \$type-mixed-arg-num-vs-num (param i64) (local f64 i64) (local.tee 1 (i64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_tee.wast:612
 assert_invalid(
   () => instantiate(`(module
-    (type $$t (func))
-    (func $$f (param (ref null $$t)))
+    (type \$t (func))
+    (func \$f (param (ref null \$t)))
     (func
-      (local $$x funcref)
-      (ref.null $$t)
-      (local.tee $$x)  ;; leaves only a funcref on the stack
-      (call $$f)
+      (local \$x funcref)
+      (ref.null \$t)
+      (local.tee \$x)  ;; leaves only a funcref on the stack
+      (call \$f)
     )
   )`),
   `type mismatch`,
@@ -786,36 +786,36 @@ assert_invalid(
 
 // ./test/core/local_tee.wast:629
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-local (local i32 i64) (local.tee 3 (i32.const 0)) drop))`),
+  () => instantiate(`(module (func \$unbound-local (local i32 i64) (local.tee 3 (i32.const 0)) drop))`),
   `unknown local`,
 );
 
 // ./test/core/local_tee.wast:633
 assert_invalid(
-  () => instantiate(`(module (func $$large-local (local i32 i64) (local.tee 14324343 (i32.const 0)) drop))`),
+  () => instantiate(`(module (func \$large-local (local i32 i64) (local.tee 14324343 (i32.const 0)) drop))`),
   `unknown local`,
 );
 
 // ./test/core/local_tee.wast:638
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-param (param i32 i64) (local.tee 2 (i32.const 0)) drop))`),
+  () => instantiate(`(module (func \$unbound-param (param i32 i64) (local.tee 2 (i32.const 0)) drop))`),
   `unknown local`,
 );
 
 // ./test/core/local_tee.wast:642
 assert_invalid(
-  () => instantiate(`(module (func $$large-param (param i32 i64) (local.tee 714324343 (i32.const 0)) drop))`),
+  () => instantiate(`(module (func \$large-param (param i32 i64) (local.tee 714324343 (i32.const 0)) drop))`),
   `unknown local`,
 );
 
 // ./test/core/local_tee.wast:647
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-mixed (param i32) (local i32 i64) (local.tee 3 (i32.const 0)) drop))`),
+  () => instantiate(`(module (func \$unbound-mixed (param i32) (local i32 i64) (local.tee 3 (i32.const 0)) drop))`),
   `unknown local`,
 );
 
 // ./test/core/local_tee.wast:651
 assert_invalid(
-  () => instantiate(`(module (func $$large-mixed (param i64) (local i32 i64) (local.tee 214324343 (i32.const 0)) drop))`),
+  () => instantiate(`(module (func \$large-mixed (param i64) (local i32 i64) (local.tee 214324343 (i32.const 0)) drop))`),
   `unknown local`,
 );

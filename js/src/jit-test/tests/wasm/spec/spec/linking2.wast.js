@@ -16,15 +16,15 @@
 // ./test/core/multi-memory/linking2.wast
 
 // ./test/core/multi-memory/linking2.wast:1
-let $0 = instantiate(`(module $$Mm
-  (memory $$mem0 (export "mem0") 0 0)
-  (memory $$mem1 (export "mem1") 1 5)
-  (memory $$mem2 (export "mem2") 0 0)
+let $0 = instantiate(`(module \$Mm
+  (memory \$mem0 (export "mem0") 0 0)
+  (memory \$mem1 (export "mem1") 1 5)
+  (memory \$mem2 (export "mem2") 0 0)
   
   (data (memory 1) (i32.const 10) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09")
 
-  (func (export "load") (param $$a i32) (result i32)
-    (i32.load8_u $$mem1 (local.get 0))
+  (func (export "load") (param \$a i32) (result i32)
+    (i32.load8_u \$mem1 (local.get 0))
   )
 )`);
 let $Mm = $0;
@@ -33,10 +33,10 @@ let $Mm = $0;
 register($Mm, `Mm`);
 
 // ./test/core/multi-memory/linking2.wast:14
-let $1 = instantiate(`(module $$Pm
+let $1 = instantiate(`(module \$Pm
   (memory (import "Mm" "mem1") 1 8)
 
-  (func (export "grow") (param $$a i32) (result i32)
+  (func (export "grow") (param \$a i32) (result i32)
     (memory.grow (local.get 0))
   )
 )`);

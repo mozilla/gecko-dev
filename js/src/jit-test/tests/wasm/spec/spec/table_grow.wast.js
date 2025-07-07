@@ -17,27 +17,27 @@
 
 // ./test/core/table_grow.wast:1
 let $0 = instantiate(`(module
-  (table $$t 0 externref)
+  (table \$t 0 externref)
 
-  (func (export "get") (param $$i i32) (result externref) (table.get $$t (local.get $$i)))
-  (func (export "set") (param $$i i32) (param $$r externref) (table.set $$t (local.get $$i) (local.get $$r)))
+  (func (export "get") (param \$i i32) (result externref) (table.get \$t (local.get \$i)))
+  (func (export "set") (param \$i i32) (param \$r externref) (table.set \$t (local.get \$i) (local.get \$r)))
 
-  (func (export "grow") (param $$sz i32) (param $$init externref) (result i32)
-    (table.grow $$t (local.get $$init) (local.get $$sz))
+  (func (export "grow") (param \$sz i32) (param \$init externref) (result i32)
+    (table.grow \$t (local.get \$init) (local.get \$sz))
   )
-  (func (export "grow-abbrev") (param $$sz i32) (param $$init externref) (result i32)
-    (table.grow (local.get $$init) (local.get $$sz))
+  (func (export "grow-abbrev") (param \$sz i32) (param \$init externref) (result i32)
+    (table.grow (local.get \$init) (local.get \$sz))
   )
-  (func (export "size") (result i32) (table.size $$t))
+  (func (export "size") (result i32) (table.size \$t))
 
-  (table $$t64 i64 0 externref)
+  (table \$t64 i64 0 externref)
 
-  (func (export "get-t64") (param $$i i64) (result externref) (table.get $$t64 (local.get $$i)))
-  (func (export "set-t64") (param $$i i64) (param $$r externref) (table.set $$t64 (local.get $$i) (local.get $$r)))
-  (func (export "grow-t64") (param $$sz i64) (param $$init externref) (result i64)
-    (table.grow $$t64 (local.get $$init) (local.get $$sz))
+  (func (export "get-t64") (param \$i i64) (result externref) (table.get \$t64 (local.get \$i)))
+  (func (export "set-t64") (param \$i i64) (param \$r externref) (table.set \$t64 (local.get \$i) (local.get \$r)))
+  (func (export "grow-t64") (param \$sz i64) (param \$init externref) (result i64)
+    (table.grow \$t64 (local.get \$init) (local.get \$sz))
   )
-  (func (export "size-t64") (result i64) (table.size $$t64))
+  (func (export "size-t64") (result i64) (table.size \$t64))
 )`);
 
 // ./test/core/table_grow.wast:25
@@ -168,10 +168,10 @@ assert_trap(() => invoke($0, `get-t64`, [5n]), `out of bounds table access`);
 
 // ./test/core/table_grow.wast:75
 let $1 = instantiate(`(module
-  (table $$t 0x10 funcref)
-  (elem declare func $$f)
-  (func $$f (export "grow") (result i32)
-    (table.grow $$t (ref.func $$f) (i32.const 0xffff_fff0))
+  (table \$t 0x10 funcref)
+  (elem declare func \$f)
+  (func \$f (export "grow") (result i32)
+    (table.grow \$t (ref.func \$f) (i32.const 0xffff_fff0))
   )
 )`);
 
@@ -180,9 +180,9 @@ assert_return(() => invoke($1, `grow`, []), [value("i32", -1)]);
 
 // ./test/core/table_grow.wast:86
 let $2 = instantiate(`(module
-  (table $$t 0 externref)
+  (table \$t 0 externref)
   (func (export "grow") (param i32) (result i32)
-    (table.grow $$t (ref.null extern) (local.get 0))
+    (table.grow \$t (ref.null extern) (local.get 0))
   )
 )`);
 
@@ -203,9 +203,9 @@ assert_return(() => invoke($2, `grow`, [800]), [value("i32", 3)]);
 
 // ./test/core/table_grow.wast:100
 let $3 = instantiate(`(module
-  (table $$t 0 10 externref)
+  (table \$t 0 10 externref)
   (func (export "grow") (param i32) (result i32)
-    (table.grow $$t (ref.null extern) (local.get 0))
+    (table.grow \$t (ref.null extern) (local.get 0))
   )
 )`);
 
@@ -235,9 +235,9 @@ assert_return(() => invoke($3, `grow`, [65536]), [value("i32", -1)]);
 
 // ./test/core/table_grow.wast:117
 let $4 = instantiate(`(module
-  (table $$t 10 funcref)
+  (table \$t 10 funcref)
   (func (export "grow") (param i32) (result i32)
-    (table.grow $$t (ref.null func) (local.get 0))
+    (table.grow \$t (ref.null func) (local.get 0))
   )
   (elem declare func 1)
   (func (export "check-table-null") (param i32 i32) (result funcref)
@@ -245,7 +245,7 @@ let $4 = instantiate(`(module
     (local.set 2 (ref.func 1))
     (block
       (loop
-        (local.set 2 (table.get $$t (local.get 0)))
+        (local.set 2 (table.get \$t (local.get 0)))
         (br_if 1 (i32.eqz (ref.is_null (local.get 2))))
         (br_if 1 (i32.ge_u (local.get 0) (local.get 1)))
         (local.set 0 (i32.add (local.get 0) (i32.const 1)))
@@ -266,7 +266,7 @@ assert_return(() => invoke($4, `grow`, [10]), [value("i32", 10)]);
 assert_return(() => invoke($4, `check-table-null`, [0, 19]), [value('anyfunc', null)]);
 
 // ./test/core/table_grow.wast:144
-let $5 = instantiate(`(module $$Tgt
+let $5 = instantiate(`(module \$Tgt
   (table (export "table") 1 funcref) ;; initial size is 1
   (func (export "grow") (result i32) (table.grow (ref.null func) (i32.const 1)))
 )`);
@@ -279,7 +279,7 @@ register($Tgt, `grown-table`);
 assert_return(() => invoke($Tgt, `grow`, []), [value("i32", 1)]);
 
 // ./test/core/table_grow.wast:150
-let $6 = instantiate(`(module $$Tgit1
+let $6 = instantiate(`(module \$Tgit1
   ;; imported table limits should match, because external table size is 2 now
   (table (export "table") (import "grown-table" "table") 2 funcref)
   (func (export "grow") (result i32) (table.grow (ref.null func) (i32.const 1)))
@@ -293,7 +293,7 @@ register($Tgit1, `grown-imported-table`);
 assert_return(() => invoke($Tgit1, `grow`, []), [value("i32", 2)]);
 
 // ./test/core/table_grow.wast:157
-let $7 = instantiate(`(module $$Tgit2
+let $7 = instantiate(`(module \$Tgit2
   ;; imported table limits should match, because external table size is 3 now
   (import "grown-imported-table" "table" (table 3 funcref))
   (func (export "size") (result i32) (table.size))
@@ -306,9 +306,9 @@ assert_return(() => invoke($Tgit2, `size`, []), [value("i32", 3)]);
 // ./test/core/table_grow.wast:167
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 externref)
-    (func $$type-init-size-empty-vs-i32-externref (result i32)
-      (table.grow $$t)
+    (table \$t 0 externref)
+    (func \$type-init-size-empty-vs-i32-externref (result i32)
+      (table.grow \$t)
     )
   )`),
   `type mismatch`,
@@ -317,9 +317,9 @@ assert_invalid(
 // ./test/core/table_grow.wast:176
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 externref)
-    (func $$type-size-empty-vs-i32 (result i32)
-      (table.grow $$t (ref.null extern))
+    (table \$t 0 externref)
+    (func \$type-size-empty-vs-i32 (result i32)
+      (table.grow \$t (ref.null extern))
     )
   )`),
   `type mismatch`,
@@ -328,9 +328,9 @@ assert_invalid(
 // ./test/core/table_grow.wast:185
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 externref)
-    (func $$type-init-empty-vs-externref (result i32)
-      (table.grow $$t (i32.const 1))
+    (table \$t 0 externref)
+    (func \$type-init-empty-vs-externref (result i32)
+      (table.grow \$t (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -339,9 +339,9 @@ assert_invalid(
 // ./test/core/table_grow.wast:194
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 externref)
-    (func $$type-size-f32-vs-i32 (result i32)
-      (table.grow $$t (ref.null extern) (f32.const 1))
+    (table \$t 0 externref)
+    (func \$type-size-f32-vs-i32 (result i32)
+      (table.grow \$t (ref.null extern) (f32.const 1))
     )
   )`),
   `type mismatch`,
@@ -350,9 +350,9 @@ assert_invalid(
 // ./test/core/table_grow.wast:203
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 funcref)
-    (func $$type-init-externref-vs-funcref (param $$r externref) (result i32)
-      (table.grow $$t (local.get $$r) (i32.const 1))
+    (table \$t 0 funcref)
+    (func \$type-init-externref-vs-funcref (param \$r externref) (result i32)
+      (table.grow \$t (local.get \$r) (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -361,9 +361,9 @@ assert_invalid(
 // ./test/core/table_grow.wast:213
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 1 externref)
-    (func $$type-result-i32-vs-empty
-      (table.grow $$t (ref.null extern) (i32.const 0))
+    (table \$t 1 externref)
+    (func \$type-result-i32-vs-empty
+      (table.grow \$t (ref.null extern) (i32.const 0))
     )
   )`),
   `type mismatch`,
@@ -372,9 +372,9 @@ assert_invalid(
 // ./test/core/table_grow.wast:222
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 1 externref)
-    (func $$type-result-i32-vs-f32 (result f32)
-      (table.grow $$t (ref.null extern) (i32.const 0))
+    (table \$t 1 externref)
+    (func \$type-result-i32-vs-f32 (result f32)
+      (table.grow \$t (ref.null extern) (i32.const 0))
     )
   )`),
   `type mismatch`,

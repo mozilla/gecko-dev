@@ -22,7 +22,7 @@ let $0 = instantiate(`(module
   (memory 0 0)
   (memory 0 0)
   (memory 0 0)
-  (memory $$m (data
+  (memory \$m (data
     "\\c4\\c5\\57\\24\\a5\\84\\c8\\0b\\6d\\b8\\4b\\2e\\f2\\76\\17\\1c\\ca\\4a\\56\\1e\\1b\\6e\\71\\22"
     "\\5d\\17\\1e\\6e\\bf\\cd\\14\\5c\\c7\\21\\55\\51\\39\\9c\\1f\\b2\\51\\f0\\a3\\93\\d7\\c1\\2c\\ae"
     "\\7e\\a8\\28\\3a\\01\\21\\f4\\0a\\58\\93\\f8\\42\\77\\9f\\83\\39\\6a\\5f\\ba\\f7\\0a\\d8\\51\\6a"
@@ -71,47 +71,47 @@ let $0 = instantiate(`(module
   (memory 0 0)
   (memory 0 0)
 
-  (func (export "f32.kahan_sum") (param $$p i32) (param $$n i32) (result f32)
-    (local $$sum f32)
-    (local $$c f32)
-    (local $$t f32)
-    (block $$exit
-      (loop $$top
-        (local.set $$t
+  (func (export "f32.kahan_sum") (param \$p i32) (param \$n i32) (result f32)
+    (local \$sum f32)
+    (local \$c f32)
+    (local \$t f32)
+    (block \$exit
+      (loop \$top
+        (local.set \$t
           (f32.sub
             (f32.sub
-              (local.tee $$sum
+              (local.tee \$sum
                 (f32.add
-                  (local.get $$c)
-                  (local.tee $$t
-                    (f32.sub (f32.load $$m (local.get $$p)) (local.get $$t))
+                  (local.get \$c)
+                  (local.tee \$t
+                    (f32.sub (f32.load \$m (local.get \$p)) (local.get \$t))
                   )
                 )
               )
-              (local.get $$c)
+              (local.get \$c)
             )
-            (local.get $$t)
+            (local.get \$t)
           )
         )
-        (local.set $$p (i32.add (local.get $$p) (i32.const 4)))
-        (local.set $$c (local.get $$sum))
-        (br_if $$top (local.tee $$n (i32.add (local.get $$n) (i32.const -1))))
+        (local.set \$p (i32.add (local.get \$p) (i32.const 4)))
+        (local.set \$c (local.get \$sum))
+        (br_if \$top (local.tee \$n (i32.add (local.get \$n) (i32.const -1))))
       )
     )
-    (local.get $$sum)
+    (local.get \$sum)
   )
 
-  (func (export "f32.plain_sum") (param $$p i32) (param $$n i32) (result f32)
-    (local $$sum f32)
-    (block $$exit
-      (loop $$top
-        (local.set $$sum (f32.add (local.get $$sum) (f32.load $$m (local.get $$p))))
-        (local.set $$p (i32.add (local.get $$p) (i32.const 4)))
-        (local.set $$n (i32.add (local.get $$n) (i32.const -1)))
-        (br_if $$top (local.get $$n))
+  (func (export "f32.plain_sum") (param \$p i32) (param \$n i32) (result f32)
+    (local \$sum f32)
+    (block \$exit
+      (loop \$top
+        (local.set \$sum (f32.add (local.get \$sum) (f32.load \$m (local.get \$p))))
+        (local.set \$p (i32.add (local.get \$p) (i32.const 4)))
+        (local.set \$n (i32.add (local.get \$n) (i32.const -1)))
+        (br_if \$top (local.get \$n))
       )
     )
-    (local.get $$sum)
+    (local.get \$sum)
   )
 )`);
 

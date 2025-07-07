@@ -17,24 +17,24 @@
 
 // ./test/core/multi-memory/traps0.wast:1
 let $0 = instantiate(`(module
-    (memory $$mem0 1)
-    (memory $$mem1 1)
-    (memory $$mem2 1)
+    (memory \$mem0 1)
+    (memory \$mem1 1)
+    (memory \$mem2 1)
 
-    (func (export "no_dce.i32.load") (param $$i i32) (drop (i32.load $$mem1 (local.get $$i))))
-    (func (export "no_dce.i32.load16_s") (param $$i i32) (drop (i32.load16_s $$mem1 (local.get $$i))))
-    (func (export "no_dce.i32.load16_u") (param $$i i32) (drop (i32.load16_u $$mem1 (local.get $$i))))
-    (func (export "no_dce.i32.load8_s") (param $$i i32) (drop (i32.load8_s $$mem1 (local.get $$i))))
-    (func (export "no_dce.i32.load8_u") (param $$i i32) (drop (i32.load8_u $$mem1 (local.get $$i))))
-    (func (export "no_dce.i64.load") (param $$i i32) (drop (i64.load $$mem1 (local.get $$i))))
-    (func (export "no_dce.i64.load32_s") (param $$i i32) (drop (i64.load32_s $$mem1 (local.get $$i))))
-    (func (export "no_dce.i64.load32_u") (param $$i i32) (drop (i64.load32_u $$mem2 (local.get $$i))))
-    (func (export "no_dce.i64.load16_s") (param $$i i32) (drop (i64.load16_s $$mem2 (local.get $$i))))
-    (func (export "no_dce.i64.load16_u") (param $$i i32) (drop (i64.load16_u $$mem2 (local.get $$i))))
-    (func (export "no_dce.i64.load8_s") (param $$i i32) (drop (i64.load8_s $$mem2 (local.get $$i))))
-    (func (export "no_dce.i64.load8_u") (param $$i i32) (drop (i64.load8_u $$mem2 (local.get $$i))))
-    (func (export "no_dce.f32.load") (param $$i i32) (drop (f32.load $$mem2 (local.get $$i))))
-    (func (export "no_dce.f64.load") (param $$i i32) (drop (f64.load $$mem2 (local.get $$i))))
+    (func (export "no_dce.i32.load") (param \$i i32) (drop (i32.load \$mem1 (local.get \$i))))
+    (func (export "no_dce.i32.load16_s") (param \$i i32) (drop (i32.load16_s \$mem1 (local.get \$i))))
+    (func (export "no_dce.i32.load16_u") (param \$i i32) (drop (i32.load16_u \$mem1 (local.get \$i))))
+    (func (export "no_dce.i32.load8_s") (param \$i i32) (drop (i32.load8_s \$mem1 (local.get \$i))))
+    (func (export "no_dce.i32.load8_u") (param \$i i32) (drop (i32.load8_u \$mem1 (local.get \$i))))
+    (func (export "no_dce.i64.load") (param \$i i32) (drop (i64.load \$mem1 (local.get \$i))))
+    (func (export "no_dce.i64.load32_s") (param \$i i32) (drop (i64.load32_s \$mem1 (local.get \$i))))
+    (func (export "no_dce.i64.load32_u") (param \$i i32) (drop (i64.load32_u \$mem2 (local.get \$i))))
+    (func (export "no_dce.i64.load16_s") (param \$i i32) (drop (i64.load16_s \$mem2 (local.get \$i))))
+    (func (export "no_dce.i64.load16_u") (param \$i i32) (drop (i64.load16_u \$mem2 (local.get \$i))))
+    (func (export "no_dce.i64.load8_s") (param \$i i32) (drop (i64.load8_s \$mem2 (local.get \$i))))
+    (func (export "no_dce.i64.load8_u") (param \$i i32) (drop (i64.load8_u \$mem2 (local.get \$i))))
+    (func (export "no_dce.f32.load") (param \$i i32) (drop (f32.load \$mem2 (local.get \$i))))
+    (func (export "no_dce.f64.load") (param \$i i32) (drop (f64.load \$mem2 (local.get \$i))))
 )`);
 
 // ./test/core/multi-memory/traps0.wast:22

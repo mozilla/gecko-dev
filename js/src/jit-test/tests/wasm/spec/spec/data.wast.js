@@ -17,7 +17,7 @@
 
 // ./test/core/data.wast:5
 let $0 = instantiate(`(module
-  (memory $$m 1)
+  (memory \$m 1)
   (data (i32.const 0))
   (data (i32.const 1) "a" "" "bcd")
   (data (offset (i32.const 0)))
@@ -26,23 +26,23 @@ let $0 = instantiate(`(module
   (data (memory 0x0) (i32.const 1) "a" "" "bcd")
   (data (memory 0x000) (offset (i32.const 0)))
   (data (memory 0) (offset (i32.const 0)) "" "a" "bc" "")
-  (data (memory $$m) (i32.const 0))
-  (data (memory $$m) (i32.const 1) "a" "" "bcd")
-  (data (memory $$m) (offset (i32.const 0)))
-  (data (memory $$m) (offset (i32.const 0)) "" "a" "bc" "")
+  (data (memory \$m) (i32.const 0))
+  (data (memory \$m) (i32.const 1) "a" "" "bcd")
+  (data (memory \$m) (offset (i32.const 0)))
+  (data (memory \$m) (offset (i32.const 0)) "" "a" "bc" "")
 
-  (data $$d1 (i32.const 0))
-  (data $$d2 (i32.const 1) "a" "" "bcd")
-  (data $$d3 (offset (i32.const 0)))
-  (data $$d4 (offset (i32.const 0)) "" "a" "bc" "")
-  (data $$d5 (memory 0) (i32.const 0))
-  (data $$d6 (memory 0x0) (i32.const 1) "a" "" "bcd")
-  (data $$d7 (memory 0x000) (offset (i32.const 0)))
-  (data $$d8 (memory 0) (offset (i32.const 0)) "" "a" "bc" "")
-  (data $$d9 (memory $$m) (i32.const 0))
-  (data $$d10 (memory $$m) (i32.const 1) "a" "" "bcd")
-  (data $$d11 (memory $$m) (offset (i32.const 0)))
-  (data $$d12 (memory $$m) (offset (i32.const 0)) "" "a" "bc" "")
+  (data \$d1 (i32.const 0))
+  (data \$d2 (i32.const 1) "a" "" "bcd")
+  (data \$d3 (offset (i32.const 0)))
+  (data \$d4 (offset (i32.const 0)) "" "a" "bc" "")
+  (data \$d5 (memory 0) (i32.const 0))
+  (data \$d6 (memory 0x0) (i32.const 1) "a" "" "bcd")
+  (data \$d7 (memory 0x000) (offset (i32.const 0)))
+  (data \$d8 (memory 0) (offset (i32.const 0)) "" "a" "bc" "")
+  (data \$d9 (memory \$m) (i32.const 0))
+  (data \$d10 (memory \$m) (i32.const 1) "a" "" "bcd")
+  (data \$d11 (memory \$m) (offset (i32.const 0)))
+  (data \$d12 (memory \$m) (offset (i32.const 0)) "" "a" "bc" "")
 )`);
 
 // ./test/core/data.wast:36
@@ -94,23 +94,23 @@ let $6 = instantiate(`(module
 
 // ./test/core/data.wast:74
 let $7 = instantiate(`(module
-  (global $$g (import "spectest" "global_i32") i32)
+  (global \$g (import "spectest" "global_i32") i32)
   (memory 1)
-  (data (global.get $$g) "a")
+  (data (global.get \$g) "a")
 )`);
 
 // ./test/core/data.wast:79
 let $8 = instantiate(`(module
-  (global $$g (import "spectest" "global_i32") i32)
+  (global \$g (import "spectest" "global_i32") i32)
   (import "spectest" "memory" (memory 1))
-  (data (global.get $$g) "a")
+  (data (global.get \$g) "a")
 )`);
 
 // ./test/core/data.wast:85
 let $9 = instantiate(`(module (memory 1) (global i32 (i32.const 0)) (data (global.get 0) "a"))`);
 
 // ./test/core/data.wast:86
-let $10 = instantiate(`(module (memory 1) (global $$g i32 (i32.const 0)) (data (global.get $$g) "a"))`);
+let $10 = instantiate(`(module (memory 1) (global \$g i32 (i32.const 0)) (data (global.get \$g) "a"))`);
 
 // ./test/core/data.wast:91
 let $11 = instantiate(`(module
@@ -545,9 +545,9 @@ assert_invalid(
 // ./test/core/data.wast:492
 assert_invalid(
   () => instantiate(`(module
-    (global $$g (import "test" "g") (mut i32))
+    (global \$g (import "test" "g") (mut i32))
     (memory 1)
-    (data (global.get $$g))
+    (data (global.get \$g))
   )`),
   `constant expression required`,
 );

@@ -22,11 +22,11 @@ let $0 = instantiate(`(module binary "\\00asm\\01\\00\\00\\00")`);
 let $1 = instantiate(`(module binary "\\00asm" "\\01\\00\\00\\00")`);
 
 // ./test/core/binary.wast:3
-let $2 = instantiate(`(module $$M1 binary "\\00asm\\01\\00\\00\\00")`);
+let $2 = instantiate(`(module \$M1 binary "\\00asm\\01\\00\\00\\00")`);
 let $M1 = $2;
 
 // ./test/core/binary.wast:4
-let $3 = instantiate(`(module $$M2 binary "\\00asm" "\\01\\00\\00\\00")`);
+let $3 = instantiate(`(module \$M2 binary "\\00asm" "\\01\\00\\00\\00")`);
 let $M2 = $3;
 
 // ./test/core/binary.wast:6

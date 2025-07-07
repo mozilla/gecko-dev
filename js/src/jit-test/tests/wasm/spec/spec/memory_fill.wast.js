@@ -19,16 +19,16 @@
 let $0 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0xFF00) (i32.const 0x55) (i32.const 256))))`);
@@ -46,16 +46,16 @@ assert_return(() => invoke($0, `checkRange`, [65280, 65536, 85]), [value("i32", 
 let $1 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0xFF00) (i32.const 0x55) (i32.const 257))))`);
@@ -67,16 +67,16 @@ assert_trap(() => invoke($1, `test`, []), `out of bounds memory access`);
 let $2 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0xFFFFFF00) (i32.const 0x55) (i32.const 257))))`);
@@ -88,16 +88,16 @@ assert_trap(() => invoke($2, `test`, []), `out of bounds memory access`);
 let $3 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0x12) (i32.const 0x55) (i32.const 0))))`);
@@ -112,16 +112,16 @@ assert_return(() => invoke($3, `checkRange`, [0, 65536, 0]), [value("i32", -1)])
 let $4 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0x10000) (i32.const 0x55) (i32.const 0))))`);
@@ -133,16 +133,16 @@ invoke($4, `test`, []);
 let $5 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0x20000) (i32.const 0x55) (i32.const 0))))`);
@@ -154,16 +154,16 @@ assert_trap(() => invoke($5, `test`, []), `out of bounds memory access`);
 let $6 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i32.const 0x1) (i32.const 0xAA) (i32.const 0xFFFE))))`);
@@ -184,16 +184,16 @@ assert_return(() => invoke($6, `checkRange`, [65535, 65536, 0]), [value("i32", -
 let $7 = instantiate(`(module
   (memory 1 1)
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
      (memory.fill (i32.const 0x12) (i32.const 0x55) (i32.const 10))
@@ -796,19 +796,19 @@ assert_invalid(
 let $8 = instantiate(`(module
   (memory 1 1 )
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
-  (func (export "run") (param $$offs i32) (param $$val i32) (param $$len i32)
-    (memory.fill (local.get $$offs) (local.get $$val) (local.get $$len))))`);
+  (func (export "run") (param \$offs i32) (param \$val i32) (param \$len i32)
+    (memory.fill (local.get \$offs) (local.get \$val) (local.get \$len))))`);
 
 // ./test/core/memory_fill.wast:638
 assert_trap(() => invoke($8, `run`, [65280, 37, 512]), `out of bounds memory access`);
@@ -820,19 +820,19 @@ assert_return(() => invoke($8, `checkRange`, [0, 1, 0]), [value("i32", -1)]);
 let $9 = instantiate(`(module
   (memory 1 1 )
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
-  (func (export "run") (param $$offs i32) (param $$val i32) (param $$len i32)
-    (memory.fill (local.get $$offs) (local.get $$val) (local.get $$len))))`);
+  (func (export "run") (param \$offs i32) (param \$val i32) (param \$len i32)
+    (memory.fill (local.get \$offs) (local.get \$val) (local.get \$len))))`);
 
 // ./test/core/memory_fill.wast:660
 assert_trap(() => invoke($9, `run`, [65279, 37, 514]), `out of bounds memory access`);
@@ -844,19 +844,19 @@ assert_return(() => invoke($9, `checkRange`, [0, 1, 0]), [value("i32", -1)]);
 let $10 = instantiate(`(module
   (memory 1 1 )
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
-  (func (export "run") (param $$offs i32) (param $$val i32) (param $$len i32)
-    (memory.fill (local.get $$offs) (local.get $$val) (local.get $$len))))`);
+  (func (export "run") (param \$offs i32) (param \$val i32) (param \$len i32)
+    (memory.fill (local.get \$offs) (local.get \$val) (local.get \$len))))`);
 
 // ./test/core/memory_fill.wast:682
 assert_trap(() => invoke($10, `run`, [65279, 37, -1]), `out of bounds memory access`);
@@ -868,16 +868,16 @@ assert_return(() => invoke($10, `checkRange`, [0, 1, 0]), [value("i32", -1)]);
 let $11 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0xFF00) (i32.const 0x55) (i64.const 256))))`);
@@ -895,16 +895,16 @@ assert_return(() => invoke($11, `checkRange`, [65280n, 65536n, 85]), [value("i64
 let $12 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0xFF00) (i32.const 0x55) (i64.const 257))))`);
@@ -916,16 +916,16 @@ assert_trap(() => invoke($12, `test`, []), `out of bounds memory access`);
 let $13 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0xFFFFFF00) (i32.const 0x55) (i64.const 257))))`);
@@ -937,16 +937,16 @@ assert_trap(() => invoke($13, `test`, []), `out of bounds memory access`);
 let $14 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0x12) (i32.const 0x55) (i64.const 0))))`);
@@ -961,16 +961,16 @@ assert_return(() => invoke($14, `checkRange`, [0n, 65536n, 0]), [value("i64", -1
 let $15 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0x10000) (i32.const 0x55) (i64.const 0))))`);
@@ -982,16 +982,16 @@ invoke($15, `test`, []);
 let $16 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0x20000) (i32.const 0x55) (i64.const 0))))`);
@@ -1003,16 +1003,16 @@ assert_trap(() => invoke($16, `test`, []), `out of bounds memory access`);
 let $17 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
     (memory.fill (i64.const 0x1) (i32.const 0xAA) (i64.const 0xFFFE))))`);
@@ -1033,16 +1033,16 @@ assert_return(() => invoke($17, `checkRange`, [65535n, 65536n, 0]), [value("i64"
 let $18 = instantiate(`(module
   (memory i64 1 1)
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
   (func (export "test")
      (memory.fill (i64.const 0x12) (i32.const 0x55) (i64.const 10))
@@ -1645,19 +1645,19 @@ assert_invalid(
 let $19 = instantiate(`(module
   (memory i64 1 1 )
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
-  (func (export "run") (param $$offs i64) (param $$val i32) (param $$len i64)
-    (memory.fill (local.get $$offs) (local.get $$val) (local.get $$len))))`);
+  (func (export "run") (param \$offs i64) (param \$val i32) (param \$len i64)
+    (memory.fill (local.get \$offs) (local.get \$val) (local.get \$len))))`);
 
 // ./test/core/memory_fill.wast:1320
 assert_trap(() => invoke($19, `run`, [65280n, 37, 512n]), `out of bounds memory access`);
@@ -1669,19 +1669,19 @@ assert_return(() => invoke($19, `checkRange`, [0n, 1n, 0]), [value("i64", -1n)])
 let $20 = instantiate(`(module
   (memory i64 1 1 )
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
-  (func (export "run") (param $$offs i64) (param $$val i32) (param $$len i64)
-    (memory.fill (local.get $$offs) (local.get $$val) (local.get $$len))))`);
+  (func (export "run") (param \$offs i64) (param \$val i32) (param \$len i64)
+    (memory.fill (local.get \$offs) (local.get \$val) (local.get \$len))))`);
 
 // ./test/core/memory_fill.wast:1342
 assert_trap(() => invoke($20, `run`, [65279n, 37, 514n]), `out of bounds memory access`);
@@ -1693,19 +1693,19 @@ assert_return(() => invoke($20, `checkRange`, [0n, 1n, 0]), [value("i64", -1n)])
 let $21 = instantiate(`(module
   (memory i64 1 1 )
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 
-  (func (export "run") (param $$offs i64) (param $$val i32) (param $$len i64)
-    (memory.fill (local.get $$offs) (local.get $$val) (local.get $$len))))`);
+  (func (export "run") (param \$offs i64) (param \$val i32) (param \$len i64)
+    (memory.fill (local.get \$offs) (local.get \$val) (local.get \$len))))`);
 
 // ./test/core/memory_fill.wast:1364
 assert_trap(() => invoke($21, `run`, [65279n, 37, 4294967295n]), `out of bounds memory access`);

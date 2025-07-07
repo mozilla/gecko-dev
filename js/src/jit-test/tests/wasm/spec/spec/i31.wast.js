@@ -17,15 +17,15 @@
 
 // ./test/core/gc/i31.wast:1
 let $0 = instantiate(`(module
-  (func (export "new") (param $$i i32) (result (ref i31))
-    (ref.i31 (local.get $$i))
+  (func (export "new") (param \$i i32) (result (ref i31))
+    (ref.i31 (local.get \$i))
   )
 
-  (func (export "get_u") (param $$i i32) (result i32)
-    (i31.get_u (ref.i31 (local.get $$i)))
+  (func (export "get_u") (param \$i i32) (result i32)
+    (i31.get_u (ref.i31 (local.get \$i)))
   )
-  (func (export "get_s") (param $$i i32) (result i32)
-    (i31.get_s (ref.i31 (local.get $$i)))
+  (func (export "get_s") (param \$i i32) (result i32)
+    (i31.get_s (ref.i31 (local.get \$i)))
   )
 
   (func (export "get_u-null") (result i32)
@@ -35,16 +35,16 @@ let $0 = instantiate(`(module
     (i31.get_s (ref.null i31))
   )
 
-  (global $$i (ref i31) (ref.i31 (i32.const 2)))
-  (global $$m (mut (ref i31)) (ref.i31 (i32.const 3)))
+  (global \$i (ref i31) (ref.i31 (i32.const 2)))
+  (global \$m (mut (ref i31)) (ref.i31 (i32.const 3)))
 
   (func (export "get_globals") (result i32 i32)
-    (i31.get_u (global.get $$i))
-    (i31.get_u (global.get $$m))
+    (i31.get_u (global.get \$i))
+    (i31.get_u (global.get \$m))
   )
 
   (func (export "set_global") (param i32)
-    (global.set $$m (ref.i31 (local.get 0)))
+    (global.set \$m (ref.i31 (local.get 0)))
   )
 )`);
 
@@ -115,37 +115,37 @@ invoke($0, `set_global`, [1234]);
 assert_return(() => invoke($0, `get_globals`, []), [value("i32", 2), value("i32", 1234)]);
 
 // ./test/core/gc/i31.wast:61
-let $1 = instantiate(`(module $$tables_of_i31ref
-  (table $$table 3 10 i31ref)
-  (elem (table $$table) (i32.const 0) i31ref (item (ref.i31 (i32.const 999)))
+let $1 = instantiate(`(module \$tables_of_i31ref
+  (table \$table 3 10 i31ref)
+  (elem (table \$table) (i32.const 0) i31ref (item (ref.i31 (i32.const 999)))
                                             (item (ref.i31 (i32.const 888)))
                                             (item (ref.i31 (i32.const 777))))
 
   (func (export "size") (result i32)
-    table.size $$table
+    table.size \$table
   )
 
   (func (export "get") (param i32) (result i32)
-    (i31.get_u (table.get $$table (local.get 0)))
+    (i31.get_u (table.get \$table (local.get 0)))
   )
 
   (func (export "grow") (param i32 i32) (result i32)
-    (table.grow $$table (ref.i31 (local.get 1)) (local.get 0))
+    (table.grow \$table (ref.i31 (local.get 1)) (local.get 0))
   )
 
   (func (export "fill") (param i32 i32 i32)
-    (table.fill $$table (local.get 0) (ref.i31 (local.get 1)) (local.get 2))
+    (table.fill \$table (local.get 0) (ref.i31 (local.get 1)) (local.get 2))
   )
 
   (func (export "copy") (param i32 i32 i32)
-    (table.copy $$table $$table (local.get 0) (local.get 1) (local.get 2))
+    (table.copy \$table \$table (local.get 0) (local.get 1) (local.get 2))
   )
 
-  (elem $$elem i31ref (item (ref.i31 (i32.const 123)))
+  (elem \$elem i31ref (item (ref.i31 (i32.const 123)))
                      (item (ref.i31 (i32.const 456)))
                      (item (ref.i31 (i32.const 789))))
   (func (export "init") (param i32 i32 i32)
-    (table.init $$table $$elem (local.get 0) (local.get 1) (local.get 2))
+    (table.init \$table \$elem (local.get 0) (local.get 1) (local.get 2))
   )
 )`);
 let $tables_of_i31ref = $1;
@@ -205,7 +205,7 @@ assert_return(() => invoke($1, `get`, [2]), [value("i32", 456)]);
 assert_return(() => invoke($1, `get`, [3]), [value("i32", 789)]);
 
 // ./test/core/gc/i31.wast:123
-let $2 = instantiate(`(module $$env
+let $2 = instantiate(`(module \$env
   (global (export "g") i32 (i32.const 42))
 )`);
 let $env = $2;
@@ -214,11 +214,11 @@ let $env = $2;
 register($2, `env`);
 
 // ./test/core/gc/i31.wast:128
-let $3 = instantiate(`(module $$i31ref_of_global_table_initializer
-  (global $$g (import "env" "g") i32)
-  (table $$t 3 3 (ref i31) (ref.i31 (global.get $$g)))
+let $3 = instantiate(`(module \$i31ref_of_global_table_initializer
+  (global \$g (import "env" "g") i32)
+  (table \$t 3 3 (ref i31) (ref.i31 (global.get \$g)))
   (func (export "get") (param i32) (result i32)
-    (i31.get_u (local.get 0) (table.get $$t))
+    (i31.get_u (local.get 0) (table.get \$t))
   )
 )`);
 let $i31ref_of_global_table_initializer = $3;
@@ -233,11 +233,11 @@ assert_return(() => invoke($3, `get`, [1]), [value("i32", 42)]);
 assert_return(() => invoke($3, `get`, [2]), [value("i32", 42)]);
 
 // ./test/core/gc/i31.wast:140
-let $4 = instantiate(`(module $$i31ref_of_global_global_initializer
-  (global $$g0 (import "env" "g") i32)
-  (global $$g1 i31ref (ref.i31 (global.get $$g0)))
+let $4 = instantiate(`(module \$i31ref_of_global_global_initializer
+  (global \$g0 (import "env" "g") i32)
+  (global \$g1 i31ref (ref.i31 (global.get \$g0)))
   (func (export "get") (result i32)
-    (i31.get_u (global.get $$g1))
+    (i31.get_u (global.get \$g1))
   )
 )`);
 let $i31ref_of_global_global_initializer = $4;
@@ -246,17 +246,17 @@ let $i31ref_of_global_global_initializer = $4;
 assert_return(() => invoke($4, `get`, []), [value("i32", 42)]);
 
 // ./test/core/gc/i31.wast:150
-let $5 = instantiate(`(module $$anyref_global_of_i31ref
-  (global $$c anyref (ref.i31 (i32.const 1234)))
-  (global $$m (mut anyref) (ref.i31 (i32.const 5678)))
+let $5 = instantiate(`(module \$anyref_global_of_i31ref
+  (global \$c anyref (ref.i31 (i32.const 1234)))
+  (global \$m (mut anyref) (ref.i31 (i32.const 5678)))
 
   (func (export "get_globals") (result i32 i32)
-    (i31.get_u (ref.cast i31ref (global.get $$c)))
-    (i31.get_u (ref.cast i31ref (global.get $$m)))
+    (i31.get_u (ref.cast i31ref (global.get \$c)))
+    (i31.get_u (ref.cast i31ref (global.get \$m)))
   )
 
   (func (export "set_global") (param i32)
-    (global.set $$m (ref.i31 (local.get 0)))
+    (global.set \$m (ref.i31 (local.get 0)))
   )
 )`);
 let $anyref_global_of_i31ref = $5;
@@ -271,37 +271,37 @@ invoke($5, `set_global`, [0]);
 assert_return(() => invoke($5, `get_globals`, []), [value("i32", 1234), value("i32", 0)]);
 
 // ./test/core/gc/i31.wast:168
-let $6 = instantiate(`(module $$anyref_table_of_i31ref
-  (table $$table 3 10 anyref)
-  (elem (table $$table) (i32.const 0) i31ref (item (ref.i31 (i32.const 999)))
+let $6 = instantiate(`(module \$anyref_table_of_i31ref
+  (table \$table 3 10 anyref)
+  (elem (table \$table) (i32.const 0) i31ref (item (ref.i31 (i32.const 999)))
                                             (item (ref.i31 (i32.const 888)))
                                             (item (ref.i31 (i32.const 777))))
 
   (func (export "size") (result i32)
-    table.size $$table
+    table.size \$table
   )
 
   (func (export "get") (param i32) (result i32)
-    (i31.get_u (ref.cast i31ref (table.get $$table (local.get 0))))
+    (i31.get_u (ref.cast i31ref (table.get \$table (local.get 0))))
   )
 
   (func (export "grow") (param i32 i32) (result i32)
-    (table.grow $$table (ref.i31 (local.get 1)) (local.get 0))
+    (table.grow \$table (ref.i31 (local.get 1)) (local.get 0))
   )
 
   (func (export "fill") (param i32 i32 i32)
-    (table.fill $$table (local.get 0) (ref.i31 (local.get 1)) (local.get 2))
+    (table.fill \$table (local.get 0) (ref.i31 (local.get 1)) (local.get 2))
   )
 
   (func (export "copy") (param i32 i32 i32)
-    (table.copy $$table $$table (local.get 0) (local.get 1) (local.get 2))
+    (table.copy \$table \$table (local.get 0) (local.get 1) (local.get 2))
   )
 
-  (elem $$elem i31ref (item (ref.i31 (i32.const 123)))
+  (elem \$elem i31ref (item (ref.i31 (i32.const 123)))
                      (item (ref.i31 (i32.const 456)))
                      (item (ref.i31 (i32.const 789))))
   (func (export "init") (param i32 i32 i32)
-    (table.init $$table $$elem (local.get 0) (local.get 1) (local.get 2))
+    (table.init \$table \$elem (local.get 0) (local.get 1) (local.get 2))
   )
 )`);
 let $anyref_table_of_i31ref = $6;

@@ -17,26 +17,26 @@
 
 // ./test/core/ref_as_non_null.wast:1
 let $0 = instantiate(`(module
-  (type $$t (func (result i32)))
+  (type \$t (func (result i32)))
 
-  (func $$nn (param $$r (ref $$t)) (result i32)
-    (call_ref $$t (ref.as_non_null (local.get $$r)))
+  (func \$nn (param \$r (ref \$t)) (result i32)
+    (call_ref \$t (ref.as_non_null (local.get \$r)))
   )
-  (func $$n (param $$r (ref null $$t)) (result i32)
-    (call_ref $$t (ref.as_non_null (local.get $$r)))
+  (func \$n (param \$r (ref null \$t)) (result i32)
+    (call_ref \$t (ref.as_non_null (local.get \$r)))
   )
 
-  (elem func $$f)
-  (func $$f (result i32) (i32.const 7))
+  (elem func \$f)
+  (func \$f (result i32) (i32.const 7))
 
-  (func (export "nullable-null") (result i32) (call $$n (ref.null $$t)))
-  (func (export "nonnullable-f") (result i32) (call $$nn (ref.func $$f)))
-  (func (export "nullable-f") (result i32) (call $$n (ref.func $$f)))
+  (func (export "nullable-null") (result i32) (call \$n (ref.null \$t)))
+  (func (export "nonnullable-f") (result i32) (call \$nn (ref.func \$f)))
+  (func (export "nullable-f") (result i32) (call \$n (ref.func \$f)))
 
   (func (export "unreachable") (result i32)
     (unreachable)
     (ref.as_non_null)
-    (call $$nn)
+    (call \$nn)
   )
 )`);
 
@@ -55,17 +55,17 @@ assert_return(() => invoke($0, `nullable-f`, []), [value("i32", 7)]);
 // ./test/core/ref_as_non_null.wast:31
 assert_invalid(
   () => instantiate(`(module
-    (type $$t (func (result i32)))
-    (func $$g (param $$r (ref $$t)) (drop (ref.as_non_null (local.get $$r))))
-    (func (call $$g (ref.null $$t)))
+    (type \$t (func (result i32)))
+    (func \$g (param \$r (ref \$t)) (drop (ref.as_non_null (local.get \$r))))
+    (func (call \$g (ref.null \$t)))
   )`),
   `type mismatch`,
 );
 
 // ./test/core/ref_as_non_null.wast:41
 let $1 = instantiate(`(module
-  (type $$t (func))
-  (func (param $$r (ref $$t)) (drop (ref.as_non_null (local.get $$r))))
-  (func (param $$r (ref func)) (drop (ref.as_non_null (local.get $$r))))
-  (func (param $$r (ref extern)) (drop (ref.as_non_null (local.get $$r))))
+  (type \$t (func))
+  (func (param \$r (ref \$t)) (drop (ref.as_non_null (local.get \$r))))
+  (func (param \$r (ref func)) (drop (ref.as_non_null (local.get \$r))))
+  (func (param \$r (ref extern)) (drop (ref.as_non_null (local.get \$r))))
 )`);

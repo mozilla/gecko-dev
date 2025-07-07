@@ -182,56 +182,56 @@ assert_return(
 
 // ./test/core/local_set.wast:147
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-void-vs-num (local i32) (local.set 0 (nop))))`),
+  () => instantiate(`(module (func \$type-local-arg-void-vs-num (local i32) (local.set 0 (nop))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:151
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-num-vs-num (local i32) (local.set 0 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-local-arg-num-vs-num (local i32) (local.set 0 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:155
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-num-vs-num (local f32) (local.set 0 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-local-arg-num-vs-num (local f32) (local.set 0 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:159
 assert_invalid(
-  () => instantiate(`(module (func $$type-local-arg-num-vs-num (local f64 i64) (local.set 1 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-local-arg-num-vs-num (local f64 i64) (local.set 1 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:168
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-void-vs-num (param i32) (local.set 0 (nop))))`),
+  () => instantiate(`(module (func \$type-param-arg-void-vs-num (param i32) (local.set 0 (nop))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:172
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-num-vs-num (param i32) (local.set 0 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-param-arg-num-vs-num (param i32) (local.set 0 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:176
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-num-vs-num (param f32) (local.set 0 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-param-arg-num-vs-num (param f32) (local.set 0 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:180
 assert_invalid(
-  () => instantiate(`(module (func $$type-param-arg-num-vs-num (param f64 i64) (local.set 1 (f64.const 0))))`),
+  () => instantiate(`(module (func \$type-param-arg-num-vs-num (param f64 i64) (local.set 1 (f64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:185
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num (param i32)
+    (func \$type-param-arg-empty-vs-num (param i32)
       (local.set 0)
     )
   )`),
@@ -241,7 +241,7 @@ assert_invalid(
 // ./test/core/local_set.wast:193
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-block (param i32)
+    (func \$type-param-arg-empty-vs-num-in-block (param i32)
       (i32.const 0)
       (block (local.set 0))
     )
@@ -252,7 +252,7 @@ assert_invalid(
 // ./test/core/local_set.wast:202
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-loop (param i32)
+    (func \$type-param-arg-empty-vs-num-in-loop (param i32)
       (i32.const 0)
       (loop (local.set 0))
     )
@@ -263,7 +263,7 @@ assert_invalid(
 // ./test/core/local_set.wast:211
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-then (param i32)
+    (func \$type-param-arg-empty-vs-num-in-then (param i32)
       (i32.const 0)
       (if (i32.const 1) (then (local.set 0)))
     )
@@ -274,7 +274,7 @@ assert_invalid(
 // ./test/core/local_set.wast:220
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-else (param i32)
+    (func \$type-param-arg-empty-vs-num-in-else (param i32)
       (i32.const 0)
       (if (result i32) (i32.const 0) (then (i32.const 0)) (else (local.set 0)))
     )
@@ -285,7 +285,7 @@ assert_invalid(
 // ./test/core/local_set.wast:229
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-br (param i32)
+    (func \$type-param-arg-empty-vs-num-in-br (param i32)
       (i32.const 0)
       (block (br 0 (local.set 0)))
     )
@@ -296,7 +296,7 @@ assert_invalid(
 // ./test/core/local_set.wast:238
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-br_if (param i32)
+    (func \$type-param-arg-empty-vs-num-in-br_if (param i32)
       (i32.const 0)
       (block (br_if 0 (local.set 0)))
     )
@@ -307,7 +307,7 @@ assert_invalid(
 // ./test/core/local_set.wast:247
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-br_table (param i32)
+    (func \$type-param-arg-empty-vs-num-in-br_table (param i32)
       (i32.const 0)
       (block (br_table 0 (local.set 0)))
     )
@@ -318,7 +318,7 @@ assert_invalid(
 // ./test/core/local_set.wast:256
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-return (param i32)
+    (func \$type-param-arg-empty-vs-num-in-return (param i32)
       (return (local.set 0))
     )
   )`),
@@ -328,7 +328,7 @@ assert_invalid(
 // ./test/core/local_set.wast:264
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-select (param i32)
+    (func \$type-param-arg-empty-vs-num-in-select (param i32)
       (select (local.set 0) (i32.const 1) (i32.const 2))
     )
   )`),
@@ -338,7 +338,7 @@ assert_invalid(
 // ./test/core/local_set.wast:272
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-param-arg-empty-vs-num-in-call (param i32)
+    (func \$type-param-arg-empty-vs-num-in-call (param i32)
       (call 1 (local.set 0))
     )
     (func (param i32) (result i32) (local.get 0))
@@ -349,12 +349,12 @@ assert_invalid(
 // ./test/core/local_set.wast:281
 assert_invalid(
   () => instantiate(`(module
-    (func $$f (param i32) (result i32) (local.get 0))
-    (type $$sig (func (param i32) (result i32)))
-    (table funcref (elem $$f))
-    (func $$type-param-arg-empty-vs-num-in-call_indirect (param i32)
+    (func \$f (param i32) (result i32) (local.get 0))
+    (type \$sig (func (param i32) (result i32)))
+    (table funcref (elem \$f))
+    (func \$type-param-arg-empty-vs-num-in-call_indirect (param i32)
       (block (result i32)
-        (call_indirect (type $$sig)
+        (call_indirect (type \$sig)
           (local.set 0) (i32.const 0)
         )
       )
@@ -365,78 +365,78 @@ assert_invalid(
 
 // ./test/core/local_set.wast:300
 assert_invalid(
-  () => instantiate(`(module (func $$type-mixed-arg-num-vs-num (param f32) (local i32) (local.set 1 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-mixed-arg-num-vs-num (param f32) (local i32) (local.set 1 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:304
 assert_invalid(
-  () => instantiate(`(module (func $$type-mixed-arg-num-vs-num (param i64 i32) (local f32) (local.set 1 (f32.const 0))))`),
+  () => instantiate(`(module (func \$type-mixed-arg-num-vs-num (param i64 i32) (local f32) (local.set 1 (f32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:308
 assert_invalid(
-  () => instantiate(`(module (func $$type-mixed-arg-num-vs-num (param i64) (local f64 i64) (local.set 1 (i64.const 0))))`),
+  () => instantiate(`(module (func \$type-mixed-arg-num-vs-num (param i64) (local f64 i64) (local.set 1 (i64.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:316
 assert_invalid(
-  () => instantiate(`(module (func $$type-empty-vs-i32 (param i32) (result i32) (local.set 0 (i32.const 1))))`),
+  () => instantiate(`(module (func \$type-empty-vs-i32 (param i32) (result i32) (local.set 0 (i32.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:320
 assert_invalid(
-  () => instantiate(`(module (func $$type-empty-vs-i64 (param i64) (result i64) (local.set 0 (i64.const 1))))`),
+  () => instantiate(`(module (func \$type-empty-vs-i64 (param i64) (result i64) (local.set 0 (i64.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:324
 assert_invalid(
-  () => instantiate(`(module (func $$type-empty-vs-f32 (param f32) (result f32) (local.set 0 (f32.const 1))))`),
+  () => instantiate(`(module (func \$type-empty-vs-f32 (param f32) (result f32) (local.set 0 (f32.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:328
 assert_invalid(
-  () => instantiate(`(module (func $$type-empty-vs-f64 (param f64) (result f64) (local.set 0 (f64.const 1))))`),
+  () => instantiate(`(module (func \$type-empty-vs-f64 (param f64) (result f64) (local.set 0 (f64.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/local_set.wast:336
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-local (local i32 i64) (local.set 3 (i32.const 0))))`),
+  () => instantiate(`(module (func \$unbound-local (local i32 i64) (local.set 3 (i32.const 0))))`),
   `unknown local`,
 );
 
 // ./test/core/local_set.wast:340
 assert_invalid(
-  () => instantiate(`(module (func $$large-local (local i32 i64) (local.set 14324343 (i32.const 0))))`),
+  () => instantiate(`(module (func \$large-local (local i32 i64) (local.set 14324343 (i32.const 0))))`),
   `unknown local`,
 );
 
 // ./test/core/local_set.wast:345
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-param (param i32 i64) (local.set 2 (i32.const 0))))`),
+  () => instantiate(`(module (func \$unbound-param (param i32 i64) (local.set 2 (i32.const 0))))`),
   `unknown local`,
 );
 
 // ./test/core/local_set.wast:349
 assert_invalid(
-  () => instantiate(`(module (func $$large-param (param i32 i64) (local.set 714324343 (i32.const 0))))`),
+  () => instantiate(`(module (func \$large-param (param i32 i64) (local.set 714324343 (i32.const 0))))`),
   `unknown local`,
 );
 
 // ./test/core/local_set.wast:354
 assert_invalid(
-  () => instantiate(`(module (func $$unbound-mixed (param i32) (local i32 i64) (local.set 3 (i32.const 0))))`),
+  () => instantiate(`(module (func \$unbound-mixed (param i32) (local i32 i64) (local.set 3 (i32.const 0))))`),
   `unknown local`,
 );
 
 // ./test/core/local_set.wast:358
 assert_invalid(
-  () => instantiate(`(module (func $$large-mixed (param i64) (local i32 i64) (local.set 214324343 (i32.const 0))))`),
+  () => instantiate(`(module (func \$large-mixed (param i64) (local i32 i64) (local.set 214324343 (i32.const 0))))`),
   `unknown local`,
 );

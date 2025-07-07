@@ -17,28 +17,28 @@
 
 // ./test/core/table_fill.wast:1
 let $0 = instantiate(`(module
-  (table $$t 10 externref)
+  (table \$t 10 externref)
 
-  (func (export "fill") (param $$i i32) (param $$r externref) (param $$n i32)
-    (table.fill $$t (local.get $$i) (local.get $$r) (local.get $$n))
+  (func (export "fill") (param \$i i32) (param \$r externref) (param \$n i32)
+    (table.fill \$t (local.get \$i) (local.get \$r) (local.get \$n))
   )
 
-  (func (export "fill-abbrev") (param $$i i32) (param $$r externref) (param $$n i32)
-    (table.fill (local.get $$i) (local.get $$r) (local.get $$n))
+  (func (export "fill-abbrev") (param \$i i32) (param \$r externref) (param \$n i32)
+    (table.fill (local.get \$i) (local.get \$r) (local.get \$n))
   )
 
-  (func (export "get") (param $$i i32) (result externref)
-    (table.get $$t (local.get $$i))
+  (func (export "get") (param \$i i32) (result externref)
+    (table.get \$t (local.get \$i))
   )
 
-  (table $$t64 i64 10 externref)
+  (table \$t64 i64 10 externref)
 
-  (func (export "fill-t64") (param $$i i64) (param $$r externref) (param $$n i64)
-    (table.fill $$t64 (local.get $$i) (local.get $$r) (local.get $$n))
+  (func (export "fill-t64") (param \$i i64) (param \$r externref) (param \$n i64)
+    (table.fill \$t64 (local.get \$i) (local.get \$r) (local.get \$n))
   )
 
-  (func (export "get-t64") (param $$i i64) (result externref)
-    (table.get $$t64 (local.get $$i))
+  (func (export "get-t64") (param \$i i64) (result externref)
+    (table.get \$t64 (local.get \$i))
   )
 )`);
 
@@ -255,9 +255,9 @@ assert_trap(() => invoke($0, `fill-t64`, [11n, null, 10n]), `out of bounds table
 // ./test/core/table_fill.wast:139
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 10 externref)
-    (func $$type-index-value-length-empty-vs-i32-i32
-      (table.fill $$t)
+    (table \$t 10 externref)
+    (func \$type-index-value-length-empty-vs-i32-i32
+      (table.fill \$t)
     )
   )`),
   `type mismatch`,
@@ -266,9 +266,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:148
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 10 externref)
-    (func $$type-index-empty-vs-i32
-      (table.fill $$t (ref.null extern) (i32.const 1))
+    (table \$t 10 externref)
+    (func \$type-index-empty-vs-i32
+      (table.fill \$t (ref.null extern) (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -277,9 +277,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:157
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 10 externref)
-    (func $$type-value-empty-vs
-      (table.fill $$t (i32.const 1) (i32.const 1))
+    (table \$t 10 externref)
+    (func \$type-value-empty-vs
+      (table.fill \$t (i32.const 1) (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -288,9 +288,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:166
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 10 externref)
-    (func $$type-length-empty-vs-i32
-      (table.fill $$t (i32.const 1) (ref.null extern))
+    (table \$t 10 externref)
+    (func \$type-length-empty-vs-i32
+      (table.fill \$t (i32.const 1) (ref.null extern))
     )
   )`),
   `type mismatch`,
@@ -299,9 +299,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:175
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 externref)
-    (func $$type-index-f32-vs-i32
-      (table.fill $$t (f32.const 1) (ref.null extern) (i32.const 1))
+    (table \$t 0 externref)
+    (func \$type-index-f32-vs-i32
+      (table.fill \$t (f32.const 1) (ref.null extern) (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -310,9 +310,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:184
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 funcref)
-    (func $$type-value-vs-funcref (param $$r externref)
-      (table.fill $$t (i32.const 1) (local.get $$r) (i32.const 1))
+    (table \$t 0 funcref)
+    (func \$type-value-vs-funcref (param \$r externref)
+      (table.fill \$t (i32.const 1) (local.get \$r) (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -321,9 +321,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:193
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 0 externref)
-    (func $$type-length-f32-vs-i32
-      (table.fill $$t (i32.const 1) (ref.null extern) (f32.const 1))
+    (table \$t 0 externref)
+    (func \$type-length-f32-vs-i32
+      (table.fill \$t (i32.const 1) (ref.null extern) (f32.const 1))
     )
   )`),
   `type mismatch`,
@@ -332,10 +332,10 @@ assert_invalid(
 // ./test/core/table_fill.wast:203
 assert_invalid(
   () => instantiate(`(module
-    (table $$t1 1 externref)
-    (table $$t2 1 funcref)
-    (func $$type-value-externref-vs-funcref-multi (param $$r externref)
-      (table.fill $$t2 (i32.const 0) (local.get $$r) (i32.const 1))
+    (table \$t1 1 externref)
+    (table \$t2 1 funcref)
+    (func \$type-value-externref-vs-funcref-multi (param \$r externref)
+      (table.fill \$t2 (i32.const 0) (local.get \$r) (i32.const 1))
     )
   )`),
   `type mismatch`,
@@ -344,9 +344,9 @@ assert_invalid(
 // ./test/core/table_fill.wast:214
 assert_invalid(
   () => instantiate(`(module
-    (table $$t 1 externref)
-    (func $$type-result-empty-vs-num (result i32)
-      (table.fill $$t (i32.const 0) (ref.null extern) (i32.const 1))
+    (table \$t 1 externref)
+    (func \$type-result-empty-vs-num (result i32)
+      (table.fill \$t (i32.const 0) (ref.null extern) (i32.const 1))
     )
   )`),
   `type mismatch`,

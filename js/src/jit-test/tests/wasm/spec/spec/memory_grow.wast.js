@@ -219,27 +219,27 @@ register($4, `M`);
 
 // ./test/core/memory_grow.wast:115
 let $5 = instantiate(`(module
-  (memory $$mem1 (import "M" "mem1") 1 6)
-  (memory $$mem2 (import "M" "mem2") 0)
-  (memory $$mem3 3)
-  (memory $$mem4 4 5)
+  (memory \$mem1 (import "M" "mem1") 1 6)
+  (memory \$mem2 (import "M" "mem2") 0)
+  (memory \$mem3 3)
+  (memory \$mem4 4 5)
 
-  (func (export "size1") (result i32) (memory.size $$mem1))
-  (func (export "size2") (result i32) (memory.size $$mem2))
-  (func (export "size3") (result i32) (memory.size $$mem3))
-  (func (export "size4") (result i32) (memory.size $$mem4))
+  (func (export "size1") (result i32) (memory.size \$mem1))
+  (func (export "size2") (result i32) (memory.size \$mem2))
+  (func (export "size3") (result i32) (memory.size \$mem3))
+  (func (export "size4") (result i32) (memory.size \$mem4))
 
   (func (export "grow1") (param i32) (result i32)
-    (memory.grow $$mem1 (local.get 0))
+    (memory.grow \$mem1 (local.get 0))
   )
   (func (export "grow2") (param i32) (result i32)
-    (memory.grow $$mem2 (local.get 0))
+    (memory.grow \$mem2 (local.get 0))
   )
   (func (export "grow3") (param i32) (result i32)
-    (memory.grow $$mem3 (local.get 0))
+    (memory.grow \$mem3 (local.get 0))
   )
   (func (export "grow4") (param i32) (result i32)
-    (memory.grow $$mem4 (local.get 0))
+    (memory.grow \$mem4 (local.get 0))
   )
 )`);
 
@@ -429,36 +429,36 @@ let $6 = instantiate(`(module
     (select (i32.const 0) (i32.const 1) (memory.grow (i32.const 0)))
   )
 
-  (func $$f (param i32 i32 i32) (result i32) (i32.const -1))
+  (func \$f (param i32 i32 i32) (result i32) (i32.const -1))
   (func (export "as-call-first") (result i32)
-    (call $$f (memory.grow (i32.const 0)) (i32.const 2) (i32.const 3))
+    (call \$f (memory.grow (i32.const 0)) (i32.const 2) (i32.const 3))
   )
   (func (export "as-call-mid") (result i32)
-    (call $$f (i32.const 1) (memory.grow (i32.const 0)) (i32.const 3))
+    (call \$f (i32.const 1) (memory.grow (i32.const 0)) (i32.const 3))
   )
   (func (export "as-call-last") (result i32)
-    (call $$f (i32.const 1) (i32.const 2) (memory.grow (i32.const 0)))
+    (call \$f (i32.const 1) (i32.const 2) (memory.grow (i32.const 0)))
   )
 
-  (type $$sig (func (param i32 i32 i32) (result i32)))
-  (table funcref (elem $$f))
+  (type \$sig (func (param i32 i32 i32) (result i32)))
+  (table funcref (elem \$f))
   (func (export "as-call_indirect-first") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (memory.grow (i32.const 0)) (i32.const 2) (i32.const 3) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-mid") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (memory.grow (i32.const 0)) (i32.const 3) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-last") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.const 2) (memory.grow (i32.const 0)) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-index") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.const 2) (i32.const 3) (memory.grow (i32.const 0))
     )
   )
@@ -469,9 +469,9 @@ let $6 = instantiate(`(module
   (func (export "as-local.tee-value") (result i32) (local i32)
     (local.tee 0 (memory.grow (i32.const 0)))
   )
-  (global $$g (mut i32) (i32.const 0))
+  (global \$g (mut i32) (i32.const 0))
   (func (export "as-global.set-value") (local i32)
-    (global.set $$g (memory.grow (i32.const 0)))
+    (global.set \$g (memory.grow (i32.const 0)))
   )
 
   (func (export "as-load-address") (result i32)
@@ -634,7 +634,7 @@ assert_return(() => invoke($6, `as-compare-right`, []), [value("i32", 1)]);
 assert_return(() => invoke($6, `as-memory.grow-size`, []), [value("i32", 1)]);
 
 // ./test/core/memory_grow.wast:401
-let $7 = instantiate(`(module $$Mgm
+let $7 = instantiate(`(module \$Mgm
   (memory (export "memory") 1) ;; initial size is 1
   (func (export "grow") (result i32) (memory.grow (i32.const 1)))
 )`);
@@ -647,7 +647,7 @@ register($Mgm, `grown-memory`);
 assert_return(() => invoke($Mgm, `grow`, []), [value("i32", 1)]);
 
 // ./test/core/memory_grow.wast:407
-let $8 = instantiate(`(module $$Mgim1
+let $8 = instantiate(`(module \$Mgim1
   ;; imported memory limits should match, because external memory size is 2 now
   (memory (export "memory") (import "grown-memory" "memory") 2)
   (func (export "grow") (result i32) (memory.grow (i32.const 1)))
@@ -661,7 +661,7 @@ register($Mgim1, `grown-imported-memory`);
 assert_return(() => invoke($Mgim1, `grow`, []), [value("i32", 2)]);
 
 // ./test/core/memory_grow.wast:414
-let $9 = instantiate(`(module $$Mgim2
+let $9 = instantiate(`(module \$Mgim2
   ;; imported memory limits should match, because external memory size is 3 now
   (import "grown-imported-memory" "memory" (memory 3))
   (func (export "size") (result i32) (memory.size))
@@ -673,18 +673,18 @@ assert_return(() => invoke($Mgim2, `size`, []), [value("i32", 3)]);
 
 // ./test/core/memory_grow.wast:424
 let $10 = instantiate(`(module
-  (memory $$mem1 1)
-  (memory $$mem2 2)
+  (memory \$mem1 1)
+  (memory \$mem2 2)
 
   (func (export "grow1") (param i32) (result i32)
-    (memory.grow $$mem1 (local.get 0))
+    (memory.grow \$mem1 (local.get 0))
   )
   (func (export "grow2") (param i32) (result i32)
-    (memory.grow $$mem2 (local.get 0))
+    (memory.grow \$mem2 (local.get 0))
   )
 
-  (func (export "size1") (result i32) (memory.size $$mem1))
-  (func (export "size2") (result i32) (memory.size $$mem2))
+  (func (export "size1") (result i32) (memory.size \$mem1))
+  (func (export "size2") (result i32) (memory.size \$mem2))
 )`);
 
 // ./test/core/memory_grow.wast:439
@@ -712,7 +712,7 @@ assert_return(() => invoke($10, `grow2`, [1]), [value("i32", 3)]);
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-i32-vs-f32 (result i32)
+    (func \$type-i32-vs-f32 (result i32)
       (memory.grow (f32.const 0))
     )
   )`),
@@ -723,7 +723,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-size-empty-vs-i32 (result i32)
+    (func \$type-size-empty-vs-i32 (result i32)
       (memory.grow)
     )
   )`),
@@ -734,7 +734,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-size-empty-vs-i32-in-block (result i32)
+    (func \$type-size-empty-vs-i32-in-block (result i32)
       (i32.const 0)
       (block (result i32) (memory.grow))
     )
@@ -746,7 +746,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-size-empty-vs-i32-in-loop (result i32)
+    (func \$type-size-empty-vs-i32-in-loop (result i32)
       (i32.const 0)
       (loop (result i32) (memory.grow))
     )
@@ -758,7 +758,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-size-empty-vs-i32-in-then (result i32)
+    (func \$type-size-empty-vs-i32-in-then (result i32)
       (i32.const 0) (i32.const 0)
       (if (result i32) (then (memory.grow)))
     )
@@ -770,7 +770,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-result-i32-vs-empty
+    (func \$type-result-i32-vs-empty
       (memory.grow (i32.const 1))
     )
   )`),
@@ -781,7 +781,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-size-f32-vs-i32 (result i32)
+    (func \$type-size-f32-vs-i32 (result i32)
       (memory.grow (f32.const 0))
     )
   )`),
@@ -792,7 +792,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-result-i32-vs-empty
+    (func \$type-result-i32-vs-empty
       (memory.grow (i32.const 0))
     )
   )`),
@@ -803,7 +803,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-result-i32-vs-f32 (result f32)
+    (func \$type-result-i32-vs-f32 (result f32)
       (memory.grow (i32.const 0))
     )
   )`),

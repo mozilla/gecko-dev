@@ -18,8 +18,8 @@
 // ./test/core/nop.wast:3
 let $0 = instantiate(`(module
   ;; Auxiliary definitions
-  (func $$dummy)
-  (func $$3-ary (param i32 i32 i32) (result i32)
+  (func \$dummy)
+  (func \$3-ary (param i32 i32 i32) (result i32)
     local.get 0 local.get 1 local.get 2 i32.sub i32.add
   )
   (memory 1)
@@ -28,13 +28,13 @@ let $0 = instantiate(`(module
     (nop) (i32.const 1)
   )
   (func (export "as-func-mid") (result i32)
-    (call $$dummy) (nop) (i32.const 2)
+    (call \$dummy) (nop) (i32.const 2)
   )
   (func (export "as-func-last") (result i32)
-    (call $$dummy) (i32.const 3) (nop)
+    (call \$dummy) (i32.const 3) (nop)
   )
   (func (export "as-func-everywhere") (result i32)
-    (nop) (nop) (call $$dummy) (nop) (i32.const 4) (nop) (nop)
+    (nop) (nop) (call \$dummy) (nop) (i32.const 4) (nop) (nop)
   )
 
   (func (export "as-drop-first") (param i32)
@@ -68,14 +68,14 @@ let $0 = instantiate(`(module
     (block (result i32) (nop) (i32.const 2))
   )
   (func (export "as-block-mid") (result i32)
-    (block (result i32) (call $$dummy) (nop) (i32.const 2))
+    (block (result i32) (call \$dummy) (nop) (i32.const 2))
   )
   (func (export "as-block-last") (result i32)
-    (block (result i32) (nop) (call $$dummy) (i32.const 3) (nop))
+    (block (result i32) (nop) (call \$dummy) (i32.const 3) (nop))
   )
   (func (export "as-block-everywhere") (result i32)
     (block (result i32)
-      (nop) (nop) (call $$dummy) (nop) (i32.const 4) (nop) (nop)
+      (nop) (nop) (call \$dummy) (nop) (i32.const 4) (nop) (nop)
     )
   )
 
@@ -83,25 +83,25 @@ let $0 = instantiate(`(module
     (loop (result i32) (nop) (i32.const 2))
   )
   (func (export "as-loop-mid") (result i32)
-    (loop (result i32) (call $$dummy) (nop) (i32.const 2))
+    (loop (result i32) (call \$dummy) (nop) (i32.const 2))
   )
   (func (export "as-loop-last") (result i32)
-    (loop (result i32) (call $$dummy) (i32.const 3) (nop))
+    (loop (result i32) (call \$dummy) (i32.const 3) (nop))
   )
   (func (export "as-loop-everywhere") (result i32)
     (loop (result i32)
-      (nop) (nop) (call $$dummy) (nop) (i32.const 4) (nop) (nop)
+      (nop) (nop) (call \$dummy) (nop) (i32.const 4) (nop) (nop)
     )
   )
 
   (func (export "as-if-condition") (param i32)
-    (local.get 0) (nop) (if (then (call $$dummy)))
+    (local.get 0) (nop) (if (then (call \$dummy)))
   )
   (func (export "as-if-then") (param i32)
-    (if (local.get 0) (then (nop)) (else (call $$dummy)))
+    (if (local.get 0) (then (nop)) (else (call \$dummy)))
   )
   (func (export "as-if-else") (param i32)
-    (if (local.get 0) (then (call $$dummy)) (else (nop)))
+    (if (local.get 0) (then (call \$dummy)) (else (nop)))
   )
 
   (func (export "as-br-first") (param i32) (result i32)
@@ -157,20 +157,20 @@ let $0 = instantiate(`(module
   )
 
   (func (export "as-call-first") (param i32 i32 i32) (result i32)
-    (nop) (local.get 0) (local.get 1) (local.get 2) (call $$3-ary)
+    (nop) (local.get 0) (local.get 1) (local.get 2) (call \$3-ary)
   )
   (func (export "as-call-mid1") (param i32 i32 i32) (result i32)
-    (local.get 0) (nop) (local.get 1) (local.get 2) (call $$3-ary)
+    (local.get 0) (nop) (local.get 1) (local.get 2) (call \$3-ary)
   )
   (func (export "as-call-mid2") (param i32 i32 i32) (result i32)
-    (local.get 0) (local.get 1) (nop) (local.get 2) (call $$3-ary)
+    (local.get 0) (local.get 1) (nop) (local.get 2) (call \$3-ary)
   )
   (func (export "as-call-last") (param i32 i32 i32) (result i32)
-    (local.get 0) (local.get 1) (local.get 2) (nop) (call $$3-ary)
+    (local.get 0) (local.get 1) (local.get 2) (nop) (call \$3-ary)
   )
   (func (export "as-call-everywhere") (param i32 i32 i32) (result i32)
     (nop) (nop) (local.get 0) (nop) (nop) (local.get 1)
-    (nop) (nop) (local.get 2) (nop) (nop) (call $$3-ary)
+    (nop) (nop) (local.get 2) (nop) (nop) (call \$3-ary)
   )
 
   (func (export "as-unary-first") (param i32) (result i32)
@@ -229,37 +229,37 @@ let $0 = instantiate(`(module
     (nop) (nop) (local.get 0) (nop) (nop) (memory.grow)
   )
 
-  (func $$func (param i32 i32) (result i32) (local.get 0))
-  (type $$check (func (param i32 i32) (result i32)))
-  (table funcref (elem $$func))
+  (func \$func (param i32 i32) (result i32) (local.get 0))
+  (type \$check (func (param i32 i32) (result i32)))
+  (table funcref (elem \$func))
   (func (export "as-call_indirect-first") (result i32)
     (block (result i32)
       (nop) (i32.const 1) (i32.const 2) (i32.const 0)
-      (call_indirect (type $$check))
+      (call_indirect (type \$check))
     )
   )
   (func (export "as-call_indirect-mid1") (result i32)
     (block (result i32)
       (i32.const 1) (nop) (i32.const 2) (i32.const 0)
-      (call_indirect (type $$check))
+      (call_indirect (type \$check))
     )
   )
   (func (export "as-call_indirect-mid2") (result i32)
     (block (result i32)
       (i32.const 1) (i32.const 2) (nop) (i32.const 0)
-      (call_indirect (type $$check))
+      (call_indirect (type \$check))
     )
   )
   (func (export "as-call_indirect-last") (result i32)
     (block (result i32)
       (i32.const 1) (i32.const 2) (i32.const 0) (nop)
-      (call_indirect (type $$check))
+      (call_indirect (type \$check))
     )
   )
   (func (export "as-call_indirect-everywhere") (result i32)
     (block (result i32)
       (nop) (nop) (i32.const 1) (nop) (nop) (i32.const 2) (nop) (nop) (i32.const 0) (nop) (nop)
-      (call_indirect (type $$check))
+      (call_indirect (type \$check))
     )
   )
 
@@ -283,16 +283,16 @@ let $0 = instantiate(`(module
     (nop) (nop) (i32.const 2) (nop) (nop) (local.tee 0)
   )
 
-  (global $$a (mut i32) (i32.const 0))
+  (global \$a (mut i32) (i32.const 0))
   (func (export "as-global.set-first") (result i32)
-    (nop) (i32.const 2) (global.set $$a) (global.get $$a)
+    (nop) (i32.const 2) (global.set \$a) (global.get \$a)
   )
   (func (export "as-global.set-last") (result i32)
-    (i32.const 2) (nop) (global.set $$a) (global.get $$a)
+    (i32.const 2) (nop) (global.set \$a) (global.get \$a)
   )
   (func (export "as-global.set-everywhere") (result i32)
     (nop) (nop) (i32.const 2) (nop) (nop) (global.set 0)
-    (global.get $$a)
+    (global.get \$a)
   )
 
   (func (export "as-load-first") (param i32) (result i32)
@@ -570,24 +570,24 @@ assert_return(() => invoke($0, `as-store-everywhere`, [0, 4]), []);
 
 // ./test/core/nop.wast:411
 assert_invalid(
-  () => instantiate(`(module (func $$type-i32 (result i32) (nop)))`),
+  () => instantiate(`(module (func \$type-i32 (result i32) (nop)))`),
   `type mismatch`,
 );
 
 // ./test/core/nop.wast:415
 assert_invalid(
-  () => instantiate(`(module (func $$type-i64 (result i64) (nop)))`),
+  () => instantiate(`(module (func \$type-i64 (result i64) (nop)))`),
   `type mismatch`,
 );
 
 // ./test/core/nop.wast:419
 assert_invalid(
-  () => instantiate(`(module (func $$type-f32 (result f32) (nop)))`),
+  () => instantiate(`(module (func \$type-f32 (result f32) (nop)))`),
   `type mismatch`,
 );
 
 // ./test/core/nop.wast:423
 assert_invalid(
-  () => instantiate(`(module (func $$type-f64 (result f64) (nop)))`),
+  () => instantiate(`(module (func \$type-f64 (result f64) (nop)))`),
   `type mismatch`,
 );

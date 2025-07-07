@@ -17,13 +17,13 @@
 
 // ./test/core/gc/ref_eq.wast:1
 let $0 = instantiate(`(module
-  (type $$st (sub (struct)))
-  (type $$st' (sub (struct (field i32))))
-  (type $$at (array i8))
-  (type $$st-sub1 (sub $$st (struct)))
-  (type $$st-sub2 (sub $$st (struct)))
-  (type $$st'-sub1 (sub $$st' (struct (field i32))))
-  (type $$st'-sub2 (sub $$st' (struct (field i32))))
+  (type \$st (sub (struct)))
+  (type \$st' (sub (struct (field i32))))
+  (type \$at (array i8))
+  (type \$st-sub1 (sub \$st (struct)))
+  (type \$st-sub2 (sub \$st (struct)))
+  (type \$st'-sub1 (sub \$st' (struct (field i32))))
+  (type \$st'-sub2 (sub \$st' (struct (field i32))))
 
   (table 20 (ref null eq))
 
@@ -33,14 +33,14 @@ let $0 = instantiate(`(module
     (table.set (i32.const 2) (ref.i31 (i32.const 7)))
     (table.set (i32.const 3) (ref.i31 (i32.const 7)))
     (table.set (i32.const 4) (ref.i31 (i32.const 8)))
-    (table.set (i32.const 5) (struct.new_default $$st))
-    (table.set (i32.const 6) (struct.new_default $$st))
-    (table.set (i32.const 7) (array.new_default $$at (i32.const 0)))
-    (table.set (i32.const 8) (array.new_default $$at (i32.const 0)))
+    (table.set (i32.const 5) (struct.new_default \$st))
+    (table.set (i32.const 6) (struct.new_default \$st))
+    (table.set (i32.const 7) (array.new_default \$at (i32.const 0)))
+    (table.set (i32.const 8) (array.new_default \$at (i32.const 0)))
   )
 
-  (func (export "eq") (param $$i i32) (param $$j i32) (result i32)
-    (ref.eq (table.get (local.get $$i)) (table.get (local.get $$j)))
+  (func (export "eq") (param \$i i32) (param \$j i32) (result i32)
+    (ref.eq (table.get (local.get \$i)) (table.get (local.get \$j)))
   )
 )`);
 
@@ -293,8 +293,8 @@ assert_return(() => invoke($0, `eq`, [8, 8]), [value("i32", 1)]);
 // ./test/core/gc/ref_eq.wast:121
 assert_invalid(
   () => instantiate(`(module
-    (func (export "eq") (param $$r (ref any)) (result i32)
-      (ref.eq (local.get $$r) (local.get $$r))
+    (func (export "eq") (param \$r (ref any)) (result i32)
+      (ref.eq (local.get \$r) (local.get \$r))
     )
   )`),
   `type mismatch`,
@@ -303,8 +303,8 @@ assert_invalid(
 // ./test/core/gc/ref_eq.wast:129
 assert_invalid(
   () => instantiate(`(module
-    (func (export "eq") (param $$r (ref null any)) (result i32)
-      (ref.eq (local.get $$r) (local.get $$r))
+    (func (export "eq") (param \$r (ref null any)) (result i32)
+      (ref.eq (local.get \$r) (local.get \$r))
     )
   )`),
   `type mismatch`,
@@ -313,8 +313,8 @@ assert_invalid(
 // ./test/core/gc/ref_eq.wast:137
 assert_invalid(
   () => instantiate(`(module
-    (func (export "eq") (param $$r (ref func)) (result i32)
-      (ref.eq (local.get $$r) (local.get $$r))
+    (func (export "eq") (param \$r (ref func)) (result i32)
+      (ref.eq (local.get \$r) (local.get \$r))
     )
   )`),
   `type mismatch`,
@@ -323,8 +323,8 @@ assert_invalid(
 // ./test/core/gc/ref_eq.wast:145
 assert_invalid(
   () => instantiate(`(module
-    (func (export "eq") (param $$r (ref null func)) (result i32)
-      (ref.eq (local.get $$r) (local.get $$r))
+    (func (export "eq") (param \$r (ref null func)) (result i32)
+      (ref.eq (local.get \$r) (local.get \$r))
     )
   )`),
   `type mismatch`,
@@ -333,8 +333,8 @@ assert_invalid(
 // ./test/core/gc/ref_eq.wast:153
 assert_invalid(
   () => instantiate(`(module
-    (func (export "eq") (param $$r (ref extern)) (result i32)
-      (ref.eq (local.get $$r) (local.get $$r))
+    (func (export "eq") (param \$r (ref extern)) (result i32)
+      (ref.eq (local.get \$r) (local.get \$r))
     )
   )`),
   `type mismatch`,
@@ -343,8 +343,8 @@ assert_invalid(
 // ./test/core/gc/ref_eq.wast:161
 assert_invalid(
   () => instantiate(`(module
-    (func (export "eq") (param $$r (ref null extern)) (result i32)
-      (ref.eq (local.get $$r) (local.get $$r))
+    (func (export "eq") (param \$r (ref null extern)) (result i32)
+      (ref.eq (local.get \$r) (local.get \$r))
     )
   )`),
   `type mismatch`,

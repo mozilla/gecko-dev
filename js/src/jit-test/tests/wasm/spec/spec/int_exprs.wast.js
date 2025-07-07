@@ -17,15 +17,15 @@
 
 // ./test/core/int_exprs.wast:6
 let $0 = instantiate(`(module
-  (func (export "i32.no_fold_cmp_s_offset") (param $$x i32) (param $$y i32) (result i32)
-    (i32.lt_s (i32.add (local.get $$x) (i32.const 1)) (i32.add (local.get $$y) (i32.const 1))))
-  (func (export "i32.no_fold_cmp_u_offset") (param $$x i32) (param $$y i32) (result i32)
-    (i32.lt_u (i32.add (local.get $$x) (i32.const 1)) (i32.add (local.get $$y) (i32.const 1))))
+  (func (export "i32.no_fold_cmp_s_offset") (param \$x i32) (param \$y i32) (result i32)
+    (i32.lt_s (i32.add (local.get \$x) (i32.const 1)) (i32.add (local.get \$y) (i32.const 1))))
+  (func (export "i32.no_fold_cmp_u_offset") (param \$x i32) (param \$y i32) (result i32)
+    (i32.lt_u (i32.add (local.get \$x) (i32.const 1)) (i32.add (local.get \$y) (i32.const 1))))
 
-  (func (export "i64.no_fold_cmp_s_offset") (param $$x i64) (param $$y i64) (result i32)
-    (i64.lt_s (i64.add (local.get $$x) (i64.const 1)) (i64.add (local.get $$y) (i64.const 1))))
-  (func (export "i64.no_fold_cmp_u_offset") (param $$x i64) (param $$y i64) (result i32)
-    (i64.lt_u (i64.add (local.get $$x) (i64.const 1)) (i64.add (local.get $$y) (i64.const 1))))
+  (func (export "i64.no_fold_cmp_s_offset") (param \$x i64) (param \$y i64) (result i32)
+    (i64.lt_s (i64.add (local.get \$x) (i64.const 1)) (i64.add (local.get \$y) (i64.const 1))))
+  (func (export "i64.no_fold_cmp_u_offset") (param \$x i64) (param \$y i64) (result i32)
+    (i64.lt_u (i64.add (local.get \$x) (i64.const 1)) (i64.add (local.get \$y) (i64.const 1))))
 )`);
 
 // ./test/core/int_exprs.wast:18
@@ -45,8 +45,8 @@ assert_return(() => invoke($0, `i64.no_fold_cmp_u_offset`, [-1n, 0n]), [value("i
 
 // ./test/core/int_exprs.wast:25
 let $1 = instantiate(`(module
-  (func (export "i64.no_fold_wrap_extend_s") (param $$x i64) (result i64)
-    (i64.extend_i32_s (i32.wrap_i64 (local.get $$x))))
+  (func (export "i64.no_fold_wrap_extend_s") (param \$x i64) (result i64)
+    (i64.extend_i32_s (i32.wrap_i64 (local.get \$x))))
 )`);
 
 // ./test/core/int_exprs.wast:30
@@ -63,8 +63,8 @@ assert_return(
 
 // ./test/core/int_exprs.wast:35
 let $2 = instantiate(`(module
-  (func (export "i64.no_fold_wrap_extend_u") (param $$x i64) (result i64)
-    (i64.extend_i32_u (i32.wrap_i64 (local.get $$x))))
+  (func (export "i64.no_fold_wrap_extend_u") (param \$x i64) (result i64)
+    (i64.extend_i32_u (i32.wrap_i64 (local.get \$x))))
 )`);
 
 // ./test/core/int_exprs.wast:40
@@ -75,15 +75,15 @@ assert_return(
 
 // ./test/core/int_exprs.wast:44
 let $3 = instantiate(`(module
-  (func (export "i32.no_fold_shl_shr_s") (param $$x i32) (result i32)
-    (i32.shr_s (i32.shl (local.get $$x) (i32.const 1)) (i32.const 1)))
-  (func (export "i32.no_fold_shl_shr_u") (param $$x i32) (result i32)
-    (i32.shr_u (i32.shl (local.get $$x) (i32.const 1)) (i32.const 1)))
+  (func (export "i32.no_fold_shl_shr_s") (param \$x i32) (result i32)
+    (i32.shr_s (i32.shl (local.get \$x) (i32.const 1)) (i32.const 1)))
+  (func (export "i32.no_fold_shl_shr_u") (param \$x i32) (result i32)
+    (i32.shr_u (i32.shl (local.get \$x) (i32.const 1)) (i32.const 1)))
 
-  (func (export "i64.no_fold_shl_shr_s") (param $$x i64) (result i64)
-    (i64.shr_s (i64.shl (local.get $$x) (i64.const 1)) (i64.const 1)))
-  (func (export "i64.no_fold_shl_shr_u") (param $$x i64) (result i64)
-    (i64.shr_u (i64.shl (local.get $$x) (i64.const 1)) (i64.const 1)))
+  (func (export "i64.no_fold_shl_shr_s") (param \$x i64) (result i64)
+    (i64.shr_s (i64.shl (local.get \$x) (i64.const 1)) (i64.const 1)))
+  (func (export "i64.no_fold_shl_shr_u") (param \$x i64) (result i64)
+    (i64.shr_u (i64.shl (local.get \$x) (i64.const 1)) (i64.const 1)))
 )`);
 
 // ./test/core/int_exprs.wast:56
@@ -100,15 +100,15 @@ assert_return(() => invoke($3, `i64.no_fold_shl_shr_u`, [-9223372036854775808n])
 
 // ./test/core/int_exprs.wast:63
 let $4 = instantiate(`(module
-  (func (export "i32.no_fold_shr_s_shl") (param $$x i32) (result i32)
-    (i32.shl (i32.shr_s (local.get $$x) (i32.const 1)) (i32.const 1)))
-  (func (export "i32.no_fold_shr_u_shl") (param $$x i32) (result i32)
-    (i32.shl (i32.shr_u (local.get $$x) (i32.const 1)) (i32.const 1)))
+  (func (export "i32.no_fold_shr_s_shl") (param \$x i32) (result i32)
+    (i32.shl (i32.shr_s (local.get \$x) (i32.const 1)) (i32.const 1)))
+  (func (export "i32.no_fold_shr_u_shl") (param \$x i32) (result i32)
+    (i32.shl (i32.shr_u (local.get \$x) (i32.const 1)) (i32.const 1)))
 
-  (func (export "i64.no_fold_shr_s_shl") (param $$x i64) (result i64)
-    (i64.shl (i64.shr_s (local.get $$x) (i64.const 1)) (i64.const 1)))
-  (func (export "i64.no_fold_shr_u_shl") (param $$x i64) (result i64)
-    (i64.shl (i64.shr_u (local.get $$x) (i64.const 1)) (i64.const 1)))
+  (func (export "i64.no_fold_shr_s_shl") (param \$x i64) (result i64)
+    (i64.shl (i64.shr_s (local.get \$x) (i64.const 1)) (i64.const 1)))
+  (func (export "i64.no_fold_shr_u_shl") (param \$x i64) (result i64)
+    (i64.shl (i64.shr_u (local.get \$x) (i64.const 1)) (i64.const 1)))
 )`);
 
 // ./test/core/int_exprs.wast:75
@@ -125,15 +125,15 @@ assert_return(() => invoke($4, `i64.no_fold_shr_u_shl`, [1n]), [value("i64", 0n)
 
 // ./test/core/int_exprs.wast:82
 let $5 = instantiate(`(module
-  (func (export "i32.no_fold_div_s_mul") (param $$x i32) (result i32)
-    (i32.mul (i32.div_s (local.get $$x) (i32.const 6)) (i32.const 6)))
-  (func (export "i32.no_fold_div_u_mul") (param $$x i32) (result i32)
-    (i32.mul (i32.div_u (local.get $$x) (i32.const 6)) (i32.const 6)))
+  (func (export "i32.no_fold_div_s_mul") (param \$x i32) (result i32)
+    (i32.mul (i32.div_s (local.get \$x) (i32.const 6)) (i32.const 6)))
+  (func (export "i32.no_fold_div_u_mul") (param \$x i32) (result i32)
+    (i32.mul (i32.div_u (local.get \$x) (i32.const 6)) (i32.const 6)))
 
-  (func (export "i64.no_fold_div_s_mul") (param $$x i64) (result i64)
-    (i64.mul (i64.div_s (local.get $$x) (i64.const 6)) (i64.const 6)))
-  (func (export "i64.no_fold_div_u_mul") (param $$x i64) (result i64)
-    (i64.mul (i64.div_u (local.get $$x) (i64.const 6)) (i64.const 6)))
+  (func (export "i64.no_fold_div_s_mul") (param \$x i64) (result i64)
+    (i64.mul (i64.div_s (local.get \$x) (i64.const 6)) (i64.const 6)))
+  (func (export "i64.no_fold_div_u_mul") (param \$x i64) (result i64)
+    (i64.mul (i64.div_u (local.get \$x) (i64.const 6)) (i64.const 6)))
 )`);
 
 // ./test/core/int_exprs.wast:94
@@ -150,15 +150,15 @@ assert_return(() => invoke($5, `i64.no_fold_div_u_mul`, [1n]), [value("i64", 0n)
 
 // ./test/core/int_exprs.wast:101
 let $6 = instantiate(`(module
-  (func (export "i32.no_fold_div_s_self") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (local.get $$x)))
-  (func (export "i32.no_fold_div_u_self") (param $$x i32) (result i32)
-    (i32.div_u (local.get $$x) (local.get $$x)))
+  (func (export "i32.no_fold_div_s_self") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (local.get \$x)))
+  (func (export "i32.no_fold_div_u_self") (param \$x i32) (result i32)
+    (i32.div_u (local.get \$x) (local.get \$x)))
 
-  (func (export "i64.no_fold_div_s_self") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (local.get $$x)))
-  (func (export "i64.no_fold_div_u_self") (param $$x i64) (result i64)
-    (i64.div_u (local.get $$x) (local.get $$x)))
+  (func (export "i64.no_fold_div_s_self") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (local.get \$x)))
+  (func (export "i64.no_fold_div_u_self") (param \$x i64) (result i64)
+    (i64.div_u (local.get \$x) (local.get \$x)))
 )`);
 
 // ./test/core/int_exprs.wast:113
@@ -175,15 +175,15 @@ assert_trap(() => invoke($6, `i64.no_fold_div_u_self`, [0n]), `integer divide by
 
 // ./test/core/int_exprs.wast:120
 let $7 = instantiate(`(module
-  (func (export "i32.no_fold_rem_s_self") (param $$x i32) (result i32)
-    (i32.rem_s (local.get $$x) (local.get $$x)))
-  (func (export "i32.no_fold_rem_u_self") (param $$x i32) (result i32)
-    (i32.rem_u (local.get $$x) (local.get $$x)))
+  (func (export "i32.no_fold_rem_s_self") (param \$x i32) (result i32)
+    (i32.rem_s (local.get \$x) (local.get \$x)))
+  (func (export "i32.no_fold_rem_u_self") (param \$x i32) (result i32)
+    (i32.rem_u (local.get \$x) (local.get \$x)))
 
-  (func (export "i64.no_fold_rem_s_self") (param $$x i64) (result i64)
-    (i64.rem_s (local.get $$x) (local.get $$x)))
-  (func (export "i64.no_fold_rem_u_self") (param $$x i64) (result i64)
-    (i64.rem_u (local.get $$x) (local.get $$x)))
+  (func (export "i64.no_fold_rem_s_self") (param \$x i64) (result i64)
+    (i64.rem_s (local.get \$x) (local.get \$x)))
+  (func (export "i64.no_fold_rem_u_self") (param \$x i64) (result i64)
+    (i64.rem_u (local.get \$x) (local.get \$x)))
 )`);
 
 // ./test/core/int_exprs.wast:132
@@ -200,15 +200,15 @@ assert_trap(() => invoke($7, `i64.no_fold_rem_u_self`, [0n]), `integer divide by
 
 // ./test/core/int_exprs.wast:139
 let $8 = instantiate(`(module
-  (func (export "i32.no_fold_mul_div_s") (param $$x i32) (result i32)
-    (i32.div_s (i32.mul (local.get $$x) (i32.const 6)) (i32.const 6)))
-  (func (export "i32.no_fold_mul_div_u") (param $$x i32) (result i32)
-    (i32.div_u (i32.mul (local.get $$x) (i32.const 6)) (i32.const 6)))
+  (func (export "i32.no_fold_mul_div_s") (param \$x i32) (result i32)
+    (i32.div_s (i32.mul (local.get \$x) (i32.const 6)) (i32.const 6)))
+  (func (export "i32.no_fold_mul_div_u") (param \$x i32) (result i32)
+    (i32.div_u (i32.mul (local.get \$x) (i32.const 6)) (i32.const 6)))
 
-  (func (export "i64.no_fold_mul_div_s") (param $$x i64) (result i64)
-    (i64.div_s (i64.mul (local.get $$x) (i64.const 6)) (i64.const 6)))
-  (func (export "i64.no_fold_mul_div_u") (param $$x i64) (result i64)
-    (i64.div_u (i64.mul (local.get $$x) (i64.const 6)) (i64.const 6)))
+  (func (export "i64.no_fold_mul_div_s") (param \$x i64) (result i64)
+    (i64.div_s (i64.mul (local.get \$x) (i64.const 6)) (i64.const 6)))
+  (func (export "i64.no_fold_mul_div_u") (param \$x i64) (result i64)
+    (i64.div_u (i64.mul (local.get \$x) (i64.const 6)) (i64.const 6)))
 )`);
 
 // ./test/core/int_exprs.wast:151
@@ -225,11 +225,11 @@ assert_return(() => invoke($8, `i64.no_fold_mul_div_u`, [-9223372036854775808n])
 
 // ./test/core/int_exprs.wast:158
 let $9 = instantiate(`(module
-  (func (export "i32.no_fold_div_s_2") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (i32.const 2)))
+  (func (export "i32.no_fold_div_s_2") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (i32.const 2)))
 
-  (func (export "i64.no_fold_div_s_2") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (i64.const 2)))
+  (func (export "i64.no_fold_div_s_2") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (i64.const 2)))
 )`);
 
 // ./test/core/int_exprs.wast:166
@@ -240,11 +240,11 @@ assert_return(() => invoke($9, `i64.no_fold_div_s_2`, [-11n]), [value("i64", -5n
 
 // ./test/core/int_exprs.wast:171
 let $10 = instantiate(`(module
-  (func (export "i32.no_fold_rem_s_2") (param $$x i32) (result i32)
-    (i32.rem_s (local.get $$x) (i32.const 2)))
+  (func (export "i32.no_fold_rem_s_2") (param \$x i32) (result i32)
+    (i32.rem_s (local.get \$x) (i32.const 2)))
 
-  (func (export "i64.no_fold_rem_s_2") (param $$x i64) (result i64)
-    (i64.rem_s (local.get $$x) (i64.const 2)))
+  (func (export "i64.no_fold_rem_s_2") (param \$x i64) (result i64)
+    (i64.rem_s (local.get \$x) (i64.const 2)))
 )`);
 
 // ./test/core/int_exprs.wast:179
@@ -255,15 +255,15 @@ assert_return(() => invoke($10, `i64.no_fold_rem_s_2`, [-11n]), [value("i64", -1
 
 // ./test/core/int_exprs.wast:184
 let $11 = instantiate(`(module
-  (func (export "i32.div_s_0") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (i32.const 0)))
-  (func (export "i32.div_u_0") (param $$x i32) (result i32)
-    (i32.div_u (local.get $$x) (i32.const 0)))
+  (func (export "i32.div_s_0") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (i32.const 0)))
+  (func (export "i32.div_u_0") (param \$x i32) (result i32)
+    (i32.div_u (local.get \$x) (i32.const 0)))
 
-  (func (export "i64.div_s_0") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (i64.const 0)))
-  (func (export "i64.div_u_0") (param $$x i64) (result i64)
-    (i64.div_u (local.get $$x) (i64.const 0)))
+  (func (export "i64.div_s_0") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (i64.const 0)))
+  (func (export "i64.div_u_0") (param \$x i64) (result i64)
+    (i64.div_u (local.get \$x) (i64.const 0)))
 )`);
 
 // ./test/core/int_exprs.wast:196
@@ -280,15 +280,15 @@ assert_trap(() => invoke($11, `i64.div_u_0`, [71n]), `integer divide by zero`);
 
 // ./test/core/int_exprs.wast:203
 let $12 = instantiate(`(module
-  (func (export "i32.div_s_3") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (i32.const 3)))
-  (func (export "i32.div_u_3") (param $$x i32) (result i32)
-    (i32.div_u (local.get $$x) (i32.const 3)))
+  (func (export "i32.div_s_3") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (i32.const 3)))
+  (func (export "i32.div_u_3") (param \$x i32) (result i32)
+    (i32.div_u (local.get \$x) (i32.const 3)))
 
-  (func (export "i64.div_s_3") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (i64.const 3)))
-  (func (export "i64.div_u_3") (param $$x i64) (result i64)
-    (i64.div_u (local.get $$x) (i64.const 3)))
+  (func (export "i64.div_s_3") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (i64.const 3)))
+  (func (export "i64.div_u_3") (param \$x i64) (result i64)
+    (i64.div_u (local.get \$x) (i64.const 3)))
 )`);
 
 // ./test/core/int_exprs.wast:215
@@ -323,15 +323,15 @@ assert_return(
 
 // ./test/core/int_exprs.wast:226
 let $13 = instantiate(`(module
-  (func (export "i32.div_s_5") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (i32.const 5)))
-  (func (export "i32.div_u_5") (param $$x i32) (result i32)
-    (i32.div_u (local.get $$x) (i32.const 5)))
+  (func (export "i32.div_s_5") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (i32.const 5)))
+  (func (export "i32.div_u_5") (param \$x i32) (result i32)
+    (i32.div_u (local.get \$x) (i32.const 5)))
 
-  (func (export "i64.div_s_5") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (i64.const 5)))
-  (func (export "i64.div_u_5") (param $$x i64) (result i64)
-    (i64.div_u (local.get $$x) (i64.const 5)))
+  (func (export "i64.div_s_5") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (i64.const 5)))
+  (func (export "i64.div_u_5") (param \$x i64) (result i64)
+    (i64.div_u (local.get \$x) (i64.const 5)))
 )`);
 
 // ./test/core/int_exprs.wast:238
@@ -366,15 +366,15 @@ assert_return(
 
 // ./test/core/int_exprs.wast:249
 let $14 = instantiate(`(module
-  (func (export "i32.div_s_7") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (i32.const 7)))
-  (func (export "i32.div_u_7") (param $$x i32) (result i32)
-    (i32.div_u (local.get $$x) (i32.const 7)))
+  (func (export "i32.div_s_7") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (i32.const 7)))
+  (func (export "i32.div_u_7") (param \$x i32) (result i32)
+    (i32.div_u (local.get \$x) (i32.const 7)))
 
-  (func (export "i64.div_s_7") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (i64.const 7)))
-  (func (export "i64.div_u_7") (param $$x i64) (result i64)
-    (i64.div_u (local.get $$x) (i64.const 7)))
+  (func (export "i64.div_s_7") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (i64.const 7)))
+  (func (export "i64.div_u_7") (param \$x i64) (result i64)
+    (i64.div_u (local.get \$x) (i64.const 7)))
 )`);
 
 // ./test/core/int_exprs.wast:261
@@ -409,15 +409,15 @@ assert_return(
 
 // ./test/core/int_exprs.wast:272
 let $15 = instantiate(`(module
-  (func (export "i32.rem_s_3") (param $$x i32) (result i32)
-    (i32.rem_s (local.get $$x) (i32.const 3)))
-  (func (export "i32.rem_u_3") (param $$x i32) (result i32)
-    (i32.rem_u (local.get $$x) (i32.const 3)))
+  (func (export "i32.rem_s_3") (param \$x i32) (result i32)
+    (i32.rem_s (local.get \$x) (i32.const 3)))
+  (func (export "i32.rem_u_3") (param \$x i32) (result i32)
+    (i32.rem_u (local.get \$x) (i32.const 3)))
 
-  (func (export "i64.rem_s_3") (param $$x i64) (result i64)
-    (i64.rem_s (local.get $$x) (i64.const 3)))
-  (func (export "i64.rem_u_3") (param $$x i64) (result i64)
-    (i64.rem_u (local.get $$x) (i64.const 3)))
+  (func (export "i64.rem_s_3") (param \$x i64) (result i64)
+    (i64.rem_s (local.get \$x) (i64.const 3)))
+  (func (export "i64.rem_u_3") (param \$x i64) (result i64)
+    (i64.rem_u (local.get \$x) (i64.const 3)))
 )`);
 
 // ./test/core/int_exprs.wast:284
@@ -446,15 +446,15 @@ assert_return(() => invoke($15, `i64.rem_u_3`, [-4611686018427387904n]), [value(
 
 // ./test/core/int_exprs.wast:295
 let $16 = instantiate(`(module
-  (func (export "i32.rem_s_5") (param $$x i32) (result i32)
-    (i32.rem_s (local.get $$x) (i32.const 5)))
-  (func (export "i32.rem_u_5") (param $$x i32) (result i32)
-    (i32.rem_u (local.get $$x) (i32.const 5)))
+  (func (export "i32.rem_s_5") (param \$x i32) (result i32)
+    (i32.rem_s (local.get \$x) (i32.const 5)))
+  (func (export "i32.rem_u_5") (param \$x i32) (result i32)
+    (i32.rem_u (local.get \$x) (i32.const 5)))
 
-  (func (export "i64.rem_s_5") (param $$x i64) (result i64)
-    (i64.rem_s (local.get $$x) (i64.const 5)))
-  (func (export "i64.rem_u_5") (param $$x i64) (result i64)
-    (i64.rem_u (local.get $$x) (i64.const 5)))
+  (func (export "i64.rem_s_5") (param \$x i64) (result i64)
+    (i64.rem_s (local.get \$x) (i64.const 5)))
+  (func (export "i64.rem_u_5") (param \$x i64) (result i64)
+    (i64.rem_u (local.get \$x) (i64.const 5)))
 )`);
 
 // ./test/core/int_exprs.wast:307
@@ -483,15 +483,15 @@ assert_return(() => invoke($16, `i64.rem_u_5`, [-6917529027641081856n]), [value(
 
 // ./test/core/int_exprs.wast:318
 let $17 = instantiate(`(module
-  (func (export "i32.rem_s_7") (param $$x i32) (result i32)
-    (i32.rem_s (local.get $$x) (i32.const 7)))
-  (func (export "i32.rem_u_7") (param $$x i32) (result i32)
-    (i32.rem_u (local.get $$x) (i32.const 7)))
+  (func (export "i32.rem_s_7") (param \$x i32) (result i32)
+    (i32.rem_s (local.get \$x) (i32.const 7)))
+  (func (export "i32.rem_u_7") (param \$x i32) (result i32)
+    (i32.rem_u (local.get \$x) (i32.const 7)))
 
-  (func (export "i64.rem_s_7") (param $$x i64) (result i64)
-    (i64.rem_s (local.get $$x) (i64.const 7)))
-  (func (export "i64.rem_u_7") (param $$x i64) (result i64)
-    (i64.rem_u (local.get $$x) (i64.const 7)))
+  (func (export "i64.rem_s_7") (param \$x i64) (result i64)
+    (i64.rem_s (local.get \$x) (i64.const 7)))
+  (func (export "i64.rem_u_7") (param \$x i64) (result i64)
+    (i64.rem_u (local.get \$x) (i64.const 7)))
 )`);
 
 // ./test/core/int_exprs.wast:330
@@ -520,11 +520,11 @@ assert_return(() => invoke($17, `i64.rem_u_7`, [-2305843009213693952n]), [value(
 
 // ./test/core/int_exprs.wast:341
 let $18 = instantiate(`(module
-  (func (export "i32.no_fold_div_neg1") (param $$x i32) (result i32)
-    (i32.div_s (local.get $$x) (i32.const -1)))
+  (func (export "i32.no_fold_div_neg1") (param \$x i32) (result i32)
+    (i32.div_s (local.get \$x) (i32.const -1)))
 
-  (func (export "i64.no_fold_div_neg1") (param $$x i64) (result i64)
-    (i64.div_s (local.get $$x) (i64.const -1)))
+  (func (export "i64.no_fold_div_neg1") (param \$x i64) (result i64)
+    (i64.div_s (local.get \$x) (i64.const -1)))
 )`);
 
 // ./test/core/int_exprs.wast:349

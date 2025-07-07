@@ -19,7 +19,7 @@
 let $0 = instantiate(`(module
   (memory 0)
   (func (export "size") (result i32) (memory.size))
-  (func (export "grow") (param $$sz i32) (drop (memory.grow (local.get $$sz))))
+  (func (export "grow") (param \$sz i32) (drop (memory.grow (local.get \$sz))))
 )`);
 
 // ./test/core/memory_size.wast:7
@@ -47,7 +47,7 @@ assert_return(() => invoke($0, `size`, []), [value("i32", 5)]);
 let $1 = instantiate(`(module
   (memory 1)
   (func (export "size") (result i32) (memory.size))
-  (func (export "grow") (param $$sz i32) (drop (memory.grow (local.get $$sz))))
+  (func (export "grow") (param \$sz i32) (drop (memory.grow (local.get \$sz))))
 )`);
 
 // ./test/core/memory_size.wast:21
@@ -75,7 +75,7 @@ assert_return(() => invoke($1, `size`, []), [value("i32", 6)]);
 let $2 = instantiate(`(module
   (memory 0 2)
   (func (export "size") (result i32) (memory.size))
-  (func (export "grow") (param $$sz i32) (drop (memory.grow (local.get $$sz))))
+  (func (export "grow") (param \$sz i32) (drop (memory.grow (local.get \$sz))))
 )`);
 
 // ./test/core/memory_size.wast:35
@@ -115,7 +115,7 @@ assert_return(() => invoke($2, `size`, []), [value("i32", 2)]);
 let $3 = instantiate(`(module
   (memory 3 8)
   (func (export "size") (result i32) (memory.size))
-  (func (export "grow") (param $$sz i32) (drop (memory.grow (local.get $$sz))))
+  (func (export "grow") (param \$sz i32) (drop (memory.grow (local.get \$sz))))
 )`);
 
 // ./test/core/memory_size.wast:53
@@ -162,15 +162,15 @@ register($4, `M`);
 
 // ./test/core/memory_size.wast:74
 let $5 = instantiate(`(module
-  (memory $$mem1 (import "M" "mem1") 1 5)
-  (memory $$mem2 (import "M" "mem2") 0)
-  (memory $$mem3 3)
-  (memory $$mem4 4 5)
+  (memory \$mem1 (import "M" "mem1") 1 5)
+  (memory \$mem2 (import "M" "mem2") 0)
+  (memory \$mem3 3)
+  (memory \$mem4 4 5)
 
-  (func (export "size1") (result i32) (memory.size $$mem1))
-  (func (export "size2") (result i32) (memory.size $$mem2))
-  (func (export "size3") (result i32) (memory.size $$mem3))
-  (func (export "size4") (result i32) (memory.size $$mem4))
+  (func (export "size1") (result i32) (memory.size \$mem1))
+  (func (export "size2") (result i32) (memory.size \$mem2))
+  (func (export "size3") (result i32) (memory.size \$mem3))
+  (func (export "size4") (result i32) (memory.size \$mem4))
 )`);
 
 // ./test/core/memory_size.wast:86
@@ -189,7 +189,7 @@ assert_return(() => invoke($5, `size4`, []), [value("i32", 4)]);
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-result-i32-vs-empty
+    (func \$type-result-i32-vs-empty
       (memory.size)
     )
   )`),
@@ -200,7 +200,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-result-i32-vs-f32 (result f32)
+    (func \$type-result-i32-vs-f32 (result f32)
       (memory.size)
     )
   )`),

@@ -16,15 +16,15 @@
 // ./test/core/multi-memory/linking3.wast
 
 // ./test/core/multi-memory/linking3.wast:1
-let $0 = instantiate(`(module $$Mm
-  (memory $$mem0 (export "mem0") 0 0)
-  (memory $$mem1 (export "mem1") 5 5)
-  (memory $$mem2 (export "mem2") 0 0)
+let $0 = instantiate(`(module \$Mm
+  (memory \$mem0 (export "mem0") 0 0)
+  (memory \$mem1 (export "mem1") 5 5)
+  (memory \$mem2 (export "mem2") 0 0)
   
   (data (memory 1) (i32.const 10) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09")
 
-  (func (export "load") (param $$a i32) (result i32)
-    (i32.load8_u $$mem1 (local.get 0))
+  (func (export "load") (param \$a i32) (result i32)
+    (i32.load8_u \$mem1 (local.get 0))
   )
 )`);
 let $Mm = $0;
@@ -35,7 +35,7 @@ register($Mm, `Mm`);
 // ./test/core/multi-memory/linking3.wast:14
 assert_unlinkable(
   () => instantiate(`(module
-    (func $$host (import "spectest" "print"))
+    (func \$host (import "spectest" "print"))
     (memory (import "Mm" "mem1") 1)
     (table (import "Mm" "tab") 0 funcref)  ;; does not exist
     (data (i32.const 0) "abc")
@@ -79,15 +79,15 @@ assert_trap(
 assert_return(() => invoke($Mm, `load`, [0]), [value("i32", 97)]);
 
 // ./test/core/multi-memory/linking3.wast:52
-let $1 = instantiate(`(module $$Ms
-  (type $$t (func (result i32)))
+let $1 = instantiate(`(module \$Ms
+  (type \$t (func (result i32)))
   (memory (export "memory") 1)
   (table (export "table") 1 funcref)
-  (func (export "get memory[0]") (type $$t)
+  (func (export "get memory[0]") (type \$t)
     (i32.load8_u (i32.const 0))
   )
-  (func (export "get table[0]") (type $$t)
-    (call_indirect (type $$t) (i32.const 0))
+  (func (export "get table[0]") (type \$t)
+    (call_indirect (type \$t) (i32.const 0))
   )
 )`);
 let $Ms = $1;
@@ -101,14 +101,14 @@ assert_trap(
     (import "Ms" "memory" (memory 1))
     (import "Ms" "table" (table 1 funcref))
     (data (i32.const 0) "hello")
-    (elem (i32.const 0) $$f)
-    (func $$f (result i32)
+    (elem (i32.const 0) \$f)
+    (func \$f (result i32)
       (i32.const 0xdead)
     )
-    (func $$main
+    (func \$main
       (unreachable)
     )
-    (start $$main)
+    (start \$main)
   )`),
   `unreachable`,
 );

@@ -19,11 +19,11 @@
 let $0 = instantiate(`(module
 
   ;; Check that both sides of the select are evaluated
-  (func (export "select-trap-left") (param $$cond i32) (result i32)
-    (select (unreachable) (i32.const 0) (local.get $$cond))
+  (func (export "select-trap-left") (param \$cond i32) (result i32)
+    (select (unreachable) (i32.const 0) (local.get \$cond))
   )
-  (func (export "select-trap-right") (param $$cond i32) (result i32)
-    (select (i32.const 0) (unreachable) (local.get $$cond))
+  (func (export "select-trap-right") (param \$cond i32) (result i32)
+    (select (i32.const 0) (unreachable) (local.get \$cond))
   )
 
   (func (export "select-unreached")
@@ -56,10 +56,10 @@ let $0 = instantiate(`(module
     (drop)
   )
 
-  (type $$t (func (param i32) (result i32)))
+  (type \$t (func (param i32) (result i32)))
   (func (export "call_ref-unreached") (result i32)
     (unreachable)
-    (call_ref $$t)
+    (call_ref \$t)
   )
 )`);
 

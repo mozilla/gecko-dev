@@ -210,7 +210,7 @@ assert_invalid(
 // ./test/core/simd/simd_store.wast:143
 assert_invalid(
   () => instantiate(`(module (memory 0)
-    (func $$v128.store-1st-arg-empty
+    (func \$v128.store-1st-arg-empty
       (v128.store (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -220,7 +220,7 @@ assert_invalid(
 // ./test/core/simd/simd_store.wast:151
 assert_invalid(
   () => instantiate(`(module (memory 0)
-    (func $$v128.store-2nd-arg-empty
+    (func \$v128.store-2nd-arg-empty
       (v128.store (i32.const 0))
     )
   )`),
@@ -230,7 +230,7 @@ assert_invalid(
 // ./test/core/simd/simd_store.wast:159
 assert_invalid(
   () => instantiate(`(module (memory 0)
-    (func $$v128.store-arg-empty
+    (func \$v128.store-arg-empty
       (v128.store)
     )
   )`),

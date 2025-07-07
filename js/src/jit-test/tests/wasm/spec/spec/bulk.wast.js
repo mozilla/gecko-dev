@@ -238,16 +238,16 @@ assert_trap(() => invoke($4, `init`, [0, 5, 0]), `out of bounds memory access`);
 // ./test/core/bulk.wast:154
 let $5 = instantiate(`(module
   (memory 1)
-  (data $$p "x")
-  (data $$a (memory 0) (i32.const 0) "x")
+  (data \$p "x")
+  (data \$a (memory 0) (i32.const 0) "x")
 
-  (func (export "drop_passive") (data.drop $$p))
-  (func (export "init_passive") (param $$len i32)
-    (memory.init $$p (i32.const 0) (i32.const 0) (local.get $$len)))
+  (func (export "drop_passive") (data.drop \$p))
+  (func (export "init_passive") (param \$len i32)
+    (memory.init \$p (i32.const 0) (i32.const 0) (local.get \$len)))
 
-  (func (export "drop_active") (data.drop $$a))
-  (func (export "init_active") (param $$len i32)
-    (memory.init $$a (i32.const 0) (i32.const 0) (local.get $$len)))
+  (func (export "drop_active") (data.drop \$a))
+  (func (export "init_active") (param \$len i32)
+    (memory.init \$a (i32.const 0) (i32.const 0) (local.get \$len)))
 )`);
 
 // ./test/core/bulk.wast:168
@@ -302,10 +302,10 @@ let $7 = instantiate(`(module (data "goodbye") (func (data.drop 0)))`);
 let $8 = instantiate(`(module
   (table 3 funcref)
   (elem funcref
-    (ref.func $$zero) (ref.func $$one) (ref.func $$zero) (ref.func $$one))
+    (ref.func \$zero) (ref.func \$one) (ref.func \$zero) (ref.func \$one))
 
-  (func $$zero (result i32) (i32.const 0))
-  (func $$one (result i32) (i32.const 1))
+  (func \$zero (result i32) (i32.const 0))
+  (func \$one (result i32) (i32.const 1))
 
   (func (export "init") (param i32 i32 i32)
     (table.init 0
@@ -354,18 +354,18 @@ assert_trap(() => invoke($8, `init`, [0, 5, 0]), `out of bounds table access`);
 // ./test/core/bulk.wast:244
 let $9 = instantiate(`(module
   (table 1 funcref)
-  (func $$f)
-  (elem $$p funcref (ref.func $$f))
-  (elem $$a (table 0) (i32.const 0) func $$f)
+  (func \$f)
+  (elem \$p funcref (ref.func \$f))
+  (elem \$a (table 0) (i32.const 0) func \$f)
 
-  (func (export "drop_passive") (elem.drop $$p))
-  (func (export "init_passive") (param $$len i32)
-    (table.init $$p (i32.const 0) (i32.const 0) (local.get $$len))
+  (func (export "drop_passive") (elem.drop \$p))
+  (func (export "init_passive") (param \$len i32)
+    (table.init \$p (i32.const 0) (i32.const 0) (local.get \$len))
   )
 
-  (func (export "drop_active") (elem.drop $$a))
-  (func (export "init_active") (param $$len i32)
-    (table.init $$a (i32.const 0) (i32.const 0) (local.get $$len))
+  (func (export "drop_active") (elem.drop \$a))
+  (func (export "init_active") (param \$len i32)
+    (table.init \$a (i32.const 0) (i32.const 0) (local.get \$len))
   )
 )`);
 
@@ -428,10 +428,10 @@ let $11 = instantiate(`(module (elem funcref (ref.func 0)) (func (elem.drop 0)))
 // ./test/core/bulk.wast:300
 let $12 = instantiate(`(module
   (table 10 funcref)
-  (elem (i32.const 0) $$zero $$one $$two)
-  (func $$zero (result i32) (i32.const 0))
-  (func $$one (result i32) (i32.const 1))
-  (func $$two (result i32) (i32.const 2))
+  (elem (i32.const 0) \$zero \$one \$two)
+  (func \$zero (result i32) (i32.const 0))
+  (func \$one (result i32) (i32.const 1))
+  (func \$two (result i32) (i32.const 2))
 
   (func (export "copy") (param i32 i32 i32)
     (table.copy

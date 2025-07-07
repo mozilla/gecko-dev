@@ -128,7 +128,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith2.wast:63
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.abs-arg-empty (result v128)
+    (func \$i64x2.abs-arg-empty (result v128)
       (i64x2.abs)
     )
   )`),

@@ -440,3 +440,92 @@ function compareResult(result, expected) {
     throw new Error("unknown expected result");
   }
 }
+
+class Thread {
+  LOC_STATE = 0;
+  LOC_DID_ERROR = 1;
+
+  STATE_WORKER_READY = 0x60; // "GO"
+  STATE_SENDING_VALUE = 0xF00D; // feed me values
+  STATE_GOT_VALUE = 0x600DF00D; // mm delicious values
+  STATE_RUN_CODE = 0xC0DE;
+  STATE_DONE = 0xDEAD;
+
+  constructor(sharedModule, sharedModuleName, code) {
+    this._coord = new Int32Array(new SharedArrayBuffer(4*2));
+
+    setSharedObject(this._coord.buffer);
+    evalInWorker(`
+      const _coord = new Int32Array(getSharedObject());
+
+      ${readRelativeToScript("harness.js")}
+
+      function setState(state) {
+        Atomics.store(_coord, ${this.LOC_STATE}, state);
+      }
+      function waitForState(expected) {
+        while (Atomics.load(_coord, ${this.LOC_STATE}) !== expected) {}
+      }
+      function receive() {
+        waitForState(${this.STATE_SENDING_VALUE});
+        const x = getSharedObject();
+        setState(${this.STATE_GOT_VALUE});
+        return x;
+      }
+
+      // Tell main thread we are ready
+      setState(${this.STATE_WORKER_READY});
+
+      // Get shared module's exports from main thread. (We do this one at a
+      // time for reasons explained below.)
+      const ${sharedModuleName} = {};
+      ${Object.keys(sharedModule).map(name =>
+        `${sharedModuleName}["${name}"] = receive();`
+      )}
+      waitForState(${this.STATE_RUN_CODE});
+
+      try {
+        ${code}
+      } catch (e) {
+        Atomics.store(_coord, ${this.LOC_DID_ERROR}, 1);
+        throw e;
+      } finally {
+        setState(${this.STATE_DONE});
+      }
+    `);
+
+    // Wait for worker to spawn
+    this.waitForState(this.STATE_WORKER_READY);
+
+    // Send shared module exports to worker. We send values one at a time
+    // because setGlobalObject can only take very specific objects, like wasm
+    // memories, not generic objects like the whole exports object.
+    for (const exportedValue of Object.values(sharedModule)) {
+      this.send(exportedValue);
+    }
+
+    // Give the worker the all-clear to execute its workload
+    this.setState(this.STATE_RUN_CODE);
+  }
+
+  setState(state) {
+    Atomics.store(this._coord, this.LOC_STATE, state);
+  }
+
+  waitForState(expected) {
+    while (Atomics.load(this._coord, this.LOC_STATE) !== expected) {}
+  }
+
+  send(val) {
+    setSharedObject(val);
+    this.setState(this.STATE_SENDING_VALUE);
+    this.waitForState(this.STATE_GOT_VALUE);
+  }
+
+  wait() {
+    this.waitForState(this.STATE_DONE);
+    if (Atomics.load(this._coord, this.LOC_DID_ERROR)) {
+      throw new Error("Error in worker code. Note that line numbers will not be helpful because of how the harness is loaded.");
+    }
+  }
+}

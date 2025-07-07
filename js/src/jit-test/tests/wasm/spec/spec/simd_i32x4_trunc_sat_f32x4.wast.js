@@ -998,7 +998,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_trunc_sat_f32x4.wast:223
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.trunc_sat_f32x4_s-arg-empty (result v128)
+    (func \$i32x4.trunc_sat_f32x4_s-arg-empty (result v128)
       (i32x4.trunc_sat_f32x4_s)
     )
   )`),
@@ -1008,7 +1008,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_trunc_sat_f32x4.wast:231
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.trunc_sat_f32x4_u-arg-empty (result v128)
+    (func \$i32x4.trunc_sat_f32x4_u-arg-empty (result v128)
       (i32x4.trunc_sat_f32x4_u)
     )
   )`),

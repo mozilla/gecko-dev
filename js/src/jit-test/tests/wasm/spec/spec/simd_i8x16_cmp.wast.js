@@ -19,16 +19,16 @@
 
 // ./test/core/simd/simd_i8x16_cmp.wast:4
 let $0 = instantiate(`(module
-  (func (export "eq") (param $$x v128) (param $$y v128) (result v128) (i8x16.eq (local.get $$x) (local.get $$y)))
-  (func (export "ne") (param $$x v128) (param $$y v128) (result v128) (i8x16.ne (local.get $$x) (local.get $$y)))
-  (func (export "lt_s") (param $$x v128) (param $$y v128) (result v128) (i8x16.lt_s (local.get $$x) (local.get $$y)))
-  (func (export "lt_u") (param $$x v128) (param $$y v128) (result v128) (i8x16.lt_u (local.get $$x) (local.get $$y)))
-  (func (export "le_s") (param $$x v128) (param $$y v128) (result v128) (i8x16.le_s (local.get $$x) (local.get $$y)))
-  (func (export "le_u") (param $$x v128) (param $$y v128) (result v128) (i8x16.le_u (local.get $$x) (local.get $$y)))
-  (func (export "gt_s") (param $$x v128) (param $$y v128) (result v128) (i8x16.gt_s (local.get $$x) (local.get $$y)))
-  (func (export "gt_u") (param $$x v128) (param $$y v128) (result v128) (i8x16.gt_u (local.get $$x) (local.get $$y)))
-  (func (export "ge_s") (param $$x v128) (param $$y v128) (result v128) (i8x16.ge_s (local.get $$x) (local.get $$y)))
-  (func (export "ge_u") (param $$x v128) (param $$y v128) (result v128) (i8x16.ge_u (local.get $$x) (local.get $$y)))
+  (func (export "eq") (param \$x v128) (param \$y v128) (result v128) (i8x16.eq (local.get \$x) (local.get \$y)))
+  (func (export "ne") (param \$x v128) (param \$y v128) (result v128) (i8x16.ne (local.get \$x) (local.get \$y)))
+  (func (export "lt_s") (param \$x v128) (param \$y v128) (result v128) (i8x16.lt_s (local.get \$x) (local.get \$y)))
+  (func (export "lt_u") (param \$x v128) (param \$y v128) (result v128) (i8x16.lt_u (local.get \$x) (local.get \$y)))
+  (func (export "le_s") (param \$x v128) (param \$y v128) (result v128) (i8x16.le_s (local.get \$x) (local.get \$y)))
+  (func (export "le_u") (param \$x v128) (param \$y v128) (result v128) (i8x16.le_u (local.get \$x) (local.get \$y)))
+  (func (export "gt_s") (param \$x v128) (param \$y v128) (result v128) (i8x16.gt_s (local.get \$x) (local.get \$y)))
+  (func (export "gt_u") (param \$x v128) (param \$y v128) (result v128) (i8x16.gt_u (local.get \$x) (local.get \$y)))
+  (func (export "ge_s") (param \$x v128) (param \$y v128) (result v128) (i8x16.ge_s (local.get \$x) (local.get \$y)))
+  (func (export "ge_u") (param \$x v128) (param \$y v128) (result v128) (i8x16.ge_u (local.get \$x) (local.get \$y)))
 )`);
 
 // ./test/core/simd/simd_i8x16_cmp.wast:23
@@ -4791,7 +4791,7 @@ assert_return(() => invoke($1, `as-param`, []), []);
 // ./test/core/simd/simd_i8x16_cmp.wast:1688
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.eq-1st-arg-empty (result v128)
+    (func \$i8x16.eq-1st-arg-empty (result v128)
       (i8x16.eq (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4801,7 +4801,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1696
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.eq-arg-empty (result v128)
+    (func \$i8x16.eq-arg-empty (result v128)
       (i8x16.eq)
     )
   )`),
@@ -4811,7 +4811,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1704
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.ne-1st-arg-empty (result v128)
+    (func \$i8x16.ne-1st-arg-empty (result v128)
       (i8x16.ne (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4821,7 +4821,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1712
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.ne-arg-empty (result v128)
+    (func \$i8x16.ne-arg-empty (result v128)
       (i8x16.ne)
     )
   )`),
@@ -4831,7 +4831,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1720
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.lt_s-1st-arg-empty (result v128)
+    (func \$i8x16.lt_s-1st-arg-empty (result v128)
       (i8x16.lt_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4841,7 +4841,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1728
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.lt_s-arg-empty (result v128)
+    (func \$i8x16.lt_s-arg-empty (result v128)
       (i8x16.lt_s)
     )
   )`),
@@ -4851,7 +4851,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1736
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.lt_u-1st-arg-empty (result v128)
+    (func \$i8x16.lt_u-1st-arg-empty (result v128)
       (i8x16.lt_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4861,7 +4861,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1744
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.lt_u-arg-empty (result v128)
+    (func \$i8x16.lt_u-arg-empty (result v128)
       (i8x16.lt_u)
     )
   )`),
@@ -4871,7 +4871,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1752
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.le_s-1st-arg-empty (result v128)
+    (func \$i8x16.le_s-1st-arg-empty (result v128)
       (i8x16.le_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4881,7 +4881,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1760
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.le_s-arg-empty (result v128)
+    (func \$i8x16.le_s-arg-empty (result v128)
       (i8x16.le_s)
     )
   )`),
@@ -4891,7 +4891,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1768
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.le_u-1st-arg-empty (result v128)
+    (func \$i8x16.le_u-1st-arg-empty (result v128)
       (i8x16.le_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4901,7 +4901,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1776
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.le_u-arg-empty (result v128)
+    (func \$i8x16.le_u-arg-empty (result v128)
       (i8x16.le_u)
     )
   )`),
@@ -4911,7 +4911,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1784
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.gt_s-1st-arg-empty (result v128)
+    (func \$i8x16.gt_s-1st-arg-empty (result v128)
       (i8x16.gt_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4921,7 +4921,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1792
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.gt_s-arg-empty (result v128)
+    (func \$i8x16.gt_s-arg-empty (result v128)
       (i8x16.gt_s)
     )
   )`),
@@ -4931,7 +4931,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1800
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.gt_u-1st-arg-empty (result v128)
+    (func \$i8x16.gt_u-1st-arg-empty (result v128)
       (i8x16.gt_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4941,7 +4941,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1808
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.gt_u-arg-empty (result v128)
+    (func \$i8x16.gt_u-arg-empty (result v128)
       (i8x16.gt_u)
     )
   )`),
@@ -4951,7 +4951,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1816
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.ge_s-1st-arg-empty (result v128)
+    (func \$i8x16.ge_s-1st-arg-empty (result v128)
       (i8x16.ge_s (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4961,7 +4961,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1824
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.ge_s-arg-empty (result v128)
+    (func \$i8x16.ge_s-arg-empty (result v128)
       (i8x16.ge_s)
     )
   )`),
@@ -4971,7 +4971,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1832
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.ge_u-1st-arg-empty (result v128)
+    (func \$i8x16.ge_u-1st-arg-empty (result v128)
       (i8x16.ge_u (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -4981,7 +4981,7 @@ assert_invalid(
 // ./test/core/simd/simd_i8x16_cmp.wast:1840
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.ge_u-arg-empty (result v128)
+    (func \$i8x16.ge_u-arg-empty (result v128)
       (i8x16.ge_u)
     )
   )`),

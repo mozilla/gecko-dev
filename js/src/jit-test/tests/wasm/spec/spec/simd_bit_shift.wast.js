@@ -19,42 +19,42 @@
 
 // ./test/core/simd/simd_bit_shift.wast:3
 let $0 = instantiate(`(module
-  (func (export "i8x16.shl") (param $$0 v128) (param $$1 i32) (result v128) (i8x16.shl (local.get $$0) (local.get $$1)))
-  (func (export "i8x16.shr_s") (param $$0 v128) (param $$1 i32) (result v128) (i8x16.shr_s (local.get $$0) (local.get $$1)))
-  (func (export "i8x16.shr_u") (param $$0 v128) (param $$1 i32) (result v128) (i8x16.shr_u (local.get $$0) (local.get $$1)))
+  (func (export "i8x16.shl") (param \$0 v128) (param \$1 i32) (result v128) (i8x16.shl (local.get \$0) (local.get \$1)))
+  (func (export "i8x16.shr_s") (param \$0 v128) (param \$1 i32) (result v128) (i8x16.shr_s (local.get \$0) (local.get \$1)))
+  (func (export "i8x16.shr_u") (param \$0 v128) (param \$1 i32) (result v128) (i8x16.shr_u (local.get \$0) (local.get \$1)))
 
-  (func (export "i16x8.shl") (param $$0 v128) (param $$1 i32) (result v128) (i16x8.shl (local.get $$0) (local.get $$1)))
-  (func (export "i16x8.shr_s") (param $$0 v128) (param $$1 i32) (result v128) (i16x8.shr_s (local.get $$0) (local.get $$1)))
-  (func (export "i16x8.shr_u") (param $$0 v128) (param $$1 i32) (result v128) (i16x8.shr_u (local.get $$0) (local.get $$1)))
+  (func (export "i16x8.shl") (param \$0 v128) (param \$1 i32) (result v128) (i16x8.shl (local.get \$0) (local.get \$1)))
+  (func (export "i16x8.shr_s") (param \$0 v128) (param \$1 i32) (result v128) (i16x8.shr_s (local.get \$0) (local.get \$1)))
+  (func (export "i16x8.shr_u") (param \$0 v128) (param \$1 i32) (result v128) (i16x8.shr_u (local.get \$0) (local.get \$1)))
 
-  (func (export "i32x4.shl") (param $$0 v128) (param $$1 i32) (result v128) (i32x4.shl (local.get $$0) (local.get $$1)))
-  (func (export "i32x4.shr_s") (param $$0 v128) (param $$1 i32) (result v128) (i32x4.shr_s (local.get $$0) (local.get $$1)))
-  (func (export "i32x4.shr_u") (param $$0 v128) (param $$1 i32) (result v128) (i32x4.shr_u (local.get $$0) (local.get $$1)))
+  (func (export "i32x4.shl") (param \$0 v128) (param \$1 i32) (result v128) (i32x4.shl (local.get \$0) (local.get \$1)))
+  (func (export "i32x4.shr_s") (param \$0 v128) (param \$1 i32) (result v128) (i32x4.shr_s (local.get \$0) (local.get \$1)))
+  (func (export "i32x4.shr_u") (param \$0 v128) (param \$1 i32) (result v128) (i32x4.shr_u (local.get \$0) (local.get \$1)))
 
-  (func (export "i64x2.shl") (param $$0 v128) (param $$1 i32) (result v128) (i64x2.shl (local.get $$0) (local.get $$1)))
-  (func (export "i64x2.shr_s") (param $$0 v128) (param $$1 i32) (result v128) (i64x2.shr_s (local.get $$0) (local.get $$1)))
-  (func (export "i64x2.shr_u") (param $$0 v128) (param $$1 i32) (result v128) (i64x2.shr_u (local.get $$0) (local.get $$1)))
+  (func (export "i64x2.shl") (param \$0 v128) (param \$1 i32) (result v128) (i64x2.shl (local.get \$0) (local.get \$1)))
+  (func (export "i64x2.shr_s") (param \$0 v128) (param \$1 i32) (result v128) (i64x2.shr_s (local.get \$0) (local.get \$1)))
+  (func (export "i64x2.shr_u") (param \$0 v128) (param \$1 i32) (result v128) (i64x2.shr_u (local.get \$0) (local.get \$1)))
 
   ;; shifting by a constant amount
   ;; i8x16
-  (func (export "i8x16.shl_1") (param $$0 v128) (result v128) (i8x16.shl (local.get $$0) (i32.const 1)))
-  (func (export "i8x16.shr_u_8") (param $$0 v128) (result v128) (i8x16.shr_u (local.get $$0) (i32.const 8)))
-  (func (export "i8x16.shr_s_9") (param $$0 v128) (result v128) (i8x16.shr_s (local.get $$0) (i32.const 9)))
+  (func (export "i8x16.shl_1") (param \$0 v128) (result v128) (i8x16.shl (local.get \$0) (i32.const 1)))
+  (func (export "i8x16.shr_u_8") (param \$0 v128) (result v128) (i8x16.shr_u (local.get \$0) (i32.const 8)))
+  (func (export "i8x16.shr_s_9") (param \$0 v128) (result v128) (i8x16.shr_s (local.get \$0) (i32.const 9)))
 
   ;; i16x8
-  (func (export "i16x8.shl_1") (param $$0 v128) (result v128) (i16x8.shl (local.get $$0) (i32.const 1)))
-  (func (export "i16x8.shr_u_16") (param $$0 v128) (result v128) (i16x8.shr_u (local.get $$0) (i32.const 16)))
-  (func (export "i16x8.shr_s_17") (param $$0 v128) (result v128) (i16x8.shr_s (local.get $$0) (i32.const 17)))
+  (func (export "i16x8.shl_1") (param \$0 v128) (result v128) (i16x8.shl (local.get \$0) (i32.const 1)))
+  (func (export "i16x8.shr_u_16") (param \$0 v128) (result v128) (i16x8.shr_u (local.get \$0) (i32.const 16)))
+  (func (export "i16x8.shr_s_17") (param \$0 v128) (result v128) (i16x8.shr_s (local.get \$0) (i32.const 17)))
 
   ;; i32x4
-  (func (export "i32x4.shl_1") (param $$0 v128) (result v128) (i32x4.shl (local.get $$0) (i32.const 1)))
-  (func (export "i32x4.shr_u_32") (param $$0 v128) (result v128) (i32x4.shr_u (local.get $$0) (i32.const 32)))
-  (func (export "i32x4.shr_s_33") (param $$0 v128) (result v128) (i32x4.shr_s (local.get $$0) (i32.const 33)))
+  (func (export "i32x4.shl_1") (param \$0 v128) (result v128) (i32x4.shl (local.get \$0) (i32.const 1)))
+  (func (export "i32x4.shr_u_32") (param \$0 v128) (result v128) (i32x4.shr_u (local.get \$0) (i32.const 32)))
+  (func (export "i32x4.shr_s_33") (param \$0 v128) (result v128) (i32x4.shr_s (local.get \$0) (i32.const 33)))
 
   ;; i64x2
-  (func (export "i64x2.shl_1") (param $$0 v128) (result v128) (i64x2.shl (local.get $$0) (i32.const 1)))
-  (func (export "i64x2.shr_u_64") (param $$0 v128) (result v128) (i64x2.shr_u (local.get $$0) (i32.const 64)))
-  (func (export "i64x2.shr_s_65") (param $$0 v128) (result v128) (i64x2.shr_s (local.get $$0) (i32.const 65)))
+  (func (export "i64x2.shl_1") (param \$0 v128) (result v128) (i64x2.shl (local.get \$0) (i32.const 1)))
+  (func (export "i64x2.shr_u_64") (param \$0 v128) (result v128) (i64x2.shr_u (local.get \$0) (i32.const 64)))
+  (func (export "i64x2.shr_s_65") (param \$0 v128) (result v128) (i64x2.shr_s (local.get \$0) (i32.const 65)))
 )`);
 
 // ./test/core/simd/simd_bit_shift.wast:44
@@ -1984,7 +1984,7 @@ assert_malformed(
 // ./test/core/simd/simd_bit_shift.wast:1009
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.shl-1st-arg-empty (result v128)
+    (func \$i8x16.shl-1st-arg-empty (result v128)
       (i8x16.shl (i32.const 0))
     )
   )`),
@@ -1994,7 +1994,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1017
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.shl-last-arg-empty (result v128)
+    (func \$i8x16.shl-last-arg-empty (result v128)
       (i8x16.shl (v128.const i8x16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -2004,7 +2004,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1025
 assert_invalid(
   () => instantiate(`(module
-    (func $$i8x16.shl-arg-empty (result v128)
+    (func \$i8x16.shl-arg-empty (result v128)
       (i8x16.shl)
     )
   )`),
@@ -2014,7 +2014,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1033
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.shr_u-1st-arg-empty (result v128)
+    (func \$i16x8.shr_u-1st-arg-empty (result v128)
       (i16x8.shr_u (i32.const 0))
     )
   )`),
@@ -2024,7 +2024,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1041
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.shr_u-last-arg-empty (result v128)
+    (func \$i16x8.shr_u-last-arg-empty (result v128)
       (i16x8.shr_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -2034,7 +2034,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1049
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.shr_u-arg-empty (result v128)
+    (func \$i16x8.shr_u-arg-empty (result v128)
       (i16x8.shr_u)
     )
   )`),
@@ -2044,7 +2044,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1057
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.shr_s-1st-arg-empty (result v128)
+    (func \$i32x4.shr_s-1st-arg-empty (result v128)
       (i32x4.shr_s (i32.const 0))
     )
   )`),
@@ -2054,7 +2054,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1065
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.shr_s-last-arg-empty (result v128)
+    (func \$i32x4.shr_s-last-arg-empty (result v128)
       (i32x4.shr_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -2064,7 +2064,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1073
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.shr_s-arg-empty (result v128)
+    (func \$i32x4.shr_s-arg-empty (result v128)
       (i32x4.shr_s)
     )
   )`),
@@ -2074,7 +2074,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1081
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.shl-1st-arg-empty (result v128)
+    (func \$i64x2.shl-1st-arg-empty (result v128)
       (i64x2.shl (i32.const 0))
     )
   )`),
@@ -2084,7 +2084,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1089
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.shr_u-last-arg-empty (result v128)
+    (func \$i64x2.shr_u-last-arg-empty (result v128)
       (i64x2.shr_u (v128.const i64x2 0 0))
     )
   )`),
@@ -2094,7 +2094,7 @@ assert_invalid(
 // ./test/core/simd/simd_bit_shift.wast:1097
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.shr_s-arg-empty (result v128)
+    (func \$i64x2.shr_s-arg-empty (result v128)
       (i64x2.shr_s)
     )
   )`),

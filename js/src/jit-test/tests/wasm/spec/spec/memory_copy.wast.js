@@ -843,8 +843,8 @@ assert_return(() => invoke($7, `load8_u`, [29]), [value("i32", 0)]);
 let $8 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 0) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -1902,8 +1902,8 @@ assert_return(() => invoke($8, `load8_u`, [65490]), [value("i32", 0)]);
 let $9 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 0) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13\\14")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -2964,8 +2964,8 @@ assert_return(() => invoke($9, `load8_u`, [65491]), [value("i32", 0)]);
 let $10 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -4023,8 +4023,8 @@ assert_return(() => invoke($10, `load8_u`, [65535]), [value("i32", 19)]);
 let $11 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65515) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13\\14")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -5085,8 +5085,8 @@ assert_return(() => invoke($11, `load8_u`, [65535]), [value("i32", 20)]);
 let $12 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65486) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -6144,8 +6144,8 @@ assert_return(() => invoke($12, `load8_u`, [65505]), [value("i32", 19)]);
 let $13 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -7203,8 +7203,8 @@ assert_return(() => invoke($13, `load8_u`, [65535]), [value("i32", 19)]);
 let $14 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65506) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -8262,8 +8262,8 @@ assert_return(() => invoke($14, `load8_u`, [65525]), [value("i32", 19)]);
 let $15 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -9321,8 +9321,8 @@ assert_return(() => invoke($15, `load8_u`, [65535]), [value("i32", 19)]);
 let $16 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -10380,8 +10380,8 @@ assert_return(() => invoke($16, `load8_u`, [65535]), [value("i32", 19)]);
 let $17 = instantiate(`(module
   (memory (export "mem") 1  )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -11439,8 +11439,8 @@ assert_return(() => invoke($17, `load8_u`, [65535]), [value("i32", 19)]);
 let $18 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 61440) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -13076,16 +13076,16 @@ let $19 = instantiate(`(module
     (memory.fill (i32.const 10) (i32.const 0x55) (i32.const 10))
     (memory.copy (i32.const 9) (i32.const 10) (i32.const 5)))
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:4780
@@ -13107,16 +13107,16 @@ let $20 = instantiate(`(module
     (memory.fill (i32.const 10) (i32.const 0x55) (i32.const 10))
     (memory.copy (i32.const 16) (i32.const 15) (i32.const 5)))
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:4806
@@ -13175,16 +13175,16 @@ let $25 = instantiate(`(module
     (memory.fill (i32.const 0x8000) (i32.const 0xAA) (i32.const 0x8000))
     (memory.copy (i32.const 0x9000) (i32.const 0x7000) (i32.const 0)))
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:4857
@@ -13456,16 +13456,16 @@ let $32 = instantiate(`(module
     (memory.copy (i32.const 50370) (i32.const 41271) (i32.const 1406))
   )
   
-  (func (export "checkRange") (param $$from i32) (param $$to i32) (param $$expected i32) (result i32)
-    (loop $$cont
-      (if (i32.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i32) (param \$to i32) (param \$expected i32) (result i32)
+    (loop \$cont
+      (if (i32.eq (local.get \$from) (local.get \$to))
         (then
           (return (i32.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i32.add (local.get $$from) (i32.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i32.add (local.get \$from) (i32.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:5115
@@ -14992,8 +14992,8 @@ assert_return(() => invoke($40, `load8_u`, [29n]), [value("i32", 0)]);
 let $41 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 0) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -16051,8 +16051,8 @@ assert_return(() => invoke($41, `load8_u`, [65490]), [value("i32", 0)]);
 let $42 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 0) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13\\14")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -17113,8 +17113,8 @@ assert_return(() => invoke($42, `load8_u`, [65491]), [value("i32", 0)]);
 let $43 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -18172,8 +18172,8 @@ assert_return(() => invoke($43, `load8_u`, [65535]), [value("i32", 19)]);
 let $44 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65515) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13\\14")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -19234,8 +19234,8 @@ assert_return(() => invoke($44, `load8_u`, [65535]), [value("i32", 20)]);
 let $45 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65486) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -20293,8 +20293,8 @@ assert_return(() => invoke($45, `load8_u`, [65505]), [value("i32", 19)]);
 let $46 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -21352,8 +21352,8 @@ assert_return(() => invoke($46, `load8_u`, [65535]), [value("i32", 19)]);
 let $47 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65506) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -22411,8 +22411,8 @@ assert_return(() => invoke($47, `load8_u`, [65525]), [value("i32", 19)]);
 let $48 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -23470,8 +23470,8 @@ assert_return(() => invoke($48, `load8_u`, [65535]), [value("i32", 19)]);
 let $49 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -24529,8 +24529,8 @@ assert_return(() => invoke($49, `load8_u`, [65535]), [value("i32", 19)]);
 let $50 = instantiate(`(module
   (memory (export "mem") 1  )
   (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -25588,8 +25588,8 @@ assert_return(() => invoke($50, `load8_u`, [65535]), [value("i32", 19)]);
 let $51 = instantiate(`(module
   (memory (export "mem") 1 1 )
   (data (i32.const 61440) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
-  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
-    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "run") (param \$targetOffs i32) (param \$srcOffs i32) (param \$len i32)
+    (memory.copy (local.get \$targetOffs) (local.get \$srcOffs) (local.get \$len)))
   (func (export "load8_u") (param i32) (result i32)
     (i32.load8_u (local.get 0))))`);
 
@@ -27225,16 +27225,16 @@ let $52 = instantiate(`(module
     (memory.fill (i64.const 10) (i32.const 0x55) (i64.const 10))
     (memory.copy (i64.const 9) (i64.const 10) (i64.const 5)))
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:10354
@@ -27256,16 +27256,16 @@ let $53 = instantiate(`(module
     (memory.fill (i64.const 10) (i32.const 0x55) (i64.const 10))
     (memory.copy (i64.const 16) (i64.const 15) (i64.const 5)))
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:10380
@@ -27324,16 +27324,16 @@ let $58 = instantiate(`(module
     (memory.fill (i64.const 0x8000) (i32.const 0xAA) (i64.const 0x8000))
     (memory.copy (i64.const 0x9000) (i64.const 0x7000) (i64.const 0)))
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:10431
@@ -27605,16 +27605,16 @@ let $65 = instantiate(`(module
     (memory.copy (i64.const 50370) (i64.const 41271) (i64.const 1406))
   )
   
-  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
-    (loop $$cont
-      (if (i64.eq (local.get $$from) (local.get $$to))
+  (func (export "checkRange") (param \$from i64) (param \$to i64) (param \$expected i32) (result i64)
+    (loop \$cont
+      (if (i64.eq (local.get \$from) (local.get \$to))
         (then
           (return (i64.const -1))))
-      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+      (if (i32.eq (i32.load8_u (local.get \$from)) (local.get \$expected))
         (then
-          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
-          (br $$cont))))
-    (return (local.get $$from)))
+          (local.set \$from (i64.add (local.get \$from) (i64.const 1)))
+          (br \$cont))))
+    (return (local.get \$from)))
 )`);
 
 // ./test/core/memory_copy.wast:10689

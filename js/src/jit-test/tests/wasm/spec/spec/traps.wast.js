@@ -17,14 +17,14 @@
 
 // ./test/core/traps.wast:5
 let $0 = instantiate(`(module
-  (func (export "no_dce.i32.div_s") (param $$x i32) (param $$y i32)
-    (drop (i32.div_s (local.get $$x) (local.get $$y))))
-  (func (export "no_dce.i32.div_u") (param $$x i32) (param $$y i32)
-    (drop (i32.div_u (local.get $$x) (local.get $$y))))
-  (func (export "no_dce.i64.div_s") (param $$x i64) (param $$y i64)
-    (drop (i64.div_s (local.get $$x) (local.get $$y))))
-  (func (export "no_dce.i64.div_u") (param $$x i64) (param $$y i64)
-    (drop (i64.div_u (local.get $$x) (local.get $$y))))
+  (func (export "no_dce.i32.div_s") (param \$x i32) (param \$y i32)
+    (drop (i32.div_s (local.get \$x) (local.get \$y))))
+  (func (export "no_dce.i32.div_u") (param \$x i32) (param \$y i32)
+    (drop (i32.div_u (local.get \$x) (local.get \$y))))
+  (func (export "no_dce.i64.div_s") (param \$x i64) (param \$y i64)
+    (drop (i64.div_s (local.get \$x) (local.get \$y))))
+  (func (export "no_dce.i64.div_u") (param \$x i64) (param \$y i64)
+    (drop (i64.div_u (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/traps.wast:16
@@ -47,14 +47,14 @@ assert_trap(() => invoke($0, `no_dce.i64.div_s`, [-9223372036854775808n, -1n]), 
 
 // ./test/core/traps.wast:23
 let $1 = instantiate(`(module
-  (func (export "no_dce.i32.rem_s") (param $$x i32) (param $$y i32)
-    (drop (i32.rem_s (local.get $$x) (local.get $$y))))
-  (func (export "no_dce.i32.rem_u") (param $$x i32) (param $$y i32)
-    (drop (i32.rem_u (local.get $$x) (local.get $$y))))
-  (func (export "no_dce.i64.rem_s") (param $$x i64) (param $$y i64)
-    (drop (i64.rem_s (local.get $$x) (local.get $$y))))
-  (func (export "no_dce.i64.rem_u") (param $$x i64) (param $$y i64)
-    (drop (i64.rem_u (local.get $$x) (local.get $$y))))
+  (func (export "no_dce.i32.rem_s") (param \$x i32) (param \$y i32)
+    (drop (i32.rem_s (local.get \$x) (local.get \$y))))
+  (func (export "no_dce.i32.rem_u") (param \$x i32) (param \$y i32)
+    (drop (i32.rem_u (local.get \$x) (local.get \$y))))
+  (func (export "no_dce.i64.rem_s") (param \$x i64) (param \$y i64)
+    (drop (i64.rem_s (local.get \$x) (local.get \$y))))
+  (func (export "no_dce.i64.rem_u") (param \$x i64) (param \$y i64)
+    (drop (i64.rem_u (local.get \$x) (local.get \$y))))
 )`);
 
 // ./test/core/traps.wast:34
@@ -71,14 +71,14 @@ assert_trap(() => invoke($1, `no_dce.i64.rem_u`, [1n, 0n]), `integer divide by z
 
 // ./test/core/traps.wast:39
 let $2 = instantiate(`(module
-  (func (export "no_dce.i32.trunc_f32_s") (param $$x f32) (drop (i32.trunc_f32_s (local.get $$x))))
-  (func (export "no_dce.i32.trunc_f32_u") (param $$x f32) (drop (i32.trunc_f32_u (local.get $$x))))
-  (func (export "no_dce.i32.trunc_f64_s") (param $$x f64) (drop (i32.trunc_f64_s (local.get $$x))))
-  (func (export "no_dce.i32.trunc_f64_u") (param $$x f64) (drop (i32.trunc_f64_u (local.get $$x))))
-  (func (export "no_dce.i64.trunc_f32_s") (param $$x f32) (drop (i64.trunc_f32_s (local.get $$x))))
-  (func (export "no_dce.i64.trunc_f32_u") (param $$x f32) (drop (i64.trunc_f32_u (local.get $$x))))
-  (func (export "no_dce.i64.trunc_f64_s") (param $$x f64) (drop (i64.trunc_f64_s (local.get $$x))))
-  (func (export "no_dce.i64.trunc_f64_u") (param $$x f64) (drop (i64.trunc_f64_u (local.get $$x))))
+  (func (export "no_dce.i32.trunc_f32_s") (param \$x f32) (drop (i32.trunc_f32_s (local.get \$x))))
+  (func (export "no_dce.i32.trunc_f32_u") (param \$x f32) (drop (i32.trunc_f32_u (local.get \$x))))
+  (func (export "no_dce.i32.trunc_f64_s") (param \$x f64) (drop (i32.trunc_f64_s (local.get \$x))))
+  (func (export "no_dce.i32.trunc_f64_u") (param \$x f64) (drop (i32.trunc_f64_u (local.get \$x))))
+  (func (export "no_dce.i64.trunc_f32_s") (param \$x f32) (drop (i64.trunc_f32_s (local.get \$x))))
+  (func (export "no_dce.i64.trunc_f32_u") (param \$x f32) (drop (i64.trunc_f32_u (local.get \$x))))
+  (func (export "no_dce.i64.trunc_f64_s") (param \$x f64) (drop (i64.trunc_f64_s (local.get \$x))))
+  (func (export "no_dce.i64.trunc_f64_u") (param \$x f64) (drop (i64.trunc_f64_u (local.get \$x))))
 )`);
 
 // ./test/core/traps.wast:50
@@ -141,20 +141,20 @@ assert_trap(
 let $3 = instantiate(`(module
     (memory 1)
 
-    (func (export "no_dce.i32.load") (param $$i i32) (drop (i32.load (local.get $$i))))
-    (func (export "no_dce.i32.load16_s") (param $$i i32) (drop (i32.load16_s (local.get $$i))))
-    (func (export "no_dce.i32.load16_u") (param $$i i32) (drop (i32.load16_u (local.get $$i))))
-    (func (export "no_dce.i32.load8_s") (param $$i i32) (drop (i32.load8_s (local.get $$i))))
-    (func (export "no_dce.i32.load8_u") (param $$i i32) (drop (i32.load8_u (local.get $$i))))
-    (func (export "no_dce.i64.load") (param $$i i32) (drop (i64.load (local.get $$i))))
-    (func (export "no_dce.i64.load32_s") (param $$i i32) (drop (i64.load32_s (local.get $$i))))
-    (func (export "no_dce.i64.load32_u") (param $$i i32) (drop (i64.load32_u (local.get $$i))))
-    (func (export "no_dce.i64.load16_s") (param $$i i32) (drop (i64.load16_s (local.get $$i))))
-    (func (export "no_dce.i64.load16_u") (param $$i i32) (drop (i64.load16_u (local.get $$i))))
-    (func (export "no_dce.i64.load8_s") (param $$i i32) (drop (i64.load8_s (local.get $$i))))
-    (func (export "no_dce.i64.load8_u") (param $$i i32) (drop (i64.load8_u (local.get $$i))))
-    (func (export "no_dce.f32.load") (param $$i i32) (drop (f32.load (local.get $$i))))
-    (func (export "no_dce.f64.load") (param $$i i32) (drop (f64.load (local.get $$i))))
+    (func (export "no_dce.i32.load") (param \$i i32) (drop (i32.load (local.get \$i))))
+    (func (export "no_dce.i32.load16_s") (param \$i i32) (drop (i32.load16_s (local.get \$i))))
+    (func (export "no_dce.i32.load16_u") (param \$i i32) (drop (i32.load16_u (local.get \$i))))
+    (func (export "no_dce.i32.load8_s") (param \$i i32) (drop (i32.load8_s (local.get \$i))))
+    (func (export "no_dce.i32.load8_u") (param \$i i32) (drop (i32.load8_u (local.get \$i))))
+    (func (export "no_dce.i64.load") (param \$i i32) (drop (i64.load (local.get \$i))))
+    (func (export "no_dce.i64.load32_s") (param \$i i32) (drop (i64.load32_s (local.get \$i))))
+    (func (export "no_dce.i64.load32_u") (param \$i i32) (drop (i64.load32_u (local.get \$i))))
+    (func (export "no_dce.i64.load16_s") (param \$i i32) (drop (i64.load16_s (local.get \$i))))
+    (func (export "no_dce.i64.load16_u") (param \$i i32) (drop (i64.load16_u (local.get \$i))))
+    (func (export "no_dce.i64.load8_s") (param \$i i32) (drop (i64.load8_s (local.get \$i))))
+    (func (export "no_dce.i64.load8_u") (param \$i i32) (drop (i64.load8_u (local.get \$i))))
+    (func (export "no_dce.f32.load") (param \$i i32) (drop (f32.load (local.get \$i))))
+    (func (export "no_dce.f64.load") (param \$i i32) (drop (f64.load (local.get \$i))))
 )`);
 
 // ./test/core/traps.wast:78

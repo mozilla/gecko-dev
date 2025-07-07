@@ -18,34 +18,34 @@
 // ./test/core/multi-memory/start0.wast:1
 let $0 = instantiate(`(module
   (memory 0)
-  (memory $$m (data "A"))
-  (memory $$n 1)
+  (memory \$m (data "A"))
+  (memory \$n 1)
   
-  (func $$inc
-    (i32.store8 $$m
+  (func \$inc
+    (i32.store8 \$m
       (i32.const 0)
       (i32.add
-        (i32.load8_u $$m (i32.const 0))
+        (i32.load8_u \$m (i32.const 0))
         (i32.const 1)
       )
     )
   )
-  (func $$get (result i32)
-    (return (i32.load8_u $$m (i32.const 0)))
+  (func \$get (result i32)
+    (return (i32.load8_u \$m (i32.const 0)))
   )
-  (func $$getn (result i32)
-    (return (i32.load8_u $$n (i32.const 0)))
+  (func \$getn (result i32)
+    (return (i32.load8_u \$n (i32.const 0)))
   )
-  (func $$main
-    (call $$inc)
-    (call $$inc)
-    (call $$inc)
+  (func \$main
+    (call \$inc)
+    (call \$inc)
+    (call \$inc)
   )
 
-  (start $$main)
-  (export "inc" (func $$inc))
-  (export "get" (func $$get))
-  (export "getn" (func $$getn))
+  (start \$main)
+  (export "inc" (func \$inc))
+  (export "get" (func \$get))
+  (export "getn" (func \$getn))
 )`);
 
 // ./test/core/multi-memory/start0.wast:32

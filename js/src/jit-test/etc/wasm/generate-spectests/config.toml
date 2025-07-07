@@ -16,6 +16,57 @@ branch = "wasm-3.0"
 excluded_tests = []
 directive = "; test-also=--no-avx; skip-variant-if: --no-avx, !getBuildConfiguration('x86') && !getBuildConfiguration('x64') || getBuildConfiguration('simulator')"
 
+[[repos]]
+name = "threads"
+url = "https://github.com/WebAssembly/threads"
+# As of this writing, the main branch is "miserably out of date":
+# https://github.com/WebAssembly/threads/issues/198
+branch = "upstream-rebuild"
+parent = "spec"
+excluded_tests = [
+  # tests that are unrelated and out of date
+  "^address.wast.js",
+  "^align.wast.js",
+  "^binary.wast.js",
+  "^binary-leb128.wast.js",
+  "^br_if.wast.js",
+  "^br_table.wast.js",
+  "^call_indirect.wast.js",
+  "^comments.wast.js",
+  "^custom.wast.js",
+  "^data.wast.js",
+  "^elem.wast.js",
+  "^exports.wast.js",
+  "^f32.wast.js",
+  "^f64.wast.js",
+  "^float_exprs.wast.js",
+  "^float_literals.wast.js",
+  "^float_memory.wast.js",
+  "^float_misc.wast.js",
+  "^func.wast.js",
+  "^global.wast.js",
+  "^if.wast.js",
+  "^imports.wast.js",
+  "^linking.wast.js",
+  "^load.wast.js",
+  "^local_get.wast.js",
+  "^local_tee.wast.js",
+  "^memory(_.*)?.wast.js",
+  "^ref_func.wast.js",
+  "^ref_is_null.wast.js",
+  "^ref_null.wast.js",
+  "^select.wast.js",
+  "^store.wast.js",
+  "^simd_.*.wast.js",
+  "^table.*.wast.js",
+  "^token.wast.js",
+  "^tokens.wast.js",
+  "^unreachable.wast.js",
+  "^unreached-.*.wast.js",
+  "^utf8-.*.wast.js",
+]
+directive = "; skip-if: !wasmThreadsEnabled() || helperThreadCount() === 0;"
+
 # Example proposal config:
 #
 # [[repos]]

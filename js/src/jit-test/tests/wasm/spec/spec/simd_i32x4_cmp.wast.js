@@ -19,16 +19,16 @@
 
 // ./test/core/simd/simd_i32x4_cmp.wast:4
 let $0 = instantiate(`(module
-  (func (export "eq") (param $$x v128) (param $$y v128) (result v128) (i32x4.eq (local.get $$x) (local.get $$y)))
-  (func (export "ne") (param $$x v128) (param $$y v128) (result v128) (i32x4.ne (local.get $$x) (local.get $$y)))
-  (func (export "lt_s") (param $$x v128) (param $$y v128) (result v128) (i32x4.lt_s (local.get $$x) (local.get $$y)))
-  (func (export "lt_u") (param $$x v128) (param $$y v128) (result v128) (i32x4.lt_u (local.get $$x) (local.get $$y)))
-  (func (export "le_s") (param $$x v128) (param $$y v128) (result v128) (i32x4.le_s (local.get $$x) (local.get $$y)))
-  (func (export "le_u") (param $$x v128) (param $$y v128) (result v128) (i32x4.le_u (local.get $$x) (local.get $$y)))
-  (func (export "gt_s") (param $$x v128) (param $$y v128) (result v128) (i32x4.gt_s (local.get $$x) (local.get $$y)))
-  (func (export "gt_u") (param $$x v128) (param $$y v128) (result v128) (i32x4.gt_u (local.get $$x) (local.get $$y)))
-  (func (export "ge_s") (param $$x v128) (param $$y v128) (result v128) (i32x4.ge_s (local.get $$x) (local.get $$y)))
-  (func (export "ge_u") (param $$x v128) (param $$y v128) (result v128) (i32x4.ge_u (local.get $$x) (local.get $$y)))
+  (func (export "eq") (param \$x v128) (param \$y v128) (result v128) (i32x4.eq (local.get \$x) (local.get \$y)))
+  (func (export "ne") (param \$x v128) (param \$y v128) (result v128) (i32x4.ne (local.get \$x) (local.get \$y)))
+  (func (export "lt_s") (param \$x v128) (param \$y v128) (result v128) (i32x4.lt_s (local.get \$x) (local.get \$y)))
+  (func (export "lt_u") (param \$x v128) (param \$y v128) (result v128) (i32x4.lt_u (local.get \$x) (local.get \$y)))
+  (func (export "le_s") (param \$x v128) (param \$y v128) (result v128) (i32x4.le_s (local.get \$x) (local.get \$y)))
+  (func (export "le_u") (param \$x v128) (param \$y v128) (result v128) (i32x4.le_u (local.get \$x) (local.get \$y)))
+  (func (export "gt_s") (param \$x v128) (param \$y v128) (result v128) (i32x4.gt_s (local.get \$x) (local.get \$y)))
+  (func (export "gt_u") (param \$x v128) (param \$y v128) (result v128) (i32x4.gt_u (local.get \$x) (local.get \$y)))
+  (func (export "ge_s") (param \$x v128) (param \$y v128) (result v128) (i32x4.ge_s (local.get \$x) (local.get \$y)))
+  (func (export "ge_u") (param \$x v128) (param \$y v128) (result v128) (i32x4.ge_u (local.get \$x) (local.get \$y)))
 )`);
 
 // ./test/core/simd/simd_i32x4_cmp.wast:23
@@ -4111,7 +4111,7 @@ assert_return(() => invoke($1, `as-param`, []), []);
 // ./test/core/simd/simd_i32x4_cmp.wast:1748
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.eq-1st-arg-empty (result v128)
+    (func \$i32x4.eq-1st-arg-empty (result v128)
       (i32x4.eq (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4121,7 +4121,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1756
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.eq-arg-empty (result v128)
+    (func \$i32x4.eq-arg-empty (result v128)
       (i32x4.eq)
     )
   )`),
@@ -4131,7 +4131,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1764
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.ne-1st-arg-empty (result v128)
+    (func \$i32x4.ne-1st-arg-empty (result v128)
       (i32x4.ne (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4141,7 +4141,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1772
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.ne-arg-empty (result v128)
+    (func \$i32x4.ne-arg-empty (result v128)
       (i32x4.ne)
     )
   )`),
@@ -4151,7 +4151,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1780
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.lt_s-1st-arg-empty (result v128)
+    (func \$i32x4.lt_s-1st-arg-empty (result v128)
       (i32x4.lt_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4161,7 +4161,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1788
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.lt_s-arg-empty (result v128)
+    (func \$i32x4.lt_s-arg-empty (result v128)
       (i32x4.lt_s)
     )
   )`),
@@ -4171,7 +4171,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1796
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.lt_u-1st-arg-empty (result v128)
+    (func \$i32x4.lt_u-1st-arg-empty (result v128)
       (i32x4.lt_u (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4181,7 +4181,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1804
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.lt_u-arg-empty (result v128)
+    (func \$i32x4.lt_u-arg-empty (result v128)
       (i32x4.lt_u)
     )
   )`),
@@ -4191,7 +4191,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1812
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.le_s-1st-arg-empty (result v128)
+    (func \$i32x4.le_s-1st-arg-empty (result v128)
       (i32x4.le_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4201,7 +4201,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1820
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.le_s-arg-empty (result v128)
+    (func \$i32x4.le_s-arg-empty (result v128)
       (i32x4.le_s)
     )
   )`),
@@ -4211,7 +4211,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1828
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.le_u-1st-arg-empty (result v128)
+    (func \$i32x4.le_u-1st-arg-empty (result v128)
       (i32x4.le_u (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4221,7 +4221,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1836
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.le_u-arg-empty (result v128)
+    (func \$i32x4.le_u-arg-empty (result v128)
       (i32x4.le_u)
     )
   )`),
@@ -4231,7 +4231,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1844
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.gt_s-1st-arg-empty (result v128)
+    (func \$i32x4.gt_s-1st-arg-empty (result v128)
       (i32x4.gt_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4241,7 +4241,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1852
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.gt_s-arg-empty (result v128)
+    (func \$i32x4.gt_s-arg-empty (result v128)
       (i32x4.gt_s)
     )
   )`),
@@ -4251,7 +4251,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1860
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.gt_u-1st-arg-empty (result v128)
+    (func \$i32x4.gt_u-1st-arg-empty (result v128)
       (i32x4.gt_u (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4261,7 +4261,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1868
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.gt_u-arg-empty (result v128)
+    (func \$i32x4.gt_u-arg-empty (result v128)
       (i32x4.gt_u)
     )
   )`),
@@ -4271,7 +4271,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1876
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.ge_s-1st-arg-empty (result v128)
+    (func \$i32x4.ge_s-1st-arg-empty (result v128)
       (i32x4.ge_s (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4281,7 +4281,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1884
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.ge_s-arg-empty (result v128)
+    (func \$i32x4.ge_s-arg-empty (result v128)
       (i32x4.ge_s)
     )
   )`),
@@ -4291,7 +4291,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1892
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.ge_u-1st-arg-empty (result v128)
+    (func \$i32x4.ge_u-1st-arg-empty (result v128)
       (i32x4.ge_u (v128.const i32x4 0 0 0 0))
     )
   )`),
@@ -4301,7 +4301,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_cmp.wast:1900
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.ge_u-arg-empty (result v128)
+    (func \$i32x4.ge_u-arg-empty (result v128)
       (i32x4.ge_u)
     )
   )`),
@@ -4310,60 +4310,60 @@ assert_invalid(
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1910
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.eq (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.eq (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1911
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.ne (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.ne (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1912
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.lt_s (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.lt_s (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1913
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.lt_u (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.lt_u (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1914
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.le_s (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.le_s (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1915
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.le_u (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.le_u (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1916
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.gt_s (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.gt_s (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1917
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.gt_u (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.gt_u (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1918
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.ge_s (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.ge_s (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );
 
 // ./test/core/simd/simd_i32x4_cmp.wast:1919
 assert_malformed(
-  () => instantiate(`(memory 1) (func (param $$x v128) (param $$y v128) (result v128) (i4x32.ge_u (local.get $$x) (local.get $$y))) `),
+  () => instantiate(`(memory 1) (func (param \$x v128) (param \$y v128) (result v128) (i4x32.ge_u (local.get \$x) (local.get \$y))) `),
   `unknown operator`,
 );

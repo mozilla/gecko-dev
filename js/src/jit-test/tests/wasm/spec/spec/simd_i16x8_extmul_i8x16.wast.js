@@ -988,7 +988,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:340
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_low_i8x16_s-1st-arg-empty (result v128)
+    (func \$i16x8.extmul_low_i8x16_s-1st-arg-empty (result v128)
       (i16x8.extmul_low_i8x16_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -998,7 +998,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:348
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_low_i8x16_s-arg-empty (result v128)
+    (func \$i16x8.extmul_low_i8x16_s-arg-empty (result v128)
       (i16x8.extmul_low_i8x16_s)
     )
   )`),
@@ -1008,7 +1008,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:356
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_high_i8x16_s-1st-arg-empty (result v128)
+    (func \$i16x8.extmul_high_i8x16_s-1st-arg-empty (result v128)
       (i16x8.extmul_high_i8x16_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1018,7 +1018,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:364
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_high_i8x16_s-arg-empty (result v128)
+    (func \$i16x8.extmul_high_i8x16_s-arg-empty (result v128)
       (i16x8.extmul_high_i8x16_s)
     )
   )`),
@@ -1028,7 +1028,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:372
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_low_i8x16_u-1st-arg-empty (result v128)
+    (func \$i16x8.extmul_low_i8x16_u-1st-arg-empty (result v128)
       (i16x8.extmul_low_i8x16_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1038,7 +1038,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:380
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_low_i8x16_u-arg-empty (result v128)
+    (func \$i16x8.extmul_low_i8x16_u-arg-empty (result v128)
       (i16x8.extmul_low_i8x16_u)
     )
   )`),
@@ -1048,7 +1048,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:388
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_high_i8x16_u-1st-arg-empty (result v128)
+    (func \$i16x8.extmul_high_i8x16_u-1st-arg-empty (result v128)
       (i16x8.extmul_high_i8x16_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1058,7 +1058,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_extmul_i8x16.wast:396
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extmul_high_i8x16_u-arg-empty (result v128)
+    (func \$i16x8.extmul_high_i8x16_u-arg-empty (result v128)
       (i16x8.extmul_high_i8x16_u)
     )
   )`),

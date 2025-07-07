@@ -17,18 +17,18 @@
 
 // ./test/core/load.wast:3
 let $0 = instantiate(`(module
-  (memory $$mem1 1)
-  (memory $$mem2 1)
+  (memory \$mem1 1)
+  (memory \$mem2 1)
 
   (func (export "load1") (param i32) (result i64)
-    (i64.load $$mem1 (local.get 0))
+    (i64.load \$mem1 (local.get 0))
   )
   (func (export "load2") (param i32) (result i64)
-    (i64.load $$mem2 (local.get 0))
+    (i64.load \$mem2 (local.get 0))
   )
 
-  (data (memory $$mem1) (i32.const 0) "\\01")
-  (data (memory $$mem2) (i32.const 0) "\\02")
+  (data (memory \$mem1) (i32.const 0) "\\01")
+  (data (memory \$mem2) (i32.const 0) "\\02")
 )`);
 
 // ./test/core/load.wast:18
@@ -38,7 +38,7 @@ assert_return(() => invoke($0, `load1`, [0]), [value("i64", 1n)]);
 assert_return(() => invoke($0, `load2`, [0]), [value("i64", 2n)]);
 
 // ./test/core/load.wast:22
-let $1 = instantiate(`(module $$M
+let $1 = instantiate(`(module \$M
   (memory (export "mem") 2)
 
   (func (export "read") (param i32) (result i32)
@@ -52,17 +52,17 @@ register($1, `M`);
 
 // ./test/core/load.wast:31
 let $2 = instantiate(`(module
-  (memory $$mem1 (import "M" "mem") 2)
-  (memory $$mem2 3)
+  (memory \$mem1 (import "M" "mem") 2)
+  (memory \$mem2 3)
 
-  (data (memory $$mem1) (i32.const 20) "\\01\\02\\03\\04\\05")
-  (data (memory $$mem2) (i32.const 50) "\\0A\\0B\\0C\\0D\\0E")
+  (data (memory \$mem1) (i32.const 20) "\\01\\02\\03\\04\\05")
+  (data (memory \$mem2) (i32.const 50) "\\0A\\0B\\0C\\0D\\0E")
 
   (func (export "read1") (param i32) (result i32)
-    (i32.load8_u $$mem1 (local.get 0))
+    (i32.load8_u \$mem1 (local.get 0))
   )
   (func (export "read2") (param i32) (result i32)
-    (i32.load8_u $$mem2 (local.get 0))
+    (i32.load8_u \$mem2 (local.get 0))
   )
 )`);
 
@@ -177,36 +177,36 @@ let $3 = instantiate(`(module
     (select (i32.const 0) (i32.const 1) (i32.load (i32.const 0)))
   )
 
-  (func $$f (param i32 i32 i32) (result i32) (i32.const -1))
+  (func \$f (param i32 i32 i32) (result i32) (i32.const -1))
   (func (export "as-call-first") (result i32)
-    (call $$f (i32.load (i32.const 0)) (i32.const 2) (i32.const 3))
+    (call \$f (i32.load (i32.const 0)) (i32.const 2) (i32.const 3))
   )
   (func (export "as-call-mid") (result i32)
-    (call $$f (i32.const 1) (i32.load (i32.const 0)) (i32.const 3))
+    (call \$f (i32.const 1) (i32.load (i32.const 0)) (i32.const 3))
   )
   (func (export "as-call-last") (result i32)
-    (call $$f (i32.const 1) (i32.const 2) (i32.load (i32.const 0)))
+    (call \$f (i32.const 1) (i32.const 2) (i32.load (i32.const 0)))
   )
 
-  (type $$sig (func (param i32 i32 i32) (result i32)))
-  (table funcref (elem $$f))
+  (type \$sig (func (param i32 i32 i32) (result i32)))
+  (table funcref (elem \$f))
   (func (export "as-call_indirect-first") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.load (i32.const 0)) (i32.const 2) (i32.const 3) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-mid") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.load (i32.const 0)) (i32.const 3) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-last") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.const 2) (i32.load (i32.const 0)) (i32.const 0)
     )
   )
   (func (export "as-call_indirect-index") (result i32)
-    (call_indirect (type $$sig)
+    (call_indirect (type \$sig)
       (i32.const 1) (i32.const 2) (i32.const 3) (i32.load (i32.const 0))
     )
   )
@@ -217,9 +217,9 @@ let $3 = instantiate(`(module
   (func (export "as-local.tee-value") (result i32) (local i32)
     (local.tee 0 (i32.load (i32.const 0)))
   )
-  (global $$g (mut i32) (i32.const 0))
+  (global \$g (mut i32) (i32.const 0))
   (func (export "as-global.set-value") (local i32)
-    (global.set $$g (i32.load (i32.const 0)))
+    (global.set \$g (i32.load (i32.const 0)))
   )
 
   (func (export "as-load-address") (result i32)
@@ -461,85 +461,85 @@ assert_malformed(
 
 // ./test/core/load.wast:375
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load_i32 (i32.load (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load_i32 (i32.load (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:379
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load8_s_i32 (i32.load8_s (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load8_s_i32 (i32.load8_s (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:383
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load8_u_i32 (i32.load8_u (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load8_u_i32 (i32.load8_u (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:387
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load16_s_i32 (i32.load16_s (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load16_s_i32 (i32.load16_s (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:391
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load16_u_i32 (i32.load16_u (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load16_u_i32 (i32.load16_u (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:395
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load_i64 (i64.load (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load_i64 (i64.load (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:399
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load8_s_i64 (i64.load8_s (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load8_s_i64 (i64.load8_s (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:403
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load8_u_i64 (i64.load8_u (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load8_u_i64 (i64.load8_u (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:407
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load16_s_i64 (i64.load16_s (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load16_s_i64 (i64.load16_s (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:411
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load16_u_i64 (i64.load16_u (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load16_u_i64 (i64.load16_u (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:415
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load32_s_i64 (i64.load32_s (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load32_s_i64 (i64.load32_s (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:419
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load32_u_i64 (i64.load32_u (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load32_u_i64 (i64.load32_u (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:423
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load_f32 (f32.load (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load_f32 (f32.load (i32.const 0))))`),
   `type mismatch`,
 );
 
 // ./test/core/load.wast:427
 assert_invalid(
-  () => instantiate(`(module (memory 1) (func $$load_f64 (f64.load (i32.const 0))))`),
+  () => instantiate(`(module (memory 1) (func \$load_f64 (f64.load (i32.const 0))))`),
   `type mismatch`,
 );
 
@@ -631,7 +631,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty
+    (func \$type-address-empty
       (i32.load) (drop)
     )
   )`),
@@ -642,7 +642,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-block
+    (func \$type-address-empty-in-block
       (i32.const 0)
       (block (i32.load) (drop))
     )
@@ -654,7 +654,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-loop
+    (func \$type-address-empty-in-loop
       (i32.const 0)
       (loop (i32.load) (drop))
     )
@@ -666,7 +666,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-then
+    (func \$type-address-empty-in-then
       (i32.const 0) (i32.const 0)
       (if (then (i32.load) (drop)))
     )
@@ -678,7 +678,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-else
+    (func \$type-address-empty-in-else
       (i32.const 0) (i32.const 0)
       (if (result i32) (then (i32.const 0)) (else (i32.load))) (drop)
     )
@@ -690,7 +690,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-br
+    (func \$type-address-empty-in-br
       (i32.const 0)
       (block (br 0 (i32.load)) (drop))
     )
@@ -702,7 +702,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-br_if
+    (func \$type-address-empty-in-br_if
       (i32.const 0)
       (block (br_if 0 (i32.load) (i32.const 1)) (drop))
     )
@@ -714,7 +714,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-br_table
+    (func \$type-address-empty-in-br_table
       (i32.const 0)
       (block (br_table 0 (i32.load)) (drop))
     )
@@ -726,7 +726,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-return
+    (func \$type-address-empty-in-return
       (return (i32.load)) (drop)
     )
   )`),
@@ -737,7 +737,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-select
+    (func \$type-address-empty-in-select
       (select (i32.load) (i32.const 1) (i32.const 2)) (drop)
     )
   )`),
@@ -748,7 +748,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-call
+    (func \$type-address-empty-in-call
       (call 1 (i32.load)) (drop)
     )
     (func (param i32) (result i32) (local.get 0))
@@ -760,12 +760,12 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$f (param i32) (result i32) (local.get 0))
-    (type $$sig (func (param i32) (result i32)))
-    (table funcref (elem $$f))
-    (func $$type-address-empty-in-call_indirect
+    (func \$f (param i32) (result i32) (local.get 0))
+    (type \$sig (func (param i32) (result i32)))
+    (table funcref (elem \$f))
+    (func \$type-address-empty-in-call_indirect
       (block (result i32)
-        (call_indirect (type $$sig)
+        (call_indirect (type \$sig)
           (i32.load) (i32.const 0)
         )
         (drop)
@@ -779,7 +779,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-local.set
+    (func \$type-address-empty-in-local.set
       (local i32)
       (local.set 0 (i32.load)) (local.get 0) (drop)
     )
@@ -791,7 +791,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-local.tee
+    (func \$type-address-empty-in-local.tee
       (local i32)
       (local.tee 0 (i32.load)) (drop)
     )
@@ -803,9 +803,9 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (global $$x (mut i32) (i32.const 0))
-    (func $$type-address-empty-in-global.set
-      (global.set $$x (i32.load)) (global.get $$x) (drop)
+    (global \$x (mut i32) (i32.const 0))
+    (func \$type-address-empty-in-global.set
+      (global.set \$x (i32.load)) (global.get \$x) (drop)
     )
   )`),
   `type mismatch`,
@@ -815,7 +815,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-memory.grow
+    (func \$type-address-empty-in-memory.grow
       (memory.grow (i32.load)) (drop)
     )
   )`),
@@ -826,7 +826,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 0)
-    (func $$type-address-empty-in-load
+    (func \$type-address-empty-in-load
       (i32.load (i32.load)) (drop)
     )
   )`),
@@ -837,7 +837,7 @@ assert_invalid(
 assert_invalid(
   () => instantiate(`(module
     (memory 1)
-    (func $$type-address-empty-in-store
+    (func \$type-address-empty-in-store
       (i32.store (i32.load) (i32.const 1))
     )
   )`),

@@ -18,8 +18,8 @@
 // ./test/core/select.wast:1
 let $0 = instantiate(`(module
   ;; Auxiliary
-  (func $$dummy)
-  (table $$tab funcref (elem $$dummy))
+  (func \$dummy)
+  (table \$tab funcref (elem \$dummy))
   (memory 1)
 
   (func (export "select-i32") (param i32 i32 i32) (result i32)
@@ -54,22 +54,22 @@ let $0 = instantiate(`(module
     (select (result externref) (local.get 0) (local.get 1) (local.get 2))
   )
 
-  (type $$t (func))
-  (func $$tf) (elem declare func $$tf)
+  (type \$t (func))
+  (func \$tf) (elem declare func \$tf)
   (func (export "join-funcnull") (param i32) (result (ref null func))
     (select (result (ref null func))
-      (ref.func $$tf)
+      (ref.func \$tf)
       (ref.null func)
       (local.get 0)
     )
   )
 
   ;; Check that both sides of the select are evaluated
-  (func (export "select-trap-left") (param $$cond i32) (result i32)
-    (select (unreachable) (i32.const 0) (local.get $$cond))
+  (func (export "select-trap-left") (param \$cond i32) (result i32)
+    (select (unreachable) (i32.const 0) (local.get \$cond))
   )
-  (func (export "select-trap-right") (param $$cond i32) (result i32)
-    (select (i32.const 0) (unreachable) (local.get $$cond))
+  (func (export "select-trap-right") (param \$cond i32) (result i32)
+    (select (i32.const 0) (unreachable) (local.get \$cond))
   )
 
   (func (export "select-unreached")
@@ -103,17 +103,17 @@ let $0 = instantiate(`(module
   )
 
   (func (export "as-loop-first") (param i32) (result i32)
-    (loop (result i32) (select (i32.const 2) (i32.const 3) (local.get 0)) (call $$dummy) (call $$dummy))
+    (loop (result i32) (select (i32.const 2) (i32.const 3) (local.get 0)) (call \$dummy) (call \$dummy))
   )
   (func (export "as-loop-mid") (param i32) (result i32)
-    (loop (result i32) (call $$dummy) (select (i32.const 2) (i32.const 3) (local.get 0)) (call $$dummy))
+    (loop (result i32) (call \$dummy) (select (i32.const 2) (i32.const 3) (local.get 0)) (call \$dummy))
   )
   (func (export "as-loop-last") (param i32) (result i32)
-    (loop (result i32) (call $$dummy) (call $$dummy) (select (i32.const 2) (i32.const 3) (local.get 0)))
+    (loop (result i32) (call \$dummy) (call \$dummy) (select (i32.const 2) (i32.const 3) (local.get 0)))
   )
 
   (func (export "as-if-condition") (param i32)
-    (select (i32.const 2) (i32.const 3) (local.get 0)) (if (then (call $$dummy)))
+    (select (i32.const 2) (i32.const 3) (local.get 0)) (if (then (call \$dummy)))
   )
   (func (export "as-if-then") (param i32) (result i32)
     (if (result i32) (i32.const 1) (then (select (i32.const 2) (i32.const 3) (local.get 0))) (else (i32.const 4)))
@@ -136,26 +136,26 @@ let $0 = instantiate(`(module
     (block (result i32) (i32.const 2) (select (i32.const 2) (i32.const 3) (local.get 0)) (br_table 0 0))
   )
 
-  (func $$func (param i32 i32) (result i32) (local.get 0))
-  (type $$check (func (param i32 i32) (result i32)))
-  (table $$t funcref (elem $$func))
+  (func \$func (param i32 i32) (result i32) (local.get 0))
+  (type \$check (func (param i32 i32) (result i32)))
+  (table \$t funcref (elem \$func))
   (func (export "as-call_indirect-first") (param i32) (result i32)
     (block (result i32)
-      (call_indirect $$t (type $$check)
+      (call_indirect \$t (type \$check)
         (select (i32.const 2) (i32.const 3) (local.get 0)) (i32.const 1) (i32.const 0)
       )
     )
   )
   (func (export "as-call_indirect-mid") (param i32) (result i32)
     (block (result i32)
-      (call_indirect $$t (type $$check)
+      (call_indirect \$t (type \$check)
         (i32.const 1) (select (i32.const 2) (i32.const 3) (local.get 0)) (i32.const 0)
       )
     )
   )
   (func (export "as-call_indirect-last") (param i32) (result i32)
     (block (result i32)
-      (call_indirect $$t (type $$check)
+      (call_indirect \$t (type \$check)
         (i32.const 1) (i32.const 4) (select (i32.const 2) (i32.const 3) (local.get 0))
       )
     )
@@ -172,10 +172,10 @@ let $0 = instantiate(`(module
     (memory.grow (select (i32.const 1) (i32.const 2) (local.get 0)))
   )
 
-  (func $$f (param i32) (result i32) (local.get 0))
+  (func \$f (param i32) (result i32) (local.get 0))
 
   (func (export "as-call-value") (param i32) (result i32)
-    (call $$f (select (i32.const 1) (i32.const 2) (local.get 0)))
+    (call \$f (select (i32.const 1) (i32.const 2) (local.get 0)))
   )
   (func (export "as-return-value") (param i32) (result i32)
     (select (i32.const 1) (i32.const 2) (local.get 0)) (return)
@@ -192,10 +192,10 @@ let $0 = instantiate(`(module
   (func (export "as-local.tee-value") (param i32) (result i32)
     (local.tee 0 (select (i32.const 1) (i32.const 2) (local.get 0)))
   )
-  (global $$a (mut i32) (i32.const 10))
+  (global \$a (mut i32) (i32.const 10))
   (func (export "as-global.set-value") (param i32) (result i32)
-    (global.set $$a (select (i32.const 1) (i32.const 2) (local.get 0)))
-    (global.get $$a)
+    (global.set \$a (select (i32.const 1) (i32.const 2) (local.get 0)))
+    (global.get \$a)
   )
   (func (export "as-load-operand") (param i32) (result i32)
     (i32.load (select (i32.const 0) (i32.const 4) (local.get 0)))
@@ -847,19 +847,19 @@ assert_return(() => invoke($0, `as-convert-operand`, [1]), [value("i32", 1)]);
 
 // ./test/core/select.wast:363
 assert_invalid(
-  () => instantiate(`(module (func $$arity-0-implicit (select (nop) (nop) (i32.const 1))))`),
+  () => instantiate(`(module (func \$arity-0-implicit (select (nop) (nop) (i32.const 1))))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:367
 assert_invalid(
-  () => instantiate(`(module (func $$arity-0 (select (result) (nop) (nop) (i32.const 1))))`),
+  () => instantiate(`(module (func \$arity-0 (select (result) (nop) (nop) (i32.const 1))))`),
   `invalid result arity`,
 );
 
 // ./test/core/select.wast:371
 assert_invalid(
-  () => instantiate(`(module (func $$arity-2 (result i32 i32)
+  () => instantiate(`(module (func \$arity-2 (result i32 i32)
     (select (result i32 i32)
       (i32.const 0) (i32.const 0)
       (i32.const 0) (i32.const 0)
@@ -871,9 +871,9 @@ assert_invalid(
 
 // ./test/core/select.wast:383
 assert_invalid(
-  () => instantiate(`(module (type $$t (func))
-    (func $$type-ref-implicit (param $$r (ref $$t))
-      (drop (select (local.get $$r) (local.get $$r) (i32.const 1)))
+  () => instantiate(`(module (type \$t (func))
+    (func \$type-ref-implicit (param \$r (ref \$t))
+      (drop (select (local.get \$r) (local.get \$r) (i32.const 1)))
     )
   )`),
   `type mismatch`,
@@ -881,28 +881,28 @@ assert_invalid(
 
 // ./test/core/select.wast:391
 assert_invalid(
-  () => instantiate(`(module (func $$type-funcref-implicit (param $$r funcref)
-    (drop (select (local.get $$r) (local.get $$r) (i32.const 1)))
+  () => instantiate(`(module (func \$type-funcref-implicit (param \$r funcref)
+    (drop (select (local.get \$r) (local.get \$r) (i32.const 1)))
   ))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:397
 assert_invalid(
-  () => instantiate(`(module (func $$type-externref-implicit (param $$r externref)
-    (drop (select (local.get $$r) (local.get $$r) (i32.const 1)))
+  () => instantiate(`(module (func \$type-externref-implicit (param \$r externref)
+    (drop (select (local.get \$r) (local.get \$r) (i32.const 1)))
   ))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:403
-let $1 = instantiate(`(module (func $$type-unreachable-ref-implicit
+let $1 = instantiate(`(module (func \$type-unreachable-ref-implicit
   (drop (ref.is_null (select (unreachable) (i32.const 1))))
 ))`);
 
 // ./test/core/select.wast:407
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num
+  () => instantiate(`(module (func \$type-num-vs-num
     (drop (select (i32.const 1) (i64.const 1) (i32.const 1)))
   ))`),
   `type mismatch`,
@@ -910,7 +910,7 @@ assert_invalid(
 
 // ./test/core/select.wast:413
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num
+  () => instantiate(`(module (func \$type-num-vs-num
     (drop (select (i32.const 1) (f32.const 1.0) (i32.const 1)))
   ))`),
   `type mismatch`,
@@ -918,7 +918,7 @@ assert_invalid(
 
 // ./test/core/select.wast:419
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num
+  () => instantiate(`(module (func \$type-num-vs-num
     (drop (select (i32.const 1) (f64.const 1.0) (i32.const 1)))
   ))`),
   `type mismatch`,
@@ -926,38 +926,38 @@ assert_invalid(
 
 // ./test/core/select.wast:426
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num (select (i32.const 1) (i64.const 1) (i32.const 1)) (drop)))`),
+  () => instantiate(`(module (func \$type-num-vs-num (select (i32.const 1) (i64.const 1) (i32.const 1)) (drop)))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:430
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num (select (i32.const 1) (f32.const 1.0) (i32.const 1)) (drop)))`),
+  () => instantiate(`(module (func \$type-num-vs-num (select (i32.const 1) (f32.const 1.0) (i32.const 1)) (drop)))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:434
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num (select (i32.const 1) (i64.const 1) (i32.const 1)) (drop)))`),
+  () => instantiate(`(module (func \$type-num-vs-num (select (i32.const 1) (i64.const 1) (i32.const 1)) (drop)))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:438
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num (select (i32.const 1) (f32.const 1.0) (i32.const 1)) (drop)))`),
+  () => instantiate(`(module (func \$type-num-vs-num (select (i32.const 1) (f32.const 1.0) (i32.const 1)) (drop)))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:442
 assert_invalid(
-  () => instantiate(`(module (func $$type-num-vs-num (select (i32.const 1) (f64.const 1.0) (i32.const 1)) (drop)))`),
+  () => instantiate(`(module (func \$type-num-vs-num (select (i32.const 1) (f64.const 1.0) (i32.const 1)) (drop)))`),
   `type mismatch`,
 );
 
 // ./test/core/select.wast:448
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-1st-operand-empty
+    (func \$type-1st-operand-empty
       (select) (drop)
     )
   )`),
@@ -967,7 +967,7 @@ assert_invalid(
 // ./test/core/select.wast:456
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-2nd-operand-empty
+    (func \$type-2nd-operand-empty
       (i32.const 0) (select) (drop)
     )
   )`),
@@ -977,7 +977,7 @@ assert_invalid(
 // ./test/core/select.wast:464
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-3rd-operand-empty
+    (func \$type-3rd-operand-empty
       (i32.const 0) (i32.const 0) (select) (drop)
     )
   )`),
@@ -987,7 +987,7 @@ assert_invalid(
 // ./test/core/select.wast:472
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-1st-operand-empty-in-block
+    (func \$type-1st-operand-empty-in-block
       (i32.const 0) (i32.const 0) (i32.const 0)
       (block (select) (drop))
     )
@@ -998,7 +998,7 @@ assert_invalid(
 // ./test/core/select.wast:481
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-2nd-operand-empty-in-block
+    (func \$type-2nd-operand-empty-in-block
       (i32.const 0) (i32.const 0)
       (block (i32.const 0) (select) (drop))
     )
@@ -1009,7 +1009,7 @@ assert_invalid(
 // ./test/core/select.wast:490
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-3rd-operand-empty-in-block
+    (func \$type-3rd-operand-empty-in-block
       (i32.const 0)
       (block (i32.const 0) (i32.const 0) (select) (drop))
     )
@@ -1020,7 +1020,7 @@ assert_invalid(
 // ./test/core/select.wast:499
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-1st-operand-empty-in-loop
+    (func \$type-1st-operand-empty-in-loop
       (i32.const 0) (i32.const 0) (i32.const 0)
       (loop (select) (drop))
     )
@@ -1031,7 +1031,7 @@ assert_invalid(
 // ./test/core/select.wast:508
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-2nd-operand-empty-in-loop
+    (func \$type-2nd-operand-empty-in-loop
       (i32.const 0) (i32.const 0)
       (loop (i32.const 0) (select) (drop))
     )
@@ -1042,7 +1042,7 @@ assert_invalid(
 // ./test/core/select.wast:517
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-3rd-operand-empty-in-loop
+    (func \$type-3rd-operand-empty-in-loop
       (i32.const 0)
       (loop (i32.const 0) (i32.const 0) (select) (drop))
     )
@@ -1053,7 +1053,7 @@ assert_invalid(
 // ./test/core/select.wast:526
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-1st-operand-empty-in-then
+    (func \$type-1st-operand-empty-in-then
       (i32.const 0) (i32.const 0) (i32.const 0)
       (if (then (select) (drop)))
     )
@@ -1064,7 +1064,7 @@ assert_invalid(
 // ./test/core/select.wast:535
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-2nd-operand-empty-in-then
+    (func \$type-2nd-operand-empty-in-then
       (i32.const 0) (i32.const 0)
       (if (then (i32.const 0) (select) (drop)))
     )
@@ -1075,7 +1075,7 @@ assert_invalid(
 // ./test/core/select.wast:544
 assert_invalid(
   () => instantiate(`(module
-    (func $$type-3rd-operand-empty-in-then
+    (func \$type-3rd-operand-empty-in-then
       (i32.const 0)
       (if (then (i32.const 0) (i32.const 0) (select) (drop)))
     )

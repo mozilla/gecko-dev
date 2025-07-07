@@ -36,8 +36,8 @@ let $0 = instantiate(`(module
   (memory (export "memory64-2-inf") i64 2)
   (memory (export "memory64-2-4") i64 2 4)
   (tag (export "tag"))
-  (tag $$tag-i32 (param i32))
-  (export "tag-i32" (tag $$tag-i32))
+  (tag \$tag-i32 (param i32))
+  (export "tag-i32" (tag \$tag-i32))
   (tag (export "tag-f32") (param f32))
 )`);
 
@@ -46,64 +46,64 @@ register($0, `test`);
 
 // ./test/core/imports.wast:33
 let $1 = instantiate(`(module
-  (type $$func_i32 (func (param i32)))
-  (type $$func_i64 (func (param i64)))
-  (type $$func_f32 (func (param f32)))
-  (type $$func_f64 (func (param f64)))
+  (type \$func_i32 (func (param i32)))
+  (type \$func_i64 (func (param i64)))
+  (type \$func_f32 (func (param f32)))
+  (type \$func_f64 (func (param f64)))
 
   (import "spectest" "print_i32" (func (param i32)))
   (func (import "spectest" "print_i64") (param i64))
-  (import "spectest" "print_i32" (func $$print_i32 (param i32)))
-  (import "spectest" "print_i64" (func $$print_i64 (param i64)))
-  (import "spectest" "print_f32" (func $$print_f32 (param f32)))
-  (import "spectest" "print_f64" (func $$print_f64 (param f64)))
-  (import "spectest" "print_i32_f32" (func $$print_i32_f32 (param i32 f32)))
-  (import "spectest" "print_f64_f64" (func $$print_f64_f64 (param f64 f64)))
-  (func $$print_i32-2 (import "spectest" "print_i32") (param i32))
-  (func $$print_f64-2 (import "spectest" "print_f64") (param f64))
-  (import "test" "func-i64->i64" (func $$i64->i64 (param i64) (result i64)))
+  (import "spectest" "print_i32" (func \$print_i32 (param i32)))
+  (import "spectest" "print_i64" (func \$print_i64 (param i64)))
+  (import "spectest" "print_f32" (func \$print_f32 (param f32)))
+  (import "spectest" "print_f64" (func \$print_f64 (param f64)))
+  (import "spectest" "print_i32_f32" (func \$print_i32_f32 (param i32 f32)))
+  (import "spectest" "print_f64_f64" (func \$print_f64_f64 (param f64 f64)))
+  (func \$print_i32-2 (import "spectest" "print_i32") (param i32))
+  (func \$print_f64-2 (import "spectest" "print_f64") (param f64))
+  (import "test" "func-i64->i64" (func \$i64->i64 (param i64) (result i64)))
 
   (tag (import "test" "tag-i32") (param i32))
   (import "test" "tag-f32" (tag (param f32)))
 
   (func (export "p1") (import "spectest" "print_i32") (param i32))
-  (func $$p (export "p2") (import "spectest" "print_i32") (param i32))
+  (func \$p (export "p2") (import "spectest" "print_i32") (param i32))
   (func (export "p3") (export "p4") (import "spectest" "print_i32") (param i32))
   (func (export "p5") (import "spectest" "print_i32") (type 0))
   (func (export "p6") (import "spectest" "print_i32") (type 0) (param i32) (result))
 
-  (import "spectest" "print_i32" (func (type $$forward)))
-  (func (import "spectest" "print_i32") (type $$forward))
-  (type $$forward (func (param i32)))
+  (import "spectest" "print_i32" (func (type \$forward)))
+  (func (import "spectest" "print_i32") (type \$forward))
+  (type \$forward (func (param i32)))
 
-  (table funcref (elem $$print_i32 $$print_f64))
+  (table funcref (elem \$print_i32 \$print_f64))
 
-  (func (export "print32") (param $$i i32)
-    (local $$x f32)
-    (local.set $$x (f32.convert_i32_s (local.get $$i)))
-    (call 0 (local.get $$i))
-    (call $$print_i32_f32
-      (i32.add (local.get $$i) (i32.const 1))
+  (func (export "print32") (param \$i i32)
+    (local \$x f32)
+    (local.set \$x (f32.convert_i32_s (local.get \$i)))
+    (call 0 (local.get \$i))
+    (call \$print_i32_f32
+      (i32.add (local.get \$i) (i32.const 1))
       (f32.const 42)
     )
-    (call $$print_i32 (local.get $$i))
-    (call $$print_i32-2 (local.get $$i))
-    (call $$print_f32 (local.get $$x))
-    (call_indirect (type $$func_i32) (local.get $$i) (i32.const 0))
+    (call \$print_i32 (local.get \$i))
+    (call \$print_i32-2 (local.get \$i))
+    (call \$print_f32 (local.get \$x))
+    (call_indirect (type \$func_i32) (local.get \$i) (i32.const 0))
   )
 
-  (func (export "print64") (param $$i i64)
-    (local $$x f64)
-    (local.set $$x (f64.convert_i64_s (call $$i64->i64 (local.get $$i))))
-    (call 1 (local.get $$i))
-    (call $$print_f64_f64
-      (f64.add (local.get $$x) (f64.const 1))
+  (func (export "print64") (param \$i i64)
+    (local \$x f64)
+    (local.set \$x (f64.convert_i64_s (call \$i64->i64 (local.get \$i))))
+    (call 1 (local.get \$i))
+    (call \$print_f64_f64
+      (f64.add (local.get \$x) (f64.const 1))
       (f64.const 53)
     )
-    (call $$print_i64 (local.get $$i))
-    (call $$print_f64 (local.get $$x))
-    (call $$print_f64-2 (local.get $$x))
-    (call_indirect (type $$func_f64) (local.get $$x) (i32.const 1))
+    (call \$print_i64 (local.get \$i))
+    (call \$print_f64 (local.get \$x))
+    (call \$print_f64-2 (local.get \$x))
+    (call_indirect (type \$func_f64) (local.get \$x) (i32.const 1))
   )
 )`);
 
@@ -124,9 +124,9 @@ assert_invalid(
 
 // ./test/core/imports.wast:107
 let $2 = instantiate(`(module
-  (import "spectest" "print_i32" (func $$imported_print (param i32)))
-  (func (export "print_i32") (param $$i i32)
-    (call $$imported_print (local.get $$i))
+  (import "spectest" "print_i32" (func \$imported_print (param i32)))
+  (func (export "print_i32") (param \$i i32)
+    (call \$imported_print (local.get \$i))
   )
 )`);
 
@@ -135,9 +135,9 @@ assert_return(() => invoke($2, `print_i32`, [13]), []);
 
 // ./test/core/imports.wast:117
 let $3 = instantiate(`(module
-  (import "spectest" "print_i32" (func $$imported_print (param i32)))
-  (func (export "print_i32") (param $$i i32) (param $$j i32) (result i32)
-    (i32.add (local.get $$i) (local.get $$j))
+  (import "spectest" "print_i32" (func \$imported_print (param i32)))
+  (func (export "print_i32") (param \$i i32) (param \$j i32) (result i32)
+    (i32.add (local.get \$i) (local.get \$j))
   )
 )`);
 
@@ -350,8 +350,8 @@ let $11 = instantiate(`(module
   (import "spectest" "global_i32" (global i32))
   (global (import "spectest" "global_i32") i32)
 
-  (import "spectest" "global_i32" (global $$x i32))
-  (global $$y (import "spectest" "global_i32") i32)
+  (import "spectest" "global_i32" (global \$x i32))
+  (global \$y (import "spectest" "global_i32") i32)
 
   (import "spectest" "global_i64" (global i64))
   (import "spectest" "global_f32" (global f32))
@@ -359,8 +359,8 @@ let $11 = instantiate(`(module
 
   (func (export "get-0") (result i32) (global.get 0))
   (func (export "get-1") (result i32) (global.get 1))
-  (func (export "get-x") (result i32) (global.get $$x))
-  (func (export "get-y") (result i32) (global.get $$y))
+  (func (export "get-x") (result i32) (global.get \$x))
+  (func (export "get-y") (result i32) (global.get \$y))
   (func (export "get-4") (result i64) (global.get 4))
   (func (export "get-5") (result f32) (global.get 5))
   (func (export "get-6") (result f64) (global.get 6))
@@ -519,15 +519,15 @@ assert_unlinkable(
 // ./test/core/imports.wast:379
 let $15 = instantiate(`(module
   (type (func (result i32)))
-  (import "spectest" "table" (table $$tab 10 20 funcref))
-  (import "test" "table64-10-inf" (table $$tab64 i64 10 funcref))
-  (elem (table $$tab) (i32.const 1) func $$f $$g)
+  (import "spectest" "table" (table \$tab 10 20 funcref))
+  (import "test" "table64-10-inf" (table \$tab64 i64 10 funcref))
+  (elem (table \$tab) (i32.const 1) func \$f \$g)
 
   (func (export "call") (param i32) (result i32)
-    (call_indirect $$tab (type 0) (local.get 0))
+    (call_indirect \$tab (type 0) (local.get 0))
   )
-  (func $$f (result i32) (i32.const 11))
-  (func $$g (result i32) (i32.const 22))
+  (func \$f (result i32) (i32.const 11))
+  (func \$g (result i32) (i32.const 22))
 )`);
 
 // ./test/core/imports.wast:392
@@ -548,15 +548,15 @@ assert_trap(() => invoke($15, `call`, [100]), `undefined element`);
 // ./test/core/imports.wast:399
 let $16 = instantiate(`(module
   (type (func (result i32)))
-  (table $$tab (import "spectest" "table") 10 20 funcref)
-  (table $$tab64 (import "test" "table64-10-inf") i64 10 funcref)
-  (elem (table $$tab) (i32.const 1) func $$f $$g)
+  (table \$tab (import "spectest" "table") 10 20 funcref)
+  (table \$tab64 (import "test" "table64-10-inf") i64 10 funcref)
+  (elem (table \$tab) (i32.const 1) func \$f \$g)
 
   (func (export "call") (param i32) (result i32)
-    (call_indirect $$tab (type 0) (local.get 0))
+    (call_indirect \$tab (type 0) (local.get 0))
   )
-  (func $$f (result i32) (i32.const 11))
-  (func $$g (result i32) (i32.const 22))
+  (func \$f (result i32) (i32.const 11))
+  (func \$g (result i32) (i32.const 22))
 )`);
 
 // ./test/core/imports.wast:412

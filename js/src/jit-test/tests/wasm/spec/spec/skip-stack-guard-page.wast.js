@@ -18,17 +18,17 @@
 // ./test/core/skip-stack-guard-page.wast:2
 let $0 = instantiate(`(module
   (memory 1)
-  (export "test-guard-page-skip" (func $$test-guard-page-skip))
+  (export "test-guard-page-skip" (func \$test-guard-page-skip))
 
-  (func $$test-guard-page-skip
-    (param $$depth i32)
-    (if (i32.eq (local.get $$depth) (i32.const 0))
-      (then (call $$function-with-many-locals))
-      (else (call $$test-guard-page-skip (i32.sub (local.get $$depth) (i32.const 1))))
+  (func \$test-guard-page-skip
+    (param \$depth i32)
+    (if (i32.eq (local.get \$depth) (i32.const 0))
+      (then (call \$function-with-many-locals))
+      (else (call \$test-guard-page-skip (i32.sub (local.get \$depth) (i32.const 1))))
     )
   )
 
-  (func $$function-with-many-locals
+  (func \$function-with-many-locals
 
     ;; 1056 i64 = 8448 bytes of locals
     (local i64) (local i64) (local i64) (local i64) (local i64) (local i64) (local i64) (local i64) ;; 0x000-0x007
@@ -169,7 +169,7 @@ let $0 = instantiate(`(module
     (local i64) (local i64) (local i64) (local i64) (local i64) (local i64) (local i64) (local i64) ;; 0x418-0x41f
 
     ;; recurse first to try to make the callee access the stack below the space allocated for the locals before the locals themselves have been initialized.
-    (call $$function-with-many-locals)
+    (call \$function-with-many-locals)
 
     ;; load from memory into the locals
     (local.set 0x000 (i64.load offset=0x000 align=1 (i32.const 0)))

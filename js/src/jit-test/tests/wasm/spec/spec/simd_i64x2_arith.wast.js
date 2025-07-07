@@ -1609,7 +1609,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:553
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.neg-arg-empty (result v128)
+    (func \$i64x2.neg-arg-empty (result v128)
       (i64x2.neg)
     )
   )`),
@@ -1619,7 +1619,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:561
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.add-1st-arg-empty (result v128)
+    (func \$i64x2.add-1st-arg-empty (result v128)
       (i64x2.add (v128.const i64x2 0 0))
     )
   )`),
@@ -1629,7 +1629,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:569
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.add-arg-empty (result v128)
+    (func \$i64x2.add-arg-empty (result v128)
       (i64x2.add)
     )
   )`),
@@ -1639,7 +1639,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:577
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.sub-1st-arg-empty (result v128)
+    (func \$i64x2.sub-1st-arg-empty (result v128)
       (i64x2.sub (v128.const i64x2 0 0))
     )
   )`),
@@ -1649,7 +1649,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:585
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.sub-arg-empty (result v128)
+    (func \$i64x2.sub-arg-empty (result v128)
       (i64x2.sub)
     )
   )`),
@@ -1659,7 +1659,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:593
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.mul-1st-arg-empty (result v128)
+    (func \$i64x2.mul-1st-arg-empty (result v128)
       (i64x2.mul (v128.const i64x2 0 0))
     )
   )`),
@@ -1669,7 +1669,7 @@ assert_invalid(
 // ./test/core/simd/simd_i64x2_arith.wast:601
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.mul-arg-empty (result v128)
+    (func \$i64x2.mul-arg-empty (result v128)
       (i64x2.mul)
     )
   )`),

@@ -46,13 +46,13 @@ let $2 = instantiate(`(module
   (func (export "_") (result i32) (i32.const 3))
 
   ;; Test that we can use names beginning with a dollar sign.
-  (func (export "$$") (result i32) (i32.const 4))
+  (func (export "\$") (result i32) (i32.const 4))
 
   ;; Test that we can use names beginning with an at sign.
   (func (export "@") (result i32) (i32.const 5))
 
   ;; Test that we can use non-alphanumeric names.
-  (func (export "~!@#$$%^&*()_+\`-={}|[]\\\\:\\";'<>?,./ ") (result i32) (i32.const 6))
+  (func (export "~!@#\$%^&*()_+\`-={}|[]\\\\:\\";'<>?,./ ") (result i32) (i32.const 6))
 
   ;; Test that we can use names that have special meaning in JS.
   (func (export "NaN") (result i32) (i32.const 7))
@@ -641,13 +641,13 @@ assert_return(() => invoke($2, `-0`, []), [value("i32", 2)]);
 assert_return(() => invoke($2, `_`, []), [value("i32", 3)]);
 
 // ./test/core/names.wast:619
-assert_return(() => invoke($2, `$$`, []), [value("i32", 4)]);
+assert_return(() => invoke($2, `\$`, []), [value("i32", 4)]);
 
 // ./test/core/names.wast:620
 assert_return(() => invoke($2, `@`, []), [value("i32", 5)]);
 
 // ./test/core/names.wast:621
-assert_return(() => invoke($2, `~!@#$$%^&*()_+\`-={}|[]\\:";'<>?,./ `, []), [value("i32", 6)]);
+assert_return(() => invoke($2, `~!@#\$%^&*()_+\`-={}|[]\\:";'<>?,./ `, []), [value("i32", 6)]);
 
 // ./test/core/names.wast:622
 assert_return(() => invoke($2, `NaN`, []), [value("i32", 7)]);

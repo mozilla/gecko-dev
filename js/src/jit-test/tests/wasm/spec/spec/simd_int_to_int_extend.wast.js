@@ -1908,7 +1908,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:503
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extend_high_i8x16_s-arg-empty (result v128)
+    (func \$i16x8.extend_high_i8x16_s-arg-empty (result v128)
       (i16x8.extend_high_i8x16_s)
     )
   )`),
@@ -1918,7 +1918,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:511
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extend_high_i8x16_u-arg-empty (result v128)
+    (func \$i16x8.extend_high_i8x16_u-arg-empty (result v128)
       (i16x8.extend_high_i8x16_u)
     )
   )`),
@@ -1928,7 +1928,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:519
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extend_low_i8x16_s-arg-empty (result v128)
+    (func \$i16x8.extend_low_i8x16_s-arg-empty (result v128)
       (i16x8.extend_low_i8x16_s)
     )
   )`),
@@ -1938,7 +1938,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:527
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.extend_low_i8x16_u-arg-empty (result v128)
+    (func \$i16x8.extend_low_i8x16_u-arg-empty (result v128)
       (i16x8.extend_low_i8x16_u)
     )
   )`),
@@ -1948,7 +1948,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:535
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extend_high_i16x8_s-arg-empty (result v128)
+    (func \$i32x4.extend_high_i16x8_s-arg-empty (result v128)
       (i32x4.extend_high_i16x8_s)
     )
   )`),
@@ -1958,7 +1958,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:543
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extend_high_i16x8_u-arg-empty (result v128)
+    (func \$i32x4.extend_high_i16x8_u-arg-empty (result v128)
       (i32x4.extend_high_i16x8_u)
     )
   )`),
@@ -1968,7 +1968,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:551
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extend_low_i16x8_s-arg-empty (result v128)
+    (func \$i32x4.extend_low_i16x8_s-arg-empty (result v128)
       (i32x4.extend_low_i16x8_s)
     )
   )`),
@@ -1978,7 +1978,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:559
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extend_low_i16x8_u-arg-empty (result v128)
+    (func \$i32x4.extend_low_i16x8_u-arg-empty (result v128)
       (i32x4.extend_low_i16x8_u)
     )
   )`),
@@ -1988,7 +1988,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:567
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.extend_high_i32x4_s-arg-empty (result v128)
+    (func \$i64x2.extend_high_i32x4_s-arg-empty (result v128)
       (i64x2.extend_high_i32x4_s)
     )
   )`),
@@ -1998,7 +1998,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:575
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.extend_high_i32x4_u-arg-empty (result v128)
+    (func \$i64x2.extend_high_i32x4_u-arg-empty (result v128)
       (i64x2.extend_high_i32x4_u)
     )
   )`),
@@ -2008,7 +2008,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:583
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.extend_low_i32x4_s-arg-empty (result v128)
+    (func \$i64x2.extend_low_i32x4_s-arg-empty (result v128)
       (i64x2.extend_low_i32x4_s)
     )
   )`),
@@ -2018,7 +2018,7 @@ assert_invalid(
 // ./test/core/simd/simd_int_to_int_extend.wast:591
 assert_invalid(
   () => instantiate(`(module
-    (func $$i64x2.extend_low_i32x4_u-arg-empty (result v128)
+    (func \$i64x2.extend_low_i32x4_u-arg-empty (result v128)
       (i64x2.extend_low_i32x4_u)
     )
   )`),

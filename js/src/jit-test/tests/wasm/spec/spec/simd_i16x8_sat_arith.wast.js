@@ -1976,7 +1976,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:630
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.add_sat_s-1st-arg-empty (result v128)
+    (func \$i16x8.add_sat_s-1st-arg-empty (result v128)
       (i16x8.add_sat_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -1986,7 +1986,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:638
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.add_sat_s-arg-empty (result v128)
+    (func \$i16x8.add_sat_s-arg-empty (result v128)
       (i16x8.add_sat_s)
     )
   )`),
@@ -1996,7 +1996,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:646
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.add_sat_u-1st-arg-empty (result v128)
+    (func \$i16x8.add_sat_u-1st-arg-empty (result v128)
       (i16x8.add_sat_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -2006,7 +2006,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:654
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.add_sat_u-arg-empty (result v128)
+    (func \$i16x8.add_sat_u-arg-empty (result v128)
       (i16x8.add_sat_u)
     )
   )`),
@@ -2016,7 +2016,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:662
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.sub_sat_s-1st-arg-empty (result v128)
+    (func \$i16x8.sub_sat_s-1st-arg-empty (result v128)
       (i16x8.sub_sat_s (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -2026,7 +2026,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:670
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.sub_sat_s-arg-empty (result v128)
+    (func \$i16x8.sub_sat_s-arg-empty (result v128)
       (i16x8.sub_sat_s)
     )
   )`),
@@ -2036,7 +2036,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:678
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.sub_sat_u-1st-arg-empty (result v128)
+    (func \$i16x8.sub_sat_u-1st-arg-empty (result v128)
       (i16x8.sub_sat_u (v128.const i16x8 0 0 0 0 0 0 0 0))
     )
   )`),
@@ -2046,7 +2046,7 @@ assert_invalid(
 // ./test/core/simd/simd_i16x8_sat_arith.wast:686
 assert_invalid(
   () => instantiate(`(module
-    (func $$i16x8.sub_sat_u-arg-empty (result v128)
+    (func \$i16x8.sub_sat_u-arg-empty (result v128)
       (i16x8.sub_sat_u)
     )
   )`),

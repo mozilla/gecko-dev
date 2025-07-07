@@ -166,7 +166,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_extadd_pairwise_i16x8.wast:52
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extadd_pairwise_i16x8_s-arg-empty (result v128)
+    (func \$i32x4.extadd_pairwise_i16x8_s-arg-empty (result v128)
       (i32x4.extadd_pairwise_i16x8_s)
     )
   )`),
@@ -176,7 +176,7 @@ assert_invalid(
 // ./test/core/simd/simd_i32x4_extadd_pairwise_i16x8.wast:60
 assert_invalid(
   () => instantiate(`(module
-    (func $$i32x4.extadd_pairwise_i16x8_u-arg-empty (result v128)
+    (func \$i32x4.extadd_pairwise_i16x8_u-arg-empty (result v128)
       (i32x4.extadd_pairwise_i16x8_u)
     )
   )`),
