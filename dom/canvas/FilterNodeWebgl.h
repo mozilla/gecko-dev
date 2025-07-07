@@ -137,6 +137,7 @@ class FilterNodeDeferInputWebgl : public FilterNodeTransformWebgl {
   Matrix mDestTransform;
   DrawOptions mOptions;
   Maybe<StrokeOptions> mStrokeOptions;
+  UniquePtr<Float[]> mDashPatternStorage;
 };
 
 class FilterNodeGaussianBlurWebgl : public FilterNodeWebgl {

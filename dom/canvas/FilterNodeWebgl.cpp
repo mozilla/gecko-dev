@@ -378,9 +378,17 @@ FilterNodeDeferInputWebgl::FilterNodeDeferInputWebgl(
     : mPath(std::move(aPath)),
       mSourceRect(aSourceRect),
       mDestTransform(aDestTransform),
-      mOptions(aOptions),
-      mStrokeOptions(aStrokeOptions ? Some(*aStrokeOptions) : Nothing()) {
+      mOptions(aOptions) {
   mPattern.Init(aPattern);
+  if (aStrokeOptions) {
+    mStrokeOptions = Some(*aStrokeOptions);
+    if (aStrokeOptions->mDashLength > 0) {
+      mDashPatternStorage.reset(new Float[aStrokeOptions->mDashLength]);
+      PodCopy(mDashPatternStorage.get(), aStrokeOptions->mDashPattern,
+              aStrokeOptions->mDashLength);
+      mStrokeOptions->mDashPattern = mDashPatternStorage.get();
+    }
+  }
   SetAttribute(ATT_TRANSFORM_MATRIX,
                Matrix::Translation(mSourceRect.TopLeft()));
 }
