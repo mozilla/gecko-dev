@@ -110,6 +110,10 @@ object GeckoProvider {
                     context.settings().queryParameterStrippingAllowList,
                     queryParameterStrippingStripList =
                     context.settings().queryParameterStrippingStripList,
+                    allowListBaselineTrackingProtection =
+                    context.settings().strictAllowListBaselineTrackingProtection,
+                    allowListConvenienceTrackingProtection =
+                    context.settings().strictAllowListConvenienceTrackingProtection,
                 ),
             )
             .consoleOutput(context.components.settings.enableGeckoLogs)

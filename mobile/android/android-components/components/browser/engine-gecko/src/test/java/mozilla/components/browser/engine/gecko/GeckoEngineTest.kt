@@ -345,6 +345,8 @@ class GeckoEngineTest {
         assertEquals(contentBlockingSettings.queryParameterStrippingAllowList[0], engine.settings.queryParameterStrippingAllowList)
         assertEquals(contentBlockingSettings.queryParameterStrippingStripList[0], engine.settings.queryParameterStrippingStripList)
         assertEquals(contentBlockingSettings.bounceTrackingProtectionMode, EngineSession.BounceTrackingProtectionMode.ENABLED.mode)
+        assertEquals(contentBlockingSettings.allowListBaselineTrackingProtection, (engine.settings.trackingProtectionPolicy as EngineSession.TrackingProtectionPolicyForSessionTypes).allowListBaselineTrackingProtection)
+        assertEquals(contentBlockingSettings.allowListConvenienceTrackingProtection, (engine.settings.trackingProtectionPolicy as EngineSession.TrackingProtectionPolicyForSessionTypes).allowListConvenienceTrackingProtection)
 
         assertEquals(contentBlockingSettings.emailTrackerBlockingPrivateBrowsingEnabled, engine.settings.emailTrackerBlockingPrivateBrowsing)
 
@@ -499,6 +501,51 @@ class GeckoEngineTest {
         verify(mockRuntime.settings.contentBlocking).setBounceTrackingProtectionMode(
             EngineSession.BounceTrackingProtectionMode.ENABLED_STANDBY.mode,
         )
+    }
+
+    @Test
+    fun `WHEN a recommended tracking protection policy is set THEN Allow List baseline and convenience must be true`() {
+        val mockRuntime = mock<GeckoRuntime>()
+        whenever(mockRuntime.settings).thenReturn(mock())
+        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
+
+        val engine = GeckoEngine(testContext, runtime = mockRuntime)
+
+        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.recommended()
+
+        val policy = engine.settings.trackingProtectionPolicy as EngineSession.TrackingProtectionPolicyForSessionTypes
+        assertTrue(policy.allowListBaselineTrackingProtection)
+        assertTrue(policy.allowListConvenienceTrackingProtection)
+    }
+
+    @Test
+    fun `WHEN a strict tracking protection policy is set THEN Allow List baseline must be true and convenience must be false by default`() {
+        val mockRuntime = mock<GeckoRuntime>()
+        whenever(mockRuntime.settings).thenReturn(mock())
+        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
+
+        val engine = GeckoEngine(testContext, runtime = mockRuntime)
+
+        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.strict()
+
+        val policy = engine.settings.trackingProtectionPolicy as EngineSession.TrackingProtectionPolicyForSessionTypes
+        assertTrue(policy.allowListBaselineTrackingProtection)
+        assertFalse(policy.allowListConvenienceTrackingProtection)
+    }
+
+    @Test
+    fun `WHEN a custom tracking protection policy is set THEN Allow List baseline must be true and convenience must be false by default`() {
+        val mockRuntime = mock<GeckoRuntime>()
+        whenever(mockRuntime.settings).thenReturn(mock())
+        whenever(mockRuntime.settings.contentBlocking).thenReturn(mock())
+
+        val engine = GeckoEngine(testContext, runtime = mockRuntime)
+
+        engine.settings.trackingProtectionPolicy = TrackingProtectionPolicy.select()
+
+        val policy = engine.settings.trackingProtectionPolicy as EngineSession.TrackingProtectionPolicyForSessionTypes
+        assertTrue(policy.allowListBaselineTrackingProtection)
+        assertFalse(policy.allowListConvenienceTrackingProtection)
     }
 
     @Test

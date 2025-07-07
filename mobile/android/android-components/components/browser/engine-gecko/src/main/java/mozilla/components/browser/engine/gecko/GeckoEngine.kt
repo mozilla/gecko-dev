@@ -1167,6 +1167,14 @@ class GeckoEngine(
                         if (getBounceTrackingProtectionMode() != policy.bounceTrackingProtectionMode.mode) {
                             setBounceTrackingProtectionMode(policy.bounceTrackingProtectionMode.mode)
                         }
+
+                        if (allowListBaselineTrackingProtection != value.allowListBaselineTrackingProtection) {
+                            setAllowListBaselineTrackingProtection(value.allowListBaselineTrackingProtection)
+                        }
+
+                        if (allowListConvenienceTrackingProtection != value.allowListConvenienceTrackingProtection) {
+                            setAllowListConvenienceTrackingProtection(value.allowListConvenienceTrackingProtection)
+                        }
                     }
 
                     defaultSettings?.trackingProtectionPolicy = value

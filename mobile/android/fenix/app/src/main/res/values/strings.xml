@@ -2156,6 +2156,10 @@
     <string name="preference_enhanced_tracking_protection_strict">Strict</string>
     <!-- Preference description for enhanced tracking protection for the strict protection settings -->
     <string name="preference_enhanced_tracking_protection_strict_description_4">Stronger tracking protection and faster performance, but some sites may not work properly.</string>
+    <!-- Preference description for the checkbox setting for "baseline" exceptions (a set of content blocking exceptions applied to fix major website breakage). %1$s is the name of the application (e.g. Fenix). -->
+    <string name="preference_enhanced_tracking_protection_allow_list_baseline">Allow %1$s to automatically apply exceptions required to avoid major website breakage.</string>
+    <!-- Preference description for the checkbox setting for "convenience" exceptions (a set of content blocking exceptions applied to fix convenience site features). -->
+    <string name="preference_enhanced_tracking_protection_allow_list_convenience">Also apply exceptions automatically that are only required to fix minor issues and make convenience features available.</string>
     <!--  Accessibility text for the Strict protection information icon  -->
     <string name="preference_enhanced_tracking_protection_strict_info_button">What’s blocked by strict tracking protection</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->

@@ -211,6 +211,10 @@
     <string name="pref_key_tracking_protection_exceptions" translatable="false">pref_key_tracking_protection_exceptions</string>
     <string name="pref_key_tracking_protection_standard_option" translatable="false">pref_key_tracking_protection_standard_option</string>
     <string name="pref_key_tracking_protection_strict_default" translatable="false">pref_key_tracking_protection_strict_default</string>
+    <string name="pref_key_tracking_protection_strict_allow_list_baseline" translatable="false">pref_key_tracking_protection_strict_allow_list_baseline</string>
+    <string name="pref_key_tracking_protection_strict_allow_list_convenience" translatable="false">pref_key_tracking_protection_strict_allow_list_convenience</string>
+    <string name="pref_key_tracking_protection_custom_allow_list_baseline" translatable="false">pref_key_tracking_protection_custom_allow_list_baseline</string>
+    <string name="pref_key_tracking_protection_custom_allow_list_convenience" translatable="false">pref_key_tracking_protection_custom_allow_list_convenience</string>
     <string name="pref_key_tracking_protection_custom_option" translatable="false">pref_key_tracking_protection_custom_option</string>
     <string name="pref_key_tracking_protection_custom_cookies" translatable="false">pref_key_tracking_protection_custom_cookies</string>
     <string name="pref_key_tracking_protection_custom_cookies_select" translatable="false">pref_key_tracking_protection_custom_cookies_select</string>
