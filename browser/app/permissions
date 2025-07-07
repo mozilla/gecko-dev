@@ -17,6 +17,8 @@ origin	uitour	1	https://support.mozilla.org
 origin	uitour	1	https://truecolors.firefox.com
 origin	uitour	1	about:home
 origin	uitour	1	about:newtab
+# Bug 1942328: firefox.com needs the same privileges as mozilla.org
+origin	uitour	1	https://www.firefox.com
 
 # XPInstall
 origin	install	1	https://addons.mozilla.org
