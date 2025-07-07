@@ -36,6 +36,9 @@ void CancelWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 void UpdateWorkersBackgroundState(const nsPIDOMWindowInner& aWindow,
                                   bool aIsBackground);
 
+void UpdateWorkersPeerConnections(const nsPIDOMWindowInner& aWindow,
+                                  bool aHasPeerConnections);
+
 void FreezeWorkersForWindow(const nsPIDOMWindowInner& aWindow);
 
 void ThawWorkersForWindow(const nsPIDOMWindowInner& aWindow);

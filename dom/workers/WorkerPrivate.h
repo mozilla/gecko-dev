@@ -319,10 +319,18 @@ class WorkerPrivate final
     return mIsPlayingAudio;
   }
 
+  bool HasActivePeerConnections() {
+    AssertIsOnWorkerThread();
+    return mHasActivePeerConnections;
+  }
+
+  void SetActivePeerConnections(bool aHasPeerConnections);
+
   void SetIsRunningInForeground();
 
   bool ChangeBackgroundStateInternal(bool aIsBackground);
   bool ChangePlaybackStateInternal(bool aIsPlayingAudio);
+  bool ChangePeerConnectionsInternal(bool aHasPeerConnections);
 
   // returns true, if worker is running in the background tab
   bool IsRunningInBackground() const { return mIsInBackground; }
@@ -1672,6 +1680,7 @@ class WorkerPrivate final
   bool mDebuggerRegistered MOZ_GUARDED_BY(mMutex);
   mozilla::Atomic<bool> mIsInBackground;
   bool mIsPlayingAudio{};
+  bool mHasActivePeerConnections{};
 
   // During registration, this worker may be marked as not being ready to
   // execute debuggee runnables or content.

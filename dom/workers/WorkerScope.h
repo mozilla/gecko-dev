@@ -233,6 +233,11 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
     return mWorkerPrivate && mWorkerPrivate->IsPlayingAudio();
   }
 
+  bool HasActivePeerConnections() override {
+    AssertIsOnWorkerThread();
+    return mWorkerPrivate && mWorkerPrivate->HasActivePeerConnections();
+  }
+
   void TriggerUpdateCCFlag() override {
     mWorkerPrivate->UpdateCCFlag(WorkerPrivate::CCFlag::EligibleForTimeout);
   }

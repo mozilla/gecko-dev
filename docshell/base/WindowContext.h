@@ -359,6 +359,8 @@ class WindowContext : public nsISupports, public nsWrapperCache {
 
   void DidSet(FieldIndex<IDX_SHEntryHasUserInteraction>, bool aOldValue);
 
+  void DidSet(FieldIndex<IDX_HasActivePeerConnections>, bool aOldValue);
+
   bool CanSet(FieldIndex<IDX_WindowStateSaved>, bool aValue,
               ContentParent* aSource);
 

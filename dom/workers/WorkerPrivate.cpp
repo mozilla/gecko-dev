@@ -554,6 +554,24 @@ class ChangePlaybackStateRunnable final : public WorkerControlRunnable {
   bool mIsPlayingAudio = false;
 };
 
+class ChangeActivePeerConnectionsRunnable final : public WorkerControlRunnable {
+ public:
+  ChangeActivePeerConnectionsRunnable() = delete;
+  explicit ChangeActivePeerConnectionsRunnable(WorkerPrivate* aWorkerPrivate) =
+      delete;
+  ChangeActivePeerConnectionsRunnable(WorkerPrivate* aWorkerPrivate,
+                                      bool aHasPeerConnections)
+      : WorkerControlRunnable("ChangeActivePeerConnectionsRunnable"),
+        mConnections(aHasPeerConnections) {}
+
+ private:
+  virtual bool WorkerRun(JSContext* aCx,
+                         WorkerPrivate* aWorkerPrivate) override {
+    return aWorkerPrivate->ChangePeerConnectionsInternal(mConnections);
+  }
+  bool mConnections = false;
+};
+
 class PropagateStorageAccessPermissionGrantedRunnable final
     : public WorkerControlRunnable {
  public:
@@ -2903,6 +2921,10 @@ WorkerPrivate::WorkerPrivate(
       mIsPlayingAudio = true;
     }
 
+    if (aParent->HasActivePeerConnections()) {
+      mHasActivePeerConnections = true;
+    }
+
     mIsPrivilegedAddonGlobal = aParent->mIsPrivilegedAddonGlobal;
   } else {
     AssertIsOnMainThread();
@@ -2984,6 +3006,11 @@ WorkerPrivate::WorkerPrivate(
     if (mLoadInfo.mWindow &&
         nsGlobalWindowInner::Cast(mLoadInfo.mWindow)->IsPlayingAudio()) {
       SetIsPlayingAudio(true);
+    }
+
+    if (mLoadInfo.mWindow && nsGlobalWindowInner::Cast(mLoadInfo.mWindow)
+                                 ->HasActivePeerConnections()) {
+      SetActivePeerConnections(true);
     }
   }
 
@@ -3263,6 +3290,18 @@ void WorkerPrivate::SetIsPlayingAudio(bool aIsPlayingAudio) {
 
   AUTO_PROFILER_MARKER_UNTYPED("WorkerPrivate::SetIsPlayingAudio", DOM, {});
   LOG(WorkerLog(), ("SetIsPlayingAudio [%p]", this));
+}
+
+void WorkerPrivate::SetActivePeerConnections(bool aHasPeerConnections) {
+  AssertIsOnParentThread();
+
+  RefPtr<ChangeActivePeerConnectionsRunnable> runnable =
+      new ChangeActivePeerConnectionsRunnable(this, aHasPeerConnections);
+  runnable->Dispatch(this);
+
+  AUTO_PROFILER_MARKER_UNTYPED("WorkerPrivate::SetActivePeerConnections", DOM,
+                               {});
+  LOG(WorkerLog(), ("SetActivePeerConnections [%p]", this));
 }
 
 nsresult WorkerPrivate::SetIsDebuggerReady(bool aReady) {
@@ -4849,6 +4888,17 @@ bool WorkerPrivate::ChangePlaybackStateInternal(bool aIsPlayingAudio) {
 
   for (uint32_t index = 0; index < data->mChildWorkers.Length(); index++) {
     data->mChildWorkers[index]->SetIsPlayingAudio(aIsPlayingAudio);
+  }
+  return true;
+}
+
+bool WorkerPrivate::ChangePeerConnectionsInternal(bool aHasPeerConnections) {
+  AssertIsOnWorkerThread();
+  mHasActivePeerConnections = aHasPeerConnections;
+  auto data = mWorkerThreadAccessible.Access();
+
+  for (uint32_t index = 0; index < data->mChildWorkers.Length(); index++) {
+    data->mChildWorkers[index]->SetActivePeerConnections(aHasPeerConnections);
   }
   return true;
 }

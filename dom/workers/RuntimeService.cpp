@@ -2154,6 +2154,16 @@ void RuntimeService::UpdateWorkersPlaybackState(
   }
 }
 
+void RuntimeService::UpdateWorkersPeerConnections(
+    const nsPIDOMWindowInner& aWindow, bool aHasPeerConnections) {
+  AssertIsOnMainThread();
+
+  for (WorkerPrivate* const worker : GetWorkersForWindow(aWindow)) {
+    MOZ_ASSERT(!worker->IsSharedWorker());
+    worker->SetActivePeerConnections(aHasPeerConnections);
+  }
+}
+
 bool LogViolationDetailsRunnable::MainThreadRun() {
   AssertIsOnMainThread();
   MOZ_ASSERT(mWorkerRef);
@@ -2524,6 +2534,15 @@ void UpdateWorkersPlaybackState(const nsPIDOMWindowInner& aWindow,
   RuntimeService* runtime = RuntimeService::GetService();
   if (runtime) {
     runtime->UpdateWorkersPlaybackState(aWindow, aIsPlayingAudio);
+  }
+}
+
+void UpdateWorkersPeerConnections(const nsPIDOMWindowInner& aWindow,
+                                  bool aHasPeerConnections) {
+  AssertIsOnMainThread();
+  RuntimeService* runtime = RuntimeService::GetService();
+  if (runtime) {
+    runtime->UpdateWorkersPeerConnections(aWindow, aHasPeerConnections);
   }
 }
 
