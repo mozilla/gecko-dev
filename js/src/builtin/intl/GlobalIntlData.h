@@ -64,6 +64,12 @@ class GlobalIntlData {
   GCPtr<JSObject*> defaultTimeZoneObject_;
 
   /**
+   * Cached temporal::TimeZoneObject of the last request to create a named
+   * time zone.
+   */
+  GCPtr<JSObject*> timeZoneObject_;
+
+  /**
    * Locale string passed to the last call to localeCompare String method. Not
    * necessarily the actual locale when the string can't be resolved to a
    * supported Collator locale.
@@ -136,6 +142,16 @@ class GlobalIntlData {
    * zone.
    */
   temporal::TimeZoneObject* getOrCreateDefaultTimeZone(JSContext* cx);
+
+  /**
+   * Get or create the time zone for the IANA time zone name |identifier|.
+   * |primaryIdentifier| must be the primary identifier for |identifier|, i.e.
+   * if |identifier| is a time zone link name, |primaryIdentifier| must be the
+   * link's target time zone.
+   */
+  temporal::TimeZoneObject* getOrCreateTimeZone(
+      JSContext* cx, JS::Handle<JSLinearString*> identifier,
+      JS::Handle<JSLinearString*> primaryIdentifier);
 
   /**
    * Get or create the Intl.Collator instance for |locale|. The default locale
