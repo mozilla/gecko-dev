@@ -27,7 +27,8 @@ interface WindowContext {
   // True if this WindowContext is currently frozen in the BFCache.
   readonly attribute boolean isInBFCache;
 
-  // True if this window has registered a "beforeunload" event handler.
+  // True if this window has registered a "beforeunload" event handler, and/or
+  // if this context is top level and has registered a "navigate" event handler.
   readonly attribute boolean hasBeforeUnload;
 
   // True if the principal of this window is for a local ip address.

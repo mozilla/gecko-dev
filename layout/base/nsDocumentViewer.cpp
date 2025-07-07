@@ -1181,7 +1181,7 @@ nsDocumentViewer::PermitUnload(PermitUnloadAction aAction,
   bc->PreOrderWalk([&](BrowsingContext* aBC) {
     if (!aBC->IsInProcess()) {
       WindowContext* wc = aBC->GetCurrentWindowContext();
-      if (wc && wc->HasBeforeUnload()) {
+      if (wc && wc->NeedsBeforeUnload()) {
         foundOOPListener = true;
       }
     } else if (aBC->GetDocShell()) {

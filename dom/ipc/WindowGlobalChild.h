@@ -83,6 +83,9 @@ class WindowGlobalChild final : public WindowGlobalActor,
   void BeforeUnloadAdded();
   void BeforeUnloadRemoved();
 
+  void NavigateAdded();
+  void NavigateRemoved();
+
   bool IsCurrentGlobal();
 
   bool IsProcessRoot();

@@ -26,4 +26,6 @@ UNIFIED_SOURCES += [
     "NavigationUtils.cpp",
 ]
 
+include("/ipc/chromium/chromium-config.mozbuild")
+
 FINAL_LIBRARY = "xul"

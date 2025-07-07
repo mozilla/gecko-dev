@@ -37,6 +37,7 @@
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/Navigation.h"
 #include "mozilla/dom/RemoteWebProgressRequest.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/LinkedList.h"
@@ -1358,69 +1359,78 @@ static void FinishRestore(CanonicalBrowsingContext* aBrowsingContext,
   aBrowsingContext->LoadURI(aLoadState, false);
 }
 
+MOZ_CAN_RUN_SCRIPT
+static bool MaybeLoadBFCache(nsSHistory::LoadEntryResult& aLoadEntry) {
+  MOZ_ASSERT(XRE_IsParentProcess());
+  RefPtr<nsDocShellLoadState> loadState = aLoadEntry.mLoadState;
+  RefPtr<CanonicalBrowsingContext> canonicalBC =
+      aLoadEntry.mBrowsingContext->Canonical();
+  nsCOMPtr<SessionHistoryEntry> she = do_QueryInterface(loadState->SHEntry());
+  nsCOMPtr<SessionHistoryEntry> currentShe =
+      canonicalBC->GetActiveSessionHistoryEntry();
+  MOZ_ASSERT(she);
+  RefPtr<nsFrameLoader> frameLoader = she->GetFrameLoader();
+  if (frameLoader && canonicalBC->Group()->Toplevels().Length() == 1 &&
+      (!currentShe || (she->SharedInfo() != currentShe->SharedInfo() &&
+                       !currentShe->GetFrameLoader()))) {
+    bool canSave = (!currentShe || currentShe->GetSaveLayoutStateFlag()) &&
+                   canonicalBC->AllowedInBFCache(Nothing(), nullptr);
+
+    MOZ_LOG(gSHIPBFCacheLog, LogLevel::Debug,
+            ("nsSHistory::LoadURIOrBFCache "
+             "saving presentation=%i",
+             canSave));
+
+    nsCOMPtr<nsFrameLoaderOwner> frameLoaderOwner =
+        do_QueryInterface(canonicalBC->GetEmbedderElement());
+    if (!loadState->NotifiedBeforeUnloadListeners() && frameLoaderOwner) {
+      RefPtr<nsFrameLoader> currentFrameLoader =
+          frameLoaderOwner->GetFrameLoader();
+      if (currentFrameLoader &&
+          currentFrameLoader->GetMaybePendingBrowsingContext()) {
+        if (WindowGlobalParent* wgp =
+                currentFrameLoader->GetMaybePendingBrowsingContext()
+                    ->Canonical()
+                    ->GetCurrentWindowGlobal()) {
+          wgp->PermitUnload(
+              [canonicalBC, loadState, she, frameLoader, currentFrameLoader,
+               canSave](bool aAllow) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+                if (aAllow && !canonicalBC->IsReplaced()) {
+                  FinishRestore(canonicalBC, loadState, she, frameLoader,
+                                canSave && canonicalBC->AllowedInBFCache(
+                                               Nothing(), nullptr));
+                } else if (currentFrameLoader
+                               ->GetMaybePendingBrowsingContext()) {
+                  nsISHistory* shistory =
+                      currentFrameLoader->GetMaybePendingBrowsingContext()
+                          ->Canonical()
+                          ->GetSessionHistory();
+                  if (shistory) {
+                    shistory->InternalSetRequestedIndex(-1);
+                  }
+                }
+              });
+          return true;
+        }
+      }
+    }
+
+    FinishRestore(canonicalBC, loadState, she, frameLoader, canSave);
+    return true;
+  }
+  if (frameLoader) {
+    she->SetFrameLoader(nullptr);
+    frameLoader->Destroy();
+  }
+
+  return false;
+}
+
 /* static */
 void nsSHistory::LoadURIOrBFCache(LoadEntryResult& aLoadEntry) {
   if (mozilla::BFCacheInParent() && aLoadEntry.mBrowsingContext->IsTop()) {
-    MOZ_ASSERT(XRE_IsParentProcess());
-    RefPtr<nsDocShellLoadState> loadState = aLoadEntry.mLoadState;
-    RefPtr<CanonicalBrowsingContext> canonicalBC =
-        aLoadEntry.mBrowsingContext->Canonical();
-    nsCOMPtr<SessionHistoryEntry> she = do_QueryInterface(loadState->SHEntry());
-    nsCOMPtr<SessionHistoryEntry> currentShe =
-        canonicalBC->GetActiveSessionHistoryEntry();
-    MOZ_ASSERT(she);
-    RefPtr<nsFrameLoader> frameLoader = she->GetFrameLoader();
-    if (frameLoader && canonicalBC->Group()->Toplevels().Length() == 1 &&
-        (!currentShe || (she->SharedInfo() != currentShe->SharedInfo() &&
-                         !currentShe->GetFrameLoader()))) {
-      bool canSave = (!currentShe || currentShe->GetSaveLayoutStateFlag()) &&
-                     canonicalBC->AllowedInBFCache(Nothing(), nullptr);
-
-      MOZ_LOG(gSHIPBFCacheLog, LogLevel::Debug,
-              ("nsSHistory::LoadURIOrBFCache "
-               "saving presentation=%i",
-               canSave));
-
-      nsCOMPtr<nsFrameLoaderOwner> frameLoaderOwner =
-          do_QueryInterface(canonicalBC->GetEmbedderElement());
-      if (frameLoaderOwner) {
-        RefPtr<nsFrameLoader> currentFrameLoader =
-            frameLoaderOwner->GetFrameLoader();
-        if (currentFrameLoader &&
-            currentFrameLoader->GetMaybePendingBrowsingContext()) {
-          if (WindowGlobalParent* wgp =
-                  currentFrameLoader->GetMaybePendingBrowsingContext()
-                      ->Canonical()
-                      ->GetCurrentWindowGlobal()) {
-            wgp->PermitUnload(
-                [canonicalBC, loadState, she, frameLoader, currentFrameLoader,
-                 canSave](bool aAllow) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
-                  if (aAllow && !canonicalBC->IsReplaced()) {
-                    FinishRestore(canonicalBC, loadState, she, frameLoader,
-                                  canSave && canonicalBC->AllowedInBFCache(
-                                                 Nothing(), nullptr));
-                  } else if (currentFrameLoader
-                                 ->GetMaybePendingBrowsingContext()) {
-                    nsISHistory* shistory =
-                        currentFrameLoader->GetMaybePendingBrowsingContext()
-                            ->Canonical()
-                            ->GetSessionHistory();
-                    if (shistory) {
-                      shistory->InternalSetRequestedIndex(-1);
-                    }
-                  }
-                });
-            return;
-          }
-        }
-      }
-
-      FinishRestore(canonicalBC, loadState, she, frameLoader, canSave);
+    if (MaybeLoadBFCache(aLoadEntry)) {
       return;
-    }
-    if (frameLoader) {
-      she->SetFrameLoader(nullptr);
-      frameLoader->Destroy();
     }
   }
 
@@ -1429,8 +1439,139 @@ void nsSHistory::LoadURIOrBFCache(LoadEntryResult& aLoadEntry) {
   bc->LoadURI(loadState, false);
 }
 
+// This implements step 4 of
+// https://html.spec.whatwg.org/#checking-if-unloading-is-canceled which handles
+// the case where we have a "navigate" handler for the top level window's
+// navigation object and/or a "beforeunload" handler for that same window. The
+// tricky part is that we need to check "beforeunload" for that window, then
+// "navigate", and after that continue with "beforeunload" for the remaining
+// tree.
+MOZ_CAN_RUN_SCRIPT
+static bool MaybeCheckUnloadingIsCanceled(
+    nsTArray<nsSHistory::LoadEntryResult>& aLoadResults,
+    BrowsingContext* aTraversable,
+    std::function<void(nsTArray<nsSHistory::LoadEntryResult>&, bool)>&&
+        aResolver) {
+  // Step 4
+  if (!aTraversable || !aTraversable->IsTop() || !SessionHistoryInParent() ||
+      !aLoadResults.Length() || !Navigation::IsAPIEnabled()) {
+    return false;
+  }
+
+  // Step 4.3.2
+  auto found =
+      std::find_if(aLoadResults.begin(), aLoadResults.end(),
+                   [traversable = RefPtr{aTraversable}](const auto& result) {
+                     return result.mBrowsingContext->Id() == traversable->Id();
+                   });
+  // Step 4.3.2
+  bool needsBeforeUnload = found != aLoadResults.end();
+
+  // Step 4.2
+  // This is a bit fishy since we don't have a direct way of performing
+  // the step, but this does its best.
+  RefPtr<nsDocShellLoadState> loadState =
+      needsBeforeUnload ? found->mLoadState : aLoadResults[0].mLoadState;
+  RefPtr<CanonicalBrowsingContext> browsingContext = aTraversable->Canonical();
+  MOZ_DIAGNOSTIC_ASSERT(!needsBeforeUnload ||
+                        found->mBrowsingContext == browsingContext);
+
+  nsCOMPtr<SessionHistoryEntry> targetEntry =
+      do_QueryInterface(loadState->SHEntry());
+  nsCOMPtr<SessionHistoryEntry> currentEntry =
+      browsingContext->GetActiveSessionHistoryEntry();
+
+  // Step 4.3
+  if (!currentEntry || currentEntry->GetID() == targetEntry->GetID()) {
+    return false;
+  }
+
+  RefPtr<WindowGlobalParent> windowGlobalParent =
+      browsingContext->GetCurrentWindowGlobal();
+  // An efficiency trick. We've set this flag on the window context if we've
+  // seen a "navigate" and/or a "beforeunload" handler set. If not we know we
+  // can skip this.
+  if (!windowGlobalParent || !windowGlobalParent->NeedsBeforeUnload()) {
+    return false;
+  }
+
+  nsCOMPtr<nsIURI> targetURI = targetEntry->GetURI();
+  if (!targetURI) {
+    return false;
+  }
+
+  nsCOMPtr<nsIPrincipal> targetPrincipal =
+      BasePrincipal::CreateContentPrincipal(targetURI, OriginAttributes{});
+
+  // More of step 4.3
+  if (!windowGlobalParent->DocumentPrincipal()->Equals(targetPrincipal)) {
+    return false;
+  }
+
+  // Step 4.3.3
+  if (needsBeforeUnload) {
+    aLoadResults.RemoveElementAt(found);
+  }
+
+  // Step 4.3.4
+  // PermitUnloadTraversable only includes the process of the top level browsing
+  // context.
+  windowGlobalParent->PermitUnloadTraversable(
+      targetEntry->Info(),
+      [loadResults = CopyableTArray(std::move(aLoadResults)),
+       windowGlobalParent, aResolver](bool aAllow) mutable {
+        if (!aAllow) {
+          aResolver(loadResults, aAllow);
+          return;
+        }
+
+        // PermitUnloadTraversable includes everything except the process of the
+        // top level browsing context.
+        windowGlobalParent->PermitUnloadChildNavigables(
+            [loadResults = std::move(loadResults), aResolver](
+                bool aAllow) mutable { aResolver(loadResults, aAllow); });
+      });
+
+  return true;
+}
+
 /* static */
-void nsSHistory::LoadURIs(nsTArray<LoadEntryResult>& aLoadResults) {
+void nsSHistory::LoadURIs(nsTArray<LoadEntryResult>& aLoadResults,
+                          BrowsingContext* aTraversable) {
+  // Here we have call a path that handles firing the "traverse" navigate event
+  // if applicable.
+  if (MaybeCheckUnloadingIsCanceled(
+          aLoadResults, aTraversable,
+          [traversable = RefPtr{aTraversable}](
+              nsTArray<LoadEntryResult>& aLoadResults,
+              bool aAllow) MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA {
+            if (!aAllow) {
+              if (nsCOMPtr<nsFrameLoaderOwner> frameLoaderOwner =
+                      do_QueryInterface(traversable->GetEmbedderElement())) {
+                if (RefPtr<nsFrameLoader> currentFrameLoader =
+                        frameLoaderOwner->GetFrameLoader()) {
+                  nsISHistory* shistory =
+                      currentFrameLoader->GetMaybePendingBrowsingContext()
+                          ->Canonical()
+                          ->GetSessionHistory();
+                  if (shistory) {
+                    shistory->InternalSetRequestedIndex(-1);
+                  }
+                }
+              }
+              return;
+            }
+
+            for (LoadEntryResult& loadEntry : aLoadResults) {
+              loadEntry.mLoadState->SetNotifiedBeforeUnloadListeners(true);
+              LoadURIOrBFCache(loadEntry);
+            }
+          })) {
+    return;
+  }
+
+  // And we fall back to the simple case if we shouldn't fire a "traverse"
+  // navigate event.
   for (LoadEntryResult& loadEntry : aLoadResults) {
     LoadURIOrBFCache(loadEntry);
   }
