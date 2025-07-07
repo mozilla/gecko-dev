@@ -98,7 +98,7 @@ static JSLinearString* FormatOffsetTimeZoneIdentifier(JSContext* cx,
   return NewStringCopyN<CanGC>(cx, result, std::size(result));
 }
 
-static TimeZoneObject* CreateTimeZoneObject(
+TimeZoneObject* js::temporal::CreateTimeZoneObject(
     JSContext* cx, Handle<JSLinearString*> identifier,
     Handle<JSLinearString*> primaryIdentifier) {
   // TODO: Implement a built-in time zone object cache.
@@ -318,12 +318,8 @@ JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
  */
 bool js::temporal::SystemTimeZone(JSContext* cx,
                                   MutableHandle<TimeZoneValue> result) {
-  Rooted<JSLinearString*> identifier(cx, SystemTimeZoneIdentifier(cx));
-  if (!identifier) {
-    return false;
-  }
-
-  auto* timeZone = CreateTimeZoneObject(cx, identifier, identifier);
+  auto* timeZone =
+      cx->global()->globalIntlData().getOrCreateDefaultTimeZone(cx);
   if (!timeZone) {
     return false;
   }
