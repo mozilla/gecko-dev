@@ -3639,7 +3639,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
   // The nsDisplayBlendContainer must be added to the list first, so it does not
   // isolate the containing element blending as well.
   if (aBuilder->ContainsBlendMode()) {
-    resultList.AppendToTop(nsDisplayBlendContainer::Create(
+    resultList.AppendToTop(nsDisplayBlendContainer::CreateForMixBlendMode(
         aBuilder, this, &resultList, containerItemASR));
     createdContainer = true;
     addBackdropRoot = false;
@@ -3934,9 +3934,10 @@ void nsIFrame::BuildDisplayListForStackingContext(
     }
   }
 
-  if (addBackdropRoot && aBuilder->ContainsBackdropFilter()) {
-    resultList.AppendToTop(nsDisplayBlendContainer::Create(
-        aBuilder, this, &resultList, containerItemASR));
+  if (addBackdropRoot) {
+    resultList.AppendToTop(nsDisplayBlendContainer::CreateForBackdropRoot(
+        aBuilder, this, &resultList, containerItemASR,
+        /* aNeedsBackdropRoot = */ aBuilder->ContainsBackdropFilter()));
     createdContainer = true;
   }
 
