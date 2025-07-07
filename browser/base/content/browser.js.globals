@@ -245,5 +245,6 @@
   "SelectableProfileService",
   "ActionsProviderContextualSearch",
   "ToolbarDropHandler",
-  "ProfilesDatastoreService"
+  "ProfilesDatastoreService",
+  "gTrustPanelHandler"
 ]

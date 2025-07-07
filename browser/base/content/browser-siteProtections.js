@@ -216,6 +216,15 @@ class ProtectionCategory {
     };
   }
 
+  /*
+   * Return the number items blocked by this blocker.
+   * @returns {Integer} count - The number of items blocked.
+   */
+  async getBlockerCount() {
+    let { items } = await this._generateSubViewListItems();
+    return items?.childElementCount ?? 0;
+  }
+
   /**
    * Create a DOM item representing a tracker.
    * @param {string} origin - Origin of the tracker.
@@ -320,6 +329,13 @@ class ProtectionCategory {
 
 let Fingerprinting =
   new (class FingerprintingProtection extends ProtectionCategory {
+    iconSrc = "chrome://browser/skin/fingerprint.svg";
+    l10nKeys = {
+      title: "fingerprinter",
+      content: "fingerprinters",
+      general: "fingerprinter",
+    };
+
     constructor() {
       super(
         "fingerprinters",
@@ -393,7 +409,6 @@ let Fingerprinting =
 
       return (state & blockFlag) != 0;
     }
-
     // TODO (Bug 1864914): Consider showing suspicious fingerprinting as allowed
     // when the fingerprinting protection is disabled.
   })();
@@ -409,8 +424,23 @@ let Cryptomining = new ProtectionCategory(
   }
 );
 
+Cryptomining.l10nId = "trustpanel-cryptomining";
+Cryptomining.iconSrc = "chrome://browser/skin/controlcenter/cryptominers.svg";
+Cryptomining.l10nKeys = {
+  title: "cryptominer",
+  content: "cryptominers",
+  general: "cryptominer",
+};
+
 let TrackingProtection =
   new (class TrackingProtection extends ProtectionCategory {
+    iconSrc = "chrome://browser/skin/canvas.svg";
+    l10nKeys = {
+      title: "tracking-content",
+      content: "tracking-content",
+      general: "tracking-content",
+    };
+
     constructor() {
       super(
         "trackers",
@@ -647,6 +677,13 @@ let TrackingProtection =
 
 let ThirdPartyCookies =
   new (class ThirdPartyCookies extends ProtectionCategory {
+    iconSrc = "chrome://browser/skin/controlcenter/3rdpartycookies.svg";
+    l10nKeys = {
+      title: "cookies-trackers",
+      content: "cross-site-tracking-cookies",
+      general: "tracking-cookies",
+    };
+
     constructor() {
       super(
         "cookies",
@@ -770,6 +807,34 @@ let ThirdPartyCookies =
 
     get enabled() {
       return this.prefEnabledValues.includes(this.behaviorPref);
+    }
+
+    _generateSubViewListItems() {
+      let fragment = document.createDocumentFragment();
+      let contentBlockingLog = gBrowser.selectedBrowser.getContentBlockingLog();
+      contentBlockingLog = JSON.parse(contentBlockingLog);
+      let categories = this._processContentBlockingLog(contentBlockingLog);
+
+      let categoryNames = ["trackers"];
+      switch (this.behaviorPref) {
+        case Ci.nsICookieService.BEHAVIOR_REJECT:
+          categoryNames.push("firstParty");
+        // eslint-disable-next-line no-fallthrough
+        case Ci.nsICookieService.BEHAVIOR_REJECT_FOREIGN:
+          categoryNames.push("thirdParty");
+      }
+
+      for (let category of categoryNames) {
+        let itemsToShow = categories[category];
+
+        if (!itemsToShow.length) {
+          continue;
+        }
+        for (let info of itemsToShow) {
+          fragment.appendChild(this._createListItem(info));
+        }
+      }
+      return { items: fragment };
     }
 
     updateSubView() {
@@ -1062,6 +1127,13 @@ let ThirdPartyCookies =
 
 let SocialTracking =
   new (class SocialTrackingProtection extends ProtectionCategory {
+    iconSrc = "chrome://browser/skin/thumb-down.svg";
+    l10nKeys = {
+      title: "social-media-trackers",
+      content: "social-media-trackers",
+      general: "social-tracking",
+    };
+
     constructor() {
       super(
         "socialblock",

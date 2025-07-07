@@ -100,6 +100,14 @@
   skin/classic/browser/notification-icons/xr.svg                            (../shared/notification-icons/xr.svg)
   skin/classic/browser/notification-icons/midi.svg                          (../shared/notification-icons/midi.svg)
 
+  skin/classic/browser/trust-icon-active.svg            (../shared/identity-block/trust-icon-active.svg)
+  skin/classic/browser/trust-icon-disabled.svg          (../shared/identity-block/trust-icon-disabled.svg)
+  skin/classic/browser/trust-icon-insecure.svg          (../shared/identity-block/trust-icon-insecure.svg)
+  skin/classic/browser/trust-icon-warning.svg           (../shared/identity-block/trust-icon-warning.svg)
+  skin/classic/browser/trustpanel-graphic-enabled.svg   (../shared/identity-block/trustpanel-graphic-enabled.svg)
+  skin/classic/browser/trustpanel-graphic-disabled.svg  (../shared/identity-block/trustpanel-graphic-disabled.svg)
+  skin/classic/browser/trustpanel-graphic-warning.svg   (../shared/identity-block/trustpanel-graphic-warning.svg)
+
   skin/classic/browser/tracking-protection.svg                        (../shared/identity-block/tracking-protection.svg)
   skin/classic/browser/tracking-protection-disabled.svg               (../shared/identity-block/tracking-protection-disabled.svg)
   skin/classic/browser/tracking-protection-active.svg                 (../shared/identity-block/tracking-protection-active.svg)

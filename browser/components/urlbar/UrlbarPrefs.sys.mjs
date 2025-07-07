@@ -539,6 +539,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Remove redundant portions from URLs.
   ["trimURLs", true],
 
+  // Enable the updated design combining the privacy and shield icon
+  // and panels in the Urlbar.
+  ["trustPanel.featureGate", false],
+
   // Whether unit conversion is enabled.
   ["unitConversion.enabled", false],
 

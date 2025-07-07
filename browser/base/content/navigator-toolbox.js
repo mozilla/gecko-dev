@@ -194,6 +194,7 @@ document.addEventListener(
         #home-button,
         #PlacesToolbar,
         #BMB_bookmarksPopup,
+        #trust-icon-container,
         #tracking-protection-icon-container,
         #identity-icon-box,
         #identity-permission-box,
@@ -264,11 +265,19 @@ document.addEventListener(
           BookmarksEventHandler.onClick(event, element.parentNode._placesView);
           break;
 
+        case "trust-icon-container":
+          gTrustPanelHandler.handleProtectionsButtonEvent(event);
+          break;
+
         case "tracking-protection-icon-container":
           gProtectionsHandler.handleProtectionsButtonEvent(event);
           break;
 
         case "identity-icon-box":
+          if (UrlbarPrefs.get("trustPanel.featureGate")) {
+            gTrustPanelHandler.handleProtectionsButtonEvent(event);
+            break;
+          }
           gIdentityHandler.handleIdentityButtonEvent(event);
           PageProxyClickHandler(event);
           break;

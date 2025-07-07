@@ -2,6 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+:root {
+  --trustpanel-graphic-bg: light-dark(var(--color-gray-20), var(--color-gray-90));
+  --trustpanel-highlight-bg: light-dark(var(--color-violet-10), var(--color-violet-90));
+  --trustpanel-warning-bg: light-dark(var(--color-red-20), var(--color-red-90));
+  --trustpanel-inner-border: 1px solid var(--color-violet-20);
+  --trustpanel-inner-warning-border: 1px solid var(--color-red-10);
+}
+
 /* Hide all conditional elements by default. */
 :is([when-connection], [when-customroot], [when-mixedcontent], [when-ciphers], [when-httpsonlystatus]) {
   display: none;
@@ -9,6 +17,7 @@
 
 #identity-popup,
 #permission-popup,
+#trustpanel-popup,
 #protections-popup {
   --popup-width: 30.81em;
   /* Set default fill for icons in the identity popup.
@@ -81,6 +90,7 @@
 
 #identity-popup-mainView,
 #permission-popup-mainView,
+#trustpanel-popup-mainView,
 #protections-popup-mainView {
   min-width: var(--popup-width);
   max-width: var(--popup-width);
@@ -314,7 +324,8 @@
  * and allow it to scroll vertically.*/
 #protections-popup-socialblockView,
 #protections-popup-cookiesView,
-#protections-popup-trackersView {
+#protections-popup-trackersView,
+#trustpanel-blocker-items {
   max-height: calc(600px + var(--height-offset));
 }
 
@@ -766,4 +777,166 @@
 
 .protections-popup-smartblock-toggle-box > moz-toggle {
   padding-block-end: var(--arrowpanel-menuitem-padding-block);
+}
+
+/* Trustpanel popup */
+
+#trustpanel-header-row {
+  justify-content: space-between;
+  padding-block-start: var(--space-small);
+  padding-inline-start: var(--space-large);
+}
+
+#trustpanel-popup-icon {
+  -moz-context-properties: fill, fill-opacity;
+  width: var(--icon-size-default);
+  height: var(--icon-size-default);
+  align-self: center;
+
+  &:not([src]),
+  &[src=""] {
+    display: none;
+  }
+}
+
+#trustpanel-popup-host {
+  align-self: center;
+}
+
+#trustpanel-graphic-section {
+  margin: var(--space-small) var(--space-large);
+  padding: var(--space-large);
+  padding-block-start: var(--space-small);
+  border-radius: var(--border-radius-medium);
+  flex-direction: column;
+}
+
+#trustpanel-popup {
+  &[tracking-protection="warning"] {
+    #trustpanel-graphic-image {
+      background-image: url(chrome://browser/skin/trustpanel-graphic-warning.svg);
+    }
+    #trustpanel-graphic-section {
+      background: var(--trustpanel-warning-bg);
+    }
+  }
+  &[tracking-protection="enabled"] {
+    #trustpanel-graphic-image {
+      background-image: url(chrome://browser/skin/trustpanel-graphic-enabled.svg);
+    }
+    #trustpanel-graphic-section {
+      background: var(--trustpanel-highlight-bg);
+    }
+  }
+
+  &[tracking-protection="disabled"] {
+    #trustpanel-graphic-image {
+      background-image: url(chrome://browser/skin/trustpanel-graphic-disabled.svg);
+    }
+    #trustpanel-graphic-section {
+      background: var(--trustpanel-graphic-bg);
+    }
+  }
+}
+
+#trustpanel-graphic-image {
+  -moz-context-properties: fill;
+  background-repeat: no-repeat;
+  background-position: center;
+  fill: light-dark(#0090ed, #80ebff);
+  width: 80px;
+  height: 80px;
+  background-size: contain;
+  margin-inline-end: var(--space-small);
+}
+
+#trustpanel-graphic-section-text {
+  align-self: center;
+  margin-inline-start: var(--space-medium);
+}
+
+.trustpanel-header {
+  font-weight: var(--font-weight-bold);
+  margin-block-end: var(--space-small);
+
+  #trustpanel-blockerDetailsView &,
+  #trustpanel-blockerView & {
+    margin-block-start: var(--space-large);
+  }
+}
+
+#trustpanel-toggle-checkbox-container {
+  justify-content: space-between;
+}
+
+#trustpanel-connection-icon,
+#trustpanel-siteinfo-icon {
+  -moz-context-properties: fill, fill-opacity;
+  width: var(--icon-size-default);
+  height: var(--icon-size-default);
+  list-style-image: url(chrome://global/skin/icons/security-broken.svg);
+
+  #trustpanel-popup[connection^="secure"] & {
+    list-style-image: url(chrome://global/skin/icons/security.svg);
+  }
+}
+
+.trustpanel-section {
+  padding: var(--arrowpanel-menuitem-padding);
+  margin: var(--arrowpanel-menuitem-margin);
+}
+
+#trustpanel-toggle-section {
+  margin: var(--space-large);
+
+  &[disabled] label {
+    color: var(--button-text-color-ghost-disabled);
+    opacity: var(--button-opacity-disabled);
+  }
+}
+
+.protections-popup-list-host-label,
+.trustpanel-blocker-section > label {
+  margin-inline: var(--space-xlarge);
+}
+
+#trustpanel-blocker-section-header span {
+  color: var(--color-accent-primary);
+}
+
+.trustpanel-graphic-inner {
+  margin: var(--space-xsmall);
+  padding: var(--space-medium);
+  border-radius: var(--border-radius-medium);
+}
+
+#trustpanel-blocker-section {
+  background: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.12));
+  border: var(--trustpanel-inner-border);
+}
+
+#trustpanel-insecure-section {
+  visibility: collapse;
+  background: light-dark(rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.12));
+  border: var(--trustpanel-inner-warning-border);
+
+  #trustpanel-popup[tracking-protection="warning"] & {
+    visibility: visible;
+  }
+}
+
+#trustpanel-blockerView moz-button {
+  --button-font-weight: normal;
+  --button-alignment: inline-start;
+  margin: var(--space-small);
+  width: -moz-available;
+  -moz-context-properties: fill;
+  background-image: url(chrome://global/skin/icons/arrow-right.svg);
+  background-repeat: no-repeat;
+  background-position: right center;
+
+  &:-moz-locale-dir(rtl) {
+    background-image: url(chrome://global/skin/icons/arrow-left.svg);
+    background-position-x: left;
+  }
 }

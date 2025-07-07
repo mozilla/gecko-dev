@@ -6,6 +6,7 @@
   display: inline-block;
   height: fit-content;
   width: fit-content;
+  --button-alignment: center;
 }
 
 button {
@@ -48,7 +49,7 @@ button {
   /* Ensure font-size isn't overridden by widget styling (e.g. in forms.css) */
   font-size: var(--button-font-size);
   display: flex;
-  justify-content: center;
+  justify-content: var(--button-alignment);
   align-items: center;
   position: relative;
 

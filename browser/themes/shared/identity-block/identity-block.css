@@ -14,6 +14,7 @@
 }
 
 #identity-box,
+#trust-icon-container,
 #tracking-protection-icon-container {
   /* Set default fill for icons in the identity block.
      Individual icons can override this. */
@@ -42,6 +43,7 @@
 }
 
 .identity-box-button,
+#trust-icon-container,
 #tracking-protection-icon-container {
   outline: var(--toolbarbutton-outline);
   outline-offset: var(--toolbarbutton-outline-offset);
@@ -134,6 +136,7 @@
 #identity-icon,
 #permissions-granted-icon,
 #tracking-protection-icon,
+#trust-icon,
 #blocked-permissions-container > .blocked-permission-icon {
   width: 16px;
   height: 16px;
@@ -283,6 +286,41 @@
   }
 }
 
-.urlbar-input-container[pageproxystate="invalid"] > #tracking-protection-icon-container {
-  visibility: collapse;
+.urlbar-input-container[pageproxystate="invalid"] > #tracking-protection-icon-container,
+#trust-icon-container {
+  display: none;
+}
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media -moz-pref("browser.urlbar.trustPanel.featureGate") {
+  #tracking-protection-icon-container,
+  /* Keep displaying the moz-extension or chrome UI chicklet */
+  #identity-box[pageproxystate="valid"]:not(.chromeUI, .extensionPage) {
+    display: none;
+  }
+
+  #trust-icon-container {
+    padding-inline: var(--urlbar-icon-padding);
+    border-radius: var(--urlbar-icon-border-radius);
+    margin-inline-end: var(--identity-box-margin-inline);
+    -moz-context-properties: fill, fill-opacity;
+
+    list-style-image: url(chrome://browser/skin/trust-icon-active.svg);
+
+    &.insecure {
+      list-style-image: url(chrome://browser/skin/trust-icon-insecure.svg);
+    }
+
+    &.inactive {
+      list-style-image: url(chrome://browser/skin/trust-icon-disabled.svg);
+    }
+
+    &.warning {
+      list-style-image: url(chrome://browser/skin/trust-icon-warning.svg);
+    }
+
+    .urlbar-input-container[pageproxystate="valid"] > &:not(.chickletShown) {
+      display: flex;
+    }
+  }
 }
