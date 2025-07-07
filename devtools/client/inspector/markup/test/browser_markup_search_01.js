@@ -121,6 +121,99 @@ add_task(async function () {
   await onSearchCleared;
 
   checkHighlightedSearchResults(inspector, []);
+
+  await searchFor("TALLTOPMATCH", inspector);
+  const talltopNodeFront = await getNodeFront("section.talltop", inspector);
+  const talltopNodeFrontChildren =
+    await inspector.walker.children(talltopNodeFront);
+  is(
+    inspector.selection.nodeFront,
+    talltopNodeFrontChildren.nodes[0],
+    `The section.talltop text node is selected`
+  );
+  checkHighlightedSearchResults(inspector, ["TALLTOPMATCH"]);
+
+  await searchFor("TALLBOTTOMMATCH", inspector);
+  const tallbottomNodeFront = await getNodeFront(
+    "section.tallbottom",
+    inspector
+  );
+  const tallbottomNodeFrontChildren =
+    await inspector.walker.children(tallbottomNodeFront);
+  is(
+    inspector.selection.nodeFront,
+    tallbottomNodeFrontChildren.nodes[0],
+    `The section.tallbottom text node is selected`
+  );
+  checkHighlightedSearchResults(inspector, ["TALLBOTTOMMATCH"]);
+
+  await searchFor("OVERFLOWSMATCH", inspector);
+  const overflowsNodeFront = await getNodeFront("section.overflows", inspector);
+  const overflowsNodeFrontChildren =
+    await inspector.walker.children(overflowsNodeFront);
+  is(
+    inspector.selection.nodeFront,
+    overflowsNodeFrontChildren.nodes[0],
+    "The section.overflows text node is selected"
+  );
+  checkHighlightedSearchResults(inspector, ["OVERFLOWSMATCH"]);
+
+  info(
+    "Check that matching node with non-visible search result are still being scrolled to"
+  );
+  // Scroll to top to make sure the node isn't in view at first
+  const markupViewContainer = inspector.markup.win.document.documentElement;
+  markupViewContainer.scrollTop = 0;
+  markupViewContainer.scrollLeft = 0;
+
+  const croppedAttributeContainer = await getContainerForSelector(
+    "section#cropped-attribute",
+    inspector
+  );
+  let croppedAttributeContainerRect =
+    croppedAttributeContainer.elt.getBoundingClientRect();
+
+  ok(
+    croppedAttributeContainerRect.y < 0 ||
+      croppedAttributeContainerRect.y > markupViewContainer.clientHeight,
+    "section#cropped-attribute container is not into view before searching for a match in its attributes"
+  );
+
+  await searchFor("croppedvalue", inspector);
+  is(
+    inspector.selection.nodeFront,
+    await getNodeFront("section#cropped-attribute", inspector),
+    "The section#cropped-attribute element is selected"
+  );
+  checkHighlightedSearchResults(inspector, []);
+  // Check that node visible after it was selected
+  croppedAttributeContainerRect =
+    croppedAttributeContainer.elt.getBoundingClientRect();
+
+  Assert.greaterOrEqual(
+    croppedAttributeContainerRect.y,
+    0,
+    `Node with cropped attributes is not above visible viewport`
+  );
+  Assert.less(
+    croppedAttributeContainerRect.y,
+    markupViewContainer.clientHeight,
+    `Node with cropped attributes is not below visible viewport`
+  );
+
+  // Sanity check to make sure the markup view does overflow in both axes. We need to
+  // wait after the search is done as their text node is only revealed when cycling through
+  // search results.
+  Assert.greater(
+    markupViewContainer.scrollHeight,
+    markupViewContainer.clientHeight,
+    "Markup view overflows vertically"
+  );
+  Assert.greater(
+    markupViewContainer.scrollWidth,
+    markupViewContainer.clientWidth,
+    "Markup view overflows horizontally"
+  );
 });
 
 async function searchFor(selector, inspector) {
@@ -133,12 +226,47 @@ async function searchFor(selector, inspector) {
 }
 
 function checkHighlightedSearchResults(inspector, expectedHighlights) {
+  const searchInputValue = getSelectorSearchBox(inspector).value;
+
+  info(`Checking highlights for "${searchInputValue}" search`);
+  const devtoolsHighlights = [
+    ...inspector.markup.win.CSS.highlights
+      .get(DEVTOOLS_SEARCH_HIGHLIGHT_NAME)
+      .values(),
+  ];
   Assert.deepEqual(
-    [
-      ...inspector.markup.win.CSS.highlights
-        .get(DEVTOOLS_SEARCH_HIGHLIGHT_NAME)
-        .values(),
-    ].map(range => range.toString()),
-    expectedHighlights
+    devtoolsHighlights.map(range => range.toString()),
+    expectedHighlights,
+    `Got expected highlights for "${searchInputValue}"`
   );
+
+  if (expectedHighlights.length) {
+    const markupViewContainer = inspector.markup.win.document.documentElement;
+    info(
+      `Check that we scrolled so the first highlighted range for "${searchInputValue}" is visible`
+    );
+    const [rect] = devtoolsHighlights[0].getClientRects();
+    const { x, y } = rect;
+
+    Assert.greaterOrEqual(
+      y,
+      0,
+      `First "${searchInputValue}" match not above visible viewport`
+    );
+    Assert.less(
+      y,
+      markupViewContainer.clientHeight,
+      `First "${searchInputValue}" match not below visible viewport`
+    );
+    Assert.greaterOrEqual(
+      x,
+      0,
+      `First "${searchInputValue}" match not before the "left border" of the visible viewport`
+    );
+    Assert.less(
+      x,
+      markupViewContainer.clientWidth,
+      `First "${searchInputValue}" match not after the "right border" of the visible viewport`
+    );
+  }
 }

@@ -1077,7 +1077,18 @@ MarkupView.prototype = {
 
     const slotted = selection.isSlotted();
     const smoothScroll = reason === "reveal-from-slot";
-    const onShow = this.showNode(selection.nodeFront, { slotted, smoothScroll })
+    const selectionSearchQuery = selection.getSearchQuery();
+
+    const onShow = this.showNode(selection.nodeFront, {
+      slotted,
+      smoothScroll,
+      // Don't scroll if we selected the node from the search, we'll scroll to the first
+      // matching Range done in _updateSearchResultsHighlightingInSelectedNode.
+      // This need to be done there because the matching Range might be out of screen,
+      // for example if the node is very tall, or if the markup view overflows horizontally
+      // and the Range is located near the right end of the node container.
+      scroll: !selectionSearchQuery,
+    })
       .then(() => {
         // We could be destroyed by now.
         if (this._destroyed) {
@@ -1088,7 +1099,7 @@ MarkupView.prototype = {
         const container = this.getContainer(selection.nodeFront, slotted);
         this._markContainerAsSelected(container);
         this._updateSearchResultsHighlightingInSelectedNode(
-          selection.getSearchQuery()
+          selectionSearchQuery
         );
 
         // Make sure the new selection is navigated to.
@@ -1109,6 +1120,20 @@ MarkupView.prototype = {
     }
 
     return highlights.get(highlightName);
+  },
+
+  /**
+   * @returns {nsISelectionController}
+   */
+  _getSelectionController() {
+    if (!this._selectionController) {
+      // QueryInterface can be expensive, so cache the controller.
+      this._selectionController = this.win.docShell
+        .QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsISelectionDisplay)
+        .QueryInterface(Ci.nsISelectionController);
+    }
+    return this._selectionController;
   },
 
   /**
@@ -1136,6 +1161,8 @@ MarkupView.prototype = {
     searchQuery = searchQuery.toLowerCase();
     const searchQueryLength = searchQuery.length;
     let currentNode = treeWalker.nextNode();
+    let scrolled = false;
+
     while (currentNode) {
       const text = currentNode.textContent.toLowerCase();
       let startPos = 0;
@@ -1152,9 +1179,46 @@ MarkupView.prototype = {
         searchHighlight.add(range);
 
         startPos = index + searchQuery.length;
+
+        // We want to scroll the first matching range into view
+        if (!scrolled) {
+          // We want to take advantage of nsISelectionController.scrollSelectionIntoView,
+          // so we need to put the range in the selection. That's fine to do here because
+          // in this situation the user shouldn't have any text selected
+          const selection = this.win.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+
+          const selectionController = this._getSelectionController();
+          selectionController.scrollSelectionIntoView(
+            selectionController.SELECTION_NORMAL,
+            selectionController.SELECTION_ON,
+            selectionController.SCROLL_SYNCHRONOUS |
+              selectionController.SCROLL_VERTICAL_CENTER
+          );
+          selection.removeAllRanges();
+          scrolled = true;
+        }
       }
 
       currentNode = treeWalker.nextNode();
+    }
+
+    // It can happen that we didn't find a Range for a search result (e.g. if the matching
+    // string is in a cropped attribute). In such case, go back to scroll the container
+    // into view.
+    if (!scrolled) {
+      const container = this.getContainer(
+        this.inspector.selection.nodeFront,
+        this.inspector.selection.isSlotted()
+      );
+      scrollIntoViewIfNeeded(
+        container.editor.elt,
+        // centered
+        true,
+        // smoothScroll
+        false
+      );
     }
   },
 
@@ -1770,12 +1834,23 @@ MarkupView.prototype = {
   /**
    * Make sure the given node's parents are expanded and the
    * node is scrolled on to screen.
+   *
+   * @param {NodeFront} nodeFront
+   * @param {Object} options
+   * @param {Boolean} options.centered
+   * @param {Boolean} options.scroll
+   * @param {Boolean} options.slotted
+   * @param {Boolean} options.smoothScroll
+   * @returns
    */
-  showNode(node, { centered = true, slotted, smoothScroll = false } = {}) {
-    if (slotted && !this.hasContainer(node, slotted)) {
+  showNode(
+    nodeFront,
+    { centered = true, scroll = true, slotted, smoothScroll = false } = {}
+  ) {
+    if (slotted && !this.hasContainer(nodeFront, slotted)) {
       throw new Error("Tried to show a slotted node not previously imported");
     } else {
-      this._ensureNodeImported(node);
+      this._ensureNodeImported(nodeFront);
     }
 
     return this._waitForChildren()
@@ -1783,10 +1858,14 @@ MarkupView.prototype = {
         if (this._destroyed) {
           return Promise.reject("markupview destroyed");
         }
-        return this._ensureVisible(node);
+        return this._ensureVisible(nodeFront);
       })
       .then(() => {
-        const container = this.getContainer(node, slotted);
+        if (!scroll) {
+          return;
+        }
+
+        const container = this.getContainer(nodeFront, slotted);
         scrollIntoViewIfNeeded(container.editor.elt, centered, smoothScroll);
       }, this._handleRejectionIfNotDestroyed);
   },
@@ -2642,6 +2721,7 @@ MarkupView.prototype = {
     this._elt.innerHTML = "";
     this._elt = null;
 
+    this._selectionController = null;
     this.controllerWindow = null;
     this.doc = null;
     this.highlighters = null;

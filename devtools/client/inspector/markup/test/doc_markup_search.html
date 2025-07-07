@@ -11,5 +11,30 @@
     <button type="button" class="Button">OK</button>
     <p>Click the button</p>
   </section>
+  <section class="talltop"></section>
+  <section class="tallbottom"></section>
+  <section class="overflows">
+    thisisaverylongtextnodesowegetthemarkupviewtooverflowhorizontallythisisaverylongtextnodesowegetthemarkupviewtooverflowhorizontallythisisaverylongtextnodesowegetthemarkupviewtooverflowhorizontallyOVERFLOWSMATCH
+  </section>
+  <section id="cropped-attribute"></section>
+  <script>
+    "use strict";
+
+    const sentence = "this is a very tall text node so we can check that search highlights are properly scrolled into view.";
+    const textNodeContent = sentence.repeat(100);
+
+    // Split the search term in 2 here so we only have a single result when searching for it
+    document.querySelector(".talltop").append(document.createTextNode("TALLTOP" + "MATCH" + textNodeContent));
+    document.querySelector(".tallbottom").append(document.createTextNode(textNodeContent + "TALLBOTTOM" + "MATCH"));
+
+    // Keep in sync with devtools.markup.collapseAttributeLength
+    const croppedAttributeEl = document.querySelector("#cropped-attribute")
+    const collapseAttributeLength = 120;
+    // Splitting in 2 so this won't be seen as a match
+    const strToMatch = "cropped" + "value";
+    const middle = Math.floor(collapseAttributeLength / 2);
+    const cls = "-".repeat(middle) + strToMatch + "-".repeat(middle);
+    croppedAttributeEl.classList.add(cls);
+  </script>
 </body>
 </html>
