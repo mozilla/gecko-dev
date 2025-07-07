@@ -54,7 +54,7 @@ class BaselineProfilesStartupBenchmark {
     fun startupNone() = startupBenchmark(CompilationMode.None())
 
     @Test
-    fun startupPartialWithBaselineProfiles() =
+    fun startup() =
         startupBenchmark(CompilationMode.Partial(baselineProfileMode = BaselineProfileMode.Require))
 
     private fun startupBenchmark(compilationMode: CompilationMode) =
