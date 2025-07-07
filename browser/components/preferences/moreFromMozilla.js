@@ -169,6 +169,18 @@ var gMoreFromMozillaPane = {
       },
     });
 
+    products.push({
+      id: "mdn",
+      title_string_id: "more-from-moz-mdn-title",
+      description_string_id: "more-from-moz-mdn-description",
+      region: "global",
+      button: {
+        id: "mdn",
+        label_string_id: "more-from-moz-mdn-button",
+        actionURL: "https://developer.mozilla.org/docs/Learn_web_development",
+      },
+    });
+
     this._productsContainer = document.getElementById(
       "moreFromMozillaCategory"
     );

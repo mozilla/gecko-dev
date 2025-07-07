@@ -11,7 +11,7 @@ let { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
 
-const TOTAL_PROMO_CARDS_COUNT = 5;
+const TOTAL_PROMO_CARDS_COUNT = 6;
 
 async function clearPolicies() {
   // Ensure no active policies are set
@@ -416,6 +416,30 @@ add_task(async function show_solo_more_from_mozilla() {
     BrowserTestUtils.isVisible(soloBtn),
     "Solo button rendered on page"
   );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function show_mdn_more_from_mozilla() {
+  await clearPolicies();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.preferences.moreFromMozilla", true],
+      ["browser.preferences.moreFromMozilla.template", "simple"],
+    ],
+  });
+  await openPreferencesViaOpenPreferencesAPI("paneMoreFromMozilla", {
+    leaveOpen: true,
+  });
+
+  let doc = gBrowser.contentDocument;
+  let tab = gBrowser.selectedTab;
+
+  const mdnCard = doc.getElementById("mdn");
+  let mdnBtn = doc.getElementById("simple-mdn");
+
+  Assert.ok(BrowserTestUtils.isVisible(mdnCard), "MDN card is shown");
+  Assert.ok(BrowserTestUtils.isVisible(mdnBtn), "MDN button rendered on page");
 
   BrowserTestUtils.removeTab(tab);
 });

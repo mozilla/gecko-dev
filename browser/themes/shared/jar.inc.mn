@@ -138,6 +138,7 @@
   skin/classic/browser/fxa/sync-illustration-issue.svg         (../shared/fxa/sync-illustration-issue.svg)
   skin/classic/browser/fxa/send-to-device.svg                  (../shared/fxa/send-to-device.svg)
   skin/classic/browser/preferences/solo-ai-logo.svg            (../shared/preferences/solo-ai-logo.svg)
+  skin/classic/browser/preferences/mdn-logo.svg                (../shared/preferences/mdn-logo.svg)
 
   skin/classic/browser/fxa/avatar.svg                          (../shared/fxa/avatar.svg)
   skin/classic/browser/fxa/avatar-color.svg                    (../shared/fxa/avatar-color.svg)
