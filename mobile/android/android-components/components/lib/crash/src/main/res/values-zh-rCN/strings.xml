@@ -26,4 +26,10 @@
   <string name="mozac_lib_crash_no_crashes">尚未提交任何崩溃报告。</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">分享</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">发送前询问</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">自动发送</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">永不发送</string>
 </resources>

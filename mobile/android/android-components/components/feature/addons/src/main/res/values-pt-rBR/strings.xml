@@ -90,6 +90,8 @@
   <string name="mozac_feature_addons_permissions_required_data_collection_description_2">O desenvolvedor afirma que esta extensão coleta: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">O desenvolvedor afirma que esta extensão não requer coleta de dados.</string>
+  <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">O desenvolvedor afirma que a extensão quer coletar: %1$s</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Estender as ferramentas do desenvolvedor para acessar seus dados nas abas abertas</string>
   <!-- Description for text button that expands the list of domain permissions -->
@@ -196,6 +198,10 @@
   <string name="mozac_feature_addons_permissions_dialog_title_2">Adicionar %1$s</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title" moz:removedIn="142" tools:ignore="UnusedResources">%1$s requer permissões adicionais.</string>
+  <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_dialog_title">%1$s requer configurações adicionais</string>
+  <!-- This is the title of a dialog that asks the users to grant optional data collection permissions only. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title">%1$s requer coleta adicional de dados</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Requer sua permissão para:</string>
   <!-- Heading for the permissions section in the add-on install dialog. -->
@@ -206,6 +212,10 @@
   <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Configurações opcionais:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">A extensão quer:</string>
+  <!-- Heading for the permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_permissions">Novas permissões:</string>
+  <!-- Heading for the data collection permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_data_collection">Nova coleta de dados:</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">Adicionar</string>
   <!-- This is a button to allow the optional permissions requested by an add-on . -->

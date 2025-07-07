@@ -90,6 +90,8 @@
   <string name="mozac_feature_addons_permissions_show_all_sites">Diskouez an holl lec\'hiennoù</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">Diskouez nebeutoc\'h a lec\'hiennoù</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">lec’hiadur</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Handelv</string>
   <!-- The author of an add-on. -->

@@ -1270,6 +1270,8 @@
   <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Скасаваць</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Выдаліць</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Паўтарыць</string>
   <string name="download_clear_search_description">Ачысціць</string>
   <!-- Text for the header of in progress downloads -->
   <string name="download_header_in_progress">У працэсе</string>
@@ -1359,6 +1361,8 @@
   <string name="unsubmitted_crash_dialog_negative_button">Закрыць</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Даслаць справаздачу пра крах</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Падрабязней</string>
   <!--
     Bookmarks
 
@@ -1439,6 +1443,8 @@
   <string name="bookmark_delete_single_item">Закладка %s выдалена</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">Увядзіце пошукавыя запыты</string>
+  <!-- Content description for the bookmark navigation bar back button -->
+  <string name="bookmark_navigate_back_button_content_description">Перайсці назад</string>
   <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
   <string name="bookmark_delete_bookmark_content_description">Выдаліць закладку</string>
   <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
@@ -1969,6 +1975,14 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Значок перавагі выключэння ўзмоцненай аховы ад сачэння</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Выкарыстоўваць стандартны правайдар DNS</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">Выберыце правайдара</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(змоўчны)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">Адмысловы</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Падтрымка</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->

@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s გაასუფთავებს თქვენი ძიებისა და ნახვების ისტორიას ყველა პირადი ჩანართის დახურვისას ან გამოსვლისას. მართალია, ეს ვერ დაფარავს თქვენს ვინაობას საიტებისა და ინტერნეტის მომწოდებლისგან, მაგრამ გაგიადვილებთ, დაიცვათ პირადი მონაცემები, თუ ამ მოწყობილობის სხვაც გამოიყენებს.</string>
   <string name="private_browsing_common_myths">ცრუ წარმოდგენები პირადი თვალიერების შესახებ</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">პირადი დათვალიერების რეჟიმი</string>
   <!--
     True Private Browsing Mode
 
@@ -416,7 +418,7 @@
   -->
   <string name="browser_menu_default_banner_title">გახადეთ %1$s ნაგულისხმევი</string>
   <!-- Label text within the set as default banner -->
-  <string name="browser_menu_default_banner_subtitle">წამები დასჭირდება. შეცვლით ნებისმიერ დროს.</string>
+  <string name="browser_menu_default_banner_subtitle">რამდენიმე წამს გასტანს. შეცვლით ნებისმიერ დროს.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
   <string name="browser_menu_default_banner_dismiss">აცილება</string>
   <!--
@@ -859,6 +861,8 @@
   <string name="preferences_category_account">ანგარიში</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">მისამართების ველის მდებარეობა</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">ხელსაწყოთა ზოლის განლაგება</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">თემა</string>
   <!-- Preference for customizing the home screen -->
@@ -941,6 +945,14 @@
   <string name="preferences_open_links_in_apps_never">არასდროს</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">ჩამოტვირთვის გარეშე მმართველი</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">მართეთ ჩამოტვირთვები სხვა პროგრამით</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">წაშლის %s და წაიშლება მოწყობილობიდან</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">ფაილების მოცილება ჩამოტვირთვებიდან ასევე მოაცილებს მოწყობილობიდანაც</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">ჩამოტვირთვები</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gecko-აღრიცხვების ჩართვა</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1106,6 +1118,12 @@
   <string name="alternative_app_icon_option_momo">Momo</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">შემქმნელი @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">ერთგვაროვანი ფერები</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">ცვალებადი ფერები</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">სხვა</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1214,18 +1232,30 @@
   <string name="exceptions_empty_message_learn_more_link">ვრცლად</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">ტექნიკური და გამოყენების მონაცემების გაგზავნა</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">ვრცლად ტექნიკურ მონაცემებზე</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">ვრცლად</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">თქვენი მოწყობილობის მასახიათებლები, აპარატურული გაწყობა და გამოყენების მონაცემები გვეხმარება გავაუმჯობესოთ Firefox შესაძლებლობების, წარმადობისა და მდგრადობის კუთხით.</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">დღიური გამოყენების უწყება</string>
-  <string name="preferences_daily_usage_ping_description">ამით %@ მიახლოებით ითვლის მოქმედ მომხმარებლებს.</string>
+  <string name="preferences_daily_usage_ping_description">ამით Mozilla მიახლოებით ითვლის მოქმედ მომხმარებლებს.</string>
   <string name="preferences_daily_usage_ping_learn_more">ვრცლად დღიური გამოყენების უწყების შესახებ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">უეცარი გათიშვის მოხსენებების თვითგაგზავნა</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">საშუალებას მოგვცემს, გამოვავლინოთ და მოვაგვაროთ ბრაუზერის ხარვეზები. მოხსენებები შეიძლება შეიცავდეს პირად ან საფრთხილო მონაცემებს.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">ვრცლად უეცარი გათიშვების მოხსენებებზე</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">უეცარი გათიშვის მოხსენებები</string>
+  <string name="usage_data_category">გამოყენების მონაცემები</string>
+  <string name="studies_data_category">კვლევები</string>
+  <string name="technical_data_category">ტექნიკური მონაცემები</string>
+  <string name="crash_reporting_description">უეცარი გათიშვის მოხსენებები საშუალებას გვაძლევს, გამოვავლინოთ და მოვაგვაროთ ბრაუზერის ხარვეზები. მოხსენებები შეიძლება შეიცავდეს პირად ან საფრთხილო მონაცემებს.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">გაცნობითი საქმიანობის საზომი</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">გაცნობითი საქმიანობის საზომი</string>
   <!--
@@ -1265,6 +1295,10 @@
   <string name="preference_top_toolbar">ზემოთ</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">ქვემოთ</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">მარტივი</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">ჩამოშლილი</string>
   <!--
     Theme Preferences
 
@@ -1639,11 +1673,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • ელოდება</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • დაუდგენელი დრო</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • შეჩერებულია</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • შეჩერებული</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">შეჩერდა</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1748,12 +1792,20 @@
   <string name="tab_crash_restore">ჩანართის აღდგენა</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s ახლიდან უნდა ჩაირთოს</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">გადაუგზავნელი მოხსენება გაქვთ უეცარი გათიშვის შესახებ, რომლის კვლევაც მიმდინარეობს. მისი გამოგზავნით დაგვეხმარებით, გავაუმჯობესოთ %1$s. ამ ცნობის დახურვით მოხსენება უგულებელყოფილი დარჩება.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">გადაუგზავნელი მოხსენებები (%1$d) გაქვთ უეცარი გათიშვის შესახებ, რომლის კვლევაც მიმდინარეობს. მათი გამოგზავნით დაგვეხმარებით, გავაუმჯობესოთ %2$s. ამ ცნობის დახურვით მოხსენებები უგულებელყოფილი დარჩება.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">უეცარი გათიშვის მოხსენებების თვითგაგზავნა</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">დახურვა</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">აღარ გამოჩნდეს</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">უეცარი გათიშვის მოხსენება</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">ვრცლად</string>
   <!--
     Bookmarks
 
@@ -2613,6 +2665,22 @@
   <string name="saved_login_clear_username">სახელის გასუფთავება</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">მისამართის გასუფთავება</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">შესვლის მონაცემების მენიუ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">გადასვლა უკან</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">ჩასწორება</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">წაშლა</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">გადასვლა უკან</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">ახალი ანგარიშის შენახვა</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">გადასვლა უკან</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">შესვლის მონაცემის ჩასწორება</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">საიტის ბრაუზერში გახსნა</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
