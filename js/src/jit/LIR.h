@@ -609,18 +609,12 @@ class LDefinition {
   Type type() const { return (Type)((bits_ >> TYPE_SHIFT) & TYPE_MASK); }
 
   static bool isFloatRegCompatible(Type type, FloatRegister reg) {
-#ifdef JS_CODEGEN_RISCV64
-    if (type == FLOAT32 || type == DOUBLE) {
-      return reg.isSingle() || reg.isDouble();
-    }
-#else
     if (type == FLOAT32) {
       return reg.isSingle();
     }
     if (type == DOUBLE) {
       return reg.isDouble();
     }
-#endif
     MOZ_ASSERT(type == SIMD128);
     return reg.isSimd128();
   }

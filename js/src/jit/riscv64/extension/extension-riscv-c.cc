@@ -175,7 +175,7 @@ void AssemblerRISCVC::c_ld(Register rd, Register rs1, uint16_t uimm8) {
 #endif
 
 void AssemblerRISCVC::c_fld(FPURegister rd, Register rs1, uint16_t uimm8) {
-  MOZ_ASSERT(((rd.code() & 0b11000) == 0b01000) &&
+  MOZ_ASSERT(((rd.encoding() & 0b11000) == 0b01000) &&
              ((rs1.code() & 0b11000) == 0b01000) && is_uint8(uimm8) &&
              ((uimm8 & 0x7) == 0));
   uint8_t uimm5 = ((uimm8 & 0x38) >> 1) | ((uimm8 & 0xc0) >> 6);
@@ -204,7 +204,7 @@ void AssemblerRISCVC::c_sd(Register rs2, Register rs1, uint16_t uimm8) {
 #endif
 
 void AssemblerRISCVC::c_fsd(FPURegister rs2, Register rs1, uint16_t uimm8) {
-  MOZ_ASSERT(((rs2.code() & 0b11000) == 0b01000) &&
+  MOZ_ASSERT(((rs2.encoding() & 0b11000) == 0b01000) &&
              ((rs1.code() & 0b11000) == 0b01000) && is_uint8(uimm8) &&
              ((uimm8 & 0x7) == 0));
   uint8_t uimm5 = ((uimm8 & 0x38) >> 1) | ((uimm8 & 0xc0) >> 6);

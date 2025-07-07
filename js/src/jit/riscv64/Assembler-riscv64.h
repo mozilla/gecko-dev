@@ -586,7 +586,7 @@ class UseScratchRegisterScope {
 class Operand {
  public:
   enum Tag { REG, FREG, MEM, IMM };
-  Operand(FloatRegister freg) : tag(FREG), rm_(freg.code()) {}
+  Operand(FloatRegister freg) : tag(FREG), rm_(freg.encoding()) {}
 
   explicit Operand(Register base, Imm32 off)
       : tag(MEM), rm_(base.code()), offset_(off.value) {}
@@ -653,7 +653,7 @@ static inline bool GetIntArgReg(uint32_t usedIntArgs, Register* out) {
 
 static inline bool GetFloatArgReg(uint32_t usedFloatArgs, FloatRegister* out) {
   if (usedFloatArgs < NumFloatArgRegs) {
-    *out = FloatRegister::FromCode(fa0.code() + usedFloatArgs);
+    *out = FloatRegister::FromCode(fa0.encoding() + usedFloatArgs);
     return true;
   }
   return false;

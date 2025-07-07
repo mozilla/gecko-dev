@@ -270,16 +270,18 @@ class FloatRegisters {
     ft11 = f31
   };
 
-  enum Kind : uint8_t { Double, NumTypes, Single };
+  enum Kind : uint8_t { Double, Single, NumTypes };
 
-  typedef FPRegisterID Code;
-  typedef FPRegisterID Encoding;
+  // (invalid << 7) | (kind << 5) | encoding
+  using Code = uint8_t;
+  using Encoding = FPRegisterID;
+
   union RegisterContent {
     float s;
     double d;
   };
 
-  static const char* GetName(uint32_t code) {
+  static const char* GetName(Code code) {
     static const char* const Names[] = {
         "ft0", "ft1", "ft2",  "ft3",  "ft4", "ft5", "ft6",  "ft7",
         "fs0", "fs2", "fa0",  "fa1",  "fa2", "fa3", "fa4",  "fa5",
@@ -289,37 +291,51 @@ class FloatRegisters {
     if (code >= Total) {
       return "invalid";
     }
-    return Names[code];
+    return Names[code & 0x1f];
   }
 
   static Code FromName(const char* name);
 
-  typedef uint32_t SetType;
+  using SetType = uint64_t;
 
-  static const Code Invalid = invalid_reg;
-  static const uint32_t Total = 32;
+  static const Code Invalid = Code(0b10000000);
   static const uint32_t TotalPhys = 32;
+  static const uint32_t Total = TotalPhys * NumTypes;
   static const uint32_t Allocatable = 23;
-  static const SetType AllPhysMask = 0xFFFFFFFF;
-  static const SetType AllMask = 0xFFFFFFFF;
-  static const SetType AllDoubleMask = AllMask;
-  // Single values are stored as 64 bits values (NaN-boxed) when pushing them to
-  // the stack, we do not require making distinctions between the 2 types, and
-  // therefore the masks are overlapping.See The RISC-V Instruction Set Manual
-  // for 14.2 NaN Boxing of Narrower Values.
-  static const SetType AllSingleMask = AllMask;
+
+  static_assert(sizeof(SetType) * 8 >= Total,
+                "SetType should be large enough to enumerate all registers.");
+
+  // Magic values which are used to duplicate a mask of physical register for
+  // a specific type of register. A multiplication is used to copy and shift
+  // the bits of the physical register mask.
+  static const SetType SpreadSingle = SetType(1)
+                                      << (uint32_t(Kind::Single) * TotalPhys);
+  static const SetType SpreadDouble = SetType(1)
+                                      << (uint32_t(Kind::Double) * TotalPhys);
+  static const SetType Spread = SpreadSingle | SpreadDouble;
+
+  static const SetType AllPhysMask = ((SetType(1) << TotalPhys) - 1);
+  static const SetType AllMask = AllPhysMask * Spread;
+  static const SetType AllSingleMask = AllPhysMask * SpreadSingle;
+  static const SetType AllDoubleMask = AllPhysMask * SpreadDouble;
+  static const SetType NoneMask = SetType(0);
+
   static const SetType NonVolatileMask =
       SetType((1 << FloatRegisters::fs0) | (1 << FloatRegisters::fs1) |
               (1 << FloatRegisters::fs2) | (1 << FloatRegisters::fs3) |
               (1 << FloatRegisters::fs4) | (1 << FloatRegisters::fs5) |
               (1 << FloatRegisters::fs6) | (1 << FloatRegisters::fs7) |
               (1 << FloatRegisters::fs8) | (1 << FloatRegisters::fs9) |
-              (1 << FloatRegisters::fs10) | (1 << FloatRegisters::fs11));
+              (1 << FloatRegisters::fs10) | (1 << FloatRegisters::fs11)) *
+      Spread;
   static const SetType VolatileMask = AllMask & ~NonVolatileMask;
 
   // fs11/ft10 is the scratch register.
   static const SetType NonAllocatableMask =
-      SetType((1 << FloatRegisters::fs11) | (1 << FloatRegisters::ft10));
+      ((SetType(1) << FloatRegisters::fs11) |
+       (SetType(1) << FloatRegisters::ft10)) *
+      Spread;
 
   static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 };
@@ -329,29 +345,32 @@ class TypedRegisterSet;
 
 struct FloatRegister {
  public:
-  typedef FloatRegisters Codes;
-  typedef Codes::Code Code;
-  typedef Codes::Encoding Encoding;
-  typedef Codes::SetType SetType;
+  using Codes = FloatRegisters;
+  using Code = Codes::Code;
+  using Encoding = Codes::Encoding;
+  using SetType = Codes::SetType;
 
   static uint32_t SetSize(SetType x) {
-    static_assert(sizeof(SetType) == 4, "SetType must be 32 bits");
+    static_assert(sizeof(SetType) == 8, "SetType must be 64 bits");
+    x |= x >> FloatRegisters::TotalPhys;
     x &= FloatRegisters::AllPhysMask;
     return mozilla::CountPopulation32(x);
   }
 
   static uint32_t FirstBit(SetType x) {
-    static_assert(sizeof(SetType) == 4, "SetType");
+    static_assert(sizeof(SetType) == 8, "SetType must be 64 bits");
     return mozilla::CountTrailingZeroes64(x);
   }
   static uint32_t LastBit(SetType x) {
-    static_assert(sizeof(SetType) == 4, "SetType");
-    return 31 - mozilla::CountLeadingZeroes64(x);
+    static_assert(sizeof(SetType) == 8, "SetType must be 64 bits");
+    return 63 - mozilla::CountLeadingZeroes64(x);
   }
 
-  static FloatRegister FromCode(uint32_t i) {
-    uint32_t code = i & 0x1f;
-    return FloatRegister(Code(code));
+  static FloatRegister FromCode(Code code) {
+    MOZ_ASSERT(code < Codes::Total);
+    const Encoding encoding = Encoding(code & 0x1f);
+    const Kind kind = Kind((code >> 5) & 0x3);
+    return FloatRegister(encoding, kind);
   }
   bool isSimd128() const { return false; }
   bool isInvalid() const { return invalid_; }
@@ -366,10 +385,11 @@ struct FloatRegister {
   FloatRegister asSimd128() const { MOZ_CRASH(); }
   constexpr Code code() const {
     MOZ_ASSERT(!invalid_);
-    return encoding_;
+    return Code((invalid_ << 7) | ((static_cast<uint8_t>(kind_) & 0x3) << 5) |
+                (static_cast<uint8_t>(encoding_) & 0x1f));
   }
-  Encoding encoding() const { return encoding_; }
-  const char* name() const { return FloatRegisters::GetName(code()); }
+  constexpr Encoding encoding() const { return encoding_; }
+  const char* name() const { return FloatRegisters::GetName(encoding()); }
   bool volatile_() const {
     MOZ_ASSERT(!invalid_);
     return !!((SetType(1) << code()) & FloatRegisters::VolatileMask);
@@ -379,10 +399,12 @@ struct FloatRegister {
   bool aliases(FloatRegister other) const {
     return other.encoding_ == encoding_;
   }
-  uint32_t numAliased() const { return 1; }
+  uint32_t numAliased() const { return FloatRegisters::NumTypes; }
   FloatRegister aliased(uint32_t aliasIdx) const {
-    MOZ_ASSERT(aliasIdx == 0);
-    return *this;
+    MOZ_ASSERT(!invalid_);
+    MOZ_ASSERT(aliasIdx < numAliased());
+    return FloatRegister(Encoding(encoding_),
+                         Kind((aliasIdx + kind_) % numAliased()));
   }
   // Ensure that two floating point registers' types are equivalent.
   bool equiv(FloatRegister other) const {
@@ -402,7 +424,9 @@ struct FloatRegister {
     MOZ_ASSERT(aliasIdx < numAliased());
     return aliased(aliasIdx);
   }
-  SetType alignedOrDominatedAliasedSet() const { return SetType(1) << code(); }
+  SetType alignedOrDominatedAliasedSet() const {
+    return Codes::Spread << encoding_;
+  }
   static constexpr RegTypeName DefaultType = RegTypeName::Float64;
 
   template <RegTypeName Name = DefaultType>
@@ -427,7 +451,7 @@ struct FloatRegister {
 #  error "Needs more careful logic if SIMD is enabled"
 #endif
 
-    return code() * sizeof(double);
+    return encoding() * sizeof(double);
   }
   static Code FromName(const char* name);
 
@@ -436,7 +460,7 @@ struct FloatRegister {
   static uint32_t GetPushSizeInBytes(const TypedRegisterSet<FloatRegister>& s);
 
  private:
-  typedef Codes::Kind Kind;
+  using Kind = Codes::Kind;
   // These fields only hold valid values: an invalid register is always
   // represented as a valid encoding and kind with the invalid_ bit set.
   Encoding encoding_;  // 32 encodings
@@ -461,16 +485,13 @@ struct FloatRegister {
 
   bool isSingle() const {
     MOZ_ASSERT(!invalid_);
-    // On riscv64 arch, float register and double register using the same
-    // register file.
-    return kind_ == FloatRegisters::Single || kind_ == FloatRegisters::Double;
+    return kind_ == FloatRegisters::Single;
   }
+
   bool isDouble() const {
     MOZ_ASSERT(!invalid_);
     return kind_ == FloatRegisters::Double;
   }
-
-  Encoding code() { return encoding_; }
 };
 
 template <>
