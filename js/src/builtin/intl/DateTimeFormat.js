@@ -206,63 +206,6 @@ function CanonicalizeTimeZoneName(timeZone) {
   return ianaTimeZone;
 }
 
-var timeZoneCache = {
-  icuDefaultTimeZone: undefined,
-  defaultTimeZone: undefined,
-};
-
-/**
- * 6.4.3 DefaultTimeZone ()
- *
- * Returns the IANA time zone name for the host environment's current time zone.
- *
- * ES2017 Intl draft rev 4a23f407336d382ed5e3471200c690c9b020b5f3
- */
-function DefaultTimeZone() {
-  if (intl_isDefaultTimeZone(timeZoneCache.icuDefaultTimeZone)) {
-    return timeZoneCache.defaultTimeZone;
-  }
-
-  // Verify that the current ICU time zone is a valid ECMA-402 time zone.
-  var icuDefaultTimeZone = intl_defaultTimeZone();
-  var timeZone = intl_IsValidTimeZoneName(icuDefaultTimeZone);
-  if (timeZone === null) {
-    // Before defaulting to "UTC", try to represent the default time zone
-    // using the Etc/GMT + offset format. This format only accepts full
-    // hour offsets.
-    var msPerHour = 60 * 60 * 1000;
-    var offset = intl_defaultTimeZoneOffset();
-    assert(
-      offset === (offset | 0),
-      "milliseconds offset shouldn't be able to exceed int32_t range"
-    );
-    var offsetHours = offset / msPerHour;
-    var offsetHoursFraction = offset % msPerHour;
-    if (offsetHoursFraction === 0) {
-      // Etc/GMT + offset uses POSIX-style signs, i.e. a positive offset
-      // means a location west of GMT.
-      timeZone =
-        "Etc/GMT" + (offsetHours < 0 ? "+" : "-") + std_Math_abs(offsetHours);
-
-      // Check if the fallback is valid.
-      timeZone = intl_IsValidTimeZoneName(timeZone);
-    }
-
-    // Fallback to "UTC" if everything else fails.
-    if (timeZone === null) {
-      timeZone = "UTC";
-    }
-  }
-
-  // Canonicalize the ICU time zone, e.g. change Etc/UTC to UTC.
-  var defaultTimeZone = CanonicalizeTimeZoneName(timeZone);
-
-  timeZoneCache.defaultTimeZone = defaultTimeZone;
-  timeZoneCache.icuDefaultTimeZone = icuDefaultTimeZone;
-
-  return defaultTimeZone;
-}
-
 /**
  * 21.4.1.33.1 IsTimeZoneOffsetString ( offsetString )
  * 21.4.1.33.2 ParseTimeZoneOffsetString ( offsetString )
@@ -545,7 +488,7 @@ function InitializeDateTimeFormat(
     if (toLocaleStringTimeZone !== undefined) {
       timeZone = toLocaleStringTimeZone;
     } else {
-      timeZone = DefaultTimeZone();
+      timeZone = intl_DefaultTimeZone();
     }
 
     // Steps 32-34. (Not applicable in our implementation.)

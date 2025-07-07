@@ -43,11 +43,16 @@ class GlobalIntlData {
   GCPtr<JSLinearString*> defaultLocale_;
 
   /**
-   * Time zone information provided by ICU. See intl_defaultTimeZone(), whose
-   * value controls the value returned by DefaultTimeZone() that's what's
-   * *actually* used.
+   * Time zone information provided by ICU. See
+   * temporal::ComputeSystemTimeZoneIdentifier(), whose value controls the value
+   * returned by defaultTimeZone() that's what's *actually* used.
    */
   GCPtr<JSLinearString*> runtimeDefaultTimeZone_;
+
+  /**
+   * The actual default time zone.
+   */
+  GCPtr<JSLinearString*> defaultTimeZone_;
 
   /**
    * Locale string passed to the last call to localeCompare String method. Not
@@ -110,6 +115,12 @@ class GlobalIntlData {
    * Returns the BCP 47 language tag for the host environment's current locale.
    */
   JSLinearString* defaultLocale(JSContext* cx);
+
+  /**
+   * Returns the IANA time zone name for the host environment's current time
+   * zone.
+   */
+  JSLinearString* defaultTimeZone(JSContext* cx);
 
   /**
    * Get or create the Intl.Collator instance for |locale|. The default locale

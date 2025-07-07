@@ -337,7 +337,7 @@ static bool SystemTimeZoneOffset(JSContext* cx, int32_t* offset) {
  *
  * Returns the IANA time zone name for the host environment's current time zone.
  */
-JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
+JSLinearString* js::temporal::ComputeSystemTimeZoneIdentifier(JSContext* cx) {
   TimeZoneIdentifierVector timeZoneId;
   if (!DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
                                 timeZoneId)) {
@@ -359,9 +359,6 @@ JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
   if (validTimeZone) {
     return CanonicalizeTimeZoneName(cx, validTimeZone);
   }
-
-  // See DateTimeFormat.js for the JS implementation.
-  // TODO: Move the JS implementation into C++.
 
   // Before defaulting to "UTC", try to represent the system time zone using
   // the Etc/GMT + offset format. This format only accepts full hour offsets.
@@ -405,6 +402,15 @@ JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
 
   // Fallback to "UTC" if everything else fails.
   return cx->names().UTC;
+}
+
+/**
+ * SystemTimeZoneIdentifier ( )
+ *
+ * Returns the IANA time zone name for the host environment's current time zone.
+ */
+JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
+  return cx->global()->globalIntlData().defaultTimeZone(cx);
 }
 
 /**

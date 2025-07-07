@@ -1483,6 +1483,19 @@ static bool intrinsic_DefaultLocale(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setString(locale);
   return true;
 }
+
+static bool intrinsic_DefaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 0);
+
+  auto* timeZone = cx->global()->globalIntlData().defaultTimeZone(cx);
+  if (!timeZone) {
+    return false;
+  }
+
+  args.rval().setString(timeZone);
+  return true;
+}
 #endif  // JS_HAS_INTL_API
 
 static bool intrinsic_ConstructFunction(JSContext* cx, unsigned argc,
@@ -2163,6 +2176,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("intl_CreateSegmentIterator", intl_CreateSegmentIterator, 1, 0),
     JS_FN("intl_CreateSegmentsObject", intl_CreateSegmentsObject, 2, 0),
     JS_FN("intl_DefaultLocale", intrinsic_DefaultLocale, 0, 0),
+    JS_FN("intl_DefaultTimeZone", intrinsic_DefaultTimeZone, 0, 0),
     JS_FN("intl_FindNextSegmentBoundaries", intl_FindNextSegmentBoundaries, 1,
           0),
     JS_FN("intl_FindSegmentBoundaries", intl_FindSegmentBoundaries, 2, 0),
@@ -2231,9 +2245,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
 #  endif
     JS_FN("intl_canonicalizeTimeZone", intl_canonicalizeTimeZone, 1, 0),
     JS_FN("intl_defaultCalendar", intl_defaultCalendar, 1, 0),
-    JS_FN("intl_defaultTimeZone", intl_defaultTimeZone, 0, 0),
-    JS_FN("intl_defaultTimeZoneOffset", intl_defaultTimeZoneOffset, 0, 0),
-    JS_FN("intl_isDefaultTimeZone", intl_isDefaultTimeZone, 1, 0),
     JS_FN("intl_isIgnorePunctuation", intl_isIgnorePunctuation, 1, 0),
     JS_FN("intl_isUpperCaseFirst", intl_isUpperCaseFirst, 1, 0),
     JS_FN("intl_numberingSystem", intl_numberingSystem, 1, 0),

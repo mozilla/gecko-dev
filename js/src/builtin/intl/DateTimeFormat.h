@@ -170,32 +170,6 @@ class DateTimeFormatObject : public NativeObject {
                                                     JS::Value* vp);
 
 /**
- * Return the default time zone name. The time zone name is not canonicalized.
- *
- * Usage: icuDefaultTimeZone = intl_defaultTimeZone()
- */
-[[nodiscard]] extern bool intl_defaultTimeZone(JSContext* cx, unsigned argc,
-                                               JS::Value* vp);
-
-/**
- * Return the raw offset from GMT in milliseconds for the default time zone.
- *
- * Usage: defaultTimeZoneOffset = intl_defaultTimeZoneOffset()
- */
-[[nodiscard]] extern bool intl_defaultTimeZoneOffset(JSContext* cx,
-                                                     unsigned argc,
-                                                     JS::Value* vp);
-
-/**
- * Return true if the given string is the default time zone as returned by
- * intl_defaultTimeZone(). Otherwise return false.
- *
- * Usage: isIcuDefaultTimeZone = intl_isDefaultTimeZone(icuDefaultTimeZone)
- */
-[[nodiscard]] extern bool intl_isDefaultTimeZone(JSContext* cx, unsigned argc,
-                                                 JS::Value* vp);
-
-/**
  * Returns a String value representing x (which must be a Number value)
  * according to the effective locale and the formatting options of the
  * given DateTimeFormat.
