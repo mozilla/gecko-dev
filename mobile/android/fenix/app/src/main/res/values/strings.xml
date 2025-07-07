@@ -1557,7 +1557,9 @@
     <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_label_whats_broken_2">What’s broken?</string>
     <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
-    <string name="webcompat_reporter_choose_reason">Choose reason</string>
+    <string name="webcompat_reporter_choose_reason" moz:removedIn="142" tools:ignore="UnusedResources">Choose reason</string>
+    <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
+    <string name="webcompat_reporter_choose_reason_2">Choose a reason</string>
     <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
     <string name="webcompat_reporter_choose_reason_error">Please choose a reason</string>
     <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->

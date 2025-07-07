@@ -1119,9 +1119,9 @@ class BrowserRobot {
         Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"What’s broken?\" header is displayed")
         composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_label_whats_broken_2)).assertIsDisplayed()
         Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"What’s broken?\" header is displayed")
-        Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"Choose reason\" field is displayed")
-        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_choose_reason)).assertIsDisplayed()
-        Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"Choose reason\" field is displayed")
+        Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"Choose a reason\" field is displayed")
+        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_choose_reason_2)).assertIsDisplayed()
+        Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"Choose a reason\" field is displayed")
         Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"Please choose a reason\" error message is displayed")
         composeTestRule.onNodeWithTag(BROKEN_SITE_REPORTER_CHOOSE_REASON_BUTTON).assertIsDisplayed()
         Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the \"Please choose a reason\" error message is displayed")
@@ -1155,9 +1155,9 @@ class BrowserRobot {
         Log.i(TAG, "verifyWhatIsBrokenField: Trying to verify that the \"What’s broken?\" header is displayed")
         composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_label_whats_broken_2)).assertIsDisplayed()
         Log.i(TAG, "verifyWhatIsBrokenField: Verified that the \"What’s broken?\" header is displayed")
-        Log.i(TAG, "verifyWhatIsBrokenField: Trying to verify that the \"Choose reason\" field is displayed")
-        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_choose_reason)).assertIsDisplayed()
-        Log.i(TAG, "verifyWhatIsBrokenField: Verified that the \"Choose reason\" field is displayed")
+        Log.i(TAG, "verifyWhatIsBrokenField: Trying to verify that the \"Choose a reason\" field is displayed")
+        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_choose_reason_2)).assertIsDisplayed()
+        Log.i(TAG, "verifyWhatIsBrokenField: Verified that the \"Choose a reason\" field is displayed")
         Log.i(TAG, "verifyWhatIsBrokenField: Trying to verify that the \"Please choose a reason\" error message is displayed")
         composeTestRule.onNodeWithTag(BROKEN_SITE_REPORTER_CHOOSE_REASON_BUTTON).assertIsDisplayed()
         Log.i(TAG, "verifyWhatIsBrokenField: Verified that the \"Please choose a reason\" error message is displayed")
@@ -1170,10 +1170,10 @@ class BrowserRobot {
     }
 
     fun clickChooseReasonField(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "clickChooseReasonField: Trying to click the \"Choose reason\" field")
-        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_choose_reason))
+        Log.i(TAG, "clickChooseReasonField: Trying to click the \"Choose a reason\" field")
+        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_choose_reason_2))
             .performClick()
-        Log.i(TAG, "clickChooseReasonField: Trying to clicked the \"Choose reason\" field")
+        Log.i(TAG, "clickChooseReasonField: Trying to clicked the \"Choose a reason\" field")
     }
 
     fun clickSiteDoesNotLoadReason(composeTestRule: ComposeTestRule) {

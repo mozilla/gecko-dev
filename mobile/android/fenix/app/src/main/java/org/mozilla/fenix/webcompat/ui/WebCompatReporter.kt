@@ -126,7 +126,7 @@ fun WebCompatReporter(
 
             Dropdown(
                 label = stringResource(id = R.string.webcompat_reporter_label_whats_broken_2),
-                placeholder = stringResource(id = R.string.webcompat_reporter_choose_reason),
+                placeholder = stringResource(id = R.string.webcompat_reporter_choose_reason_2),
                 dropdownItems = state.toDropdownItems(
                     onDropdownItemClick = {
                         store.dispatch(WebCompatReporterAction.ReasonChanged(newReason = it))
