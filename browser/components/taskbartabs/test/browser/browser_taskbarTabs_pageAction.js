@@ -280,7 +280,6 @@ add_task(async function testIframeNavigationIsIgnored() {
   // Navigation within an iframe issues events very similar to top-level navigation.
   // We only want top-level, so test that nothing happens.
   const element = document.getElementById("taskbar-tabs-button");
-  requestLongerTimeout(10000);
 
   await BrowserTestUtils.withNewTab("data:text/plain,", async browser => {
     ok(element.hidden, "Page action is hidden on about: scheme");
@@ -288,7 +287,7 @@ add_task(async function testIframeNavigationIsIgnored() {
     await SpecialPowers.spawn(browser, [], async () => {
       content.document.body.innerHTML =
         "<iframe id='iframe' src='https://example.com'></iframe><p>taskbartabs!</p>";
-      return new Promise(resolve => {
+      await new Promise(resolve => {
         content.document
           .getElementById("iframe")
           .addEventListener("load", _e => resolve(), { once: true });
