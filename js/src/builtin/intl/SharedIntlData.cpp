@@ -28,7 +28,9 @@
 
 #include "builtin/Array.h"
 #include "builtin/intl/CommonFunctions.h"
+#include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/TimeZoneDataGenerated.h"
+#include "js/StableStringChars.h"
 #include "js/Utility.h"
 #include "js/Vector.h"
 #include "vm/ArrayObject.h"
@@ -62,7 +64,7 @@ static HashNumber HashStringIgnoreCaseASCII(const Char* s, size_t length) {
   return hash;
 }
 
-js::intl::SharedIntlData::TimeZoneHasher::Lookup::Lookup(
+js::intl::SharedIntlData::AvailableTimeZoneHasher::Lookup::Lookup(
     const JSLinearString* timeZone)
     : js::intl::SharedIntlData::LinearStringLookup(timeZone) {
   if (isLatin1) {
@@ -70,6 +72,18 @@ js::intl::SharedIntlData::TimeZoneHasher::Lookup::Lookup(
   } else {
     hash = HashStringIgnoreCaseASCII(twoByteChars, length);
   }
+}
+
+js::intl::SharedIntlData::AvailableTimeZoneHasher::Lookup::Lookup(
+    const char* chars, size_t length)
+    : js::intl::SharedIntlData::LinearStringLookup(chars, length) {
+  hash = HashStringIgnoreCaseASCII(latin1Chars, length);
+}
+
+js::intl::SharedIntlData::AvailableTimeZoneHasher::Lookup::Lookup(
+    const char16_t* chars, size_t length)
+    : js::intl::SharedIntlData::LinearStringLookup(chars, length) {
+  hash = HashStringIgnoreCaseASCII(twoByteChars, length);
 }
 
 template <typename Char1, typename Char2>
@@ -83,8 +97,8 @@ static bool EqualCharsIgnoreCaseASCII(const Char1* s1, const Char2* s2,
   return true;
 }
 
-bool js::intl::SharedIntlData::TimeZoneHasher::match(TimeZoneName key,
-                                                     const Lookup& lookup) {
+bool js::intl::SharedIntlData::AvailableTimeZoneHasher::match(
+    TimeZoneName key, const Lookup& lookup) {
   if (key->length() != lookup.length) {
     return false;
   }
@@ -151,8 +165,8 @@ bool js::intl::SharedIntlData::ensureTimeZones(JSContext* cx) {
       return false;
     }
 
-    TimeZoneHasher::Lookup lookup(timeZone);
-    TimeZoneSet::AddPtr p = availableTimeZones.lookupForAdd(lookup);
+    auto p =
+        availableTimeZones.lookupForAdd(AvailableTimeZoneSet::Lookup{timeZone});
 
     // ICU shouldn't report any duplicate time zone names, but if it does,
     // just ignore the duplicate name.
@@ -171,8 +185,8 @@ bool js::intl::SharedIntlData::ensureTimeZones(JSContext* cx) {
       return false;
     }
 
-    TimeZoneHasher::Lookup lookup(timeZone);
-    TimeZoneSet::AddPtr p = ianaZonesTreatedAsLinksByICU.lookupForAdd(lookup);
+    auto p = ianaZonesTreatedAsLinksByICU.lookupForAdd(
+        TimeZoneSet::Lookup{timeZone});
     MOZ_ASSERT(!p, "Duplicate entry in timezone::ianaZonesTreatedAsLinksByICU");
 
     if (!ianaZonesTreatedAsLinksByICU.add(p, timeZone)) {
@@ -200,9 +214,8 @@ bool js::intl::SharedIntlData::ensureTimeZones(JSContext* cx) {
       return false;
     }
 
-    TimeZoneHasher::Lookup lookup(linkName);
-    TimeZoneMap::AddPtr p =
-        ianaLinksCanonicalizedDifferentlyByICU.lookupForAdd(lookup);
+    auto p = ianaLinksCanonicalizedDifferentlyByICU.lookupForAdd(
+        TimeZoneMap::Lookup{linkName});
     MOZ_ASSERT(
         !p,
         "Duplicate entry in timezone::ianaLinksCanonicalizedDifferentlyByICU");
@@ -221,38 +234,133 @@ bool js::intl::SharedIntlData::ensureTimeZones(JSContext* cx) {
 }
 
 bool js::intl::SharedIntlData::validateTimeZoneName(
-    JSContext* cx, HandleString timeZone, MutableHandle<JSAtom*> result) {
+    JSContext* cx, Handle<JSLinearString*> timeZone,
+    MutableHandle<JSAtom*> result) {
   if (!ensureTimeZones(cx)) {
     return false;
   }
 
-  JSLinearString* timeZoneLinear = timeZone->ensureLinear(cx);
-  if (!timeZoneLinear) {
-    return false;
-  }
-
-  TimeZoneHasher::Lookup lookup(timeZoneLinear);
-  if (TimeZoneSet::Ptr p = availableTimeZones.lookup(lookup)) {
-    result.set(*p);
+  auto availablePtr =
+      availableTimeZones.lookup(AvailableTimeZoneSet::Lookup{timeZone});
+  if (availablePtr) {
+    JSAtom* availableTimeZone = *availablePtr;
+    cx->markAtom(availableTimeZone);
+    result.set(availableTimeZone);
   }
 
   return true;
 }
 
-bool js::intl::SharedIntlData::tryCanonicalizeTimeZoneConsistentWithIANA(
-    JSContext* cx, HandleString timeZone, MutableHandle<JSAtom*> result) {
+JSLinearString* js::intl::SharedIntlData::canonicalizeTimeZone(
+    JSContext* cx, Handle<JSLinearString*> timeZone) {
+  if (!ensureTimeZones(cx)) {
+    return nullptr;
+  }
+
+  auto availablePtr =
+      availableTimeZones.lookup(AvailableTimeZoneSet::Lookup{timeZone});
+  MOZ_ASSERT(availablePtr.found(), "Invalid time zone name");
+
+  Rooted<JSAtom*> availableTimeZone(cx, *availablePtr);
+  return canonicalizeAvailableTimeZone(cx, availableTimeZone);
+}
+
+bool js::intl::SharedIntlData::validateAndCanonicalizeTimeZone(
+    JSContext* cx, const AvailableTimeZoneSet::Lookup& lookup,
+    MutableHandle<JSAtom*> identifier, MutableHandle<JSAtom*> primary) {
+  MOZ_ASSERT(timeZoneDataInitialized);
+
+  auto availablePtr = availableTimeZones.lookup(lookup);
+  if (!availablePtr) {
+    return true;
+  }
+
+  Rooted<JSAtom*> availableTimeZone(cx, *availablePtr);
+  JSAtom* canonicalTimeZone =
+      canonicalizeAvailableTimeZone(cx, availableTimeZone);
+  if (!canonicalTimeZone) {
+    return false;
+  }
+
+  cx->markAtom(availableTimeZone);
+  MOZ_ASSERT(AtomIsMarked(cx->zone(), canonicalTimeZone),
+             "canonicalizeAvailableTimeZone already marked the atom");
+
+  identifier.set(availableTimeZone);
+  primary.set(canonicalTimeZone);
+  return true;
+}
+
+bool js::intl::SharedIntlData::validateAndCanonicalizeTimeZone(
+    JSContext* cx, Handle<JSLinearString*> timeZone,
+    MutableHandle<JSAtom*> identifier, MutableHandle<JSAtom*> primary) {
   if (!ensureTimeZones(cx)) {
     return false;
   }
+  return validateAndCanonicalizeTimeZone(
+      cx, AvailableTimeZoneSet::Lookup{timeZone}, identifier, primary);
+}
 
-  JSLinearString* timeZoneLinear = timeZone->ensureLinear(cx);
-  if (!timeZoneLinear) {
+bool js::intl::SharedIntlData::validateAndCanonicalizeTimeZone(
+    JSContext* cx, mozilla::Span<const char> timeZone,
+    MutableHandle<JSAtom*> identifier, MutableHandle<JSAtom*> primary) {
+  if (!ensureTimeZones(cx)) {
     return false;
   }
+  return validateAndCanonicalizeTimeZone(
+      cx, AvailableTimeZoneSet::Lookup{timeZone.data(), timeZone.size()},
+      identifier, primary);
+}
 
-  TimeZoneHasher::Lookup lookup(timeZoneLinear);
-  MOZ_ASSERT(availableTimeZones.has(lookup), "Invalid time zone name");
+JSAtom* js::intl::SharedIntlData::canonicalizeAvailableTimeZone(
+    JSContext* cx, Handle<JSAtom*> availableTimeZone) {
+  MOZ_ASSERT(timeZoneDataInitialized);
+  MOZ_ASSERT(
+      availableTimeZones.has(AvailableTimeZoneSet::Lookup{availableTimeZone}),
+      "Invalid time zone name");
 
+  // Some time zone names are canonicalized differently by ICU.
+  auto* canonicalTimeZone =
+      tryCanonicalizeTimeZoneConsistentWithIANA(availableTimeZone);
+  if (canonicalTimeZone) {
+    cx->markAtom(canonicalTimeZone);
+    return canonicalTimeZone;
+  }
+
+  JS::AutoStableStringChars stableChars(cx);
+  if (!stableChars.initTwoByte(cx, availableTimeZone)) {
+    return nullptr;
+  }
+
+  using TimeZone = mozilla::intl::TimeZone;
+
+  intl::FormatBuffer<char16_t, TimeZone::TimeZoneIdentifierLength> buffer(cx);
+  auto result =
+      TimeZone::GetCanonicalTimeZoneID(stableChars.twoByteRange(), buffer);
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return nullptr;
+  }
+  MOZ_ASSERT(std::u16string_view(u"Etc/Unknown") !=
+                 std::u16string_view(buffer.data(), buffer.length()),
+             "Invalid canonical time zone");
+
+  auto availablePtr = availableTimeZones.lookup(
+      AvailableTimeZoneSet::Lookup{buffer.data(), buffer.length()});
+  MOZ_ASSERT(availablePtr, "Invalid time zone name");
+
+  cx->markAtom(*availablePtr);
+  return *availablePtr;
+}
+
+JSAtom* js::intl::SharedIntlData::tryCanonicalizeTimeZoneConsistentWithIANA(
+    JSAtom* availableTimeZone) {
+  MOZ_ASSERT(timeZoneDataInitialized);
+  MOZ_ASSERT(
+      availableTimeZones.has(AvailableTimeZoneSet::Lookup{availableTimeZone}),
+      "Invalid time zone name");
+
+  TimeZoneMap::Lookup lookup(availableTimeZone);
   if (TimeZoneMap::Ptr p =
           ianaLinksCanonicalizedDifferentlyByICU.lookup(lookup)) {
     // The effectively supported time zones aren't known at compile time,
@@ -263,18 +371,16 @@ bool js::intl::SharedIntlData::tryCanonicalizeTimeZoneConsistentWithIANA(
     //    ICU_TIMEZONE_FILES_DIR environment variable.)
     // Ensure ICU supports the new target zone before applying the update.
     TimeZoneName targetTimeZone = p->value();
-    TimeZoneHasher::Lookup targetLookup(targetTimeZone);
-    if (availableTimeZones.has(targetLookup)) {
-      result.set(targetTimeZone);
+    if (availableTimeZones.has(AvailableTimeZoneSet::Lookup{targetTimeZone})) {
+      return targetTimeZone;
     }
   } else if (TimeZoneSet::Ptr p = ianaZonesTreatedAsLinksByICU.lookup(lookup)) {
-    result.set(*p);
+    return *p;
   }
-
-  return true;
+  return nullptr;
 }
 
-JS::Result<js::intl::SharedIntlData::TimeZoneSet::Iterator>
+JS::Result<js::intl::SharedIntlData::AvailableTimeZoneSet::Iterator>
 js::intl::SharedIntlData::availableTimeZonesIteration(JSContext* cx) {
   if (!ensureTimeZones(cx)) {
     return cx->alreadyReportedError();

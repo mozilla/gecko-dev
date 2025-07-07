@@ -433,14 +433,17 @@ bool js::intl_IsValidTimeZoneName(JSContext* cx, unsigned argc, Value* vp) {
 
   SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
 
-  RootedString timeZone(cx, args[0].toString());
+  Rooted<JSLinearString*> timeZone(cx, args[0].toString()->ensureLinear(cx));
+  if (!timeZone) {
+    return false;
+  }
+
   Rooted<JSAtom*> validatedTimeZone(cx);
   if (!sharedIntlData.validateTimeZoneName(cx, timeZone, &validatedTimeZone)) {
     return false;
   }
 
   if (validatedTimeZone) {
-    cx->markAtom(validatedTimeZone);
     args.rval().setString(validatedTimeZone);
   } else {
     args.rval().setNull();
@@ -448,52 +451,21 @@ bool js::intl_IsValidTimeZoneName(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-JSLinearString* js::intl::CanonicalizeTimeZone(JSContext* cx,
-                                               Handle<JSString*> timeZone) {
+JSLinearString* js::intl::CanonicalizeTimeZone(
+    JSContext* cx, Handle<JSLinearString*> timeZone) {
   SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
 
-  // Some time zone names are canonicalized differently by ICU -- handle those
-  // first.
-  Rooted<JSAtom*> ianaTimeZone(cx);
-  if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(
-          cx, timeZone, &ianaTimeZone)) {
+  auto* result = sharedIntlData.canonicalizeTimeZone(cx, timeZone);
+  if (!result) {
     return nullptr;
   }
 
-  JSLinearString* resultTimeZone;
-  if (ianaTimeZone) {
-    cx->markAtom(ianaTimeZone);
-    resultTimeZone = ianaTimeZone;
-  } else {
-    AutoStableStringChars stableChars(cx);
-    if (!stableChars.initTwoByte(cx, timeZone)) {
-      return nullptr;
-    }
-
-    // Call into ICU to canonicalize the time zone.
-    FormatBuffer<char16_t, INITIAL_CHAR_BUFFER_SIZE> canonicalTimeZone(cx);
-    auto result = mozilla::intl::TimeZone::GetCanonicalTimeZoneID(
-        stableChars.twoByteRange(), canonicalTimeZone);
-    if (result.isErr()) {
-      ReportInternalError(cx, result.unwrapErr());
-      return nullptr;
-    }
-
-    resultTimeZone = canonicalTimeZone.toString(cx);
-    if (!resultTimeZone) {
-      return nullptr;
-    }
-  }
-
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/Unknown"),
-             "Invalid canonical time zone");
-
   // Links to UTC are handled by SharedIntlData.
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "GMT"));
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/UTC"));
-  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/GMT"));
+  MOZ_ASSERT(!StringEqualsLiteral(result, "GMT"));
+  MOZ_ASSERT(!StringEqualsLiteral(result, "Etc/UTC"));
+  MOZ_ASSERT(!StringEqualsLiteral(result, "Etc/GMT"));
 
-  return resultTimeZone;
+  return result;
 }
 
 bool js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp) {
@@ -501,7 +473,11 @@ bool js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp) {
   MOZ_ASSERT(args.length() == 1);
   MOZ_ASSERT(args[0].isString());
 
-  RootedString timeZone(cx, args[0].toString());
+  Rooted<JSLinearString*> timeZone(cx, args[0].toString()->ensureLinear(cx));
+  if (!timeZone) {
+    return false;
+  }
+
   auto* result = intl::CanonicalizeTimeZone(cx, timeZone);
   if (!result) {
     return false;
