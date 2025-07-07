@@ -5,6 +5,9 @@ This document describes the telemetry that Firefox records for the Firefox
 Suggest feature. That is, it describes Firefox Suggest telemetry recorded on the
 client. It also discusses the data that Firefox sends to the Merino service.
 
+This document only covers Legacy telemetry, not Glean telemetry.
+Glean metrics are self-documenting and can be looked up in the Glean dictionary.
+
 For information on other telemetry related to the address bar, see the general
 address bar :doc:`telemetry` document. For information on all telemetry in
 Firefox, see the toolkit :doc:`/toolkit/components/telemetry/index` document.

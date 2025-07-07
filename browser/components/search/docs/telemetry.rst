@@ -4,6 +4,9 @@ Telemetry
 This section describes existing telemetry probes measuring interaction with
 search engines from the browser UI.
 
+This document only covers Legacy telemetry, not Glean telemetry.
+Glean metrics are self-documenting and can be looked up in the Glean dictionary.
+
 Other search-related telemetry is recorded by Toolkit such as search service
 telemetry and telemetry related to fetching search suggestions. Toolkit search
 telemetry is relevant to Firefox as well as other consumers of Toolkit. See

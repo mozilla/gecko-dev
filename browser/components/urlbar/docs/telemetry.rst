@@ -4,6 +4,9 @@ Telemetry
 This section describes existing telemetry probes measuring interaction with the
 Address Bar.
 
+This document only covers Legacy telemetry, not Glean telemetry.
+Glean metrics are self-documenting and can be looked up in the Glean dictionary.
+
 For telemetry specific to Firefox Suggest, see the
 :doc:`firefox-suggest-telemetry` document.
 
