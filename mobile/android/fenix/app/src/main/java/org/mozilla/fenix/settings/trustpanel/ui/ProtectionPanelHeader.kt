@@ -65,8 +65,7 @@ internal fun ProtectionPanelHeader(
             Text(
                 text = websiteInfoState.websiteUrl.tryGetHostFromUrl(),
                 color = FirefoxTheme.colors.textSecondary,
-                maxLines = 1,
-                style = FirefoxTheme.typography.caption,
+                style = FirefoxTheme.typography.body2,
             )
         }
     }
