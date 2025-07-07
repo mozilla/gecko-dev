@@ -4,6 +4,10 @@
 
 /* eslint-env mozilla/browser-window */
 
+ChromeUtils.defineESModuleGetters(this, {
+  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
+});
+
 /**
  * Utility object to handle manipulations of the identity indicators in the UI
  */
@@ -810,7 +814,7 @@ var gIdentityHandler = {
       !this._uriHasHost &&
       this._uri &&
       isBlankPageURL(this._uri.spec) &&
-      !this._uri.schemeIs("moz-extension")
+      !ExtensionUtils.isExtensionUrl(this._uri)
     );
   },
 

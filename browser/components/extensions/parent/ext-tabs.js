@@ -779,7 +779,7 @@ this.tabs = class extends ExtensionAPIPersistent {
               url = context.uri.resolve(createProperties.url);
 
               if (
-                !url.startsWith("moz-extension://") &&
+                !ExtensionUtils.isExtensionUrl(url) &&
                 !context.checkLoadURL(url, { dontReportErrors: true })
               ) {
                 return Promise.reject({ message: `Illegal URL: ${url}` });
@@ -793,7 +793,7 @@ this.tabs = class extends ExtensionAPIPersistent {
             }
             let discardable = url && !url.startsWith("about:");
             // Handle moz-ext separately from the discardable flag to retain prior behavior.
-            if (!discardable || url.startsWith("moz-extension://")) {
+            if (!discardable || ExtensionUtils.isExtensionUrl(url)) {
               setContentTriggeringPrincipal(url, window.gBrowser, options);
             }
 
@@ -942,7 +942,7 @@ this.tabs = class extends ExtensionAPIPersistent {
 
             if (!context.checkLoadURL(url, { dontReportErrors: true })) {
               // We allow loading top level tabs for "other" extensions.
-              if (url.startsWith("moz-extension://")) {
+              if (ExtensionUtils.isExtensionUrl(url)) {
                 setContentTriggeringPrincipal(url, tabbrowser, options);
               } else {
                 return Promise.reject({ message: `Illegal URL: ${url}` });

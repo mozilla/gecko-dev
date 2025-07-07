@@ -324,7 +324,7 @@ this.windows = class extends ExtensionAPIPersistent {
             } else {
               let url = context.uri.resolve(createData.url);
               args.appendElement(mkstr(url));
-              isOnlyMozExtensionUrl = url.startsWith("moz-extension://");
+              isOnlyMozExtensionUrl = ExtensionUtils.isExtensionUrl(url);
               if (!context.checkLoadURL(url, { dontReportErrors: true })) {
                 if (isOnlyMozExtensionUrl) {
                   // For backwards-compatibility (also in tabs APIs), we allow
@@ -343,7 +343,7 @@ this.windows = class extends ExtensionAPIPersistent {
                 ? "about:privatebrowsing"
                 : HomePage.get().split("|", 1)[0];
             args.appendElement(mkstr(url));
-            isOnlyMozExtensionUrl = url.startsWith("moz-extension://");
+            isOnlyMozExtensionUrl = ExtensionUtils.isExtensionUrl(url);
 
             if (!context.checkLoadURL(url, { dontReportErrors: true })) {
               // The extension principal cannot directly load about:-URLs,
