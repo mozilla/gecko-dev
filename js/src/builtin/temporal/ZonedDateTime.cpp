@@ -432,12 +432,12 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
   // Step 5.f. (Not applicable in our implementation.)
 
   // Step 5.g.
-  if (parsed.isUTC()) {
+  if (parsed.timeZone().constructed<UTCTimeZone>()) {
     offsetBehaviour = OffsetBehaviour::Exact;
   }
 
   // Step 5.h.
-  else if (!parsed.hasOffset()) {
+  else if (parsed.timeZone().empty()) {
     offsetBehaviour = OffsetBehaviour::Wall;
   }
 
@@ -452,36 +452,36 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
   // Step 5.l.
   matchBehaviour = MatchBehaviour::MatchMinutes;
 
-  // Steps 5.m-p.
+  // Steps 5.n-q.
   ZonedDateTimeOptions resolvedOptions;
   if (!ToTemporalZonedDateTimeOptions(cx, options, &resolvedOptions)) {
     return false;
   }
   auto [disambiguation, offsetOption, overflow] = resolvedOptions;
 
-  // Steps 5.q-r. (Not applicable in our implementation.)
+  // Steps 5.r-s.
+  const auto& isoDateTime = parsed.dateTime();
 
   // Step 6.
   int64_t offsetNanoseconds = 0;
 
   // Step 7.
   if (offsetBehaviour == OffsetBehaviour::Option) {
-    MOZ_ASSERT(parsed.hasOffset());
-    offsetNanoseconds = parsed.timeZoneOffset();
+    MOZ_ASSERT(parsed.timeZone().constructed<OffsetTimeZone>());
+    offsetNanoseconds = parsed.timeZone().ref<OffsetTimeZone>().offset;
   }
 
   // Step 8.
   EpochNanoseconds epochNanoseconds;
   if (parsed.isStartOfDay()) {
-    if (!InterpretISODateTimeOffset(cx, parsed.dateTime().date, offsetBehaviour,
-                                    offsetNanoseconds, timeZone, disambiguation,
-                                    offsetOption, matchBehaviour,
-                                    &epochNanoseconds)) {
+    if (!InterpretISODateTimeOffset(
+            cx, isoDateTime.date, offsetBehaviour, offsetNanoseconds, timeZone,
+            disambiguation, offsetOption, matchBehaviour, &epochNanoseconds)) {
       return false;
     }
   } else {
     if (!InterpretISODateTimeOffset(
-            cx, parsed.dateTime(), offsetBehaviour, offsetNanoseconds, timeZone,
+            cx, isoDateTime, offsetBehaviour, offsetNanoseconds, timeZone,
             disambiguation, offsetOption, matchBehaviour, &epochNanoseconds)) {
       return false;
     }

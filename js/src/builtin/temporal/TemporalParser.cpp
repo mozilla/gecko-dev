@@ -140,7 +140,7 @@ struct DateTimeUTCOffset final {
 /**
  * ParseDateTimeUTCOffset ( offsetString )
  */
-static int64_t ParseDateTimeUTCOffset(const DateTimeUTCOffset& offset) {
+static auto ParseDateTimeUTCOffset(const DateTimeUTCOffset& offset) {
   constexpr int64_t nanoPerSec = 1'000'000'000;
 
   MOZ_ASSERT(offset.sign == -1 || offset.sign == +1);
@@ -157,7 +157,7 @@ static int64_t ParseDateTimeUTCOffset(const DateTimeUTCOffset& offset) {
   MOZ_ASSERT(std::abs(result) < ToNanoseconds(TemporalUnit::Day),
              "time zone offset is less than 24:00 hours");
 
-  return result;
+  return OffsetTimeZone{result, offset.subMinutePrecision};
 }
 
 static int32_t ParseTimeZoneOffset(const TimeZoneUTCOffset& offset) {
@@ -1567,7 +1567,7 @@ bool js::temporal::ParseTemporalInstantString(JSContext* cx,
 
   // Steps 3-4.
   if (parsed.timeZone.hasOffset()) {
-    *offset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
+    *offset = ParseDateTimeUTCOffset(parsed.timeZone.offset).offset;
   } else {
     MOZ_ASSERT(parsed.timeZone.isUTC());
     *offset = 0;
@@ -1834,7 +1834,7 @@ bool js::temporal::ParseDateTimeUTCOffset(JSContext* cx, Handle<JSString*> str,
   }
 
   // Steps 3-21.
-  *result = ParseDateTimeUTCOffset(parseResult.unwrap());
+  *result = ParseDateTimeUTCOffset(parseResult.unwrap()).offset;
   return true;
 }
 
@@ -3024,10 +3024,8 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
   bool isStartOfDay = parsed.startOfDay;
 
   // Step 2. (ParseISODateTime, steps 24-27.)
-  bool isUTC;
-  bool hasOffset;
-  int64_t timeZoneOffset;
   Rooted<ParsedTimeZone> timeZoneAnnotation(cx);
+  mozilla::MaybeOneOf<UTCTimeZone, OffsetTimeZone> timeZone;
   {
     MOZ_ASSERT(parsed.timeZone.hasAnnotation());
 
@@ -3055,17 +3053,10 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
     }
 
     if (parsed.timeZone.isUTC()) {
-      isUTC = true;
-      hasOffset = false;
-      timeZoneOffset = 0;
+      timeZone.construct<UTCTimeZone>();
     } else if (parsed.timeZone.hasOffset()) {
-      isUTC = false;
-      hasOffset = true;
-      timeZoneOffset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
-    } else {
-      isUTC = false;
-      hasOffset = false;
-      timeZoneOffset = 0;
+      timeZone.construct<OffsetTimeZone>(
+          ParseDateTimeUTCOffset(parsed.timeZone.offset));
     }
   }
 
@@ -3074,9 +3065,7 @@ bool js::temporal::ParseTemporalZonedDateTimeString(
       dateTime,
       calendar,
       timeZoneAnnotation.get(),
-      timeZoneOffset,
-      isUTC,
-      hasOffset,
+      std::move(timeZone),
       isStartOfDay,
   });
   return true;
@@ -3169,10 +3158,8 @@ bool js::temporal::ParseTemporalRelativeToString(
   bool isStartOfDay = parsed.startOfDay;
 
   // Step 4. (ParseISODateTime, steps 19-22.)
-  bool isUTC;
-  bool hasOffset;
-  int64_t timeZoneOffset;
   Rooted<ParsedTimeZone> timeZoneAnnotation(cx);
+  mozilla::MaybeOneOf<UTCTimeZone, OffsetTimeZone> timeZone;
   if (parsed.timeZone.hasAnnotation()) {
     // Case 1: 19700101Z[+02:00]
     // { [[Z]]: true, [[OffsetString]]: undefined, [[Name]]: "+02:00" }
@@ -3198,25 +3185,14 @@ bool js::temporal::ParseTemporalRelativeToString(
     }
 
     if (parsed.timeZone.isUTC()) {
-      isUTC = true;
-      hasOffset = false;
-      timeZoneOffset = 0;
+      timeZone.construct<UTCTimeZone>();
     } else if (parsed.timeZone.hasOffset()) {
-      isUTC = false;
-      hasOffset = true;
-      timeZoneOffset = ParseDateTimeUTCOffset(parsed.timeZone.offset);
-    } else {
-      isUTC = false;
-      hasOffset = false;
-      timeZoneOffset = 0;
+      timeZone.construct<OffsetTimeZone>(
+          ParseDateTimeUTCOffset(parsed.timeZone.offset));
     }
   } else {
     // GetTemporalRelativeToOption ignores any other time zone information when
     // no bracketed time zone annotation is present.
-
-    isUTC = false;
-    hasOffset = false;
-    timeZoneOffset = 0;
     timeZoneAnnotation.set(ParsedTimeZone{});
   }
 
@@ -3234,9 +3210,7 @@ bool js::temporal::ParseTemporalRelativeToString(
       dateTime,
       calendar,
       timeZoneAnnotation.get(),
-      timeZoneOffset,
-      isUTC,
-      hasOffset,
+      std::move(timeZone),
       isStartOfDay,
   });
   return true;

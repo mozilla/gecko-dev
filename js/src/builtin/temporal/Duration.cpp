@@ -1816,9 +1816,9 @@ static bool GetTemporalRelativeToOption(
       }
 
       // Steps 6.f.ii-iii.
-      if (parsed.isUTC()) {
+      if (parsed.timeZone().constructed<UTCTimeZone>()) {
         offsetBehaviour = OffsetBehaviour::Exact;
-      } else if (!parsed.hasOffset()) {
+      } else if (parsed.timeZone().empty()) {
         offsetBehaviour = OffsetBehaviour::Wall;
       }
 
@@ -1847,10 +1847,10 @@ static bool GetTemporalRelativeToOption(
     // Steps 8-9.
     int64_t offsetNs;
     if (offsetBehaviour == OffsetBehaviour::Option) {
-      MOZ_ASSERT(parsed.hasOffset());
+      MOZ_ASSERT(parsed.timeZone().constructed<OffsetTimeZone>());
 
       // Step 8.a.
-      offsetNs = parsed.timeZoneOffset();
+      offsetNs = parsed.timeZone().ref<OffsetTimeZone>().offset;
     } else {
       // Step 9.
       offsetNs = 0;
