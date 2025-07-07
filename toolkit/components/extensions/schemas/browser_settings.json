@@ -110,6 +110,10 @@
       "zoomSiteSpecific": {
         "$ref": "types.Setting",
         "description": "This boolean setting controls whether zoom is applied on a per-site basis or to the current tab only. If privacy.resistFingerprinting is true, this setting has no effect and zoom is applied to the current tab only."
+      },
+      "verticalTabs": {
+        "$ref": "types.Setting",
+        "description": "This boolean setting controls whether vertical tabs are enabled."
       }
     }
   },
