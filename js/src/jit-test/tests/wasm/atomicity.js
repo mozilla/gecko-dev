@@ -38,7 +38,7 @@ if (getCoreCount() < NUMAGENTS) {
 // too slow; avoid intermittent failures and timeouts.
 
 if (getBuildConfiguration("arm-simulator") || getBuildConfiguration("arm64-simulator") ||
-    getBuildConfiguration("mips64-simulator"))
+    getBuildConfiguration("mips64-simulator") || getBuildConfiguration("riscv64-simulator"))
 {
     if (DEBUG > 0)
         print("Atomicity test disabled on simulator");
