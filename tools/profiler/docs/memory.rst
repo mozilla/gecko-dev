@@ -14,7 +14,7 @@ This implementation is located in: `tools/profiler/core/memory_hooks.cpp
 <https://searchfox.org/mozilla-central/source/tools/profiler/core/memory_hooks.cpp>`_
 
 It works by hooking into all of the malloc calls. When the profiler is running, it
-performs a `Bernoulli trial`_, that will pass for a given probability of per-byte
+performs a `Bernoulli trial`_ that will pass for a given probability of per-byte
 allocated. What this means is that larger allocations have a higher chance of being
 recorded compared to smaller allocations. Currently, there is no way to configure
 the per-byte probability. This means that sampled allocation sizes will be closer
@@ -23,7 +23,7 @@ to the actual allocated bytes.
 This infrastructure is quite similar to DMD, but with the additional motiviations of
 making it easy to turn on and use with the profiler. The overhead is quite high,
 especially on systems with more expensive stack walking, like Linux. Turning off
-thee "Native Stacks" feature can help lower overhead, but will give less information.
+the "Native Stacks" feature can help lower overhead, but will give less information.
 
 For more information on analyzing these profiles, see the `Firefox Profiler docs`_.
 
