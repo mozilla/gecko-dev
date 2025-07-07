@@ -5133,11 +5133,12 @@ bool nsDisplayBlendMode::CanMerge(const nsDisplayItem* aItem) const {
 }
 
 /* static */
-nsDisplayBlendContainer* nsDisplayBlendContainer::Create(
+nsDisplayBlendContainer* nsDisplayBlendContainer::CreateForMixBlendMode(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
     const ActiveScrolledRoot* aActiveScrolledRoot) {
-  return MakeDisplayItem<nsDisplayBlendContainer>(aBuilder, aFrame, aList,
-                                                  aActiveScrolledRoot, false);
+  return MakeDisplayItem<nsDisplayBlendContainer>(
+      aBuilder, aFrame, aList, aActiveScrolledRoot,
+      BlendContainerType::MixBlendMode);
 }
 
 /* static */
@@ -5149,19 +5150,31 @@ nsDisplayBlendContainer* nsDisplayBlendContainer::CreateForBackgroundBlendMode(
     auto index = static_cast<uint16_t>(type);
 
     return MakeDisplayItemWithIndex<nsDisplayTableBlendContainer>(
-        aBuilder, aSecondaryFrame, index, aList, aActiveScrolledRoot, true,
-        aFrame);
+        aBuilder, aSecondaryFrame, index, aList, aActiveScrolledRoot,
+        BlendContainerType::BackgroundBlendMode, aFrame);
   }
 
   return MakeDisplayItemWithIndex<nsDisplayBlendContainer>(
-      aBuilder, aFrame, 1, aList, aActiveScrolledRoot, true);
+      aBuilder, aFrame, 1, aList, aActiveScrolledRoot,
+      BlendContainerType::BackgroundBlendMode);
+}
+
+/* static */
+nsDisplayBlendContainer* nsDisplayBlendContainer::CreateForBackdropRoot(
+    nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
+    const ActiveScrolledRoot* aActiveScrolledRoot, bool aNeedsBackdropRoot) {
+  return MakeDisplayItem<nsDisplayBlendContainer>(
+      aBuilder, aFrame, aList, aActiveScrolledRoot,
+      aNeedsBackdropRoot ? BlendContainerType::BackdropRootNeedsContainer
+                         : BlendContainerType::BackdropRootNothing);
 }
 
 nsDisplayBlendContainer::nsDisplayBlendContainer(
     nsDisplayListBuilder* aBuilder, nsIFrame* aFrame, nsDisplayList* aList,
-    const ActiveScrolledRoot* aActiveScrolledRoot, bool aIsForBackground)
+    const ActiveScrolledRoot* aActiveScrolledRoot,
+    BlendContainerType aBlendContainerType)
     : nsDisplayWrapList(aBuilder, aFrame, aList, aActiveScrolledRoot, true),
-      mIsForBackground(aIsForBackground) {
+      mBlendContainerType(aBlendContainerType) {
   MOZ_COUNT_CTOR(nsDisplayBlendContainer);
 }
 
@@ -5177,15 +5190,19 @@ bool nsDisplayBlendContainer::CreateWebRenderCommands(
     wr::DisplayListBuilder& aBuilder, wr::IpcResourceUpdateQueue& aResources,
     const StackingContextHelper& aSc, RenderRootStateManager* aManager,
     nsDisplayListBuilder* aDisplayListBuilder) {
-  wr::StackingContextParams params;
-  params.flags |= wr::StackingContextFlags::IS_BLEND_CONTAINER;
-  params.clip =
-      wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
-  StackingContextHelper sc(aSc, GetActiveScrolledRoot(), mFrame, this, aBuilder,
-                           params);
+  Maybe<StackingContextHelper> layer;
+  const StackingContextHelper* sc = &aSc;
+  if (CreatesStackingContextHelper()) {
+    wr::StackingContextParams params;
+    params.flags |= wr::StackingContextFlags::IS_BLEND_CONTAINER;
+    params.clip =
+        wr::WrStackingContextClip::ClipChain(aBuilder.CurrentClipChainId());
+    layer.emplace(aSc, GetActiveScrolledRoot(), mFrame, this, aBuilder, params);
+    sc = layer.ptr();
+  }
 
   return nsDisplayWrapList::CreateWebRenderCommands(
-      aBuilder, aResources, sc, aManager, aDisplayListBuilder);
+      aBuilder, aResources, *sc, aManager, aDisplayListBuilder);
 }
 
 void nsDisplayTableBlendContainer::Destroy(nsDisplayListBuilder* aBuilder) {
