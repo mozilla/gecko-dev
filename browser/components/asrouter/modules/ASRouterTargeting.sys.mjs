@@ -931,15 +931,7 @@ const TargetingGetters = {
     ) {
       return true;
     }
-    // use observer service to query Newtab
-    const subjectWithBrowser = {
-      browser: window.gBrowser,
-      activeNewtabMessage: false,
-    };
-    Services.obs.notifyObservers(subjectWithBrowser, "newtab-message-query");
-    if (subjectWithBrowser.activeNewtabMessage) {
-      return true;
-    }
+
     return false;
   },
 

@@ -38,7 +38,7 @@ describe("MessageWrapper Component", () => {
     let state = {
       ...INITIAL_STATE,
       Messages: {
-        isVisible: true,
+        isHidden: false,
         messageData: { id: "test-message-id" },
       },
     };
@@ -66,13 +66,13 @@ describe("MessageWrapper Component", () => {
     assert.ok(wrapper.find(".message-wrapper").exists());
   });
 
-  it("should not render if `Messages.isVisible` is false and hiddenOverride is false", () => {
+  it("should not render if `Messages.isHidden` is true and hiddenOverride is false", () => {
     wrapper = mount(
       <WrapWithProvider
         state={{
           ...INITIAL_STATE,
           Messages: {
-            isVisible: false,
+            isHidden: true,
             messageData: { id: "test-message-id" },
           },
         }}
