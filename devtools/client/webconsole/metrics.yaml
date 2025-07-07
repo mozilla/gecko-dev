@@ -1,0 +1,32 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'DevTools :: Console'
+
+devtools.console:
+  javascript_error_displayed:
+    type: labeled_counter
+    description: >
+      Records the key-identifiers of error messages when they are displayed in
+      the webconsole of the debugger. Nothing should be recorded unless they are
+      visible on the user screen.
+      The label will be the error message name or "Unknown".
+
+      This metric replaces the Legacy Telemetry boolean histogram
+      DEVTOOLS_JAVASCRIPT_ERROR_DISPLAYED.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1255133
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1378449
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1255133
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1378449
+    notification_emails:
+      - nicolas.b.pierron@mozilla.com
+    expires: never

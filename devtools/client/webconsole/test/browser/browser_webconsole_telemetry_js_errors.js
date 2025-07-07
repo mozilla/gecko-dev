@@ -53,10 +53,9 @@ add_task(async function () {
 });
 
 function checkErrorDisplayedTelemetry(key, count) {
-  checkTelemetry(
-    "DEVTOOLS_JAVASCRIPT_ERROR_DISPLAYED",
-    key,
-    { 0: 0, 1: count, 2: 0 },
-    "array"
+  is(
+    Glean.devtoolsConsole.javascriptErrorDisplayed[key].testGetValue(),
+    count,
+    `recorded ${key} ${count} times`
   );
 }

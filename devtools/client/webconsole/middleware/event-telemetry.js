@@ -40,7 +40,7 @@ function eventTelemetryMiddleware(telemetry, store) {
         telemetry,
       });
     } else if (action.type === MESSAGES_ADD) {
-      messagesAdd({ action, telemetry });
+      messagesAdd({ action });
     } else if (action.type === PERSIST_TOGGLE) {
       telemetry.recordEvent(
         "persist_changed",
@@ -115,13 +115,13 @@ function filterChange({ action, state, oldState, telemetry }) {
   });
 }
 
-function messagesAdd({ action, telemetry }) {
+function messagesAdd({ action }) {
   const { messages } = action;
   for (const message of messages) {
     if (message.level === "error" && message.source === "javascript") {
-      telemetry
-        .getKeyedHistogramById("DEVTOOLS_JAVASCRIPT_ERROR_DISPLAYED")
-        .add(message.errorMessageName || "Unknown", true);
+      Glean.devtoolsConsole.javascriptErrorDisplayed[
+        message.errorMessageName || "Unknown"
+      ].add(1);
     }
   }
 }
