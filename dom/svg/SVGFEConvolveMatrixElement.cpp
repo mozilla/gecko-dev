@@ -168,10 +168,12 @@ FilterPrimitiveDescription SVGFEConvolveMatrixElement::GetPrimitiveDescription(
   float divisor;
   if (mNumberAttributes[DIVISOR].IsExplicitlySet()) {
     divisor = mNumberAttributes[DIVISOR].GetAnimValue();
-    if (divisor == 0) return failureDescription;
-  } else {
+  }
+  if (!mNumberAttributes[DIVISOR].IsExplicitlySet() || divisor == 0) {
     divisor = std::accumulate(kernelMatrix.begin(), kernelMatrix.end(), 0.0f);
-    if (divisor == 0) divisor = 1;
+    if (divisor == 0) {
+      divisor = 1;
+    }
   }
 
   uint32_t edgeMode = mEnumAttributes[EDGEMODE].GetAnimValue();
