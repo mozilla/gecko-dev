@@ -15,6 +15,7 @@
 #include "builtin/intl/FormatBuffer.h"
 #include "builtin/intl/IntlObject.h"
 #include "builtin/intl/NumberFormat.h"
+#include "builtin/temporal/TimeZone.h"
 #include "gc/Tracer.h"
 #include "js/RootingAPI.h"
 #include "js/TracingAPI.h"
@@ -87,6 +88,9 @@ bool js::intl::GlobalIntlData::ensureRuntimeDefaultTimeZone(JSContext* cx) {
       return false;
     }
 
+    // Clear the cached default time zone.
+    defaultTimeZone_ = nullptr;
+
     // Clear all cached DateTimeFormat instances when the time zone has changed.
     resetDateTimeFormat();
   }
@@ -106,6 +110,20 @@ JSLinearString* js::intl::GlobalIntlData::defaultLocale(JSContext* cx) {
     defaultLocale_ = ComputeDefaultLocale(cx);
   }
   return defaultLocale_;
+}
+
+JSLinearString* js::intl::GlobalIntlData::defaultTimeZone(JSContext* cx) {
+  // Ensure the runtime default time zone didn't change.
+  if (!ensureRuntimeDefaultTimeZone(cx)) {
+    return nullptr;
+  }
+
+  // If we didn't have a cache hit, compute the default time zone.
+  if (!defaultTimeZone_) {
+    // Cache the computed time zone until the runtime default time zone changes.
+    defaultTimeZone_ = temporal::ComputeSystemTimeZoneIdentifier(cx);
+  }
+  return defaultTimeZone_;
 }
 
 static inline bool EqualLocale(const JSLinearString* str1,
@@ -237,6 +255,7 @@ void js::intl::GlobalIntlData::trace(JSTracer* trc) {
 
   TraceNullableEdge(trc, &runtimeDefaultTimeZone_,
                     "GlobalIntlData::runtimeDefaultTimeZone_");
+  TraceNullableEdge(trc, &defaultTimeZone_, "GlobalIntlData::defaultTimeZone_");
 
   TraceNullableEdge(trc, &collatorLocale_, "GlobalIntlData::collatorLocale_");
   TraceNullableEdge(trc, &collator_, "GlobalIntlData::collator_");
