@@ -426,6 +426,167 @@ bool js::intl_defaultCalendar(JSContext* cx, unsigned argc, Value* vp) {
   return DefaultCalendar(cx, locale, args.rval());
 }
 
+bool js::intl_IsValidTimeZoneName(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  MOZ_ASSERT(args[0].isString());
+
+  SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
+
+  RootedString timeZone(cx, args[0].toString());
+  Rooted<JSAtom*> validatedTimeZone(cx);
+  if (!sharedIntlData.validateTimeZoneName(cx, timeZone, &validatedTimeZone)) {
+    return false;
+  }
+
+  if (validatedTimeZone) {
+    cx->markAtom(validatedTimeZone);
+    args.rval().setString(validatedTimeZone);
+  } else {
+    args.rval().setNull();
+  }
+  return true;
+}
+
+JSLinearString* js::intl::CanonicalizeTimeZone(JSContext* cx,
+                                               Handle<JSString*> timeZone) {
+  SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
+
+  // Some time zone names are canonicalized differently by ICU -- handle those
+  // first.
+  Rooted<JSAtom*> ianaTimeZone(cx);
+  if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(
+          cx, timeZone, &ianaTimeZone)) {
+    return nullptr;
+  }
+
+  JSLinearString* resultTimeZone;
+  if (ianaTimeZone) {
+    cx->markAtom(ianaTimeZone);
+    resultTimeZone = ianaTimeZone;
+  } else {
+    AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, timeZone)) {
+      return nullptr;
+    }
+
+    // Call into ICU to canonicalize the time zone.
+    FormatBuffer<char16_t, INITIAL_CHAR_BUFFER_SIZE> canonicalTimeZone(cx);
+    auto result = mozilla::intl::TimeZone::GetCanonicalTimeZoneID(
+        stableChars.twoByteRange(), canonicalTimeZone);
+    if (result.isErr()) {
+      ReportInternalError(cx, result.unwrapErr());
+      return nullptr;
+    }
+
+    resultTimeZone = canonicalTimeZone.toString(cx);
+    if (!resultTimeZone) {
+      return nullptr;
+    }
+  }
+
+  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/Unknown"),
+             "Invalid canonical time zone");
+
+  // Links to UTC are handled by SharedIntlData.
+  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "GMT"));
+  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/UTC"));
+  MOZ_ASSERT(!StringEqualsLiteral(resultTimeZone, "Etc/GMT"));
+
+  return resultTimeZone;
+}
+
+bool js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  MOZ_ASSERT(args[0].isString());
+
+  RootedString timeZone(cx, args[0].toString());
+  auto* result = intl::CanonicalizeTimeZone(cx, timeZone);
+  if (!result) {
+    return false;
+  }
+
+  args.rval().setString(result);
+  return true;
+}
+
+bool js::intl_defaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 0);
+
+  FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> timeZone(cx);
+  auto result =
+      DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()), timeZone);
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return false;
+  }
+
+  JSString* str = timeZone.toString(cx);
+  if (!str) {
+    return false;
+  }
+
+  args.rval().setString(str);
+  return true;
+}
+
+bool js::intl_defaultTimeZoneOffset(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 0);
+
+  auto offset =
+      DateTimeInfo::getRawOffsetMs(DateTimeInfo::forceUTC(cx->realm()));
+  if (offset.isErr()) {
+    intl::ReportInternalError(cx, offset.unwrapErr());
+    return false;
+  }
+
+  args.rval().setInt32(offset.unwrap());
+  return true;
+}
+
+bool js::intl_isDefaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  MOZ_ASSERT(args[0].isString() || args[0].isUndefined());
+
+  // |undefined| is the default value when the Intl runtime caches haven't
+  // yet been initialized. Handle it the same way as a cache miss.
+  if (args[0].isUndefined()) {
+    args.rval().setBoolean(false);
+    return true;
+  }
+
+  FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> chars(cx);
+  auto result =
+      DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()), chars);
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return false;
+  }
+
+  JSLinearString* str = args[0].toString()->ensureLinear(cx);
+  if (!str) {
+    return false;
+  }
+
+  bool equals;
+  if (str->length() == chars.length()) {
+    JS::AutoCheckCannotGC nogc;
+    equals =
+        str->hasLatin1Chars()
+            ? EqualChars(str->latin1Chars(nogc), chars.data(), str->length())
+            : EqualChars(str->twoByteChars(nogc), chars.data(), str->length());
+  } else {
+    equals = false;
+  }
+
+  args.rval().setBoolean(equals);
+  return true;
+}
+
 enum class HourCycle {
   // 12 hour cycle, from 0 to 11.
   H11,

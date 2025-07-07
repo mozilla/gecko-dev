@@ -3926,19 +3926,30 @@ JSString* DateTimeHelper::timeZoneComment(JSContext* cx,
   MOZ_ASSERT(IsTimeValue(utcTime));
   MOZ_ASSERT(IsLocalTimeValue(localTime));
 
-  TimeZoneDisplayNameVector displayName;
+  char16_t tzbuf[100];
+  tzbuf[0] = ' ';
+  tzbuf[1] = '(';
 
-  // Parenthesize the returned display name.
-  if (!displayName.append(' ') || !displayName.append('(') ||
-      !DateTimeInfo::timeZoneDisplayName(forceUTC, displayName, utcTime,
-                                         locale) ||
-      !displayName.append(')')) {
-    ReportOutOfMemory(cx);
+  char16_t* timeZoneStart = tzbuf + 2;
+  constexpr size_t remainingSpace =
+      std::size(tzbuf) - 2 - 1;  // for the trailing ')'
+
+  if (!DateTimeInfo::timeZoneDisplayName(forceUTC, timeZoneStart,
+                                         remainingSpace, utcTime, locale)) {
+    JS_ReportOutOfMemory(cx);
     return nullptr;
   }
 
-  return NewStringCopy<CanGC>(
-      cx, static_cast<mozilla::Span<const char16_t>>(displayName));
+  // Reject if the result string is empty.
+  size_t len = js_strlen(timeZoneStart);
+  if (len == 0) {
+    return cx->names().empty_;
+  }
+
+  // Parenthesize the returned display name.
+  timeZoneStart[len] = ')';
+
+  return NewStringCopyN<CanGC>(cx, tzbuf, 2 + len + 1);
 }
 #else
 /* Interface to PRMJTime date struct. */

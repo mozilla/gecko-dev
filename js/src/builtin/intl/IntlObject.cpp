@@ -325,25 +325,36 @@ bool js::intl_BestAvailableLocale(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
-  const char* locale = cx->realm()->getLocale();
+bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
+                                        Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+
+  Rooted<JSLinearString*> locale(cx, args[0].toString()->ensureLinear(cx));
   if (!locale) {
-    ReportOutOfMemory(cx);
-    return nullptr;
+    return false;
   }
 
-  auto span = mozilla::MakeStringSpan(locale);
-
   mozilla::intl::Locale tag;
-  bool canParseLocale =
-      mozilla::intl::LocaleParser::TryParse(span, tag).isOk() &&
-      tag.Canonicalize().isOk();
+  bool canParseLocale = false;
+  if (StringIsAscii(locale)) {
+    intl::StringAsciiChars chars(locale);
+    if (!chars.init(cx)) {
+      return false;
+    }
+
+    // Tell the analysis the |tag.canonicalize()| method can't GC.
+    JS::AutoSuppressGCAnalysis nogc;
+
+    canParseLocale = mozilla::intl::LocaleParser::TryParse(chars, tag).isOk() &&
+                     tag.Canonicalize().isOk();
+  }
 
   Rooted<JSLinearString*> candidate(cx);
   if (!canParseLocale) {
     candidate = NewStringCopyZ<CanGC>(cx, intl::LastDitchLocale());
     if (!candidate) {
-      return nullptr;
+      return false;
     }
   } else {
     // The default locale must be in [[AvailableLocales]], and that list must
@@ -354,12 +365,12 @@ JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
     intl::FormatBuffer<char, intl::INITIAL_CHAR_BUFFER_SIZE> buffer(cx);
     if (auto result = tag.ToString(buffer); result.isErr()) {
       intl::ReportInternalError(cx, result.unwrapErr());
-      return nullptr;
+      return false;
     }
 
     candidate = buffer.toAsciiString(cx);
     if (!candidate) {
-      return nullptr;
+      return false;
     }
 
     // Certain old-style language tags lack a script code, but in current
@@ -372,7 +383,7 @@ JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
       if (StringEqualsAscii(candidate, oldStyle)) {
         candidate = NewStringCopyZ<CanGC>(cx, modernStyle);
         if (!candidate) {
-          return nullptr;
+          return false;
         }
         break;
       }
@@ -388,13 +399,13 @@ JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
   // Intl service constructors.
 
   Rooted<JSLinearString*> supportedCollator(cx);
-  JS_TRY_VAR_OR_RETURN_NULL(
+  JS_TRY_VAR_OR_RETURN_FALSE(
       cx, supportedCollator,
       BestAvailableLocale(cx, SupportedLocaleKind::Collator, candidate,
                           nullptr));
 
   Rooted<JSLinearString*> supportedDateTimeFormat(cx);
-  JS_TRY_VAR_OR_RETURN_NULL(
+  JS_TRY_VAR_OR_RETURN_FALSE(
       cx, supportedDateTimeFormat,
       BestAvailableLocale(cx, SupportedLocaleKind::DateTimeFormat, candidate,
                           nullptr));
@@ -413,7 +424,7 @@ JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
            SupportedLocaleKind::Segmenter,
        }) {
     JSLinearString* supported;
-    JS_TRY_VAR_OR_RETURN_NULL(
+    JS_TRY_VAR_OR_RETURN_FALSE(
         cx, supported, BestAvailableLocale(cx, kind, candidate, nullptr));
 
     MOZ_ASSERT(!!supported == !!supportedDateTimeFormat);
@@ -432,13 +443,19 @@ JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
     // requesting "de-CH" and Intl.DateTimeFormat supports "de-CH", but
     // Intl.Collator only "de", still return "de-CH" as the result.
     if (SameOrParentLocale(supportedCollator, supportedDateTimeFormat)) {
-      return supportedDateTimeFormat;
+      candidate = supportedDateTimeFormat;
+    } else {
+      candidate = supportedCollator;
     }
-    return supportedCollator;
+  } else {
+    candidate = NewStringCopyZ<CanGC>(cx, intl::LastDitchLocale());
+    if (!candidate) {
+      return false;
+    }
   }
 
-  // Return the last ditch locale if the candidate locale isn't supported.
-  return NewStringCopyZ<CanGC>(cx, intl::LastDitchLocale());
+  args.rval().setString(candidate);
+  return true;
 }
 
 using StringList = GCVector<JSLinearString*>;
@@ -729,7 +746,7 @@ static ArrayObject* AvailableTimeZones(JSContext* cx) {
     validatedTimeZone = iter.get();
 
     // Canonicalize the time zone before adding it to the result array.
-    auto* timeZone = sharedIntlData.canonicalizeTimeZone(cx, validatedTimeZone);
+    auto* timeZone = intl::CanonicalizeTimeZone(cx, validatedTimeZone);
     if (!timeZone) {
       return nullptr;
     }

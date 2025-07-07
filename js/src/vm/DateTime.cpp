@@ -7,11 +7,9 @@
 #include "vm/DateTime.h"
 
 #if JS_HAS_INTL_API
-#  include "mozilla/intl/ICU4CGlue.h"
 #  include "mozilla/intl/TimeZone.h"
 #endif
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Span.h"
 #include "mozilla/TextUtils.h"
 
 #include <algorithm>
@@ -32,7 +30,6 @@
 #include "js/AllocPolicy.h"
 #include "js/Date.h"
 #include "js/GCAPI.h"
-#include "js/Utility.h"
 #include "js/Vector.h"
 #include "threading/ExclusiveData.h"
 
@@ -221,7 +218,6 @@ void js::DateTimeInfo::updateTimeZone() {
     timeZone_ = nullptr;
   }
 
-  timeZoneId_ = nullptr;
   standardName_ = nullptr;
   daylightSavingsName_ = nullptr;
 #endif /* JS_HAS_INTL_API */
@@ -430,9 +426,11 @@ int32_t js::DateTimeInfo::internalGetOffsetMilliseconds(int64_t milliseconds,
                                  &DateTimeInfo::computeUTCOffsetMilliseconds);
 }
 
-bool js::DateTimeInfo::internalTimeZoneDisplayName(
-    TimeZoneDisplayNameVector& result, int64_t utcMilliseconds,
-    const char* locale) {
+bool js::DateTimeInfo::internalTimeZoneDisplayName(char16_t* buf, size_t buflen,
+                                                   int64_t utcMilliseconds,
+                                                   const char* locale) {
+  MOZ_ASSERT(buf != nullptr);
+  MOZ_ASSERT(buflen > 0);
   MOZ_ASSERT(locale != nullptr);
 
   // Clear any previously cached names when the default locale changed.
@@ -468,43 +466,17 @@ bool js::DateTimeInfo::internalTimeZoneDisplayName(
       return false;
     }
   }
-  return result.append(cachedName.get(), js_strlen(cachedName.get()));
-}
 
-static JS::UniqueChars DeflateString(mozilla::Span<const char16_t> chars) {
-  MOZ_ASSERT(mozilla::IsAscii(chars));
-
-  size_t length = chars.size();
-  JS::UniqueChars result(js_pod_malloc<char>(length + 1));
-  if (!result) {
-    return nullptr;
+  // Return an empty string if the display name doesn't fit into the buffer.
+  size_t length = js_strlen(cachedName.get());
+  if (length < buflen) {
+    std::copy(cachedName.get(), cachedName.get() + length, buf);
+  } else {
+    length = 0;
   }
 
-  for (size_t i = 0; i < length; i++) {
-    result[i] = chars[i];
-  }
-  result[length] = '\0';
-
-  return result;
-}
-
-bool js::DateTimeInfo::internalTimeZoneId(TimeZoneIdentifierVector& result) {
-  if (!timeZoneId_) {
-    intl::FormatBuffer<char16_t,
-                       mozilla::intl::TimeZone::TimeZoneIdentifierLength,
-                       js::SystemAllocPolicy>
-        buffer;
-    if (timeZone()->GetId(buffer).isErr()) {
-      return false;
-    }
-
-    // ICU returns the time zone identifier as UTF-16, deflate to ASCII.
-    timeZoneId_ = DeflateString(buffer);
-    if (!timeZoneId_) {
-      return false;
-    }
-  }
-  return result.append(timeZoneId_.get(), js_strlen(timeZoneId_.get()));
+  buf[length] = '\0';
+  return true;
 }
 
 mozilla::intl::TimeZone* js::DateTimeInfo::timeZone() {
@@ -657,6 +629,10 @@ static bool IsTimeZoneId(std::string_view timeZone) {
   return true;
 }
 
+using TimeZoneIdentifierVector =
+    js::Vector<char, mozilla::intl::TimeZone::TimeZoneIdentifierLength,
+               js::SystemAllocPolicy>;
+
 /**
  * Given a presumptive path |tz| to a zoneinfo time zone file
  * (e.g. /etc/localtime), attempt to compute the time zone encoded by that
@@ -672,7 +648,7 @@ static bool IsTimeZoneId(std::string_view timeZone) {
  * If there's an (OOM) error, |false| is returned.
  */
 static bool ReadTimeZoneLink(std::string_view tz,
-                             js::TimeZoneIdentifierVector& result) {
+                             TimeZoneIdentifierVector& result) {
   MOZ_ASSERT(!tz.empty());
   MOZ_ASSERT(result.empty());
 

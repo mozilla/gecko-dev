@@ -9512,19 +9512,19 @@ static bool GetICUOptions(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  TimeZoneIdentifierVector timeZoneId;
-  if (!DateTimeInfo::timeZoneId(DateTimeInfo::ForceUTC::No, timeZoneId)) {
-    ReportOutOfMemory(cx);
+  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> buf(cx);
+
+  if (auto ok = DateTimeInfo::timeZoneId(DateTimeInfo::ForceUTC::No, buf);
+      ok.isErr()) {
+    intl::ReportInternalError(cx, ok.unwrapErr());
     return false;
   }
 
-  str = NewStringCopy<CanGC>(
-      cx, static_cast<mozilla::Span<const char>>(timeZoneId));
+  str = buf.toString(cx);
   if (!str || !JS_DefineProperty(cx, info, "timezone", str, JSPROP_ENUMERATE)) {
     return false;
   }
 
-  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> buf(cx);
   if (auto ok = mozilla::intl::TimeZone::GetHostTimeZone(buf); ok.isErr()) {
     intl::ReportInternalError(cx, ok.unwrapErr());
     return false;

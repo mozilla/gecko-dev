@@ -12,13 +12,11 @@
 
 #include <stdint.h>
 
-#include "js/AllocPolicy.h"
 #include "js/Utility.h"
-#include "js/Vector.h"
 #include "threading/ExclusiveData.h"
 
 #if JS_HAS_INTL_API
-#  include "mozilla/intl/ICUError.h"
+#  include "mozilla/intl/ICU4CGlue.h"
 #  include "mozilla/intl/TimeZone.h"
 #endif
 
@@ -66,12 +64,6 @@ enum class ResetTimeZoneMode : bool {
  * time zone data.
  */
 extern void ResetTimeZoneInternal(ResetTimeZoneMode mode);
-
-using TimeZoneDisplayNameVector = Vector<char16_t, 100, SystemAllocPolicy>;
-
-using TimeZoneIdentifierVector =
-    Vector<char, mozilla::intl::TimeZone::TimeZoneIdentifierLength,
-           SystemAllocPolicy>;
 
 /**
  * Stores date/time information, particularly concerning the current local
@@ -212,21 +204,26 @@ class DateTimeInfo {
 
   /**
    * Copy the display name for the current time zone at the given time,
-   * localized for the specified locale, into the supplied vector.
+   * localized for the specified locale, into the supplied buffer. If the
+   * buffer is too small, an empty string is stored. The stored display name
+   * is null-terminated in any case.
    */
-  static bool timeZoneDisplayName(ForceUTC forceUTC,
-                                  TimeZoneDisplayNameVector& result,
-                                  int64_t utcMilliseconds, const char* locale) {
+  static bool timeZoneDisplayName(ForceUTC forceUTC, char16_t* buf,
+                                  size_t buflen, int64_t utcMilliseconds,
+                                  const char* locale) {
     auto guard = acquireLockWithValidTimeZone(forceUTC);
-    return guard->internalTimeZoneDisplayName(result, utcMilliseconds, locale);
+    return guard->internalTimeZoneDisplayName(buf, buflen, utcMilliseconds,
+                                              locale);
   }
 
   /**
-   * Copy the identifier for the current time zone into the supplied vector.
+   * Copy the identifier for the current time zone to the provided resizable
+   * buffer.
    */
-  static bool timeZoneId(ForceUTC forceUTC, TimeZoneIdentifierVector& result) {
+  template <typename B>
+  static mozilla::intl::ICUResult timeZoneId(ForceUTC forceUTC, B& buffer) {
     auto guard = acquireLockWithValidTimeZone(forceUTC);
-    return guard->internalTimeZoneId(result);
+    return guard->timeZone()->GetId(buffer);
   }
 
   /**
@@ -349,11 +346,6 @@ class DateTimeInfo {
   mozilla::UniquePtr<mozilla::intl::TimeZone> timeZone_;
 
   /**
-   * Cached time zone id.
-   */
-  JS::UniqueChars timeZoneId_;
-
-  /**
    * Cached names of the standard and daylight savings display names of the
    * current time zone for the default locale.
    */
@@ -414,10 +406,8 @@ class DateTimeInfo {
   int32_t internalGetOffsetMilliseconds(int64_t milliseconds,
                                         TimeZoneOffset offset);
 
-  bool internalTimeZoneDisplayName(TimeZoneDisplayNameVector& result,
+  bool internalTimeZoneDisplayName(char16_t* buf, size_t buflen,
                                    int64_t utcMilliseconds, const char* locale);
-
-  bool internalTimeZoneId(TimeZoneIdentifierVector& result);
 
   mozilla::intl::TimeZone* timeZone();
 #endif /* JS_HAS_INTL_API */

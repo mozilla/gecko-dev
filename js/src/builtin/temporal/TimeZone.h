@@ -262,19 +262,6 @@ struct ParsedTimeZone;
 enum class TemporalDisambiguation;
 
 /**
- * Create a new |TimeZoneObject| whose identifier is |identifier| and whose
- * primary identifier is |primaryIdentifier|.
- */
-TimeZoneObject* CreateTimeZoneObject(
-    JSContext* cx, JS::Handle<JSLinearString*> identifier,
-    JS::Handle<JSLinearString*> primaryIdentifier);
-
-/**
- * SystemTimeZoneIdentifier ( )
- */
-JSLinearString* ComputeSystemTimeZoneIdentifier(JSContext* cx);
-
-/**
  * SystemTimeZoneIdentifier ( )
  */
 JSLinearString* SystemTimeZoneIdentifier(JSContext* cx);
@@ -296,14 +283,6 @@ bool ToTemporalTimeZone(JSContext* cx,
  */
 bool ToTemporalTimeZone(JSContext* cx, JS::Handle<ParsedTimeZone> string,
                         JS::MutableHandle<TimeZoneValue> result);
-
-/**
- * Verifies that the given string is a valid time zone name. If it is a valid
- * time zone name, returns the canonicalized time zone name. Canonicalization
- * resolves link names to their target time zones.
- */
-JSLinearString* ToValidCanonicalTimeZoneIdentifier(
-    JSContext* cx, JS::Handle<JSString*> timeZone);
 
 /**
  * TimeZoneEquals ( one, two )

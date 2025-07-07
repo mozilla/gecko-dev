@@ -172,6 +172,202 @@ function UnwrapDateTimeFormat(dtf) {
   return dtf;
 }
 
+/**
+ * 6.4.2 CanonicalizeTimeZoneName ( timeZone )
+ *
+ * Canonicalizes the given IANA time zone name.
+ *
+ * ES2017 Intl draft rev 4a23f407336d382ed5e3471200c690c9b020b5f3
+ */
+function CanonicalizeTimeZoneName(timeZone) {
+  assert(typeof timeZone === "string", "CanonicalizeTimeZoneName");
+
+  // Step 1. (Not applicable, the input is already a valid IANA time zone.)
+  assert(timeZone !== "Etc/Unknown", "Invalid time zone");
+  assert(
+    timeZone === intl_IsValidTimeZoneName(timeZone),
+    "Time zone name not normalized"
+  );
+
+  // Step 2.
+  var ianaTimeZone = intl_canonicalizeTimeZone(timeZone);
+  assert(ianaTimeZone !== "Etc/Unknown", "Invalid canonical time zone");
+  assert(
+    ianaTimeZone === intl_IsValidTimeZoneName(ianaTimeZone),
+    "Unsupported canonical time zone"
+  );
+
+  // Step 3. (Not applicable.)
+  assert(ianaTimeZone !== "Etc/UTC", "Invalid link to UTC");
+  assert(ianaTimeZone !== "Etc/GMT", "Invalid link to UTC");
+  assert(ianaTimeZone !== "GMT", "Invalid link to UTC");
+
+  // Step 4.
+  return ianaTimeZone;
+}
+
+var timeZoneCache = {
+  icuDefaultTimeZone: undefined,
+  defaultTimeZone: undefined,
+};
+
+/**
+ * 6.4.3 DefaultTimeZone ()
+ *
+ * Returns the IANA time zone name for the host environment's current time zone.
+ *
+ * ES2017 Intl draft rev 4a23f407336d382ed5e3471200c690c9b020b5f3
+ */
+function DefaultTimeZone() {
+  if (intl_isDefaultTimeZone(timeZoneCache.icuDefaultTimeZone)) {
+    return timeZoneCache.defaultTimeZone;
+  }
+
+  // Verify that the current ICU time zone is a valid ECMA-402 time zone.
+  var icuDefaultTimeZone = intl_defaultTimeZone();
+  var timeZone = intl_IsValidTimeZoneName(icuDefaultTimeZone);
+  if (timeZone === null) {
+    // Before defaulting to "UTC", try to represent the default time zone
+    // using the Etc/GMT + offset format. This format only accepts full
+    // hour offsets.
+    var msPerHour = 60 * 60 * 1000;
+    var offset = intl_defaultTimeZoneOffset();
+    assert(
+      offset === (offset | 0),
+      "milliseconds offset shouldn't be able to exceed int32_t range"
+    );
+    var offsetHours = offset / msPerHour;
+    var offsetHoursFraction = offset % msPerHour;
+    if (offsetHoursFraction === 0) {
+      // Etc/GMT + offset uses POSIX-style signs, i.e. a positive offset
+      // means a location west of GMT.
+      timeZone =
+        "Etc/GMT" + (offsetHours < 0 ? "+" : "-") + std_Math_abs(offsetHours);
+
+      // Check if the fallback is valid.
+      timeZone = intl_IsValidTimeZoneName(timeZone);
+    }
+
+    // Fallback to "UTC" if everything else fails.
+    if (timeZone === null) {
+      timeZone = "UTC";
+    }
+  }
+
+  // Canonicalize the ICU time zone, e.g. change Etc/UTC to UTC.
+  var defaultTimeZone = CanonicalizeTimeZoneName(timeZone);
+
+  timeZoneCache.defaultTimeZone = defaultTimeZone;
+  timeZoneCache.icuDefaultTimeZone = icuDefaultTimeZone;
+
+  return defaultTimeZone;
+}
+
+/**
+ * 21.4.1.33.1 IsTimeZoneOffsetString ( offsetString )
+ * 21.4.1.33.2 ParseTimeZoneOffsetString ( offsetString )
+ * 11.1.3 FormatOffsetTimeZoneIdentifier ( offsetMinutes )
+ *
+ * Function to parse, validate, and normalize time zone offset strings.
+ *
+ * ES2024 draft rev 10d44bfce4640894a0ed366bb769f2700cc8839a
+ * ES2024 Intl draft rev 2f002b2000bf8b908efb793767bcfd23620e06db
+ */
+function TimeZoneOffsetString(offsetString) {
+  assert(typeof(offsetString) === "string", "offsetString is a string");
+
+  // UTCOffset :::
+  //   ASCIISign Hour
+  //   ASCIISign Hour HourSubcomponents[+Extended]
+  //   ASCIISign Hour HourSubcomponents[~Extended]
+  //
+  // ASCIISign ::: one of
+  //   + -
+  //
+  // Hour :::
+  //   0 DecimalDigit
+  //   1 DecimalDigit
+  //   20
+  //   21
+  //   22
+  //   23
+  //
+  // HourSubcomponents[Extended] :::
+  //   TimeSeparator[?Extended] MinuteSecond
+  //
+  // TimeSeparator[Extended] :::
+  //   [+Extended] :
+  //   [~Extended] [empty]
+  //
+  // MinuteSecond :::
+  //   0 DecimalDigit
+  //   1 DecimalDigit
+  //   2 DecimalDigit
+  //   3 DecimalDigit
+  //   4 DecimalDigit
+  //   5 DecimalDigit
+
+  // Return if there are too few or too many characters for an offset string.
+  if (offsetString.length < 3 || offsetString.length > 6) {
+    return null;
+  }
+
+  // The first character must match |ASCIISign|.
+  var sign = offsetString[0];
+  if (sign !== "+" && sign !== "-") {
+    return null;
+  }
+
+  // Read the next two characters for the |Hour| grammar production.
+  var hourTens = offsetString[1];
+  var hourOnes = offsetString[2];
+
+  // Read the remaining characters for the optional |MinuteSecond| grammar production.
+  var minutesTens = "0";
+  var minutesOnes = "0";
+  if (offsetString.length > 3) {
+    // |TimeSeparator| is optional.
+    var separatorLength = offsetString[3] === ":" ? 1 : 0;
+
+    // Return if there are too many characters for an offset string.
+    if (offsetString.length !== (5 + separatorLength)) {
+      return null;
+    }
+
+    minutesTens = offsetString[3 + separatorLength];
+    minutesOnes = offsetString[4 + separatorLength];
+  }
+
+  // Validate the characters match the |Hour| and |MinuteSecond| productions:
+  // - hours must be in the range 0..23
+  // - minutes must in the range 0..59
+  if (
+    hourTens < "0" ||
+    hourOnes < "0" ||
+    minutesTens < "0" ||
+    minutesOnes < "0" ||
+    hourTens > "2" ||
+    hourOnes > "9" ||
+    minutesTens > "5" ||
+    minutesOnes > "9" ||
+    (hourTens === "2" && hourOnes > "3")
+  ) {
+    return null;
+  }
+
+  // FormatOffsetTimeZoneIdentifier, steps 1-5.
+  if (
+    hourTens === "0" &&
+    hourOnes === "0" &&
+    minutesTens === "0" &&
+    minutesOnes === "0"
+  ) {
+    sign = "+";
+  }
+
+  return sign + hourTens + hourOnes + ":" + minutesTens + minutesOnes;
+}
+
 /* eslint-disable complexity */
 /**
  * 11.1.2 CreateDateTimeFormat ( newTarget, locales, options, required, defaults [ , toLocaleStringTimeZone ] )
@@ -349,7 +545,7 @@ function InitializeDateTimeFormat(
     if (toLocaleStringTimeZone !== undefined) {
       timeZone = toLocaleStringTimeZone;
     } else {
-      timeZone = intl_DefaultTimeZone();
+      timeZone = DefaultTimeZone();
     }
 
     // Steps 32-34. (Not applicable in our implementation.)
@@ -365,7 +561,21 @@ function InitializeDateTimeFormat(
     timeZone = ToString(timeZone);
 
     // Steps 32-34.
-    timeZone = intl_ValidateAndCanonicalizeTimeZone(timeZone);
+    var offsetString = TimeZoneOffsetString(timeZone);
+    if (offsetString !== null) {
+      // Steps 32.a-g. (Performed in TimeZoneOffsetString in our implementation.)
+      timeZone = offsetString;
+    } else {
+      // Steps 33-34.
+      var validTimeZone = intl_IsValidTimeZoneName(timeZone);
+      if (validTimeZone !== null) {
+        // Step 33.a.
+        timeZone = CanonicalizeTimeZoneName(validTimeZone);
+      } else {
+        // Step 34.a.
+        ThrowRangeError(JSMSG_INVALID_TIME_ZONE, timeZone);
+      }
+    }
   }
 
   // Step 33.

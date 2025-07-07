@@ -48,7 +48,6 @@
 #include "builtin/String.h"
 #ifdef JS_HAS_INTL_API
 #  include "builtin/temporal/Duration.h"
-#  include "builtin/temporal/TimeZone.h"
 #endif
 #include "builtin/WeakMapObject.h"
 #include "frontend/BytecodeCompiler.h"    // CompileGlobalScriptToStencil
@@ -1472,44 +1471,54 @@ bool js::ReportIncompatibleSelfHostedMethod(JSContext* cx,
 }
 
 #ifdef JS_HAS_INTL_API
-static bool intrinsic_DefaultLocale(JSContext* cx, unsigned argc, Value* vp) {
+/**
+ * Returns the default locale as a well-formed, but not necessarily
+ * canonicalized, BCP-47 language tag.
+ */
+static bool intrinsic_RuntimeDefaultLocale(JSContext* cx, unsigned argc,
+                                           Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 0);
 
-  auto* locale = cx->global()->globalIntlData().defaultLocale(cx);
+  const char* locale = cx->realm()->getLocale();
   if (!locale) {
     return false;
   }
 
-  args.rval().setString(locale);
-  return true;
-}
-
-static bool intrinsic_DefaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 0);
-
-  auto* timeZone = cx->global()->globalIntlData().defaultTimeZone(cx);
-  if (!timeZone) {
+  JSString* jslocale = NewStringCopyZ<CanGC>(cx, locale);
+  if (!jslocale) {
     return false;
   }
 
-  args.rval().setString(timeZone);
+  args.rval().setString(jslocale);
   return true;
 }
 
-static bool intl_ValidateAndCanonicalizeTimeZone(JSContext* cx, unsigned argc,
-                                                 Value* vp) {
+static bool intrinsic_IsRuntimeDefaultLocale(JSContext* cx, unsigned argc,
+                                             Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 1);
+  MOZ_ASSERT(args[0].isString() || args[0].isUndefined());
 
-  Rooted<JSString*> timeZone(cx, args[0].toString());
-  auto* timeZoneId = temporal::ToValidCanonicalTimeZoneIdentifier(cx, timeZone);
-  if (!timeZoneId) {
+  // |undefined| is the default value when the Intl runtime caches haven't
+  // yet been initialized. Handle it the same way as a cache miss.
+  if (args[0].isUndefined()) {
+    args.rval().setBoolean(false);
+    return true;
+  }
+
+  const char* locale = cx->realm()->getLocale();
+  if (!locale) {
     return false;
   }
 
-  args.rval().setString(timeZoneId);
+  JSLinearString* str = args[0].toString()->ensureLinear(cx);
+  if (!str) {
+    return false;
+  }
+
+  bool equals = StringEqualsAscii(str, locale);
+  args.rval().setBoolean(equals);
   return true;
 }
 #endif  // JS_HAS_INTL_API
@@ -2191,8 +2200,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("intl_ComputeDisplayName", intl_ComputeDisplayName, 6, 0),
     JS_FN("intl_CreateSegmentIterator", intl_CreateSegmentIterator, 1, 0),
     JS_FN("intl_CreateSegmentsObject", intl_CreateSegmentsObject, 2, 0),
-    JS_FN("intl_DefaultLocale", intrinsic_DefaultLocale, 0, 0),
-    JS_FN("intl_DefaultTimeZone", intrinsic_DefaultTimeZone, 0, 0),
     JS_FN("intl_FindNextSegmentBoundaries", intl_FindNextSegmentBoundaries, 1,
           0),
     JS_FN("intl_FindSegmentBoundaries", intl_FindSegmentBoundaries, 2, 0),
@@ -2238,11 +2245,15 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("intl_GuardToSegments",
                     intrinsic_GuardToBuiltin<SegmentsObject>, 1, 0,
                     IntlGuardToSegments),
+    JS_FN("intl_IsRuntimeDefaultLocale", intrinsic_IsRuntimeDefaultLocale, 1,
+          0),
+    JS_FN("intl_IsValidTimeZoneName", intl_IsValidTimeZoneName, 1, 0),
     JS_FN("intl_IsWrappedDateTimeFormat",
           intrinsic_IsWrappedInstanceOfBuiltin<DateTimeFormatObject>, 1, 0),
     JS_FN("intl_IsWrappedNumberFormat",
           intrinsic_IsWrappedInstanceOfBuiltin<NumberFormatObject>, 1, 0),
     JS_FN("intl_NumberFormat", intl_NumberFormat, 2, 0),
+    JS_FN("intl_RuntimeDefaultLocale", intrinsic_RuntimeDefaultLocale, 0, 0),
     JS_FN("intl_SelectPluralRule", intl_SelectPluralRule, 2, 0),
     JS_FN("intl_SelectPluralRuleRange", intl_SelectPluralRuleRange, 3, 0),
     JS_FN("intl_SupportedValuesOf", intl_SupportedValuesOf, 1, 0),
@@ -2250,8 +2261,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
           intl_TryValidateAndCanonicalizeLanguageTag, 1, 0),
     JS_FN("intl_ValidateAndCanonicalizeLanguageTag",
           intl_ValidateAndCanonicalizeLanguageTag, 2, 0),
-    JS_FN("intl_ValidateAndCanonicalizeTimeZone",
-          intl_ValidateAndCanonicalizeTimeZone, 1, 0),
     JS_FN("intl_ValidateAndCanonicalizeUnicodeExtensionType",
           intl_ValidateAndCanonicalizeUnicodeExtensionType, 3, 0),
     JS_FN("intl_availableCalendars", intl_availableCalendars, 1, 0),
@@ -2260,12 +2269,18 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("intl_availableMeasurementUnits", intl_availableMeasurementUnits, 0,
           0),
 #  endif
+    JS_FN("intl_canonicalizeTimeZone", intl_canonicalizeTimeZone, 1, 0),
     JS_FN("intl_defaultCalendar", intl_defaultCalendar, 1, 0),
+    JS_FN("intl_defaultTimeZone", intl_defaultTimeZone, 0, 0),
+    JS_FN("intl_defaultTimeZoneOffset", intl_defaultTimeZoneOffset, 0, 0),
+    JS_FN("intl_isDefaultTimeZone", intl_isDefaultTimeZone, 1, 0),
     JS_FN("intl_isIgnorePunctuation", intl_isIgnorePunctuation, 1, 0),
     JS_FN("intl_isUpperCaseFirst", intl_isUpperCaseFirst, 1, 0),
     JS_FN("intl_numberingSystem", intl_numberingSystem, 1, 0),
     JS_FN("intl_resolveDateTimeFormatComponents",
           intl_resolveDateTimeFormatComponents, 3, 0),
+    JS_FN("intl_supportedLocaleOrFallback", intl_supportedLocaleOrFallback, 1,
+          0),
     JS_FN("intl_toLocaleLowerCase", intl_toLocaleLowerCase, 2, 0),
     JS_FN("intl_toLocaleUpperCase", intl_toLocaleUpperCase, 2, 0),
 #endif  // JS_HAS_INTL_API

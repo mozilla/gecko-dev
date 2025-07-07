@@ -98,9 +98,11 @@ static JSLinearString* FormatOffsetTimeZoneIdentifier(JSContext* cx,
   return NewStringCopyN<CanGC>(cx, result, std::size(result));
 }
 
-TimeZoneObject* js::temporal::CreateTimeZoneObject(
+static TimeZoneObject* CreateTimeZoneObject(
     JSContext* cx, Handle<JSLinearString*> identifier,
     Handle<JSLinearString*> primaryIdentifier) {
+  // TODO: Implement a built-in time zone object cache.
+
   auto* object = NewObjectWithGivenProto<TimeZoneObject>(cx, nullptr);
   if (!object) {
     return nullptr;
@@ -115,13 +117,6 @@ TimeZoneObject* js::temporal::CreateTimeZoneObject(
   object->setFixedSlot(TimeZoneObject::OFFSET_MINUTES_SLOT, UndefinedValue());
 
   return object;
-}
-
-static TimeZoneObject* GetOrCreateTimeZoneObject(
-    JSContext* cx, Handle<JSLinearString*> identifier,
-    Handle<JSLinearString*> primaryIdentifier) {
-  return cx->global()->globalIntlData().getOrCreateTimeZone(cx, identifier,
-                                                            primaryIdentifier);
 }
 
 static TimeZoneObject* CreateTimeZoneObject(JSContext* cx,
@@ -194,21 +189,119 @@ static mozilla::intl::TimeZone* GetOrCreateIntlTimeZone(
 /**
  * IsValidTimeZoneName ( timeZone )
  * IsAvailableTimeZoneName ( timeZone )
+ */
+static bool IsValidTimeZoneName(JSContext* cx, Handle<JSLinearString*> timeZone,
+                                MutableHandle<JSAtom*> validatedTimeZone) {
+  intl::SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
+
+  if (!sharedIntlData.validateTimeZoneName(cx, timeZone, validatedTimeZone)) {
+    return false;
+  }
+
+  if (validatedTimeZone) {
+    cx->markAtom(validatedTimeZone);
+  }
+  return true;
+}
+
+/**
+ * 6.5.2 CanonicalizeTimeZoneName ( timeZone )
+ *
+ * Canonicalizes the given IANA time zone name.
+ *
+ * ES2024 Intl draft rev 74ca7099f103d143431b2ea422ae640c6f43e3e6
+ */
+static JSLinearString* CanonicalizeTimeZoneName(
+    JSContext* cx, Handle<JSLinearString*> timeZone) {
+  // Step 1. (Not applicable, the input is already a valid IANA time zone.)
+#ifdef DEBUG
+  MOZ_ASSERT(!StringEqualsLiteral(timeZone, "Etc/Unknown"),
+             "Invalid time zone");
+
+  Rooted<JSAtom*> checkTimeZone(cx);
+  if (!IsValidTimeZoneName(cx, timeZone, &checkTimeZone)) {
+    return nullptr;
+  }
+  MOZ_ASSERT(EqualStrings(timeZone, checkTimeZone),
+             "Time zone name not normalized");
+#endif
+
+  // Step 2.
+  Rooted<JSLinearString*> ianaTimeZone(cx);
+  do {
+    intl::SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
+
+    // Some time zone names are canonicalized differently by ICU -- handle
+    // those first:
+    Rooted<JSAtom*> canonicalTimeZone(cx);
+    if (!sharedIntlData.tryCanonicalizeTimeZoneConsistentWithIANA(
+            cx, timeZone, &canonicalTimeZone)) {
+      return nullptr;
+    }
+
+    if (canonicalTimeZone) {
+      cx->markAtom(canonicalTimeZone);
+      ianaTimeZone = canonicalTimeZone;
+      break;
+    }
+
+    JS::AutoStableStringChars stableChars(cx);
+    if (!stableChars.initTwoByte(cx, timeZone)) {
+      return nullptr;
+    }
+
+    intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> buffer(cx);
+    auto result = mozilla::intl::TimeZone::GetCanonicalTimeZoneID(
+        stableChars.twoByteRange(), buffer);
+    if (result.isErr()) {
+      intl::ReportInternalError(cx, result.unwrapErr());
+      return nullptr;
+    }
+
+    ianaTimeZone = buffer.toString(cx);
+    if (!ianaTimeZone) {
+      return nullptr;
+    }
+  } while (false);
+
+#ifdef DEBUG
+  MOZ_ASSERT(!StringEqualsLiteral(ianaTimeZone, "Etc/Unknown"),
+             "Invalid canonical time zone");
+
+  if (!IsValidTimeZoneName(cx, ianaTimeZone, &checkTimeZone)) {
+    return nullptr;
+  }
+  MOZ_ASSERT(EqualStrings(ianaTimeZone, checkTimeZone),
+             "Unsupported canonical time zone");
+#endif
+
+  // Step 3. (Links to UTC are handled by SharedIntlData.)
+  MOZ_ASSERT(!StringEqualsLiteral(ianaTimeZone, "Etc/UTC"));
+  MOZ_ASSERT(!StringEqualsLiteral(ianaTimeZone, "Etc/GMT"));
+
+  // We don't need to check against "GMT", because ICU uses the tzdata rearguard
+  // format, where "GMT" is a link to "Etc/GMT".
+  MOZ_ASSERT(!StringEqualsLiteral(ianaTimeZone, "GMT"));
+
+  // Step 4.
+  return ianaTimeZone;
+}
+
+/**
+ * IsValidTimeZoneName ( timeZone )
+ * IsAvailableTimeZoneName ( timeZone )
  * CanonicalizeTimeZoneName ( timeZone )
  */
 static bool ValidateAndCanonicalizeTimeZoneName(
     JSContext* cx, Handle<JSLinearString*> timeZone,
     MutableHandle<JSLinearString*> identifier,
     MutableHandle<JSLinearString*> primaryIdentifier) {
-  Rooted<JSAtom*> availableTimeZone(cx);
-  Rooted<JSAtom*> primaryTimeZone(cx);
-  intl::SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
-  if (!sharedIntlData.validateAndCanonicalizeTimeZone(
-          cx, timeZone, &availableTimeZone, &primaryTimeZone)) {
+  Rooted<JSAtom*> validatedTimeZone(cx);
+  if (!IsValidTimeZoneName(cx, timeZone, &validatedTimeZone)) {
     return false;
   }
 
-  if (!primaryTimeZone) {
+  if (!validatedTimeZone) {
     if (auto chars = QuoteString(cx, timeZone)) {
       JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                                JSMSG_TEMPORAL_TIMEZONE_INVALID_IDENTIFIER,
@@ -216,18 +309,14 @@ static bool ValidateAndCanonicalizeTimeZoneName(
     }
     return false;
   }
-  MOZ_ASSERT(availableTimeZone);
 
-  // Links to UTC are handled by SharedIntlData.
-  MOZ_ASSERT(!StringEqualsLiteral(primaryTimeZone, "Etc/UTC"));
-  MOZ_ASSERT(!StringEqualsLiteral(primaryTimeZone, "Etc/GMT"));
+  auto* canonical = CanonicalizeTimeZoneName(cx, validatedTimeZone);
+  if (!canonical) {
+    return false;
+  }
 
-  // We don't need to check against "GMT", because ICU uses the tzdata rearguard
-  // format, where "GMT" is a link to "Etc/GMT".
-  MOZ_ASSERT(!StringEqualsLiteral(primaryTimeZone, "GMT"));
-
-  identifier.set(availableTimeZone);
-  primaryIdentifier.set(primaryTimeZone);
+  identifier.set(validatedTimeZone);
+  primaryIdentifier.set(canonical);
   return true;
 }
 
@@ -248,25 +337,30 @@ static bool SystemTimeZoneOffset(JSContext* cx, int32_t* offset) {
  *
  * Returns the IANA time zone name for the host environment's current time zone.
  */
-JSLinearString* js::temporal::ComputeSystemTimeZoneIdentifier(JSContext* cx) {
-  TimeZoneIdentifierVector timeZoneId;
-  if (!DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
-                                timeZoneId)) {
-    ReportOutOfMemory(cx);
+JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
+  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> formatBuffer(cx);
+  auto result = DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
+                                         formatBuffer);
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
     return nullptr;
   }
 
-  Rooted<JSAtom*> availableTimeZone(cx);
-  Rooted<JSAtom*> primaryTimeZone(cx);
-  intl::SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
-  if (!sharedIntlData.validateAndCanonicalizeTimeZone(
-          cx, static_cast<mozilla::Span<const char>>(timeZoneId),
-          &availableTimeZone, &primaryTimeZone)) {
+  Rooted<JSLinearString*> timeZone(cx, formatBuffer.toString(cx));
+  if (!timeZone) {
     return nullptr;
   }
-  if (primaryTimeZone) {
-    return primaryTimeZone;
+
+  Rooted<JSAtom*> validTimeZone(cx);
+  if (!IsValidTimeZoneName(cx, timeZone, &validTimeZone)) {
+    return nullptr;
   }
+  if (validTimeZone) {
+    return CanonicalizeTimeZoneName(cx, validTimeZone);
+  }
+
+  // See DateTimeFormat.js for the JS implementation.
+  // TODO: Move the JS implementation into C++.
 
   // Before defaulting to "UTC", try to represent the system time zone using
   // the Etc/GMT + offset format. This format only accepts full hour offsets.
@@ -294,14 +388,17 @@ JSLinearString* js::temporal::ComputeSystemTimeZoneIdentifier(JSContext* cx) {
 
     MOZ_ASSERT(n == etcGMT.length() + 2 || n == etcGMT.length() + 3);
 
-    // Check if the fallback is valid.
-    if (!sharedIntlData.validateAndCanonicalizeTimeZone(
-            cx, mozilla::Span<const char>{offsetString, n}, &availableTimeZone,
-            &primaryTimeZone)) {
+    timeZone = NewStringCopyN<CanGC>(cx, offsetString, n);
+    if (!timeZone) {
       return nullptr;
     }
-    if (primaryTimeZone) {
-      return primaryTimeZone;
+
+    // Check if the fallback is valid.
+    if (!IsValidTimeZoneName(cx, timeZone, &validTimeZone)) {
+      return nullptr;
+    }
+    if (validTimeZone) {
+      return CanonicalizeTimeZoneName(cx, validTimeZone);
     }
   }
 
@@ -311,20 +408,15 @@ JSLinearString* js::temporal::ComputeSystemTimeZoneIdentifier(JSContext* cx) {
 
 /**
  * SystemTimeZoneIdentifier ( )
- *
- * Returns the IANA time zone name for the host environment's current time zone.
- */
-JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
-  return cx->global()->globalIntlData().defaultTimeZone(cx);
-}
-
-/**
- * SystemTimeZoneIdentifier ( )
  */
 bool js::temporal::SystemTimeZone(JSContext* cx,
                                   MutableHandle<TimeZoneValue> result) {
-  auto* timeZone =
-      cx->global()->globalIntlData().getOrCreateDefaultTimeZone(cx);
+  Rooted<JSLinearString*> identifier(cx, SystemTimeZoneIdentifier(cx));
+  if (!identifier) {
+    return false;
+  }
+
+  auto* timeZone = CreateTimeZoneObject(cx, identifier, identifier);
   if (!timeZone) {
     return false;
   }
@@ -692,7 +784,7 @@ bool js::temporal::ToTemporalTimeZone(JSContext* cx,
   }
 
   // Step 9.
-  auto* obj = GetOrCreateTimeZoneObject(cx, identifier, primaryIdentifier);
+  auto* obj = CreateTimeZoneObject(cx, identifier, primaryIdentifier);
   if (!obj) {
     return false;
   }
@@ -734,46 +826,6 @@ bool js::temporal::ToTemporalTimeZone(JSContext* cx,
 
   // Steps 4-9.
   return ToTemporalTimeZone(cx, timeZoneName, result);
-}
-
-JSLinearString* js::temporal::ToValidCanonicalTimeZoneIdentifier(
-    JSContext* cx, Handle<JSString*> timeZone) {
-  Rooted<ParsedTimeZone> parsedTimeZone(cx);
-  if (!ParseTimeZoneIdentifier(cx, timeZone, &parsedTimeZone)) {
-    // TODO: Test262 expects the time zone string is part of the error message,
-    // so we have to overwrite the error message.
-    //
-    // https://github.com/tc39/test262/pull/4463
-    if (!cx->isExceptionPending() || cx->isThrowingOutOfMemory()) {
-      return nullptr;
-    }
-
-    // Clear the previous exception to ensure the error stack is recomputed.
-    cx->clearPendingException();
-
-    if (auto chars = QuoteString(cx, timeZone)) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_TEMPORAL_TIMEZONE_INVALID_IDENTIFIER,
-                               chars.get());
-    }
-    return nullptr;
-  }
-
-  auto timeZoneId = parsedTimeZone.name();
-  if (timeZoneId) {
-    Rooted<JSLinearString*> identifier(cx);
-    Rooted<JSLinearString*> primaryIdentifier(cx);
-    if (!ValidateAndCanonicalizeTimeZoneName(cx, timeZoneId, &identifier,
-                                             &primaryIdentifier)) {
-      return nullptr;
-    }
-    return primaryIdentifier;
-  }
-
-  int32_t offsetMinutes = parsedTimeZone.offset();
-  MOZ_ASSERT(std::abs(offsetMinutes) < UnitsPerDay(TemporalUnit::Minute));
-
-  return FormatOffsetTimeZoneIdentifier(cx, offsetMinutes);
 }
 
 /**
@@ -1174,7 +1226,7 @@ bool js::temporal::WrapTimeZoneValueObject(
   }
 
   auto* obj =
-      GetOrCreateTimeZoneObject(cx, identifierLinear, primaryIdentifierLinear);
+      CreateTimeZoneObject(cx, identifierLinear, primaryIdentifierLinear);
   if (!obj) {
     return false;
   }
