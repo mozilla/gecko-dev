@@ -169,8 +169,7 @@ devtools-tests:
               path: /builds/worker/issues.json
     run:
         command: >
-            cd devtools/client/bin/ &&
-            $MOZ_FETCHES_DIR/node/bin/node devtools-node-test-runner.js --suite=all --artifact=/builds/worker/issues.json
+            ./mach devtools-node-test --artifact=/builds/worker/issues.json
     fetches:
         toolchain:
             - linux64-node

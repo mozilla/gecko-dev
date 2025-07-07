@@ -208,22 +208,20 @@ function getTypescriptErrors(out, err, testPath) {
 }
 
 function runTests() {
-  console.log("[devtools-node-test-runner] Extract suite argument");
+  console.log("[devtools-node-test] Extract suite argument");
   const suiteArg = process.argv.find(arg => arg.includes("suite="));
   const suite = suiteArg.split("=")[1];
   if (suite !== "all" && !SUITES[suite]) {
-    throw new Error(
-      "Invalid suite argument to devtools-node-test-runner: " + suite
-    );
+    throw new Error("Invalid suite argument to devtools-node-test: " + suite);
   }
 
-  console.log("[devtools-node-test-runner] Check `yarn` is available");
+  console.log("[devtools-node-test] Check `yarn` is available");
   try {
     // This will throw if yarn is unavailable
     execFileSync(YARN_PROCESS, ["--version"]);
   } catch (e) {
     console.log(
-      "[devtools-node-test-runner] ERROR: `yarn` is not installed. " +
+      "[devtools-node-test] ERROR: `yarn` is not installed. " +
         "See https://yarnpkg.com/docs/install/ "
     );
     return false;
@@ -236,17 +234,15 @@ function runTests() {
   const failedSuites = [];
   const suites = suite == "all" ? SUITES : { [suite]: SUITES[suite] };
   for (const [suiteName, suiteData] of Object.entries(suites)) {
-    console.log("[devtools-node-test-runner] Running suite: " + suiteName);
+    console.log("[devtools-node-test] Running suite: " + suiteName);
 
     if (suiteData.dependencies) {
-      console.log(
-        "[devtools-node-test-runner] Running `yarn` for dependencies"
-      );
+      console.log("[devtools-node-test] Running `yarn` for dependencies");
       for (const dep of suiteData.dependencies) {
         const depPath = path.join(__dirname, dep);
         chdir(depPath);
 
-        console.log("[devtools-node-test-runner] Run `yarn` in " + depPath);
+        console.log("[devtools-node-test] Run `yarn` in " + depPath);
         execOut(YARN_PROCESS);
       }
     }
@@ -254,20 +250,20 @@ function runTests() {
     const testPath = path.join(__dirname, suiteData.path);
     chdir(testPath);
 
-    console.log("[devtools-node-test-runner] Run `yarn` in test folder");
+    console.log("[devtools-node-test] Run `yarn` in test folder");
     execOut(YARN_PROCESS);
 
     console.log(`TEST START | ${suiteData.type} | ${suiteName}`);
 
-    console.log("[devtools-node-test-runner] Run `yarn test` in test folder");
+    console.log("[devtools-node-test] Run `yarn test` in test folder");
     const { out, err } = execOut(YARN_PROCESS, ["test-ci"]);
 
     if (err) {
-      console.log("[devtools-node-test-runner] Error log");
+      console.log("[devtools-node-test] Error log");
       console.log(err);
     }
 
-    console.log("[devtools-node-test-runner] Parse errors from the test logs");
+    console.log("[devtools-node-test] Parse errors from the test logs");
     const errors = getErrors(suiteName, out, err, testPath) || [];
     if (errors.length) {
       failedSuites.push(suiteName);
@@ -292,28 +288,24 @@ function runTests() {
   }
 
   if (artifactFilePath) {
-    console.log(
-      `[devtools-node-test-runner] Writing artifact to ${artifactFilePath}`
-    );
+    console.log(`[devtools-node-test] Writing artifact to ${artifactFilePath}`);
     writeFileSync(artifactFilePath, JSON.stringify(artifactErrors, null, 2));
   }
 
   const success = failedSuites.length === 0;
   if (success) {
     console.log(
-      `[devtools-node-test-runner] Test suites [${Object.keys(suites).join(
+      `[devtools-node-test] Test suites [${Object.keys(suites).join(
         ", "
       )}] succeeded`
     );
   } else {
     console.log(
-      `[devtools-node-test-runner] Test suites [${failedSuites.join(
-        ", "
-      )}] failed`
+      `[devtools-node-test] Test suites [${failedSuites.join(", ")}] failed`
     );
     console.log(
-      "TEST-UNEXPECTED-FAIL | Documentation to run and fix failures for " +
-        "devtools node tests at https://firefox-source-docs.mozilla.org/devtools/tests/node-tests.html"
+      "TEST-UNEXPECTED-FAIL | mach devtools-node-test failed. Documentation " +
+        "at https://firefox-source-docs.mozilla.org/devtools/tests/node-tests.html"
     );
   }
   return success;

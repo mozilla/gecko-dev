@@ -12,7 +12,7 @@ Also, the types should work with editor integration. VS Code works with TypeScri
 
 The type checking is also included in the DevTools node tests, which can be run manually via:
 ```
-node devtools/client/bin/devtools-node-test-runner.js --suite=performance
+./mach devtools-node-test --suite=performance
 ```
 
 More importantly the DevTools node tests run on Continuous Integration. They are included in the DevTools presets `devtools` and `devtools-linux`. They can also be found via `mach try fuzzy`, under the name "source-test-node-devtools-tests". To recap, the following try pushes will run the DevTools node tests:

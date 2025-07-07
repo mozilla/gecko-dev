@@ -21,9 +21,9 @@ The definition also contains the list of files that will trigger the node test j
 
 You will need yarn to be installed in order to run the DevTools tests. See [https://yarnpkg.com/getting-started](https://yarnpkg.com/getting-started).
 
-To run the DevTools tests, the easiest is to rely on the same script as the one used to run the tests on try:
+To run the DevTools tests, use the mach command `devtools-node-test`:
 ```
-> node devtools/client/bin/devtools-node-test-runner.js --suite={suitename}
+> ./mach devtools-node-test --suite={suitename}
 ```
 
 At the moment of writing, the supported suites for this script are:
@@ -38,9 +38,10 @@ At the moment of writing, the supported suites for this script are:
 - `shared_components`
 - `webconsole`
 
-(You can see the full list and the associated configuration in devtools/client/bin/devtools-node-test-runner.js)
-
-Alternatively, you can also locate the `package.json` corresponding to a given suite, and run `yarn && yarn test`.
+You can run all the test suites by omitting the suite argument:
+```
+> ./mach devtools-node-test
+```
 
 ## Updating snapshots
 
