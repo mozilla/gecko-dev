@@ -3139,6 +3139,12 @@ NS_IMETHODIMP
 nsLocalFile::Contains(nsIFile* aInFile, bool* aResult) {
   // Check we are correctly initialized.
   CHECK_mWorkingPath();
+  if (NS_WARN_IF(!aInFile)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+  if (NS_WARN_IF(!aResult)) {
+    return NS_ERROR_INVALID_ARG;
+  }
 
   *aResult = false;
 
