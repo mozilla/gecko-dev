@@ -329,7 +329,6 @@ private fun buildTestInteractor(
     override fun onMediaClicked(tab: TabSessionState) {}
     override fun onTabLongClicked(tab: TabSessionState): Boolean { return false }
     override fun onBackPressed(): Boolean { return false }
-    override fun onTabUnselected(tab: TabSessionState) {}
     override fun onSyncedTabClicked(tab: Tab) {}
     override fun onSyncedTabClosed(deviceId: String, tab: Tab) {}
     override fun onTabSelected(tab: TabSessionState, source: String?) {}

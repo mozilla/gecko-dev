@@ -35,6 +35,7 @@ import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.home.HomeFragmentDirections
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.utils.Settings
 
@@ -62,6 +63,16 @@ class DefaultRecentSyncedTabControllerTest {
             accessPoint = accessPoint,
             appStore = appStore,
             settings = settings,
+            tabManagementFeatureHelper = object : TabManagementFeatureHelper {
+                override val enhancementsEnabledNightly: Boolean
+                    get() = false
+                override val enhancementsEnabledBeta: Boolean
+                    get() = false
+                override val enhancementsEnabledRelease: Boolean
+                    get() = false
+                override val enhancementsEnabled: Boolean
+                    get() = false
+            },
         )
     }
 

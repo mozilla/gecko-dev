@@ -92,6 +92,7 @@ import org.mozilla.fenix.home.toolbar.TabCounterInteractions.TabCounterLongClick
 import org.mozilla.fenix.search.fixtures.assertSearchSelectorEquals
 import org.mozilla.fenix.search.fixtures.buildExpectedSearchSelector
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 import org.robolectric.Shadows.shadowOf
 import mozilla.components.ui.icons.R as iconsR
 
@@ -110,7 +111,22 @@ class BrowserToolbarMiddlewareTest {
 
     @Test
     fun `WHEN initializing the toolbar THEN add browser end actions`() = runTestOnMain {
-        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk(), mockk())
+        val middleware = BrowserToolbarMiddleware(
+            appStore,
+            browserStore,
+            mockk(),
+            mockk(),
+            tabManagementFeatureHelper = object : TabManagementFeatureHelper {
+                override val enhancementsEnabledNightly: Boolean
+                    get() = false
+                override val enhancementsEnabledBeta: Boolean
+                    get() = false
+                override val enhancementsEnabledRelease: Boolean
+                    get() = false
+                override val enhancementsEnabled: Boolean
+                    get() = false
+            },
+        )
 
         val toolbarStore = buildStore(middleware)
 
