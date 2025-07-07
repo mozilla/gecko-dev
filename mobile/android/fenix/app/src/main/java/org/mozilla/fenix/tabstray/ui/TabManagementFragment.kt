@@ -78,6 +78,7 @@ import org.mozilla.fenix.tabstray.InactiveTabsBinding
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.SecureTabsTrayBinding
 import org.mozilla.fenix.tabstray.TabSheetBehaviorManager
+import org.mozilla.fenix.tabstray.TabsTrayAccessPoint
 import org.mozilla.fenix.tabstray.TabsTrayAction
 import org.mozilla.fenix.tabstray.TabsTrayDialog
 import org.mozilla.fenix.tabstray.TabsTrayInteractor
@@ -96,14 +97,6 @@ import org.mozilla.fenix.utils.Settings
 import org.mozilla.fenix.utils.allowUndo
 import kotlin.math.abs
 import kotlin.math.max
-
-/**
- * The action or screen that was used to navigate to the Tabs Tray.
- */
-enum class TabsTrayAccessPoint {
-    None,
-    HomeRecentSyncedTab,
-}
 
 /**
  * The fullscreen fragment for displaying the tabs management UI.
