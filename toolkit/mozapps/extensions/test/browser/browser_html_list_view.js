@@ -464,7 +464,7 @@ add_task(async function testOpenDetailFromNameKeyboard() {
   is(
     card.addonNameEl.textContent,
     "Detail extension",
-    "The right detail view is laoded"
+    "The right detail view is loaded"
   );
 
   await extension.unload();
