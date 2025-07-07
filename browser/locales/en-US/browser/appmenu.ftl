@@ -133,6 +133,10 @@ appmenuitem-fxa-sync-off-description = Protect and access your bookmarks, passwo
 ## performance profiles. To enable it go to profiler.firefox.com and click
 ## "Enable Profiler Menu Button".
 
+profiler-button-dropmarker =
+    .label = Open the profiler panel
+    .tooltiptext = Open the profiler panel
+
 profiler-popup-button-idle =
   .label = Profiler
   .tooltiptext = Record a performance profile

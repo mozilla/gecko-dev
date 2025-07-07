@@ -50,21 +50,16 @@ skip-if = [
 ["browser_devtools-record-discard.js"]
 
 ["browser_interaction-between-interfaces.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_popup-profiler-states.js"]
 
 ["browser_popup-record-capture-view.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_popup-record-capture.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_popup-record-discard.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_split-toolbar-button.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_webchannel-enable-menu-button-preset.js"]
 

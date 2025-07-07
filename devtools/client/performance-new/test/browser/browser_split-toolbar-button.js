@@ -178,3 +178,19 @@ add_task(async function enter_key() {
   EventUtils.synthesizeKey("KEY_Enter");
   await waitForProfileAndCloseTab();
 });
+
+/**
+ * Tests that dropmarker has l10n attributes.
+ */
+add_task(async function dropmarker_has_l10n() {
+  ok(
+    BrowserTestUtils.isVisible(dropmarker),
+    "Profiler button dropmarker is visible"
+  );
+
+  is(
+    dropmarker.getAttribute("data-l10n-id"),
+    "profiler-button-dropmarker",
+    "Profiler button dropmarker has l10n attributes set"
+  );
+});

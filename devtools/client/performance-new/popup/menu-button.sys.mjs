@@ -28,6 +28,7 @@ const lazy = createLazyLoaders({
 });
 
 const WIDGET_ID = "profiler-button";
+const DROPMARKER_ID = "profiler-button-dropmarker";
 
 /**
  * Add the profiler button to the navbar.
@@ -269,6 +270,12 @@ function initialize(toggleProfilerKeyShortcuts) {
       // This class is needed to show the subview arrow when our button
       // is in the overflow menu.
       buttonElement.classList.add("subviewbutton-nav");
+
+      // Add l10n attributes for the dropmarker.
+      const dropmarker = node.querySelector("#" + DROPMARKER_ID);
+      if (dropmarker) {
+        document.l10n.setAttributes(dropmarker, DROPMARKER_ID);
+      }
 
       function setButtonActive() {
         document.l10n.setAttributes(
