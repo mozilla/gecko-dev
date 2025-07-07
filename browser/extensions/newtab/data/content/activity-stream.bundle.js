@@ -182,7 +182,6 @@ for (const type of [
   "MESSAGE_DISMISS",
   "MESSAGE_IMPRESSION",
   "MESSAGE_SET",
-  "MESSAGE_NOTIFY_VISIBILITY",
   "MESSAGE_TOGGLE_VISIBILITY",
   "NEW_TAB_INIT",
   "NEW_TAB_INITIAL_STATE",
@@ -7710,7 +7709,7 @@ const INITIAL_STATE = {
   // Messages received from ASRouter to render in newtab
   Messages: {
     // messages received from ASRouter are initially visible
-    isVisible: true,
+    isHidden: false,
     // portID for that tab that was sent the message
     portID: "",
     // READONLY Message data received from ASRouter
@@ -8161,7 +8160,7 @@ function Messages(prevState = INITIAL_STATE.Messages, action) {
         portID: action.data.portID || "",
       };
     case actionTypes.MESSAGE_TOGGLE_VISIBILITY:
-      return { ...prevState, isVisible: action.data };
+      return { ...prevState, isHidden: action.data };
     default:
       return prevState;
   }
@@ -11431,52 +11430,41 @@ function MessageWrapper({
 }) {
   const message = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Messages);
   const [isIntersecting, setIsIntersecting] = (0,external_React_namespaceObject.useState)(false);
-  const [tabIsVisible, setTabIsVisible] = (0,external_React_namespaceObject.useState)(() => typeof document !== "undefined" && document.visibilityState === "visible");
   const [hasRun, setHasRun] = (0,external_React_namespaceObject.useState)();
   const handleIntersection = (0,external_React_namespaceObject.useCallback)(() => {
     setIsIntersecting(true);
+    const isVisible = document?.visibilityState && document.visibilityState === "visible";
     // only send impression if messageId is defined and tab is visible
-    if (tabIsVisible && message.messageData.id && !hasRun) {
+    if (isVisible && message.messageData.id) {
       setHasRun(true);
       dispatch(actionCreators.AlsoToMain({
         type: actionTypes.MESSAGE_IMPRESSION,
         data: message.messageData
       }));
     }
-  }, [dispatch, message, tabIsVisible, hasRun]);
-  (0,external_React_namespaceObject.useEffect)(() => {
-    // we dont want to dispatch this action unless the current tab is open and visible
-    if (message.isVisible && tabIsVisible) {
-      dispatch(actionCreators.AlsoToMain({
-        type: actionTypes.MESSAGE_NOTIFY_VISIBILITY,
-        data: true
-      }));
-    }
-  }, [message, dispatch, tabIsVisible]);
+  }, [dispatch, message]);
   (0,external_React_namespaceObject.useEffect)(() => {
     const handleVisibilityChange = () => {
-      setTabIsVisible(document.visibilityState === "visible");
+      if (document.visibilityState === "visible" && !hasRun) {
+        handleIntersection();
+      }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [handleIntersection, hasRun]);
   const ref = useIntersectionObserver(handleIntersection);
   const handleClose = (0,external_React_namespaceObject.useCallback)(() => {
     const action = {
       type: actionTypes.MESSAGE_TOGGLE_VISIBILITY,
-      data: false //isVisible
+      data: true
     };
     if (message.portID) {
       dispatch(actionCreators.OnlyToOneContent(action, message.portID));
     } else {
       dispatch(actionCreators.AlsoToMain(action));
     }
-    dispatch(actionCreators.AlsoToMain({
-      type: actionTypes.MESSAGE_NOTIFY_VISIBILITY,
-      data: false
-    }));
     onDismiss?.();
   }, [dispatch, message, onDismiss]);
   function handleDismiss() {
@@ -11518,11 +11506,11 @@ function MessageWrapper({
       }));
     }
   }
-  if (!message || !hiddenOverride && !message.isVisible) {
+  if (!message || !hiddenOverride && message.isHidden) {
     return null;
   }
 
-  // only display the message if `isVisible` is true
+  // only display the message if `isHidden` is false
   return /*#__PURE__*/external_React_default().createElement("div", {
     ref: el => {
       ref.current = [el];

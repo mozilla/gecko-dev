@@ -14,16 +14,14 @@ import { useIntersectionObserver } from "../../lib/utils";
 function MessageWrapper({ children, dispatch, hiddenOverride, onDismiss }) {
   const message = useSelector(state => state.Messages);
   const [isIntersecting, setIsIntersecting] = useState(false);
-  const [tabIsVisible, setTabIsVisible] = useState(
-    () =>
-      typeof document !== "undefined" && document.visibilityState === "visible"
-  );
   const [hasRun, setHasRun] = useState();
 
   const handleIntersection = useCallback(() => {
     setIsIntersecting(true);
+    const isVisible =
+      document?.visibilityState && document.visibilityState === "visible";
     // only send impression if messageId is defined and tab is visible
-    if (tabIsVisible && message.messageData.id && !hasRun) {
+    if (isVisible && message.messageData.id) {
       setHasRun(true);
       dispatch(
         ac.AlsoToMain({
@@ -32,49 +30,33 @@ function MessageWrapper({ children, dispatch, hiddenOverride, onDismiss }) {
         })
       );
     }
-  }, [dispatch, message, tabIsVisible, hasRun]);
-
-  useEffect(() => {
-    // we dont want to dispatch this action unless the current tab is open and visible
-    if (message.isVisible && tabIsVisible) {
-      dispatch(
-        ac.AlsoToMain({
-          type: at.MESSAGE_NOTIFY_VISIBILITY,
-          data: true,
-        })
-      );
-    }
-  }, [message, dispatch, tabIsVisible]);
+  }, [dispatch, message]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      setTabIsVisible(document.visibilityState === "visible");
+      if (document.visibilityState === "visible" && !hasRun) {
+        handleIntersection();
+      }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [handleIntersection, hasRun]);
 
   const ref = useIntersectionObserver(handleIntersection);
 
   const handleClose = useCallback(() => {
     const action = {
       type: at.MESSAGE_TOGGLE_VISIBILITY,
-      data: false, //isVisible
+      data: true,
     };
     if (message.portID) {
       dispatch(ac.OnlyToOneContent(action, message.portID));
     } else {
       dispatch(ac.AlsoToMain(action));
     }
-    dispatch(
-      ac.AlsoToMain({
-        type: at.MESSAGE_NOTIFY_VISIBILITY,
-        data: false,
-      })
-    );
     onDismiss?.();
   }, [dispatch, message, onDismiss]);
 
@@ -115,11 +97,11 @@ function MessageWrapper({ children, dispatch, hiddenOverride, onDismiss }) {
     }
   }
 
-  if (!message || (!hiddenOverride && !message.isVisible)) {
+  if (!message || (!hiddenOverride && message.isHidden)) {
     return null;
   }
 
-  // only display the message if `isVisible` is true
+  // only display the message if `isHidden` is false
   return (
     <div
       ref={el => {
