@@ -14272,7 +14272,7 @@
 # will automatically be blocked.
 - name: network.lna.block_trackers
   type: RelaxedAtomicBool
-  value: false
+  value: %IS_EARLY_BETA_OR_EARLIER%
   mirror: always
 
 # The proxy type. See nsIProtocolProxyService.idl
