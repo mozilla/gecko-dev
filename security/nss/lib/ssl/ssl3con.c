@@ -540,6 +540,162 @@ ssl3_DecodeContentType(int msgType)
 
 #endif
 
+PRBool
+ssl_HaveRecvBufLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        return PZ_InMonitor(ss->recvBufLock);
+    } else {
+        return PR_TRUE;
+    }
+}
+
+PRBool
+ssl_HaveXmitBufLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        return PZ_InMonitor(ss->xmitBufLock);
+    } else {
+        return PR_TRUE;
+    }
+}
+
+PRBool
+ssl_Have1stHandshakeLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        return PZ_InMonitor(ss->firstHandshakeLock);
+    } else {
+        return PR_TRUE;
+    }
+}
+
+PRBool
+ssl_HaveSSL3HandshakeLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        return PZ_InMonitor(ss->ssl3HandshakeLock);
+    } else {
+        return PR_TRUE;
+    }
+}
+
+PRBool
+ssl_HaveSpecWriteLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        return NSSRWLock_HaveWriteLock(ss->specLock);
+    } else {
+        return PR_TRUE;
+    }
+}
+
+/* firstHandshakeLock -> recvBufLock */
+void
+ssl_Get1stHandshakeLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PORT_Assert(PZ_InMonitor(ss->firstHandshakeLock) ||
+                    !ssl_HaveRecvBufLock(ss));
+        PZ_EnterMonitor(ss->firstHandshakeLock);
+    }
+}
+
+void
+ssl_Release1stHandshakeLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PZ_ExitMonitor(ss->firstHandshakeLock);
+    }
+}
+
+void
+ssl_GetSSL3HandshakeLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PORT_Assert(!ssl_HaveXmitBufLock(ss));
+        PZ_EnterMonitor(ss->ssl3HandshakeLock);
+    }
+}
+
+void
+ssl_ReleaseSSL3HandshakeLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PZ_ExitMonitor(ss->ssl3HandshakeLock);
+    }
+}
+
+void
+ssl_GetSpecReadLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        NSSRWLock_LockRead(ss->specLock);
+    }
+}
+
+void
+ssl_ReleaseSpecReadLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        NSSRWLock_UnlockRead(ss->specLock);
+    }
+}
+
+/* NSSRWLock_HaveReadLock is not exported so there's no
+ * ssl_HaveSpecReadLock. */
+void
+ssl_GetSpecWriteLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        NSSRWLock_LockWrite(ss->specLock);
+    }
+}
+
+void
+ssl_ReleaseSpecWriteLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        NSSRWLock_UnlockWrite(ss->specLock);
+    }
+}
+
+/* recvBufLock -> ssl3HandshakeLock -> xmitBufLock */
+void
+ssl_GetRecvBufLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PORT_Assert(!ssl_HaveSSL3HandshakeLock(ss));
+        PORT_Assert(!ssl_HaveXmitBufLock(ss));
+        PZ_EnterMonitor(ss->recvBufLock);
+    }
+}
+
+void
+ssl_ReleaseRecvBufLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PZ_ExitMonitor(ss->recvBufLock);
+    }
+}
+
+/* xmitBufLock -> specLock */
+void
+ssl_GetXmitBufLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PZ_EnterMonitor(ss->xmitBufLock);
+    }
+}
+
+void
+ssl_ReleaseXmitBufLock(sslSocket *ss)
+{
+    if (!ss->opt.noLocks) {
+        PZ_ExitMonitor(ss->xmitBufLock);
+    }
+}
+
 SSL3Statistics *
 SSL_GetStatistics(void)
 {
@@ -9701,9 +9857,7 @@ cipher_found:
                 goto loser;
             }
 
-            if (haveXmitBufLock) {
-                ssl_ReleaseXmitBufLock(ss);
-            }
+            ssl_ReleaseXmitBufLock(ss);
 
             return SECSuccess;
         } while (0);
@@ -9764,10 +9918,6 @@ cipher_found:
         errCode = PORT_GetError();
         desc = handshake_failure;
         goto alert_loser;
-    }
-
-    if (haveXmitBufLock) {
-        ssl_ReleaseXmitBufLock(ss);
     }
 
     return SECSuccess;

@@ -1,7 +1,7 @@
 .. _mozilla_projects_nss_releases:
 
-Releases
-========
+Release Notes
+=============
 
 .. toctree::
    :maxdepth: 0
@@ -87,30 +87,24 @@ Releases
 
 .. note::
 
-   **NSS 3.112** is the latest version of NSS.
-   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_112_release_notes`
+   **NSS 3.113** is the latest version of NSS.
+   Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_113_release_notes`
 
    **NSS 3.101.4 (ESR)** is the latest ESR version of NSS.
    Complete release notes are available here: :ref:`mozilla_projects_nss_nss_3_101_4_release_notes`
 
 .. container::
 
-   Changes in 3.112 included in this release:
+   Changes in 3.113 included in this release:
 
    - Bug 1963792 - Fix alias for mac workers on try.
-   - Bug 1966786 - ensure all options can be configured with SSL_OptionSet and SSL_OptionSetDefault.
-   - Bug 1931930 - ABI/API break in ssl certificate processing
-   - Bug 1955971 - remove unnecessary assertion in sec_asn1d_init_state_based_on_template.
-   - Bug 1965754 - update taskgraph to v14.2.1.
-   - Bug 1964358 - Workflow for automation of the release on GitHub when pushing a tag
-   - Bug 1952860 - fix faulty assertions in SEC_ASN1DecoderUpdate
-   - Bug 1934877 - Renegotiations should use a fresh ECH GREASE buffer.
-   - Bug 1951396 - update taskgraph to v14.1.1
-   - Bug 1962503 - Partial fix for ACVP build CI job
-   - Bug 1961827 - Initialize find in sftk_searchDatabase.
-   - Bug 1963121 - Add clang-18 to extra builds.
-   - Bug 1963044 - Fault tolerant git fetch for fuzzing.
-   - Bug 1962556 - Tolerate intermittent failures in ssl_policy_pkix_ocsp.
-   - Bug 1962770 - fix compiler warnings when DEBUG_ASN1D_STATES or CMSDEBUG are set.
-   - Bug 1961835 - fix content type tag check in NSS_CMSMessage_ContainsCertsOrCrls.
-   - Bug 1963102 - Remove Cryptofuzz CI version check
+   - Bug 198090  - Part 1: Use AES in the SDR (NSS) r=simonf,nss-reviewers,rrelyea
+   - Bug 1968764 - Bump nssckbi version to 2.78. 
+   - Bug 1967548 - Turn off Websites Trust Bit for Chunghwa Telecom ePKI Root in FF 141.
+   - Bug 1965556 - fix frame pointers in intel-gcm.s.
+   - Bug 1971510 - Typo in release notes for NSS 101.4.
+   - Bug 1968665 - Improve nss-release-helper.py.
+   - Bug 1930800 - shlibsign is broken in System FIPS mode.
+   - Bug 1954612 - Need up update NSS for PKCS 3.1: Move IPSEC to 3.1
+   - Bug 1965327 - PKCS #11 v3.2 header files.
+   - Bug 1954612 - Need up update NSS for PKCS 3.1: Move IPSEC to 3.1

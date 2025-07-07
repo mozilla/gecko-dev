@@ -122,6 +122,7 @@
         'pkcs7.cc',
       ],
       'dependencies': [
+        '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
         '<(DEPTH)/exports.gyp:nss_exports',
         '<(DEPTH)/fuzz/targets/lib/asn1/asn1.gyp:asn1',
         '<(DEPTH)/fuzz/targets/lib/base/base.gyp:base',

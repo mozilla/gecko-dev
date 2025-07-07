@@ -37,6 +37,7 @@ linux64-asan/debug:
             NSS_DISABLE_UNLOAD: "1"
             CC: "clang"
             CCC: "clang++"
+            CFLAGS: "-O2"
         allow-ptrace: true
     attributes:
         asan: true

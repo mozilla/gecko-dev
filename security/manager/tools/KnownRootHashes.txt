@@ -141,3 +141,4 @@ y7nETYS4BD4QUOoxpp9RSVXXv9LixrSTAQGa1h2fUFg= 119 GlobalSign Root E46
 /XPa0xxkT/G0O+8MzdqWcQuc2Ydeyn4xcHrz6W1SK70= 143 T-TeleSec GlobalRoot Class 3
 /naWVzhVdz43qV561NnMlsMBV8FdMXZbqbFXBOGueP0= 144 Certum Trusted Root CA
 /+lD15NCS098RAwcPWSNU2PzS4Lch6p6nxGPxd7hAfE= 145 CommScope Public Trust RSA Root-02
+wKb03GOiS/3PVO8qaggqCnLeNYA+L/X/Unrl2HIG39U= 146 ePKI Root Certification Authority

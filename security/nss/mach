@@ -179,7 +179,7 @@ class covAction(argparse.Action):
             "NSS_DISABLE_UNLOAD": "1"
         }
 
-        run_tests("ssl_gtests", env=env, silent=True)
+        run_tests("ssl_gtests", env=env)
 
     def findSanCovFile(self, outdir):
         for file in os.listdir(outdir):

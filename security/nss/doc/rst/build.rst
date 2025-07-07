@@ -26,8 +26,6 @@ Building NSS
    Ideally, also install `gyp-next <https://github.com/nodejs/gyp-next>`__ and `ninja
    <https://ninja-build.org/>`__ and put them on your path. This is
    recommended, as the build is faster and more reliable.
-   Please, note that we ``gyp`` is currently unmaintained and that our support for
-   ``gyp-next`` is experimental and might be unstable.
 
    To install prerequisites on different platforms, one can run the following
    commands:
@@ -181,7 +179,7 @@ Building NSS
 
 .. container::
 
-   NSS contains extensive unit tests.  Scripts to run these are found in the ``tests`` directory. 
+   NSS contains extensive unit tests.  Scripts to run these are found in the ``tests`` directory.
    Run the standard suite by:
 
    .. code::
@@ -228,3 +226,76 @@ Building NSS
    Other subdirectories of ``nss/tests`` contain scripts that run a subset of
    the full suite. Those can be run directly instead of ``all.sh``, which might
    save some time at the cost of coverage.
+
+.. _mozilla_projects_nss_build_artifacts:
+
+`Build artifacts <#build_artifacts>`__
+--------------------------------------
+
+.. _shared_libraries:
+
+`Shared libraries <#shared_libraries>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container::
+
+   Network Security Services provides both static libraries and shared libraries. Applications that
+   use the shared libraries must use only the APIs that they export. Three shared libraries export
+   public functions:
+
+   -  The SSL/TLS library supports core TLS operations.
+   -  The S/MIME library supports core S/MIME operations.
+   -  The freebl library supports core crypto operations.
+
+.. note::
+
+   We guarantee that applications using the exported APIs will remain compatible with future
+   versions of those libraries until deprecated.
+
+.. _naming_conventions_and_special_libraries:
+
+`Naming conventions <#naming_conventions_and_special_libraries>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. container::
+
+   Windows and Unix use different naming conventions for static and dynamic
+   libraries:
+
+   ======= ======== ===============================
+           Windows  Unix
+   static  ``.lib`` ``.a``
+   dynamic ``.dll`` ``.so`` or ``.dylib`` or ``.sl``
+   ======= ======== ===============================
+
+   In addition, Windows has "import" libraries that bind to dynamic
+   libraries. So the NSS library has the following forms:
+
+   -  ``libnss3.so`` - Linux shared library
+   -  ``libnss3.dylib`` - MacOS shared library
+   -  ``libnss3.sl`` - HP-UX shared library
+   -  ``libnss.a`` - Unix static library
+   -  ``nss3.dll`` - Windows shared library
+   -  ``nss3.lib`` - Windows import library binding to ``nss3.dll``
+   -  ``nss.lib`` - Windows static library
+
+   NSS, SSL, and S/MIME have all of the above forms.
+
+   The following static libraries aren't included in any shared libraries
+
+   -  ``libcrmf.a``/``crmf.lib`` provides an API for CRMF operations.
+   -  ``libjar.a``/``jar.lib`` provides an API for creating JAR files.
+
+   The following static libraries are included only in external loadable PKCS
+   #11 modules:
+
+   -  ``libnssckfw.a``/``nssckfw.lib`` provides an API for writing PKCS #11 modules.
+   -  ``libswfci.a``/``swfci.lib`` provides support for software FORTEZZA.
+
+   The following shared libraries are standalone loadable modules, not meant to
+   be linked with directly:
+
+   -  ``libfort.so``/``libfort.sl``/``fort32.dll`` provides support for hardware FORTEZZA.
+   -  ``libswft.so``/``libswft.sl``/``swft32.dll`` provides support for software FORTEZZA.
+   -  ``libnssckbi.so``/``libnssckbi.sl``/``nssckbi.dll`` defines the default set
+      of trusted root certificates.

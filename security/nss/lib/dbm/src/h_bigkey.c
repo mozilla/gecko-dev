@@ -191,7 +191,6 @@ dbm_big_delete(HTAB *hashp, BUFHEAD *bufp)
     rbufp = bufp;
     last_bfp = NULL;
     bp = (uint16 *)bufp->page;
-    pageno = 0;
     key_done = 0;
 
     while (!key_done || (bp[2] != FULL_KEY_DATA)) {

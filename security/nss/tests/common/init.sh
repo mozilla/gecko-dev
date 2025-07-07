@@ -260,8 +260,9 @@ if [ -z "${INIT_SOURCED}" -o "${INIT_SOURCED}" != "TRUE" ]; then
     gtest_parse_report_helper()
     {
       # Check XML reports for normal test runs and failures.
-      local successes=$(gtest_parse_report_xpath "//testcase[@status='run'][count(*)=0]" "$@" )
-      local failures=$(gtest_parse_report_xpath "//failure/.." "$@" )
+      local successes failures
+      successes=$(gtest_parse_report_xpath "//testcase[@status='run'][count(*)=0]" "$@" )
+      failures=$(gtest_parse_report_xpath "//failure/.." "$@" )
 
       # Print all tests that succeeded.
       while read result name; do

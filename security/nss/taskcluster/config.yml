@@ -32,7 +32,7 @@ workers:
             provisioner: nss-t
             implementation: docker-worker
             os: linux
-            worker-type: t-linux-xlarge-gcp
+            worker-type: t-linux-docker
 
 taskgraph:
     repositories:

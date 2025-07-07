@@ -61,4 +61,15 @@ TEST_F(TlsConnectStreamTls13, OptionSet) {
   Connect();
 }
 
+TEST_P(TlsConnectTls12Plus, NoLocksHandshake) {
+  EnsureTlsSetup();
+
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSet(client_->ssl_fd(), SSL_NO_LOCKS, PR_TRUE));
+  EXPECT_EQ(SECSuccess,
+            SSL_OptionSet(server_->ssl_fd(), SSL_NO_LOCKS, PR_TRUE));
+
+  Connect();
+}
+
 }  // namespace nss_test

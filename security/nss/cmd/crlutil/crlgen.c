@@ -189,7 +189,6 @@ crlgen_GetGeneralName(PLArenaPool *arena, CRLGENGeneratorData *crlGenData,
 
     mark = PORT_ArenaMark(arena);
 
-    nextChunk = data;
     currData = data;
     do {
         int nameLen = 0;

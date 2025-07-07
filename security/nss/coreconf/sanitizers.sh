@@ -19,13 +19,15 @@ enable_sanitizer()
         gyp_params+=(-Dno_zdefs=1)
     fi
 
-    local cflags=$(python $cwd/coreconf/sanitizers.py "$@")
+    local cflags
+    cflags=$(${python:-python} $cwd/coreconf/sanitizers.py "$@")
     sanitizer_flags="$sanitizer_flags $cflags"
 }
 
 enable_sancov()
 {
-    local clang_version=$($CC --version | grep -oE '([0-9]{1,}\.)+[0-9]{1,}')
+    local clang_version
+    clang_version=$($CC --version | grep -oE '([0-9]{1,}\.)+[0-9]{1,}')
     if [[ ${clang_version:0:1} -lt 4 && ${clang_version:0:1} -eq 3 && ${clang_version:2:1} -lt 9 ]]; then
         echo "Need at least clang-3.9 (better 4.0) for sancov." 1>&2
         exit 1

@@ -728,7 +728,7 @@ typedef struct SSL3HandshakeStateStr {
     dtlsTimer timers[3];       /* Holder for timers. */
     dtlsTimer *rtTimer;        /* Retransmit timer. */
     dtlsTimer *ackTimer;       /* Ack timer (DTLS 1.3 only). */
-    dtlsTimer *hdTimer;        /* Read cipher holddown timer (DLTS 1.3 only) */
+    dtlsTimer *hdTimer;        /* Read cipher holddown timer. */
 
     /* KeyUpdate state machines */
     PRBool isKeyUpdateInProgress; /* The status of KeyUpdate -: {true == started, false == finished}. */
@@ -1386,95 +1386,29 @@ void ssl_ClearPRCList(PRCList *list, void (*f)(void *));
     if (ss->sendLock)         \
     PZ_Unlock(ss->sendLock)
 
-/* firstHandshakeLock -> recvBufLock */
-#define ssl_Get1stHandshakeLock(ss)                               \
-    {                                                             \
-        if (!ss->opt.noLocks) {                                   \
-            PORT_Assert(PZ_InMonitor((ss)->firstHandshakeLock) || \
-                        !ssl_HaveRecvBufLock(ss));                \
-            PZ_EnterMonitor((ss)->firstHandshakeLock);            \
-        }                                                         \
-    }
-#define ssl_Release1stHandshakeLock(ss)               \
-    {                                                 \
-        if (!ss->opt.noLocks)                         \
-            PZ_ExitMonitor((ss)->firstHandshakeLock); \
-    }
-#define ssl_Have1stHandshakeLock(ss) \
-    (PZ_InMonitor((ss)->firstHandshakeLock))
+PRBool ssl_HaveRecvBufLock(sslSocket *ss);
+PRBool ssl_HaveXmitBufLock(sslSocket *ss);
+PRBool ssl_Have1stHandshakeLock(sslSocket *ss);
+PRBool ssl_HaveSSL3HandshakeLock(sslSocket *ss);
+PRBool ssl_HaveSpecWriteLock(sslSocket *ss);
 
-/* ssl3HandshakeLock -> xmitBufLock */
-#define ssl_GetSSL3HandshakeLock(ss)                  \
-    {                                                 \
-        if (!ss->opt.noLocks) {                       \
-            PORT_Assert(!ssl_HaveXmitBufLock(ss));    \
-            PZ_EnterMonitor((ss)->ssl3HandshakeLock); \
-        }                                             \
-    }
-#define ssl_ReleaseSSL3HandshakeLock(ss)             \
-    {                                                \
-        if (!ss->opt.noLocks)                        \
-            PZ_ExitMonitor((ss)->ssl3HandshakeLock); \
-    }
-#define ssl_HaveSSL3HandshakeLock(ss) \
-    (PZ_InMonitor((ss)->ssl3HandshakeLock))
+void ssl_Get1stHandshakeLock(sslSocket *ss);
+void ssl_Release1stHandshakeLock(sslSocket *ss);
 
-#define ssl_GetSpecReadLock(ss)                 \
-    {                                           \
-        if (!ss->opt.noLocks)                   \
-            NSSRWLock_LockRead((ss)->specLock); \
-    }
-#define ssl_ReleaseSpecReadLock(ss)               \
-    {                                             \
-        if (!ss->opt.noLocks)                     \
-            NSSRWLock_UnlockRead((ss)->specLock); \
-    }
-/* NSSRWLock_HaveReadLock is not exported so there's no
- * ssl_HaveSpecReadLock macro. */
+void ssl_GetSSL3HandshakeLock(sslSocket *ss);
+void ssl_ReleaseSSL3HandshakeLock(sslSocket *ss);
 
-#define ssl_GetSpecWriteLock(ss)                 \
-    {                                            \
-        if (!ss->opt.noLocks)                    \
-            NSSRWLock_LockWrite((ss)->specLock); \
-    }
-#define ssl_ReleaseSpecWriteLock(ss)               \
-    {                                              \
-        if (!ss->opt.noLocks)                      \
-            NSSRWLock_UnlockWrite((ss)->specLock); \
-    }
-#define ssl_HaveSpecWriteLock(ss) \
-    (NSSRWLock_HaveWriteLock((ss)->specLock))
+void ssl_GetSpecReadLock(sslSocket *ss);
+void ssl_ReleaseSpecReadLock(sslSocket *ss);
 
-/* recvBufLock -> ssl3HandshakeLock -> xmitBufLock */
-#define ssl_GetRecvBufLock(ss)                           \
-    {                                                    \
-        if (!ss->opt.noLocks) {                          \
-            PORT_Assert(!ssl_HaveSSL3HandshakeLock(ss)); \
-            PORT_Assert(!ssl_HaveXmitBufLock(ss));       \
-            PZ_EnterMonitor((ss)->recvBufLock);          \
-        }                                                \
-    }
-#define ssl_ReleaseRecvBufLock(ss)             \
-    {                                          \
-        if (!ss->opt.noLocks)                  \
-            PZ_ExitMonitor((ss)->recvBufLock); \
-    }
-#define ssl_HaveRecvBufLock(ss) \
-    (PZ_InMonitor((ss)->recvBufLock))
+void ssl_GetSpecWriteLock(sslSocket *ss);
+void ssl_ReleaseSpecWriteLock(sslSocket *ss);
 
-/* xmitBufLock -> specLock */
-#define ssl_GetXmitBufLock(ss)                  \
-    {                                           \
-        if (!ss->opt.noLocks)                   \
-            PZ_EnterMonitor((ss)->xmitBufLock); \
-    }
-#define ssl_ReleaseXmitBufLock(ss)             \
-    {                                          \
-        if (!ss->opt.noLocks)                  \
-            PZ_ExitMonitor((ss)->xmitBufLock); \
-    }
-#define ssl_HaveXmitBufLock(ss) \
-    (PZ_InMonitor((ss)->xmitBufLock))
+void ssl_GetRecvBufLock(sslSocket *ss);
+void ssl_ReleaseRecvBufLock(sslSocket *ss);
+
+void ssl_GetXmitBufLock(sslSocket *ss);
+void ssl_ReleaseXmitBufLock(sslSocket *ss);
 
 /* Placeholder value used in version ranges when SSL 3.0 and all
  * versions of TLS are disabled.

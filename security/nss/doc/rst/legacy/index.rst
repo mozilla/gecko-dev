@@ -1,4 +1,4 @@
-.. _mozilla_projects_nss:
+.. _mozilla_projects_nss_legacy_index:
 
 Legacy documentation
 ====================

@@ -127,7 +127,7 @@ static PRDescIdentity ssl_layer_id;
 
 static PRCallOnceType ssl_setDefaultsFromEnvironment = { 0 };
 
-PRBool ssl_force_locks;   /* implicitly PR_FALSE */
+PRBool ssl_force_locks = PR_FALSE;
 int ssl_lock_readers = 1; /* default true. */
 char ssl_debug;
 char ssl_trace;
@@ -786,7 +786,15 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRIntn val)
             if (val && ssl_force_locks)
                 val = PR_FALSE; /* silent override */
             ss->opt.noLocks = val;
-            if (!val && !holdingLocks) {
+
+            if (val && holdingLocks) {
+                /* If we're disabling locks and locks were previously enabled. */
+                PZ_ExitMonitor((ss)->ssl3HandshakeLock);
+                PZ_ExitMonitor((ss)->firstHandshakeLock);
+                ssl_DestroyLocks(ss);
+                holdingLocks = PR_FALSE;
+            } else if (!val && !holdingLocks) {
+                /* If we're enabling locks and locks were previously disabled. */
                 rv = ssl_MakeLocks(ss);
                 if (rv != SECSuccess) {
                     ss->opt.noLocks = PR_TRUE;
@@ -3907,26 +3915,38 @@ loser:
 static SECStatus
 ssl_MakeLocks(sslSocket *ss)
 {
+    PR_ASSERT(!ss->firstHandshakeLock);
     ss->firstHandshakeLock = PZ_NewMonitor(nssILockSSL);
     if (!ss->firstHandshakeLock)
         goto loser;
+
+    PR_ASSERT(!ss->ssl3HandshakeLock);
     ss->ssl3HandshakeLock = PZ_NewMonitor(nssILockSSL);
     if (!ss->ssl3HandshakeLock)
         goto loser;
+
+    PR_ASSERT(!ss->specLock);
     ss->specLock = NSSRWLock_New(SSL_LOCK_RANK_SPEC, NULL);
     if (!ss->specLock)
         goto loser;
+
+    PR_ASSERT(!ss->recvBufLock);
     ss->recvBufLock = PZ_NewMonitor(nssILockSSL);
     if (!ss->recvBufLock)
         goto loser;
+
+    PR_ASSERT(!ss->xmitBufLock);
     ss->xmitBufLock = PZ_NewMonitor(nssILockSSL);
     if (!ss->xmitBufLock)
         goto loser;
     ss->writerThread = NULL;
     if (ssl_lock_readers) {
+        PR_ASSERT(!ss->recvLock);
         ss->recvLock = PZ_NewLock(nssILockSSL);
         if (!ss->recvLock)
             goto loser;
+
+        PR_ASSERT(!ss->sendLock);
         ss->sendLock = PZ_NewLock(nssILockSSL);
         if (!ss->sendLock)
             goto loser;
