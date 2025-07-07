@@ -5,8 +5,9 @@
 use std::convert::TryInto;
 
 use crash_helper_common::{errors::IPCError, IPCEvent};
+use log::error;
 use windows_sys::Win32::{
-    Foundation::{ERROR_BROKEN_PIPE, ERROR_INVALID_PARAMETER, FALSE, HANDLE, WAIT_OBJECT_0},
+    Foundation::{ERROR_BROKEN_PIPE, FALSE, HANDLE, WAIT_OBJECT_0},
     System::{
         SystemServices::MAXIMUM_WAIT_OBJECTS,
         Threading::{WaitForMultipleObjects, INFINITE},
@@ -24,10 +25,6 @@ impl IPCServer {
         }
 
         let native_events = self.collect_events();
-
-        if native_events.len() > MAXIMUM_WAIT_OBJECTS as usize {
-            return Err(IPCError::WaitingFailure(Some(ERROR_INVALID_PARAMETER)));
-        }
 
         // SAFETY: This is less than MAXIMUM_WAIT_OBJECTS
         let native_events_len: u32 = unsafe { native_events.len().try_into().unwrap_unchecked() };
@@ -74,12 +71,24 @@ impl IPCServer {
         Ok(events)
     }
 
+    /// This currently returns a vector that is no longer than
+    /// `MAXIMUM_WAIT_OBJECTS`, so its contents can be safely passed to
+    /// a `WaitForMultipleObjects()` call.
     fn collect_events(&self) -> Vec<HANDLE> {
         let mut events = Vec::with_capacity(1 + self.connections.len());
 
         events.push(self.listener.event_raw_handle());
         for connection in self.connections.iter() {
             events.push(connection.connector.event_raw_handle());
+        }
+
+        // HACK: When we hit this limit we should be splitting this list in
+        // multiple groups of at most MAXIMUM_WAIT_OBJECTS objects and have
+        // several threads wait on the groups, then wait on the threads
+        // themselves.
+        if events.len() > MAXIMUM_WAIT_OBJECTS.try_into().unwrap() {
+            error!("More than {MAXIMUM_WAIT_OBJECTS} processes connecting to the crash helper");
+            events.truncate(MAXIMUM_WAIT_OBJECTS.try_into().unwrap());
         }
 
         events

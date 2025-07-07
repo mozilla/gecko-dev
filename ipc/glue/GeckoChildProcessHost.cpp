@@ -1135,11 +1135,11 @@ Result<Ok, LaunchError> BaseProcessLauncher::DoSetup() {
 
     UniqueFileHandle crashHelperClientFd =
         CrashReporter::RegisterChildIPCChannel();
-    if (!crashHelperClientFd) {
-      return Err(
-          LaunchError("Could not create an IPC channel to the crash helper"));
+    if (crashHelperClientFd) {
+      geckoargs::sCrashHelper.Put(std::move(crashHelperClientFd), mChildArgs);
+    } else {
+      NS_WARNING("Could not create an IPC channel to the crash helper");
     }
-    geckoargs::sCrashHelper.Put(std::move(crashHelperClientFd), mChildArgs);
   }
 
   return Ok();
