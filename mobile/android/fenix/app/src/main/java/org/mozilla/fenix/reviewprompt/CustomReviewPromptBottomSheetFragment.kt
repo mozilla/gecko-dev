@@ -9,7 +9,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.fragment.compose.content
 import androidx.lifecycle.lifecycleScope
@@ -54,11 +53,6 @@ class CustomReviewPromptBottomSheetFragment : BottomSheetDialogFragment() {
         savedInstanceState: Bundle?,
     ) = content {
         val state by store.observeAsState(CustomReviewPromptState.PrePrompt) { it }
-
-        LaunchedEffect(Unit) {
-            store.dispatch(CustomReviewPromptAction.Displayed)
-        }
-
         FirefoxTheme {
             CustomReviewPrompt(
                 state = state,
