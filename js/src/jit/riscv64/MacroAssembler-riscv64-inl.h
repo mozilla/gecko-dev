@@ -1127,7 +1127,13 @@ void MacroAssembler::branchTestPtr(Condition cond, Register lhs, Imm32 rhs,
 
 void MacroAssembler::branchTestPtr(Condition cond, Register lhs, ImmWord rhs,
                                    Label* label) {
-  MOZ_CRASH("NYI");
+  MOZ_ASSERT(cond == Zero || cond == NonZero || cond == Signed ||
+             cond == NotSigned);
+  UseScratchRegisterScope temps(this);
+  Register scratch = temps.Acquire();
+  ma_li(scratch, rhs);
+  ma_and(scratch, lhs, scratch);
+  ma_b(scratch, scratch, label, cond);
 }
 
 void MacroAssembler::branchTestPtr(Condition cond, const Address& lhs,
