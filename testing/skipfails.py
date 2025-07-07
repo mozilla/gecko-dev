@@ -1372,11 +1372,7 @@ class Skipfails:
         processor = extra.arch
         if skip_if is not None and kind != Kind.LIST:
             # Rosetta specific hack for macos 11.20
-            if (
-                extra.os == "mac"
-                and extra.os_version == "11.20"
-                and processor == "aarch64"
-            ):
+            if extra.os == "mac" and processor == "aarch64":
                 skip_if += aa + "arch" + eq + qq + processor + qq
             elif processor is not None:
                 skip_if += aa + "processor" + eq + qq + processor + qq

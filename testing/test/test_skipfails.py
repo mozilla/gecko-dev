@@ -334,7 +334,7 @@ def test_task_to_skip_if():
     )
     assert (
         skip_if
-        == "os == 'mac' && os_version == '10.15' && processor == 'aarch64' && debug && swgl"
+        == "os == 'mac' && os_version == '10.15' && arch == 'aarch64' && debug && swgl"
     )
 
     # Hacks for macosx 11

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Literal, Optional, TypedDict
 
 import requests
-from mozci.util.taskcluster import queue
+from mozci.util.taskcluster import get_task
 from mozinfo.platforminfo import PlatformInfo
 from skipfails import Skipfails
 
@@ -107,14 +107,14 @@ class HighFreqSkipfails:
             self.info(f"Getting failures for bug '{bug_id}'...")
             failures_by_bug = self.get_failures_by_bug(bug_id)
             self.info(f"Found {len(failures_by_bug)} failures")
-            for failure in failures_by_bug:
-                manifest = self.get_manifest_from_path(test_path)
-                if manifest:
-                    self.info(f"Found manifest '{manifest}' for path '{test_path}'")
+            manifest = self.get_manifest_from_path(test_path)
+            if manifest:
+                self.info(f"Found manifest '{manifest}' for path '{test_path}'")
+                for failure in failures_by_bug:
                     task_data[failure["task_id"]] = (bug_id, test_path, manifest)
-                else:
-                    manifest_errors.add((bug_id, test_path))
-                    self.error(f"Could not find manifest for path '{test_path}'")
+            else:
+                manifest_errors.add((bug_id, test_path))
+                self.error(f"Could not find manifest for path '{test_path}'")
 
         skipfails = Skipfails(self.command_context, "", True, "disable", True)
 
@@ -235,14 +235,11 @@ class HighFreqSkipfails:
     def get_task_list(
         self, task_id_list: list[str], branch="trunk"
     ) -> list[tuple[str, object]]:
-        tasks_response = queue.tasks({"taskIds": task_id_list})
-        if tasks_response is not None:
-            task_list = tasks_response["tasks"]
-            return [
-                (task_id_list[index], task["task"])
-                for index, task in enumerate(task_list)
-            ]
-        return []
+        retVal = []
+        for tid in task_id_list:
+            task = get_task(tid)
+            retVal.append((tid, task))
+        return retVal
 
     def get_test_info_all_tests(self) -> TestInfoAllTests:
         url = "https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.latest.source.test-info-all/artifacts/public/test-info-all-tests.json"
