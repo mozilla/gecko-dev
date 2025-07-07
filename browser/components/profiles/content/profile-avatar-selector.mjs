@@ -17,6 +17,7 @@ export class ProfileAvatarSelector extends MozLitElement {
   static queries = {
     input: "#custom-image",
     saveButton: "#save-button",
+    avatars: "#avatars",
   };
 
   constructor() {
@@ -27,21 +28,65 @@ export class ProfileAvatarSelector extends MozLitElement {
 
   getAvatarL10nId(value) {
     switch (value) {
+      case "barbell":
+        return "barbell-avatar";
+      case "bike":
+        return "bike-avatar";
       case "book":
         return "book-avatar";
       case "briefcase":
         return "briefcase-avatar";
+      case "canvas":
+        return "canvas-avatar";
+      case "craft":
+        return "craft-avatar";
+      case "default-favicon":
+        return "default-favicon-avatar";
+      case "diamond":
+        return "diamond-avatar";
       case "flower":
         return "flower-avatar";
+      case "folder":
+        return "folder-avatar";
       case "heart":
         return "heart-avatar";
-      case "shopping":
-        return "shopping-avatar";
+      case "heart-rate":
+        return "heart-rate-avatar";
+      case "history":
+        return "history-avatar";
+      case "leaf":
+        return "leaf-avatar";
+      case "lightbulb":
+        return "lightbulb-avatar";
+      case "makeup":
+        return "makeup-avatar";
+      case "message":
+        return "message-avatar";
+      case "musical-note":
+        return "musical-note-avatar";
+      case "paw-print":
+        return "paw-print-avatar";
+      case "sparkle-single":
+        return "sparkle-single-avatar";
+      case "soccer":
+        return "soccer-avatar";
       case "star":
         return "star-avatar";
+      case "video-game-controller":
+        return "video-game-controller-avatar";
+      default:
+        return "custom-avatar";
     }
+  }
 
-    return "";
+  handleAvatarChange() {
+    const selectedAvatar = this.avatars.value;
+
+    document.dispatchEvent(
+      new CustomEvent("Profiles:AvatarSelected", {
+        detail: { avatar: selectedAvatar },
+      })
+    );
   }
 
   handleTabClick(event, tabName) {
@@ -80,11 +125,6 @@ export class ProfileAvatarSelector extends MozLitElement {
       "message",
       "lightbulb",
     ];
-
-    // TODO: Bug 1966951 should remove the line below.
-    // The browser_custom_avatar_test.js test will crash because the icon
-    // files don't exist.
-    avatars = avatars.slice(0, 6);
 
     return html`<moz-visual-picker
       value=${this.avatar}
