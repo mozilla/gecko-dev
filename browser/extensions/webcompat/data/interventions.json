@@ -4476,5 +4476,26 @@
         "ua_string": ["add_Chrome"]
       }
     ]
+  },
+  "1934908": {
+    "label": "www.cbsnews.com",
+    "bugs": {
+      "1934908": {
+        "issue": "broken-videos",
+        "matches": ["*://www.cbsnews.com/live/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "all_frames": true,
+          "js": [
+            "lib/ua_helpers.js",
+            "bug1934908-www.cbsnews.com-ua-override.js"
+          ]
+        }
+      }
+    ]
   }
 }
