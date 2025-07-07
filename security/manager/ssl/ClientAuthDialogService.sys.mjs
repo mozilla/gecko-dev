@@ -58,9 +58,8 @@ ClientAuthDialogService.prototype = {
       let issuers = null;
       if (caNames.length) {
         issuers = [];
-        let decoder = new TextDecoder();
         for (let caName of caNames) {
-          issuers.push(btoa(decoder.decode(caName)));
+          issuers.push(btoa(caName.map(b => String.fromCharCode(b)).join("")));
         }
       }
       prompt.asyncShowPrompt(
