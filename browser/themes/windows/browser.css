@@ -94,6 +94,7 @@
   border: none;
   margin: 0;
   padding: 8px 18px;
+  color: inherit;
 
   /* Segoe Fluent Icons is the preferred font for Windows 11, and
    * Segoe MDL2 Assets is there for windows 10. Luckily, the relevant glyphs
