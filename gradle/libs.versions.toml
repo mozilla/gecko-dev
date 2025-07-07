@@ -69,13 +69,13 @@ jacoco = "0.8.13"
 kotlin-dsl = "5.2.0"
 protobuf-plugin = "0.9.5"
 scip-java = "0.10.4"
-semanticdb-kotlinc = "0.5.0"
+semanticdb-kotlinc = "0.6.0"
 
 # Kotlin versions
 coroutines = "1.10.2"
-kotlin = "2.1.21" # remember to change ksp-plugin
-ksp-plugin = "2.1.21-2.0.2"
-serialization = "1.8.1"
+kotlin = "2.2.0" # remember to change ksp-plugin
+ksp-plugin = "2.2.0-2.0.2"
+serialization = "1.9.0"
 
 # Linter versions
 detekt = "1.23.8"
