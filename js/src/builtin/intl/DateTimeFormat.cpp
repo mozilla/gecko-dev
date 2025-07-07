@@ -426,67 +426,6 @@ bool js::intl_defaultCalendar(JSContext* cx, unsigned argc, Value* vp) {
   return DefaultCalendar(cx, locale, args.rval());
 }
 
-bool js::intl_IsValidTimeZoneName(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  MOZ_ASSERT(args[0].isString());
-
-  SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
-
-  Rooted<JSLinearString*> timeZone(cx, args[0].toString()->ensureLinear(cx));
-  if (!timeZone) {
-    return false;
-  }
-
-  Rooted<JSAtom*> validatedTimeZone(cx);
-  if (!sharedIntlData.validateTimeZoneName(cx, timeZone, &validatedTimeZone)) {
-    return false;
-  }
-
-  if (validatedTimeZone) {
-    args.rval().setString(validatedTimeZone);
-  } else {
-    args.rval().setNull();
-  }
-  return true;
-}
-
-JSLinearString* js::intl::CanonicalizeTimeZone(
-    JSContext* cx, Handle<JSLinearString*> timeZone) {
-  SharedIntlData& sharedIntlData = cx->runtime()->sharedIntlData.ref();
-
-  auto* result = sharedIntlData.canonicalizeTimeZone(cx, timeZone);
-  if (!result) {
-    return nullptr;
-  }
-
-  // Links to UTC are handled by SharedIntlData.
-  MOZ_ASSERT(!StringEqualsLiteral(result, "GMT"));
-  MOZ_ASSERT(!StringEqualsLiteral(result, "Etc/UTC"));
-  MOZ_ASSERT(!StringEqualsLiteral(result, "Etc/GMT"));
-
-  return result;
-}
-
-bool js::intl_canonicalizeTimeZone(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-  MOZ_ASSERT(args[0].isString());
-
-  Rooted<JSLinearString*> timeZone(cx, args[0].toString()->ensureLinear(cx));
-  if (!timeZone) {
-    return false;
-  }
-
-  auto* result = intl::CanonicalizeTimeZone(cx, timeZone);
-  if (!result) {
-    return false;
-  }
-
-  args.rval().setString(result);
-  return true;
-}
-
 enum class HourCycle {
   // 12 hour cycle, from 0 to 11.
   H11,

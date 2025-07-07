@@ -233,24 +233,6 @@ bool js::intl::SharedIntlData::ensureTimeZones(JSContext* cx) {
   return true;
 }
 
-bool js::intl::SharedIntlData::validateTimeZoneName(
-    JSContext* cx, Handle<JSLinearString*> timeZone,
-    MutableHandle<JSAtom*> result) {
-  if (!ensureTimeZones(cx)) {
-    return false;
-  }
-
-  auto availablePtr =
-      availableTimeZones.lookup(AvailableTimeZoneSet::Lookup{timeZone});
-  if (availablePtr) {
-    JSAtom* availableTimeZone = *availablePtr;
-    cx->markAtom(availableTimeZone);
-    result.set(availableTimeZone);
-  }
-
-  return true;
-}
-
 JSLinearString* js::intl::SharedIntlData::canonicalizeTimeZone(
     JSContext* cx, Handle<JSLinearString*> timeZone) {
   if (!ensureTimeZones(cx)) {

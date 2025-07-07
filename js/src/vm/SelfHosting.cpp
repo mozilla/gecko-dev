@@ -48,6 +48,7 @@
 #include "builtin/String.h"
 #ifdef JS_HAS_INTL_API
 #  include "builtin/temporal/Duration.h"
+#  include "builtin/temporal/TimeZone.h"
 #endif
 #include "builtin/WeakMapObject.h"
 #include "frontend/BytecodeCompiler.h"    // CompileGlobalScriptToStencil
@@ -1496,6 +1497,21 @@ static bool intrinsic_DefaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
   args.rval().setString(timeZone);
   return true;
 }
+
+static bool intl_ValidateAndCanonicalizeTimeZone(JSContext* cx, unsigned argc,
+                                                 Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+
+  Rooted<JSString*> timeZone(cx, args[0].toString());
+  auto* timeZoneId = temporal::ToValidCanonicalTimeZoneIdentifier(cx, timeZone);
+  if (!timeZoneId) {
+    return false;
+  }
+
+  args.rval().setString(timeZoneId);
+  return true;
+}
 #endif  // JS_HAS_INTL_API
 
 static bool intrinsic_ConstructFunction(JSContext* cx, unsigned argc,
@@ -2222,7 +2238,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("intl_GuardToSegments",
                     intrinsic_GuardToBuiltin<SegmentsObject>, 1, 0,
                     IntlGuardToSegments),
-    JS_FN("intl_IsValidTimeZoneName", intl_IsValidTimeZoneName, 1, 0),
     JS_FN("intl_IsWrappedDateTimeFormat",
           intrinsic_IsWrappedInstanceOfBuiltin<DateTimeFormatObject>, 1, 0),
     JS_FN("intl_IsWrappedNumberFormat",
@@ -2235,6 +2250,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
           intl_TryValidateAndCanonicalizeLanguageTag, 1, 0),
     JS_FN("intl_ValidateAndCanonicalizeLanguageTag",
           intl_ValidateAndCanonicalizeLanguageTag, 2, 0),
+    JS_FN("intl_ValidateAndCanonicalizeTimeZone",
+          intl_ValidateAndCanonicalizeTimeZone, 1, 0),
     JS_FN("intl_ValidateAndCanonicalizeUnicodeExtensionType",
           intl_ValidateAndCanonicalizeUnicodeExtensionType, 3, 0),
     JS_FN("intl_availableCalendars", intl_availableCalendars, 1, 0),
@@ -2243,7 +2260,6 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("intl_availableMeasurementUnits", intl_availableMeasurementUnits, 0,
           0),
 #  endif
-    JS_FN("intl_canonicalizeTimeZone", intl_canonicalizeTimeZone, 1, 0),
     JS_FN("intl_defaultCalendar", intl_defaultCalendar, 1, 0),
     JS_FN("intl_isIgnorePunctuation", intl_isIgnorePunctuation, 1, 0),
     JS_FN("intl_isUpperCaseFirst", intl_isUpperCaseFirst, 1, 0),
