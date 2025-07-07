@@ -63,29 +63,21 @@ inline constexpr auto Empty = {
 };
 
 inline constexpr auto Gregorian = {
-    "gregory"sv,
     "ce"sv,
     "ad"sv,
 };
 
 inline constexpr auto GregorianInverse = {
-    "gregory-inverse"sv,
-    "bc"sv,
     "bce"sv,
+    "bc"sv,
 };
 
-inline constexpr auto Japanese = {
-    "japanese"sv,
-    "gregory"sv,
-    "ad"sv,
-    "ce"sv,
+inline constexpr auto Islamic = {
+    "ah"sv,
 };
 
-inline constexpr auto JapaneseInverse = {
-    "japanese-inverse"sv,
-    "gregory-inverse"sv,
-    "bc"sv,
-    "bce"sv,
+inline constexpr auto IslamicInverse = {
+    "bh"sv,
 };
 
 inline constexpr auto JapaneseMeiji = {
@@ -114,8 +106,9 @@ inline constexpr auto ROC = {
 };
 
 inline constexpr auto ROCInverse = {
-    "roc-inverse"sv,
+    "broc"sv,
     "before-roc"sv,
+    "minguo-qian"sv,
 };
 }  // namespace names
 }  // namespace eras
@@ -164,11 +157,6 @@ constexpr auto& CalendarEraNames(CalendarId calendar, EraCode era) {
     case CalendarId::EthiopianAmeteAlem:
     case CalendarId::Hebrew:
     case CalendarId::Indian:
-    case CalendarId::Islamic:
-    case CalendarId::IslamicCivil:
-    case CalendarId::IslamicRGSA:
-    case CalendarId::IslamicTabular:
-    case CalendarId::IslamicUmmAlQura:
     case CalendarId::Persian:
       return eras::names::Empty;
 
@@ -178,12 +166,22 @@ constexpr auto& CalendarEraNames(CalendarId calendar, EraCode era) {
                                       : eras::names::GregorianInverse;
     }
 
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura: {
+      MOZ_ASSERT(era == EraCode::Standard || era == EraCode::Inverse);
+      return era == EraCode::Standard ? eras::names::Islamic
+                                      : eras::names::IslamicInverse;
+    }
+
     case CalendarId::Japanese: {
       switch (era) {
         case EraCode::Standard:
-          return eras::names::Japanese;
+          return eras::names::Gregorian;
         case EraCode::Inverse:
-          return eras::names::JapaneseInverse;
+          return eras::names::GregorianInverse;
         case EraCode::Meiji:
           return eras::names::JapaneseMeiji;
         case EraCode::Taisho:
@@ -225,17 +223,17 @@ constexpr bool CalendarEraStartsAtYearBoundary(CalendarId id) {
     case CalendarId::EthiopianAmeteAlem:
     case CalendarId::Hebrew:
     case CalendarId::Indian:
-    case CalendarId::Islamic:
-    case CalendarId::IslamicCivil:
-    case CalendarId::IslamicRGSA:
-    case CalendarId::IslamicTabular:
-    case CalendarId::IslamicUmmAlQura:
     case CalendarId::Persian:
       return true;
 
     // Calendar system which use multiple eras, but each era starts at a year
     // boundary.
     case CalendarId::Gregorian:
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
     case CalendarId::ROC:
       return true;
 

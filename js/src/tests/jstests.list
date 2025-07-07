@@ -948,3 +948,12 @@ skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-ethiopic.js
 
 # https://github.com/tc39/proposal-intl-era-monthcode/issues/23 and https://github.com/tc39/proposal-intl-era-monthcode/issues/4
 skip script test262/staging/sm/Temporal/PlainDate/non-positive-era-year.js
+
+# Canonical era names have changed.
+skip script test262/intl402/Temporal/ZonedDateTime/from/canonicalize-era-codes.js 
+skip script test262/staging/Intl402/Temporal/old/japanese-before-era.js
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-gregory.js
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamicc.js
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic-civil.js
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic-tbla.js
+skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic-umalqura.js

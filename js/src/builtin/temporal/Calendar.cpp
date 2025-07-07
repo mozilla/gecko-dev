@@ -2449,19 +2449,6 @@ static bool CalendarResolveFields(JSContext* cx, CalendarId calendar,
   return true;
 }
 
-static bool IsIslamicCalendar(CalendarId id) {
-  switch (id) {
-    case CalendarId::Islamic:
-    case CalendarId::IslamicCivil:
-    case CalendarId::IslamicRGSA:
-    case CalendarId::IslamicTabular:
-    case CalendarId::IslamicUmmAlQura:
-      return true;
-    default:
-      return false;
-  }
-}
-
 /**
  * CalendarISOToDate ( calendar, isoDate )
  *
@@ -2480,12 +2467,6 @@ bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
 
   // Step 2.
   if (!CalendarEraRelevant(calendarId)) {
-    result.setUndefined();
-    return true;
-  }
-
-  if (IsIslamicCalendar(calendarId)) {
-    // ICU4X Hijri calender has inverted era year.
     result.setUndefined();
     return true;
   }
@@ -2529,12 +2510,6 @@ bool js::temporal::CalendarEraYear(JSContext* cx,
 
   // Step 2.
   if (!CalendarEraRelevant(calendarId)) {
-    result.setUndefined();
-    return true;
-  }
-
-  if (IsIslamicCalendar(calendarId)) {
-    // ICU4X Hijri calender has inverted era year.
     result.setUndefined();
     return true;
   }
