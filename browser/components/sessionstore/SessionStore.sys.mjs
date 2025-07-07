@@ -4020,6 +4020,7 @@ var SessionStoreInternal = {
         : {}),
       skipLoad: true,
       preferredRemoteType: aTab.linkedBrowser.remoteType,
+      tabGroup: aTab.group,
     };
     let newTab = aWindow.gBrowser.addTrustedTab(null, tabOptions);
 

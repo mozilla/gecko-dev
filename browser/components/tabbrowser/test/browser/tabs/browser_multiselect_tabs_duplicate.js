@@ -129,6 +129,22 @@ add_task(async function test() {
     "tab4 should now be the still be the seventh tab"
   );
 
+  let group = gBrowser.addTabGroup([
+    gBrowser.visibleTabs[1],
+    gBrowser.visibleTabs[2],
+    gBrowser.visibleTabs[3],
+  ]);
+  gBrowser.selectedTabs = group.tabs;
+  let menu = await openTabMenuFor(group.tabs[0]);
+  menu.activateItem(menuItemDuplicateTabs);
+  // Can't use BrowserTestUtils.waitForNewTab because waitForNewTab only works
+  // with one tab at a time.
+  await TestUtils.waitForCondition(
+    () => gBrowser.visibleTabs.length == 10,
+    "Wait for three tabs to get created"
+  );
+  is(group.tabs.length, 6, "All tabs were duplicated into the tab group");
+
   let tabsToClose = gBrowser.visibleTabs.filter(t => t != originalTab);
   for (let tab of tabsToClose) {
     BrowserTestUtils.removeTab(tab);
