@@ -273,6 +273,33 @@ temporal::TimeZoneObject* js::intl::GlobalIntlData::getOrCreateDefaultTimeZone(
   return &defaultTimeZoneObject_->as<temporal::TimeZoneObject>();
 }
 
+temporal::TimeZoneObject* js::intl::GlobalIntlData::getOrCreateTimeZone(
+    JSContext* cx, Handle<JSLinearString*> identifier,
+    Handle<JSLinearString*> primaryIdentifier) {
+  // If there's a cached time zone, check if the identifiers are equal.
+  if (timeZoneObject_) {
+    auto* timeZone = &timeZoneObject_->as<temporal::TimeZoneObject>();
+    if (EqualStrings(timeZone->identifier(), identifier)) {
+      // Primary identifier must match when the identifiers are equal.
+      MOZ_ASSERT(
+          EqualStrings(timeZone->primaryIdentifier(), primaryIdentifier));
+
+      // Return the cached time zone.
+      return timeZone;
+    }
+  }
+
+  // If we didn't have a cache hit, create a new time zone.
+  auto* timeZone =
+      temporal::CreateTimeZoneObject(cx, identifier, primaryIdentifier);
+  if (!timeZone) {
+    return nullptr;
+  }
+  timeZoneObject_ = timeZone;
+
+  return &timeZone->as<temporal::TimeZoneObject>();
+}
+
 void js::intl::GlobalIntlData::trace(JSTracer* trc) {
   TraceNullableEdge(trc, &runtimeDefaultLocale_,
                     "GlobalIntlData::runtimeDefaultLocale_");
@@ -283,6 +310,7 @@ void js::intl::GlobalIntlData::trace(JSTracer* trc) {
   TraceNullableEdge(trc, &defaultTimeZone_, "GlobalIntlData::defaultTimeZone_");
   TraceNullableEdge(trc, &defaultTimeZoneObject_,
                     "GlobalIntlData::defaultTimeZoneObject_");
+  TraceNullableEdge(trc, &timeZoneObject_, "GlobalIntlData::timeZoneObject_");
 
   TraceNullableEdge(trc, &collatorLocale_, "GlobalIntlData::collatorLocale_");
   TraceNullableEdge(trc, &collator_, "GlobalIntlData::collator_");

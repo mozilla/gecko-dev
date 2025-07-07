@@ -101,8 +101,6 @@ static JSLinearString* FormatOffsetTimeZoneIdentifier(JSContext* cx,
 TimeZoneObject* js::temporal::CreateTimeZoneObject(
     JSContext* cx, Handle<JSLinearString*> identifier,
     Handle<JSLinearString*> primaryIdentifier) {
-  // TODO: Implement a built-in time zone object cache.
-
   auto* object = NewObjectWithGivenProto<TimeZoneObject>(cx, nullptr);
   if (!object) {
     return nullptr;
@@ -117,6 +115,13 @@ TimeZoneObject* js::temporal::CreateTimeZoneObject(
   object->setFixedSlot(TimeZoneObject::OFFSET_MINUTES_SLOT, UndefinedValue());
 
   return object;
+}
+
+static TimeZoneObject* GetOrCreateTimeZoneObject(
+    JSContext* cx, Handle<JSLinearString*> identifier,
+    Handle<JSLinearString*> primaryIdentifier) {
+  return cx->global()->globalIntlData().getOrCreateTimeZone(cx, identifier,
+                                                            primaryIdentifier);
 }
 
 static TimeZoneObject* CreateTimeZoneObject(JSContext* cx,
@@ -687,7 +692,7 @@ bool js::temporal::ToTemporalTimeZone(JSContext* cx,
   }
 
   // Step 9.
-  auto* obj = CreateTimeZoneObject(cx, identifier, primaryIdentifier);
+  auto* obj = GetOrCreateTimeZoneObject(cx, identifier, primaryIdentifier);
   if (!obj) {
     return false;
   }
@@ -1169,7 +1174,7 @@ bool js::temporal::WrapTimeZoneValueObject(
   }
 
   auto* obj =
-      CreateTimeZoneObject(cx, identifierLinear, primaryIdentifierLinear);
+      GetOrCreateTimeZoneObject(cx, identifierLinear, primaryIdentifierLinear);
   if (!obj) {
     return false;
   }
