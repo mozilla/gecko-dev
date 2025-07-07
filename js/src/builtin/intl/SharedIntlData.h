@@ -8,6 +8,7 @@
 #define builtin_intl_SharedIntlData_h
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
 
 #include <stddef.h>
@@ -69,6 +70,11 @@ class SharedIntlData {
         : isLatin1(true), length(length) {
       latin1Chars = reinterpret_cast<const JS::Latin1Char*>(chars);
     }
+
+    LinearStringLookup(const char16_t* chars, size_t length)
+        : isLatin1(false), length(length) {
+      twoByteChars = chars;
+    }
   };
 
  public:
@@ -99,15 +105,28 @@ class SharedIntlData {
 
   using TimeZoneName = JSAtom*;
 
-  struct TimeZoneHasher {
+  struct AvailableTimeZoneHasher {
     struct Lookup : LinearStringLookup {
       explicit Lookup(const JSLinearString* timeZone);
+      Lookup(const char* chars, size_t length);
+      Lookup(const char16_t* chars, size_t length);
     };
 
     static js::HashNumber hash(const Lookup& lookup) { return lookup.hash; }
     static bool match(TimeZoneName key, const Lookup& lookup);
   };
 
+  struct TimeZoneHasher {
+    using Lookup = TimeZoneName;
+
+    static js::HashNumber hash(const Lookup& lookup) { return lookup->hash(); }
+    static bool match(TimeZoneName key, const Lookup& lookup) {
+      return key == lookup;
+    }
+  };
+
+  using AvailableTimeZoneSet =
+      GCHashSet<TimeZoneName, AvailableTimeZoneHasher, SystemAllocPolicy>;
   using TimeZoneSet =
       GCHashSet<TimeZoneName, TimeZoneHasher, SystemAllocPolicy>;
   using TimeZoneMap =
@@ -118,11 +137,11 @@ class SharedIntlData {
    * As a threshold matter, available time zones are those time zones ICU
    * supports, via ucal_openTimeZones. But ICU supports additional non-IANA
    * time zones described in intl/icu/source/tools/tzcode/icuzones (listed in
-   * IntlTimeZoneData.cpp's |legacyICUTimeZones|) for its own backwards
+   * TimeZoneDataGenerated.h's |legacyICUTimeZones|) for its own backwards
    * compatibility purposes. This set consists of ICU's supported time zones,
    * minus all backwards-compatibility time zones.
    */
-  TimeZoneSet availableTimeZones;
+  AvailableTimeZoneSet availableTimeZones;
 
   /**
    * IANA treats some time zone names as Zones, that ICU instead treats as
@@ -142,8 +161,9 @@ class SharedIntlData {
    * instead treats as either Zones, or Links to different targets. An
    * example of the former is "Asia/Calcutta, which IANA assigns the target
    * "Asia/Kolkata" but ICU considers its own Zone. An example of the latter
-   * is "America/Virgin", which IANA assigns the target
-   * "America/Port_of_Spain" but ICU assigns the target "America/St_Thomas".
+   * is "US/East-Indiana", which IANA assigns the target
+   * "America/Indiana/Indianapolis" but ICU assigns the target
+   * "America/Indianapolis".
    *
    * ECMA-402 requires that we respect IANA data, so if we're asked to
    * canonicalize a time zone name that's a key in this map, we *must* return
@@ -159,30 +179,77 @@ class SharedIntlData {
    */
   bool ensureTimeZones(JSContext* cx);
 
+  /**
+   * Returns the canonical time zone name. |availableTimeZone| must be an
+   * available time zone name. If no canonical name was found, returns
+   * |nullptr|.
+   *
+   * This method only handles time zones which are canonicalized differently
+   * by ICU when compared to IANA.
+   */
+  JSAtom* tryCanonicalizeTimeZoneConsistentWithIANA(JSAtom* availableTimeZone);
+
+  /**
+   * Returns the canonical time zone name. |availableTimeZone| must be an
+   * available time zone name.
+   */
+  JSAtom* canonicalizeAvailableTimeZone(JSContext* cx,
+                                        JS::Handle<JSAtom*> availableTimeZone);
+
+  /**
+   * Validates and canonicalizes a time zone name. Returns the case-normalized
+   * identifier in |identifier| and its primary time zone in |primary|. If the
+   * input time zone isn't a valid IANA time zone name, |identifier| and
+   * |primary| both remain unchanged.
+   */
+  bool validateAndCanonicalizeTimeZone(
+      JSContext* cx, const AvailableTimeZoneSet::Lookup& lookup,
+      JS::MutableHandle<JSAtom*> identifier,
+      JS::MutableHandle<JSAtom*> primary);
+
  public:
   /**
    * Returns the validated time zone name in |result|. If the input time zone
    * isn't a valid IANA time zone name, |result| remains unchanged.
    */
-  bool validateTimeZoneName(JSContext* cx, JS::Handle<JSString*> timeZone,
+  bool validateTimeZoneName(JSContext* cx, JS::Handle<JSLinearString*> timeZone,
                             JS::MutableHandle<JSAtom*> result);
 
   /**
-   * Returns the canonical time zone name in |result|. If no canonical name
-   * was found, |result| remains unchanged.
-   *
-   * This method only handles time zones which are canonicalized differently
-   * by ICU when compared to IANA.
+   * Returns the canonical time zone name. |timeZone| must be a valid time zone
+   * name.
    */
-  bool tryCanonicalizeTimeZoneConsistentWithIANA(
-      JSContext* cx, JS::Handle<JSString*> timeZone,
-      JS::MutableHandle<JSAtom*> result);
+  JSLinearString* canonicalizeTimeZone(JSContext* cx,
+                                       JS::Handle<JSLinearString*> timeZone);
+
+  /**
+   * Validates and canonicalizes a time zone name. Returns the case-normalized
+   * identifier in |identifier| and its primary time zone in |primary|. If the
+   * input time zone isn't a valid IANA time zone name, |identifier| and
+   * |primary| both remain unchanged.
+   */
+  bool validateAndCanonicalizeTimeZone(JSContext* cx,
+                                       JS::Handle<JSLinearString*> timeZone,
+                                       JS::MutableHandle<JSAtom*> identifier,
+                                       JS::MutableHandle<JSAtom*> primary);
+
+  /**
+   * Validates and canonicalizes a time zone name. Returns the case-normalized
+   * identifier in |identifier| and its primary time zone in |primary|. If the
+   * input time zone isn't a valid IANA time zone name, |identifier| and
+   * |primary| both remain unchanged.
+   */
+  bool validateAndCanonicalizeTimeZone(JSContext* cx,
+                                       mozilla::Span<const char> timeZone,
+                                       JS::MutableHandle<JSAtom*> identifier,
+                                       JS::MutableHandle<JSAtom*> primary);
 
   /**
    * Returns an iterator over all available time zones supported by ICU. The
    * returned time zone names aren't canonicalized.
    */
-  JS::Result<TimeZoneSet::Iterator> availableTimeZonesIteration(JSContext* cx);
+  JS::Result<AvailableTimeZoneSet::Iterator> availableTimeZonesIteration(
+      JSContext* cx);
 
  private:
   using Locale = JSAtom*;

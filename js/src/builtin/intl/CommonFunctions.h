@@ -107,7 +107,7 @@ void RemoveICUCellMemory(JSObject* obj, size_t nbytes);
 void RemoveICUCellMemory(JS::GCContext* gcx, JSObject* obj, size_t nbytes);
 
 JSLinearString* CanonicalizeTimeZone(JSContext* cx,
-                                     JS::Handle<JSString*> timeZone);
+                                     JS::Handle<JSLinearString*> timeZone);
 }  // namespace intl
 
 }  // namespace js
