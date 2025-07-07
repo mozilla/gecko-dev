@@ -500,6 +500,11 @@ newtab-download-mobile-highlight-body-variant-c = Did you know you can take { -b
 newtab-download-mobile-highlight-image =
     .aria-label = QR code to download { -brand-product-name } for mobile
 
+## Strings for shortcuts highlight
+
+newtab-shortcuts-highlight-title = Your favorites at your fingertips
+newtab-shortcuts-highlight-subtitle = Add a shortcut to keep your favorite sites one click away.
+
 ## Strings for reporting ads and content
 
 newtab-report-content-why-reporting-this =
