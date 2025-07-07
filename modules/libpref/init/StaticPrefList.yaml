@@ -2724,6 +2724,12 @@
   value: false
   mirror: always
 
+# Whether the commandfor "toggle" and "open" details commands are enabled
+- name: dom.element.commandfor.on_details.enabled
+  type: bool
+  value: false
+  mirror: always
+
 - name: dom.mouse_capture.enabled
   type: bool
   value: true

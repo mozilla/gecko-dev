@@ -589,7 +589,17 @@ void HTMLButtonElement::GetCommand(nsAString& aCommand) const {
 Element::Command HTMLButtonElement::GetCommand() const {
   if (const nsAttrValue* attr = GetParsedAttr(nsGkAtoms::command)) {
     if (attr->Type() == nsAttrValue::eEnum) {
-      return Command(attr->GetEnumValue());
+      auto command = Command(attr->GetEnumValue());
+      // "open" and "toggle" commands are for the Detials feature, part of
+      // "future-invokers" proposal. They should not be exposed as valid
+      // commands unless the details feature is enabled. "close" is also part of
+      // this feature, but it is also valid for dialogs, so can be exposed.
+      // https://open-ui.org/components/future-invokers.explainer/
+      if ((command == Command::Open || command == Command::Toggle) &&
+          !StaticPrefs::dom_element_commandfor_on_details_enabled()) {
+        return Command::Invalid;
+      }
+      return command;
     }
     if (StringBeginsWith(attr->GetStringValue(), u"--"_ns)) {
       return Command::Custom;
