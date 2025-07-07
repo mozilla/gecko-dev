@@ -1097,6 +1097,12 @@ static int32_t FromAmeteAlemToAmeteMihret(int32_t year) {
   return year - ethiopianYearsFromCreationToIncarnation;
 }
 
+static int32_t FromAmeteMihretToAmeteAlem(int32_t year) {
+  // Add the number of years from creation to incarnation to anchor at the date
+  // of creation.
+  return year + ethiopianYearsFromCreationToIncarnation;
+}
+
 static UniqueICU4XDate CreateDateFromCodes(
     JSContext* cx, CalendarId calendarId, const icu4x::capi::Calendar* calendar,
     EraYear eraYear, MonthCode monthCode, int32_t day,
@@ -1127,10 +1133,16 @@ static UniqueICU4XDate CreateDateFromCodes(
     return nullptr;
   }
 
-  // TODO: Support non-positive era years for Ethiopian.
+  // ICU4X requires to switch from Amete Mihret to Amete Alem calendar when the
+  // year is non-positive.
+  //
+  // https://unicode-org.atlassian.net/browse/CLDR-18739
   if (calendarId == CalendarId::Ethiopian && eraYear.year <= 0) {
-    ReportCalendarFieldOverflow(cx, "year", eraYear.year);
-    return nullptr;
+    auto cal = CreateICU4XCalendar(CalendarId::EthiopianAmeteAlem);
+    return CreateDateFromCodes(
+        cx, CalendarId::EthiopianAmeteAlem, cal.get(),
+        {EraCode::Standard, FromAmeteMihretToAmeteAlem(eraYear.year)},
+        monthCode, day, overflow);
   }
 
   auto result =
