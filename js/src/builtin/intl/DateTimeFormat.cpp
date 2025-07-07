@@ -515,15 +515,15 @@ bool js::intl_defaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 0);
 
-  FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> timeZone(cx);
-  auto result =
-      DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()), timeZone);
-  if (result.isErr()) {
-    intl::ReportInternalError(cx, result.unwrapErr());
+  TimeZoneIdentifierVector timeZoneId;
+  if (!DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
+                                timeZoneId)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
-  JSString* str = timeZone.toString(cx);
+  JSString* str = NewStringCopy<CanGC>(
+      cx, static_cast<mozilla::Span<const char>>(timeZoneId));
   if (!str) {
     return false;
   }
@@ -559,11 +559,10 @@ bool js::intl_isDefaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> chars(cx);
-  auto result =
-      DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()), chars);
-  if (result.isErr()) {
-    intl::ReportInternalError(cx, result.unwrapErr());
+  TimeZoneIdentifierVector timeZoneId;
+  if (!DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
+                                timeZoneId)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
@@ -572,17 +571,7 @@ bool js::intl_isDefaultTimeZone(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  bool equals;
-  if (str->length() == chars.length()) {
-    JS::AutoCheckCannotGC nogc;
-    equals =
-        str->hasLatin1Chars()
-            ? EqualChars(str->latin1Chars(nogc), chars.data(), str->length())
-            : EqualChars(str->twoByteChars(nogc), chars.data(), str->length());
-  } else {
-    equals = false;
-  }
-
+  bool equals = StringEqualsAscii(str, timeZoneId.begin(), timeZoneId.length());
   args.rval().setBoolean(equals);
   return true;
 }

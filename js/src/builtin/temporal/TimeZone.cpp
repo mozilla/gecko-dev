@@ -338,15 +338,16 @@ static bool SystemTimeZoneOffset(JSContext* cx, int32_t* offset) {
  * Returns the IANA time zone name for the host environment's current time zone.
  */
 JSLinearString* js::temporal::SystemTimeZoneIdentifier(JSContext* cx) {
-  intl::FormatBuffer<char16_t, intl::INITIAL_CHAR_BUFFER_SIZE> formatBuffer(cx);
-  auto result = DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
-                                         formatBuffer);
-  if (result.isErr()) {
-    intl::ReportInternalError(cx, result.unwrapErr());
+  TimeZoneIdentifierVector timeZoneId;
+  if (!DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
+                                timeZoneId)) {
+    ReportOutOfMemory(cx);
     return nullptr;
   }
 
-  Rooted<JSLinearString*> timeZone(cx, formatBuffer.toString(cx));
+  Rooted<JSLinearString*> timeZone(
+      cx, NewStringCopy<CanGC>(
+              cx, static_cast<mozilla::Span<const char>>(timeZoneId)));
   if (!timeZone) {
     return nullptr;
   }
