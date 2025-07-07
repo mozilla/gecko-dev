@@ -5190,13 +5190,13 @@ void jit::DumpHashedPointer(GenericPrinter& out, const void* p) {
 }
 
 void jit::DumpMIRDefinitionID(GenericPrinter& out, const MDefinition* def,
-                              bool showHashedPointers) {
+                              bool showDetails) {
 #ifdef JS_JITSPEW
   if (!def) {
     out.printf("(null)");
     return;
   }
-  if (showHashedPointers) {
+  if (showDetails) {
     DumpHashedPointer(out, def);
     out.printf(".");
   }
@@ -5205,9 +5205,9 @@ void jit::DumpMIRDefinitionID(GenericPrinter& out, const MDefinition* def,
 }
 
 void jit::DumpMIRDefinition(GenericPrinter& out, const MDefinition* def,
-                            bool showHashedPointers) {
+                            bool showDetails) {
 #ifdef JS_JITSPEW
-  DumpMIRDefinitionID(out, def, showHashedPointers);
+  DumpMIRDefinitionID(out, def, showDetails);
   out.printf(" = %s.", StringFromMIRType(def->type()));
   if (def->isConstant()) {
     def->printOpcode(out);
@@ -5226,20 +5226,56 @@ void jit::DumpMIRDefinition(GenericPrinter& out, const MDefinition* def,
 
   for (size_t i = 0; i < def->numOperands(); i++) {
     out.printf(" ");
-    DumpMIRDefinitionID(out, def->getOperand(i), showHashedPointers);
+    DumpMIRDefinitionID(out, def->getOperand(i), showDetails);
+  }
+
+  if (def->dependency() && showDetails) {
+    out.printf(" DEP=");
+    DumpMIRDefinitionID(out, def->dependency(), showDetails);
+  }
+
+  if (def->hasUses()) {
+    out.printf("   uses=");
+    bool first = true;
+    for (auto use = def->usesBegin(); use != def->usesEnd(); use++) {
+      MNode* consumer = (*use)->consumer();
+      if (!first) {
+        out.printf(",");
+      }
+      if (consumer->isDefinition()) {
+        out.printf("%d", consumer->toDefinition()->id());
+      } else {
+        out.printf("?");
+      }
+      first = false;
+    }
+  }
+
+  if (def->hasAnyFlags() && showDetails) {
+    out.printf("   flags=");
+    bool first = true;
+#  define OUTPUT_FLAG(_F)                          \
+    do {                                           \
+      if (def->is##_F()) {                         \
+        out.printf("%s%s", first ? "" : ",", #_F); \
+        first = false;                             \
+      }                                            \
+    } while (0);
+    MIR_FLAG_LIST(OUTPUT_FLAG);
+#  undef OUTPUT_FLAG
   }
 #endif
 }
 
 void jit::DumpMIRBlockID(GenericPrinter& out, const MBasicBlock* block,
-                         bool showHashedPointers) {
+                         bool showDetails) {
 #ifdef JS_JITSPEW
   if (!block) {
     out.printf("Block(null)");
     return;
   }
   out.printf("Block");
-  if (showHashedPointers) {
+  if (showDetails) {
     out.printf(".");
     DumpHashedPointer(out, block);
     out.printf(".");
@@ -5249,20 +5285,20 @@ void jit::DumpMIRBlockID(GenericPrinter& out, const MBasicBlock* block,
 }
 
 void jit::DumpMIRBlock(GenericPrinter& out, MBasicBlock* block,
-                       bool showHashedPointers) {
+                       bool showDetails) {
 #ifdef JS_JITSPEW
   out.printf("  ");
-  DumpMIRBlockID(out, block, showHashedPointers);
+  DumpMIRBlockID(out, block, showDetails);
   out.printf(" -- preds=[");
   for (uint32_t i = 0; i < block->numPredecessors(); i++) {
     MBasicBlock* pred = block->getPredecessor(i);
     out.printf("%s", i == 0 ? "" : ", ");
-    DumpMIRBlockID(out, pred, showHashedPointers);
+    DumpMIRBlockID(out, pred, showDetails);
   }
   out.printf("] -- LD=%u -- K=%s -- s-w-phis=", block->loopDepth(),
              block->nameOfKind());
   if (block->successorWithPhis()) {
-    DumpMIRBlockID(out, block->successorWithPhis(), showHashedPointers);
+    DumpMIRBlockID(out, block->successorWithPhis(), showDetails);
     out.printf(",#%u\n", block->positionInPhiSuccessor());
   } else {
     out.printf("(null)\n");
@@ -5270,31 +5306,30 @@ void jit::DumpMIRBlock(GenericPrinter& out, MBasicBlock* block,
   for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd());
        iter != end; iter++) {
     out.printf("    ");
-    jit::DumpMIRDefinition(out, *iter, showHashedPointers);
+    jit::DumpMIRDefinition(out, *iter, showDetails);
     out.printf("\n");
   }
   for (MInstructionIterator iter(block->begin()), end(block->end());
        iter != end; iter++) {
     out.printf("    ");
-    DumpMIRDefinition(out, *iter, showHashedPointers);
+    DumpMIRDefinition(out, *iter, showDetails);
     out.printf("\n");
   }
 #endif
 }
 
-void jit::DumpMIRGraph(GenericPrinter& out, MIRGraph& graph,
-                       bool showHashedPointers) {
+void jit::DumpMIRGraph(GenericPrinter& out, MIRGraph& graph, bool showDetails) {
 #ifdef JS_JITSPEW
   for (ReversePostorderIterator block(graph.rpoBegin());
        block != graph.rpoEnd(); block++) {
-    DumpMIRBlock(out, *block, showHashedPointers);
+    DumpMIRBlock(out, *block, showDetails);
   }
 #endif
 }
 
 void jit::DumpMIRExpressions(GenericPrinter& out, MIRGraph& graph,
                              const CompileInfo& info, const char* phase,
-                             bool showHashedPointers) {
+                             bool showDetails) {
 #ifdef JS_JITSPEW
   if (!JitSpewEnabled(JitSpew_MIRExpressions)) {
     return;
@@ -5302,7 +5337,7 @@ void jit::DumpMIRExpressions(GenericPrinter& out, MIRGraph& graph,
 
   out.printf("===== %s =====\n", phase);
 
-  DumpMIRGraph(out, graph, showHashedPointers);
+  DumpMIRGraph(out, graph, showDetails);
 
   if (info.compilingWasm()) {
     out.printf("===== end wasm MIR dump =====\n");

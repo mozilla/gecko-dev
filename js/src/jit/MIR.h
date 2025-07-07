@@ -723,6 +723,8 @@ class MDefinition : public MNode {
   MIR_FLAG_LIST(FLAG_ACCESSOR)
 #undef FLAG_ACCESSOR
 
+  bool hasAnyFlags() const { return flags_ != 0; }
+
   // Return the type of this value. This may be speculative, and enforced
   // dynamically with the use of bailout checks. If all the bailout checks
   // pass, the value will have this type.

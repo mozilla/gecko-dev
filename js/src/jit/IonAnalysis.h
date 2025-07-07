@@ -189,36 +189,37 @@ bool IsDiscardableAllowEffectful(const MDefinition* def);
 
 class CompileInfo;
 
-// Debug printing.  For avoidance of ambiguity resulting from use of integer
-// IDs for MBasicBlocks and MDefinitions, these routines can optionally be
-// asked to dump a base-26 hashed version of pointers too.  Be aware these are
-// not guaranteed to be unique, although collisions are very unlikely.
+// Debug printing.  When `showDetails` is `true`, extra details are shown.
+// Also, in that case, these routines will show an integer base-26 hashed
+// version of pointers.  This helps avoid ambiguities resulting from use of IDs
+// for MBasicBlocks and MDefinitions.  Be aware the hashed pointers are not
+// guaranteed to be unique, although collisions are very unlikely.
 
 // Dump `p`, hashed, to `out`.
 void DumpHashedPointer(GenericPrinter& out, const void* p);
 
 // Dump the ID and possibly the pointer hash of `def`, to `out`.
 void DumpMIRDefinitionID(GenericPrinter& out, const MDefinition* def,
-                         bool showHashedPointers = false);
+                         bool showDetails = false);
 // Dump an MDefinition to `out`.
 void DumpMIRDefinition(GenericPrinter& out, const MDefinition* def,
-                       bool showHashedPointers = false);
+                       bool showDetails = false);
 
 // Dump the ID and possibly the pointer hash of `block`, to `out`.
 void DumpMIRBlockID(GenericPrinter& out, const MBasicBlock* block,
-                    bool showHashedPointers = false);
+                    bool showDetails = false);
 // Dump an MBasicBlock to `out`.
 void DumpMIRBlock(GenericPrinter& out, MBasicBlock* block,
-                  bool showHashedPointers = false);
+                  bool showDetails = false);
 
 // Dump an entire MIRGraph to `out`.
 void DumpMIRGraph(GenericPrinter& out, MIRGraph& graph,
-                  bool showHashedPointers = false);
+                  bool showDetails = false);
 
 // Legacy entry point for DumpMIRGraph.
 void DumpMIRExpressions(GenericPrinter& out, MIRGraph& graph,
                         const CompileInfo& info, const char* phase,
-                        bool showHashedPointers = false);
+                        bool showDetails = false);
 }  // namespace jit
 }  // namespace js
 

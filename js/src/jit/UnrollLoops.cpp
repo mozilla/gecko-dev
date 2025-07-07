@@ -243,7 +243,7 @@ static void DumpBlockTableRows(const BlockTable& table, int32_t firstCix,
     }
     for (uint32_t bix = 0; bix < table.size2(); bix++) {
       DumpMIRBlock(printer, table.get(uint32_t(cix), bix),
-                   /*showHashedPointers=*/true);
+                   /*showDetails=*/true);
     }
   }
   printer.printf(">>>>\n");
@@ -272,7 +272,7 @@ static void DumpValueTable(const ValueTable& table, const char* tag) {
     for (uint32_t vix = 0; vix < table.size2(); vix++) {
       printer.printf("    ");
       DumpMIRDefinition(printer, table.get(cix, vix),
-                        /*showHashedPointers=*/true);
+                        /*showDetails=*/true);
       printer.printf("\n");
     }
   }
@@ -950,7 +950,7 @@ static bool UnrollAndOrPeelLoop(MIRGraph& graph, UnrollState& state) {
     Fprinter& printer(JitSpewPrinter());
     printer.printf(
         "<<<< ORIGINAL FUNCTION (after LCSSA-ification of chosen loops)\n");
-    DumpMIRGraph(printer, graph, /*showHashedPointers=*/true);
+    DumpMIRGraph(printer, graph, /*showDetails=*/true);
     printer.printf(">>>>\n");
   }
 #endif
@@ -990,14 +990,14 @@ static bool UnrollAndOrPeelLoop(MIRGraph& graph, UnrollState& state) {
     printer.printf("<<<< EXIT TARGET BLOCKS: ");
     for (size_t i = 0; i < state.exitTargetBlocks.size(); i++) {
       MBasicBlock* targetBlock = state.exitTargetBlocks.get(i);
-      DumpMIRBlockID(printer, targetBlock, /*showHashedPointers=*/true);
+      DumpMIRBlockID(printer, targetBlock, /*showDetails=*/true);
       printer.printf(" ");
     }
     printer.printf(">>>>\n");
     printer.printf("<<<< EXITING VALUES: ");
     for (size_t i = 0; i < state.exitingValues.size(); i++) {
       MDefinition* exitingValue = state.exitingValues.get(i);
-      DumpMIRDefinitionID(printer, exitingValue, /*showHashedPointers=*/true);
+      DumpMIRDefinitionID(printer, exitingValue, /*showDetails=*/true);
       printer.printf(" ");
     }
     printer.printf(">>>>\n");
@@ -1647,7 +1647,7 @@ static bool UnrollAndOrPeelLoop(MIRGraph& graph, UnrollState& state) {
     Fprinter& printer(JitSpewPrinter());
     printer.printf("<<<< SPLITTER BLOCKS\n");
     for (MBasicBlock* block : splitterBlocks) {
-      DumpMIRBlock(printer, block, /*showHashedPointers=*/true);
+      DumpMIRBlock(printer, block, /*showDetails=*/true);
     }
     printer.printf(">>>>\n");
   }
@@ -1677,7 +1677,7 @@ static bool UnrollAndOrPeelLoop(MIRGraph& graph, UnrollState& state) {
   if (JitSpewEnabled(JitSpew_UnrollDetails)) {
     Fprinter& printer(JitSpewPrinter());
     printer.printf("<<<< FUNCTION AFTER UNROLLING\n");
-    DumpMIRGraph(printer, graph, /*showHashedPointers=*/true);
+    DumpMIRGraph(printer, graph, /*showDetails=*/true);
     printer.printf(">>>>\n");
   }
 #endif
