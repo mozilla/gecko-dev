@@ -122,7 +122,9 @@ add_setup(function () {
 });
 
 add_task(async function test_deleteByPrincipal() {
-  await SpecialPowers.setBoolPref("dom.security.https_first", false);
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.security.https_first", false]],
+  });
   await addTestTabs();
 
   // Clear data for content principal of A
@@ -161,7 +163,9 @@ add_task(async function test_deleteByPrincipal() {
 });
 
 add_task(async function test_deleteBySite() {
-  await SpecialPowers.setBoolPref("dom.security.https_first", false);
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.security.https_first", false]],
+  });
   await addTestTabs();
 
   // Clear data for site A.
