@@ -3483,6 +3483,11 @@ bool WasmTagObject::construct(JSContext* cx, unsigned argc, Value* vp) {
   if (!ParseValTypes(cx, paramsVal, params)) {
     return false;
   }
+  if (params.length() > MaxParams) {
+    JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                             JSMSG_WASM_BAD_EXN_TAG_PARAMS);
+    return false;
+  }
 
   RefPtr<TypeContext> types = js_new<TypeContext>();
   if (!types) {

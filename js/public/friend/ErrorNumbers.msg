@@ -489,6 +489,7 @@ MSG_DEF(JSMSG_WASM_BAD_EXN_ARG,        0, JSEXN_TYPEERR,     "first argument mus
 MSG_DEF(JSMSG_WASM_BAD_EXN_PAYLOAD,    0, JSEXN_TYPEERR,     "second argument must be an object")
 MSG_DEF(JSMSG_WASM_BAD_EXN_PAYLOAD_LEN, 2, JSEXN_TYPEERR,    "expected {0} values but got {1}")
 MSG_DEF(JSMSG_WASM_BAD_EXN_TAG,        0, JSEXN_TYPEERR,     "exception's tag did not match the provided exception tag")
+MSG_DEF(JSMSG_WASM_BAD_EXN_TAG_PARAMS, 0, JSEXN_TYPEERR,     "too many tag parameters")
 MSG_DEF(JSMSG_WASM_BAD_EXN_OPTIONS,    0, JSEXN_TYPEERR,     "argument cannot be converted to an ExceptionOptions")
 MSG_DEF(JSMSG_WASM_BAD_FUNCTION_TYPE,  1, JSEXN_TYPEERR,     "too many function {0}")
 MSG_DEF(JSMSG_WASM_BAD_FUNCTION_VALUE, 0, JSEXN_TYPEERR,     "second argument must be a function")
