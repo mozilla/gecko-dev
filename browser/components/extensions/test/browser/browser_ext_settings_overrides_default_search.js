@@ -90,8 +90,8 @@ function clearTelemetry() {
   Services.fog.testResetFOG();
 }
 
-async function checkTelemetry(source, prevEngine, newEngine) {
-  let snapshot = await Glean.searchEngineDefault.changed.testGetValue();
+function checkTelemetry(source, prevEngine, newEngine) {
+  let snapshot = Glean.searchEngineDefault.changed.testGetValue();
   delete snapshot[0].timestamp;
   Assert.deepEqual(
     snapshot[0],
@@ -141,7 +141,7 @@ add_task(async function test_extension_setting_default_engine() {
     `Default engine is ${ALTERNATE_ENGINE.name}`
   );
 
-  await checkTelemetry("addon-install", DEFAULT_ENGINE, ALTERNATE_ENGINE);
+  checkTelemetry("addon-install", DEFAULT_ENGINE, ALTERNATE_ENGINE);
 
   clearTelemetry();
 
@@ -153,7 +153,7 @@ add_task(async function test_extension_setting_default_engine() {
     `Default engine is ${DEFAULT_ENGINE.name}`
   );
 
-  await checkTelemetry("addon-uninstall", ALTERNATE_ENGINE, DEFAULT_ENGINE);
+  checkTelemetry("addon-uninstall", ALTERNATE_ENGINE, DEFAULT_ENGINE);
 });
 
 /* This tests what happens when the engine you're setting it to is hidden. */
@@ -279,7 +279,7 @@ add_task(async function test_extension_setting_default_engine_external() {
     "Default engine was changed after accepting prompt"
   );
 
-  await checkTelemetry("addon-install", DEFAULT_ENGINE, {
+  checkTelemetry("addon-install", DEFAULT_ENGINE, {
     id: "other-Example Engine",
     name: "Example Engine",
     loadPath: "[addon]extension1@mozilla.com",
@@ -302,7 +302,7 @@ add_task(async function test_extension_setting_default_engine_external() {
     `Default engine is ${DEFAULT_ENGINE.name} after disabling`
   );
 
-  await checkTelemetry(
+  checkTelemetry(
     "addon-uninstall",
     {
       id: "other-Example Engine",
@@ -329,7 +329,7 @@ add_task(async function test_extension_setting_default_engine_external() {
     `Default engine is ${NAME} after enabling`
   );
 
-  await checkTelemetry("addon-install", DEFAULT_ENGINE, {
+  checkTelemetry("addon-install", DEFAULT_ENGINE, {
     id: "other-Example Engine",
     name: "Example Engine",
     loadPath: "[addon]extension1@mozilla.com",
