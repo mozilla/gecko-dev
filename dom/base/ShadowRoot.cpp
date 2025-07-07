@@ -149,16 +149,6 @@ void ShadowRoot::CloneInternalDataFrom(ShadowRoot* aOther) {
     SetIsUAWidget();
   }
 
-  size_t sheetCount = aOther->SheetCount();
-  for (size_t i = 0; i < sheetCount; ++i) {
-    StyleSheet* sheet = aOther->SheetAt(i);
-    if (sheet->IsApplicable()) {
-      RefPtr<StyleSheet> clonedSheet = sheet->Clone(nullptr, this);
-      if (clonedSheet) {
-        AppendStyleSheet(*clonedSheet.get());
-      }
-    }
-  }
   CloneAdoptedSheetsFrom(*aOther);
 }
 

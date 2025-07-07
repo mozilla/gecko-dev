@@ -740,4 +740,11 @@ bool HTMLLinkElement::IsPotentiallyRenderBlocking() {
   // the element was created by its node document's parser.
 }
 
+nsresult HTMLLinkElement::CopyInnerTo(HTMLLinkElement* aDest) {
+  nsresult rv = Element::CopyInnerTo(aDest);
+  NS_ENSURE_SUCCESS(rv, rv);
+  MaybeStartCopyStyleSheetTo(aDest, aDest->OwnerDoc());
+  return NS_OK;
+}
+
 }  // namespace mozilla::dom

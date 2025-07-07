@@ -14082,19 +14082,9 @@ already_AddRefed<Document> Document::CreateStaticClone(
     return nullptr;
   }
 
-  size_t sheetsCount = SheetCount();
-  for (size_t i = 0; i < sheetsCount; ++i) {
-    RefPtr<StyleSheet> sheet = SheetAt(i);
-    if (sheet) {
-      if (sheet->IsApplicable()) {
-        RefPtr<StyleSheet> clonedSheet = sheet->Clone(nullptr, clonedDoc);
-        NS_WARNING_ASSERTION(clonedSheet, "Cloning a stylesheet didn't work!");
-        if (clonedSheet) {
-          clonedDoc->AddStyleSheet(clonedSheet);
-        }
-      }
-    }
-  }
+  // Copy any stylesheet not referenced somewhere in the DOM tree (e.g. by
+  // `<style>`).
+
   clonedDoc->CloneAdoptedSheetsFrom(*this);
 
   for (int t = 0; t < AdditionalSheetTypeCount; ++t) {

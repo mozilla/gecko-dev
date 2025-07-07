@@ -197,6 +197,7 @@ class HTMLLinkElement final : public nsGenericHTMLElement,
   nsIContent& AsContent() final { return *this; }
   const LinkStyle* AsLinkStyle() const final { return this; }
   Maybe<SheetInfo> GetStyleSheetInfo() final;
+  nsresult CopyInnerTo(HTMLLinkElement* aDest);
 
   RefPtr<nsDOMTokenList> mRelList;
   RefPtr<nsDOMTokenList> mSizes;

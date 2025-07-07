@@ -99,6 +99,7 @@ class HTMLStyleElement final : public nsGenericHTMLElement,
    * parent; we should only respond to the change if aContent is non-anonymous.
    */
   void ContentChanged(nsIContent* aContent);
+  nsresult CopyInnerTo(HTMLStyleElement* aDest);
 
   RefPtr<nsDOMTokenList> mBlocking;
 };

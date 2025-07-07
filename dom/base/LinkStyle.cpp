@@ -258,12 +258,16 @@ Result<LinkStyle::Update, nsresult> LinkStyle::DoUpdateStyleSheet(
   Document* doc = thisContent.GetComposedDoc();
 
   // Loader could be null during unlink, see bug 1425866.
-  if (!doc || !doc->CSSLoader() || !doc->CSSLoader()->GetEnabled()) {
+  // ... No need to update if updating is disabled, as well.
+  if (!doc || !doc->CSSLoader() || !doc->CSSLoader()->GetEnabled() ||
+      !mUpdatesEnabled) {
     return Update{};
   }
 
-  // When static documents are created, stylesheets are cloned manually.
-  if (!mUpdatesEnabled || doc->IsStaticDocument()) {
+  // When static documents are created, we need to finish up cloning
+  // the stylesheet (See documentation for MaybeFinishCopyStyleSheet).
+  if (doc->IsStaticDocument()) {
+    MaybeFinishCopyStyleSheet(doc);
     return Update{};
   }
 
@@ -344,6 +348,47 @@ Result<LinkStyle::Update, nsresult> LinkStyle::DoUpdateStyleSheet(
     return Update{};
   }
   return resultOrError;
+}
+
+void LinkStyle::MaybeStartCopyStyleSheetTo(LinkStyle* aDest,
+                                           Document* aDoc) const {
+  MOZ_ASSERT(aDoc, "Copying to null Document?");
+  if (!aDoc->IsStaticDocument() || !mStyleSheet ||
+      !mStyleSheet->IsApplicable()) {
+    return;
+  }
+
+  // We don't yet if know we're in shadow root, so the only thing we can do is
+  // to keep an incomplete clone. Namely, the sheet does not have knowledge of
+  // its owning node and which document or shadow root it belongs to.
+  aDest->mStyleSheet = mStyleSheet->Clone(nullptr, nullptr);
+}
+
+void LinkStyle::MaybeFinishCopyStyleSheet(Document* aDocument) {
+  if (!mStyleSheet) {
+    return;
+  }
+  auto& thisContent = AsContent();
+  // Are we in the holdover copy state?
+  if (mStyleSheet->GetOwnerNode() == &thisContent) {
+    return;
+  }
+  MOZ_ASSERT(aDocument->IsStaticDocument(),
+             "Copying stylesheet over into a non-static document?");
+
+  DocumentOrShadowRoot* root = aDocument;
+  auto* shadowRoot = thisContent.GetContainingShadow();
+  if (shadowRoot) {
+    root = shadowRoot;
+    if (MOZ_UNLIKELY(!root)) {
+      // This can happen during unlink - just drop the holdover stylesheet.
+      mStyleSheet = nullptr;
+      return;
+    }
+  }
+  RefPtr<StyleSheet> sheet = mStyleSheet->Clone(nullptr, root);
+  SetStyleSheet(sheet.get());
+  aDocument->CSSLoader()->InsertSheetInTree(*sheet);
 }
 
 }  // namespace mozilla::dom

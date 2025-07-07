@@ -57,7 +57,7 @@ SVGStyleElement::SVGStyleElement(
 //----------------------------------------------------------------------
 // nsINode methods
 
-NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGStyleElement)
+NS_IMPL_ELEMENT_CLONE(SVGStyleElement)
 
 //----------------------------------------------------------------------
 // nsIContent methods
@@ -215,6 +215,13 @@ Maybe<LinkStyle::SheetInfo> SVGStyleElement::GetStyleSheetInfo() {
       IsExplicitlyEnabled::No,
       FetchPriority::Auto,
   });
+}
+
+nsresult SVGStyleElement::CopyInnerTo(SVGStyleElement* aDest) {
+  nsresult rv = Element::CopyInnerTo(aDest);
+  NS_ENSURE_SUCCESS(rv, rv);
+  MaybeStartCopyStyleSheetTo(aDest, aDest->OwnerDoc());
+  return NS_OK;
 }
 
 }  // namespace mozilla::dom

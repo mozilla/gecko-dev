@@ -279,6 +279,23 @@ class LinkStyle {
                                               nsICSSLoaderObserver*,
                                               ForceUpdate);
 
+  /**
+   * If the node is being copied into a static document, we need to clone the
+   * associated stylesheet over as well, preserving the relationship between
+   * the node and the stylesheet (See bug 1930618 as to why this is required).
+   * Nodes inheriting from this class should ensure that this is called on
+   * clone, usually by implementing CopyInnerTo. Because we generally don't have
+   * the knowledge of being in shadow root, the actual copying happens later.
+   */
+  void MaybeStartCopyStyleSheetTo(LinkStyle* aDest, Document* aDoc) const;
+
+  /**
+   * Continuation of MaybeStartCopyStyleSheetTo, called in
+   * LinkStyle::DoUpdateStyleSheet. Unlike MaybeStartCopyStyleSheetTo, this is
+   * called from LinkStyle being copied into.
+   */
+  void MaybeFinishCopyStyleSheet(Document* aDocument);
+
   void BindToTree();
 
   RefPtr<mozilla::StyleSheet> mStyleSheet;
