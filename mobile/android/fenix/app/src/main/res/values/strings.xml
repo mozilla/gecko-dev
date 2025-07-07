@@ -3125,17 +3125,27 @@
     <string name="protection_panel_banner_protected_description">You’re protected. If we spot something, we’ll let you know.</string>
     <!-- Label text for the Enhanced Tracking Protection toggle. -->
     <string name="protection_panel_etp_toggle_label">Enhanced Tracking Protection</string>
+    <!-- Toggle if Enhanced Tracking Protection is turned on -->
+    <string name="protection_panel_etp_toggle_on">On</string>
+    <!-- Toggle if Enhanced Tracking Protection is turned off -->
+    <string name="protection_panel_etp_toggle_off">Off</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
-    <string name="protection_panel_etp_toggle_enabled_description">If something looks broken on this site, try turning off protections.</string>
+    <string name="protection_panel_etp_toggle_enabled_description" moz:removedIn="142" tools:ignore="UnusedResources">If something looks broken on this site, try turning off protections.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+    <string name="protection_panel_etp_toggle_enabled_description_2">If something looks broken on this site, try turning it off.</string>
     <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
-    <string name="protection_panel_etp_toggle_disabled_description">Protections are OFF. We suggest turning them back on.</string>
+    <string name="protection_panel_etp_toggle_disabled_description" moz:removedIn="142" tools:ignore="UnusedResources">Protections are OFF. We suggest turning them back on.</string>
+    <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+    <string name="protection_panel_etp_toggle_disabled_description_2">Turning on tracking protection is recommended.</string>
     <!-- Text for displaying the total number of trackers blocked in the protection panel.
         %d is a placeholder for the number of trackers blocked. -->
     <string name="protection_panel_num_trackers_blocked">Trackers blocked: %d</string>
     <!-- Text for when no trackers have been blocked. -->
     <string name="protection_panel_no_trackers_blocked">No trackers found</string>
     <!-- Link text to navigate to privacy and security settings from the protection panel. -->
-    <string name="protection_panel_privacy_and_security_settings">Privacy and security settings</string>
+    <string name="protection_panel_privacy_and_security_settings" moz:removedIn="142" tools:ignore="UnusedResources">Privacy and security settings</string>
+    <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+    <string name="protection_panel_privacy_and_security_settings_2">Privacy Settings</string>
     <!-- Title text for the protection panel permissions section. -->
     <string name="protection_panel_permissions_title">Permissions</string>
     <!-- Text for displaying the total number of trackers blocked in the trackers blocked panel.

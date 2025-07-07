@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -277,6 +279,70 @@ internal fun WebExtensionMenuItem(
 }
 
 @Composable
+internal fun MenuBadgeItem(
+    label: String,
+    description: String,
+    badgeText: String,
+    checked: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val state: MenuItemState
+    val badgeBackgroundColor: Color
+
+    if (checked) {
+        badgeBackgroundColor = FirefoxTheme.colors.badgeActive
+        state = MenuItemState.ACTIVE
+    } else {
+        badgeBackgroundColor = FirefoxTheme.colors.layerSearch
+        state = MenuItemState.DISABLED
+    }
+
+    Row(
+        modifier = modifier
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = LocalIndication.current,
+            ) { onClick() }
+            .clip(shape = ROUNDED_CORNER_SHAPE)
+            .background(
+                color = FirefoxTheme.colors.layer3,
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 24.dp)
+                    .wrapContentHeight(),
+                color = getLabelTextColor(state),
+                style = FirefoxTheme.typography.body1,
+            )
+
+            Text(
+                text = description,
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 20.dp)
+                    .wrapContentHeight(),
+                color = FirefoxTheme.colors.textSecondary,
+                style = FirefoxTheme.typography.caption,
+            )
+        }
+
+        Badge(
+            badgeText = badgeText,
+            state = state,
+            badgeBackgroundColor = badgeBackgroundColor,
+        )
+    }
+}
+
+@Composable
 internal fun Badge(
     badgeText: String,
     state: MenuItemState = MenuItemState.ENABLED,
@@ -428,6 +494,25 @@ private fun MenuItemPreview() {
                     Divider(color = FirefoxTheme.colors.borderSecondary)
                 }
             }
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+private fun MenuBadgeItemPreview() {
+    FirefoxTheme {
+        Column(
+            modifier = Modifier
+                .background(color = FirefoxTheme.colors.layer2),
+        ) {
+            MenuBadgeItem(
+                label = stringResource(id = R.string.protection_panel_etp_toggle_label),
+                description = stringResource(id = R.string.protection_panel_etp_toggle_enabled_description_2),
+                badgeText = stringResource(id = R.string.protection_panel_etp_toggle_on),
+                checked = true,
+                onClick = {},
+            )
         }
     }
 }
