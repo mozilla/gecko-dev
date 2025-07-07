@@ -438,7 +438,7 @@ add_task(async function testDetailsObjects() {
 
       let detailString = JSON.stringify(details);
       browser.test.log(
-        `Setting browerAction/pageAction to ${detailString} expecting URLs ${JSON.stringify(
+        `Setting browserAction/pageAction to ${detailString} expecting URLs ${JSON.stringify(
           details.resolutions
         )}`
       );
