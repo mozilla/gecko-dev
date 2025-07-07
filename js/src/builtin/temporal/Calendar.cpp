@@ -1442,16 +1442,9 @@ static constexpr size_t ICUEraNameMaxLength() {
 }
 #endif
 
-/**
- * Retrieve the era code from |date| and then map the returned ICU4X era code to
- * the corresponding |EraCode| member.
- */
-static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
-                            const icu4x::capi::Date* date, EraCode* result) {
-  MOZ_ASSERT(calendar != CalendarId::ISO8601);
-
+class EraName {
   // Note: Assigning MaxLength to ICUEraNameMaxLength() breaks the CDT indexer.
-  constexpr size_t MaxLength = 15;
+  static constexpr size_t MaxLength = 7;
 #ifdef IMPLEMENTS_DR2126
 
 // Disable tautological-value-range-compare to avoid a bogus Clang warning.
@@ -1472,16 +1465,38 @@ static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
 
   // Storage for the largest known era string and the terminating NUL-character.
   char buf[MaxLength + 1] = {};
-  auto writable = diplomat::capi::diplomat_simple_write(buf, std::size(buf));
+  size_t length = 0;
 
-  icu4x::capi::icu4x_Date_era_mv1(date, &writable);
-  MOZ_ASSERT(writable.buf == buf, "unexpected buffer relocation");
+ public:
+  explicit EraName(const icu4x::capi::Date* date) {
+    auto writable = diplomat::capi::diplomat_simple_write(buf, std::size(buf));
 
-  auto dateEra = std::string_view{writable.buf, writable.len};
+    icu4x::capi::icu4x_Date_era_mv1(date, &writable);
+    MOZ_ASSERT(writable.buf == buf, "unexpected buffer relocation");
 
-  // Map to era name to era code.
+    length = writable.len;
+  }
+
+  bool operator==(std::string_view sv) const {
+    return std::string_view{buf, length} == sv;
+  }
+
+  bool operator!=(std::string_view sv) const { return !(*this == sv); }
+};
+
+/**
+ * Retrieve the era code from |date| and then map the returned ICU4X era code to
+ * the corresponding |EraCode| member.
+ */
+static bool CalendarDateEra(JSContext* cx, CalendarId calendar,
+                            const icu4x::capi::Date* date, EraCode* result) {
+  MOZ_ASSERT(calendar != CalendarId::ISO8601);
+
+  auto eraName = EraName(date);
+
+  // Map from era name to era code.
   for (auto era : CalendarEras(calendar)) {
-    if (IcuEraName(calendar, era) == dateEra) {
+    if (eraName == IcuEraName(calendar, era)) {
       *result = era;
       return true;
     }
