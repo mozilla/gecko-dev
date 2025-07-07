@@ -66,35 +66,22 @@ bool js::intl::GlobalIntlData::ensureRuntimeDefaultLocale(JSContext* cx) {
   return true;
 }
 
-static bool StringEqualsTwoByte(const JSLinearString* str,
-                                mozilla::Span<const char16_t> chars) {
-  if (str->length() != chars.size()) {
-    return false;
-  }
-
-  JS::AutoCheckCannotGC nogc;
-  return str->hasLatin1Chars()
-             ? EqualChars(str->latin1Chars(nogc), chars.data(), chars.size())
-             : EqualChars(str->twoByteChars(nogc), chars.data(), chars.size());
-}
-
 bool js::intl::GlobalIntlData::ensureRuntimeDefaultTimeZone(JSContext* cx) {
-  FormatBuffer<char16_t, INITIAL_CHAR_BUFFER_SIZE> timeZone(cx);
-  auto result =
-      DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()), timeZone);
-  if (result.isErr()) {
-    ReportInternalError(cx, result.unwrapErr());
+  TimeZoneIdentifierVector timeZoneId;
+  if (!DateTimeInfo::timeZoneId(DateTimeInfo::forceUTC(cx->realm()),
+                                timeZoneId)) {
+    ReportOutOfMemory(cx);
     return false;
   }
 
   if (!runtimeDefaultTimeZone_ ||
-      !StringEqualsTwoByte(runtimeDefaultTimeZone_, timeZone)) {
-    JSLinearString* str = timeZone.toString(cx);
-    if (!str) {
+      !StringEqualsAscii(runtimeDefaultTimeZone_, timeZoneId.begin(),
+                         timeZoneId.length())) {
+    runtimeDefaultTimeZone_ = NewStringCopy<CanGC>(
+        cx, static_cast<mozilla::Span<const char>>(timeZoneId));
+    if (!runtimeDefaultTimeZone_) {
       return false;
     }
-
-    runtimeDefaultTimeZone_ = str;
 
     // Clear all cached DateTimeFormat instances when the time zone has changed.
     resetDateTimeFormat();
