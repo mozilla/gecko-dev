@@ -1,6 +1,7 @@
 /* This Source Code Form is subject to the terms of the Mozilla PublicddonMa
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 const FXA_ENABLED_PREF = "identity.fxaccounts.enabled";
 const TOPIC_SELECTION_MODAL_LAST_DISPLAYED_PREF =
   "browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.lastDisplayed";
@@ -50,7 +51,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
   ClientEnvironment: "resource://normandy/lib/ClientEnvironment.sys.mjs",
   CustomizableUI: "resource:///modules/CustomizableUI.sys.mjs",
-  ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
   FeatureCalloutBroker:
     "resource:///modules/asrouter/FeatureCalloutBroker.sys.mjs",
   HomePage: "resource:///modules/HomePage.sys.mjs",
@@ -500,7 +500,7 @@ function parseAboutPageURL(url) {
     isCustomUrl: false,
     urls: [],
   };
-  if (lazy.ExtensionUtils.isExtensionUrl(url)) {
+  if (url.startsWith("moz-extension://")) {
     ret.isWebExt = true;
     ret.urls.push({ url, host: "" });
   } else {
