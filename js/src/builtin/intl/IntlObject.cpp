@@ -325,36 +325,25 @@ bool js::intl_BestAvailableLocale(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
-                                        Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 1);
-
-  Rooted<JSLinearString*> locale(cx, args[0].toString()->ensureLinear(cx));
+JSLinearString* js::intl::ComputeDefaultLocale(JSContext* cx) {
+  const char* locale = cx->realm()->getLocale();
   if (!locale) {
-    return false;
+    ReportOutOfMemory(cx);
+    return nullptr;
   }
+
+  auto span = mozilla::MakeStringSpan(locale);
 
   mozilla::intl::Locale tag;
-  bool canParseLocale = false;
-  if (StringIsAscii(locale)) {
-    intl::StringAsciiChars chars(locale);
-    if (!chars.init(cx)) {
-      return false;
-    }
-
-    // Tell the analysis the |tag.canonicalize()| method can't GC.
-    JS::AutoSuppressGCAnalysis nogc;
-
-    canParseLocale = mozilla::intl::LocaleParser::TryParse(chars, tag).isOk() &&
-                     tag.Canonicalize().isOk();
-  }
+  bool canParseLocale =
+      mozilla::intl::LocaleParser::TryParse(span, tag).isOk() &&
+      tag.Canonicalize().isOk();
 
   Rooted<JSLinearString*> candidate(cx);
   if (!canParseLocale) {
     candidate = NewStringCopyZ<CanGC>(cx, intl::LastDitchLocale());
     if (!candidate) {
-      return false;
+      return nullptr;
     }
   } else {
     // The default locale must be in [[AvailableLocales]], and that list must
@@ -365,12 +354,12 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
     intl::FormatBuffer<char, intl::INITIAL_CHAR_BUFFER_SIZE> buffer(cx);
     if (auto result = tag.ToString(buffer); result.isErr()) {
       intl::ReportInternalError(cx, result.unwrapErr());
-      return false;
+      return nullptr;
     }
 
     candidate = buffer.toAsciiString(cx);
     if (!candidate) {
-      return false;
+      return nullptr;
     }
 
     // Certain old-style language tags lack a script code, but in current
@@ -383,7 +372,7 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
       if (StringEqualsAscii(candidate, oldStyle)) {
         candidate = NewStringCopyZ<CanGC>(cx, modernStyle);
         if (!candidate) {
-          return false;
+          return nullptr;
         }
         break;
       }
@@ -399,13 +388,13 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
   // Intl service constructors.
 
   Rooted<JSLinearString*> supportedCollator(cx);
-  JS_TRY_VAR_OR_RETURN_FALSE(
+  JS_TRY_VAR_OR_RETURN_NULL(
       cx, supportedCollator,
       BestAvailableLocale(cx, SupportedLocaleKind::Collator, candidate,
                           nullptr));
 
   Rooted<JSLinearString*> supportedDateTimeFormat(cx);
-  JS_TRY_VAR_OR_RETURN_FALSE(
+  JS_TRY_VAR_OR_RETURN_NULL(
       cx, supportedDateTimeFormat,
       BestAvailableLocale(cx, SupportedLocaleKind::DateTimeFormat, candidate,
                           nullptr));
@@ -424,7 +413,7 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
            SupportedLocaleKind::Segmenter,
        }) {
     JSLinearString* supported;
-    JS_TRY_VAR_OR_RETURN_FALSE(
+    JS_TRY_VAR_OR_RETURN_NULL(
         cx, supported, BestAvailableLocale(cx, kind, candidate, nullptr));
 
     MOZ_ASSERT(!!supported == !!supportedDateTimeFormat);
@@ -443,19 +432,13 @@ bool js::intl_supportedLocaleOrFallback(JSContext* cx, unsigned argc,
     // requesting "de-CH" and Intl.DateTimeFormat supports "de-CH", but
     // Intl.Collator only "de", still return "de-CH" as the result.
     if (SameOrParentLocale(supportedCollator, supportedDateTimeFormat)) {
-      candidate = supportedDateTimeFormat;
-    } else {
-      candidate = supportedCollator;
+      return supportedDateTimeFormat;
     }
-  } else {
-    candidate = NewStringCopyZ<CanGC>(cx, intl::LastDitchLocale());
-    if (!candidate) {
-      return false;
-    }
+    return supportedCollator;
   }
 
-  args.rval().setString(candidate);
-  return true;
+  // Return the last ditch locale if the candidate locale isn't supported.
+  return NewStringCopyZ<CanGC>(cx, intl::LastDitchLocale());
 }
 
 using StringList = GCVector<JSLinearString*>;

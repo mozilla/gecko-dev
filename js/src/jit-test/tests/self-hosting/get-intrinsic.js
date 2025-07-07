@@ -2,7 +2,7 @@
 var intrinsic_names = [
     "IsConstructor",    // Implementation in C++
     "ArrayMap",         // Implementation in JS
-    "localeCache",      // Self-hosting variable
+    "globalMapIterationResultPair",  // Self-hosting variable
 ];
 
 for (var name of intrinsic_names) {

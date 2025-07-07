@@ -31,11 +31,16 @@ enum class DateTimeFormatKind;
 class GlobalIntlData {
   /**
    * The locale information provided by the embedding, guiding SpiderMonkey's
-   * selection of a default locale. See intl_RuntimeDefaultLocale(), whose value
-   * controls the value returned by DefaultLocale() that's what's *actually*
-   * used.
+   * selection of a default locale. See intl::ComputeDefaultLocale(), whose
+   * value controls the value returned by defaultLocale() that's what's
+   * *actually* used.
    */
   GCPtr<JSLinearString*> runtimeDefaultLocale_;
+
+  /**
+   * The actual default locale.
+   */
+  GCPtr<JSLinearString*> defaultLocale_;
 
   /**
    * Time zone information provided by ICU. See intl_defaultTimeZone(), whose
@@ -101,6 +106,11 @@ class GlobalIntlData {
   GCPtr<JSObject*> dateTimeFormatToLocaleTime_;
 
  public:
+  /**
+   * Returns the BCP 47 language tag for the host environment's current locale.
+   */
+  JSLinearString* defaultLocale(JSContext* cx);
+
   /**
    * Get or create the Intl.Collator instance for |locale|. The default locale
    * is used when |locale| is null.
