@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-07-02T18:13:44.732197+00:00'
+updated_at: '2025-07-07T15:56:32.244722+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -2852,6 +2852,7 @@ modules:
     description: Policy management for third-party Rust dependencies
     includes:
       - supply-chain/**/*
+      - .cargo/audit.toml
     meta:
       peers_emeritus:
         - Aria Beingessner
@@ -4601,5 +4602,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: a1ccbc43003245cc89a1e69755612e2d8aafdecb
-  export: 110e13b33fbf8c627d8757596f98bcd8fd5f2025
+  config: 4d14a54db53e9dd6af3c29c7302a2086434780d7
+  export: cf1db5d27151bf75e3bd5ba9b5f7cf18691b8e7c
