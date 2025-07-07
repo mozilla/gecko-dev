@@ -1995,6 +1995,32 @@ add_task(
   }
 );
 
+add_task(async function check_activeNotifications_newtabMessages() {
+  const win = BrowserWindowTracker.getTopWindow();
+
+  // Simulate logic from NewtabMessage.sys.mjs
+  const testObserver = {
+    observe(subject, topic) {
+      if (topic === "newtab-message-query") {
+        if (subject.wrappedJSObject.browser === win.gBrowser) {
+          subject.wrappedJSObject.activeNewtabMessage = true;
+        }
+      }
+    },
+  };
+
+  Services.obs.addObserver(testObserver, "newtab-message-query");
+
+  is(
+    await ASRouterTargeting.Environment.activeNotifications,
+    true,
+    "activeNotifications should be true if observer sets activeNewtabMessage"
+  );
+
+  // clean up
+  Services.obs.removeObserver(testObserver, "newtab-message-query");
+});
+
 add_task(async function check_unhandledCampaignAction() {
   is(
     typeof ASRouterTargeting.Environment.unhandledCampaignAction,
