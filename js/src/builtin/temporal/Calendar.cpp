@@ -659,6 +659,7 @@ using UniqueICU4XCalendar =
 
 static UniqueICU4XCalendar CreateICU4XCalendar(CalendarId id) {
   auto* result = icu4x::capi::icu4x_Calendar_create_mv1(ToAnyCalendarKind(id));
+  MOZ_ASSERT(result, "unexpected null-pointer result");
   return UniqueICU4XCalendar{result};
 }
 
@@ -1045,6 +1046,7 @@ static bool FirstYearOfJapaneseEra(JSContext* cx, CalendarId calendarId,
 
   auto date = dateResult.unwrap();
   UniqueICU4XIsoDate isoDate{icu4x::capi::icu4x_Date_to_iso_mv1(date.get())};
+  MOZ_ASSERT(isoDate, "unexpected null-pointer result");
 
   int32_t isoYear = icu4x::capi::icu4x_IsoDate_year_mv1(isoDate.get());
   MOZ_ASSERT(isoYear > 0, "unexpected era start before 1 CE");
@@ -1709,9 +1711,6 @@ static bool CalendarEraYear(JSContext* cx, CalendarId calendarId,
       MOZ_ASSERT(calendarId == CalendarId::Japanese);
 
       auto cal = CreateICU4XCalendar(calendarId);
-      if (!cal) {
-        return false;
-      }
       return JapaneseEraYearToCommonEraYear(cx, calendarId, cal.get(), eraYear,
                                             result);
     }
@@ -1991,6 +1990,7 @@ static bool CalendarFieldMonthCodeMatchesMonth(JSContext* cx,
 
 static ISODate ToISODate(const icu4x::capi::Date* date) {
   UniqueICU4XIsoDate isoDate{icu4x::capi::icu4x_Date_to_iso_mv1(date)};
+  MOZ_ASSERT(isoDate, "unexpected null-pointer result");
 
   int32_t isoYear = icu4x::capi::icu4x_IsoDate_year_mv1(isoDate.get());
 
@@ -2141,10 +2141,6 @@ static bool CalendarDateToISO(JSContext* cx, CalendarId calendar,
   }
 
   auto cal = CreateICU4XCalendar(calendar);
-  if (!cal) {
-    return false;
-  }
-
   auto date = CreateDateFrom(cx, calendar, cal.get(), eraYears, month, day,
                              fields, overflow);
   if (!date) {
@@ -2223,9 +2219,6 @@ static bool CalendarMonthDayToISOReferenceDate(JSContext* cx,
   }
 
   auto cal = CreateICU4XCalendar(calendar);
-  if (!cal) {
-    return false;
-  }
 
   // We first have to compute the month-code if it wasn't provided to us.
   auto monthCode = month.code;
@@ -2498,10 +2491,6 @@ bool js::temporal::CalendarEra(JSContext* cx, Handle<CalendarValue> calendar,
   }
 
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2551,10 +2540,6 @@ bool js::temporal::CalendarEraYear(JSContext* cx,
   }
 
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2583,10 +2568,6 @@ bool js::temporal::CalendarYear(JSContext* cx, Handle<CalendarValue> calendar,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2619,10 +2600,6 @@ bool js::temporal::CalendarMonth(JSContext* cx, Handle<CalendarValue> calendar,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2659,10 +2636,6 @@ bool js::temporal::CalendarMonthCode(JSContext* cx,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2700,10 +2673,6 @@ bool js::temporal::CalendarDay(JSContext* cx, Handle<CalendarValue> calendar,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2733,10 +2702,6 @@ bool js::temporal::CalendarDayOfWeek(JSContext* cx,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2775,10 +2740,6 @@ bool js::temporal::CalendarDayOfYear(JSContext* cx,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2914,10 +2875,6 @@ bool js::temporal::CalendarDaysInMonth(JSContext* cx,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2947,10 +2904,6 @@ bool js::temporal::CalendarDaysInYear(JSContext* cx,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -2980,10 +2933,6 @@ bool js::temporal::CalendarMonthsInYear(JSContext* cx,
 
   // Step 2
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -3018,10 +2967,6 @@ bool js::temporal::CalendarInLeapYear(JSContext* cx,
   // https://github.com/unicode-org/icu4x/issues/5654
 
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -3125,10 +3070,6 @@ static bool ISODateToFields(JSContext* cx, Handle<CalendarValue> calendar,
 
   // Step 2.
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
-
   auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
   if (!dt) {
     return false;
@@ -3613,9 +3554,6 @@ static bool AddNonISODate(JSContext* cx, CalendarId calendarId,
   MOZ_ASSERT(IsValidDuration(duration));
 
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
 
   auto dt = CreateICU4XDate(cx, isoDate, calendarId, cal.get());
   if (!dt) {
@@ -3857,9 +3795,6 @@ static bool DifferenceNonISODate(JSContext* cx, CalendarId calendarId,
   }
 
   auto cal = CreateICU4XCalendar(calendarId);
-  if (!cal) {
-    return false;
-  }
 
   auto dtOne = CreateICU4XDate(cx, one, calendarId, cal.get());
   if (!dtOne) {
