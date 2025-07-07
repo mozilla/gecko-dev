@@ -1,0 +1,5 @@
+[advisories]
+ignore = [
+	# To be dealt with via <https://bugzilla.mozilla.org/show_bug.cgi?id=1975554>.
+	"RUSTSEC-2023-0018",
+]
