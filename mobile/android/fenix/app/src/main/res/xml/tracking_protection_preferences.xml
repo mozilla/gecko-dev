@@ -27,35 +27,12 @@
         android:key="@string/pref_key_tracking_protection_strict_default"
         android:summary="@string/preference_enhanced_tracking_protection_strict_description_4"
         android:title="@string/preference_enhanced_tracking_protection_strict" />
-    <CheckBoxPreference
-        android:defaultValue="true"
-        android:dependency="@string/pref_key_tracking_protection_strict_default"
-        android:key="@string/pref_key_tracking_protection_strict_allow_list_baseline"
-        android:layout="@layout/checkbox_left_preference_etp" />
-    <CheckBoxPreference
-        android:defaultValue="false"
-        android:dependency="@string/pref_key_tracking_protection_strict_allow_list_baseline"
-        android:key="@string/pref_key_tracking_protection_strict_allow_list_convenience"
-        android:layout="@layout/checkbox_left_preference_etp"
-        android:summary="@string/preference_enhanced_tracking_protection_allow_list_convenience" />
     <org.mozilla.fenix.settings.RadioButtonInfoPreference
         android:defaultValue="false"
         android:dependency="@string/pref_key_tracking_protection"
         android:key="@string/pref_key_tracking_protection_custom_option"
         android:summary="@string/preference_enhanced_tracking_protection_custom_description_2"
         android:title="@string/preference_enhanced_tracking_protection_custom" />
-    <CheckBoxPreference
-        android:defaultValue="true"
-        android:dependency="@string/pref_key_tracking_protection_custom_option"
-        android:key="@string/pref_key_tracking_protection_custom_allow_list_baseline"
-        android:layout="@layout/checkbox_left_preference_etp"
-        android:summary="@string/preference_enhanced_tracking_protection_allow_list_baseline" />
-    <CheckBoxPreference
-        android:defaultValue="false"
-        android:dependency="@string/pref_key_tracking_protection_custom_allow_list_baseline"
-        android:key="@string/pref_key_tracking_protection_custom_allow_list_convenience"
-        android:layout="@layout/checkbox_left_preference_etp"
-        android:summary="@string/preference_enhanced_tracking_protection_allow_list_convenience" />
     <CheckBoxPreference
         android:defaultValue="true"
         android:dependency="@string/pref_key_tracking_protection_custom_option"

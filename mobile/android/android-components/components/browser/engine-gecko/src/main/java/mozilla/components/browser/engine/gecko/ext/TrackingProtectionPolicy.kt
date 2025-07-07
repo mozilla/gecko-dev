@@ -29,8 +29,6 @@ fun TrackingProtectionPolicy.toContentBlockingSetting(
     queryParameterStrippingAllowList: String = "",
     queryParameterStrippingStripList: String = "",
     bounceTrackingProtectionMode: BounceTrackingProtectionMode = BounceTrackingProtectionMode.DISABLED,
-    allowListBaselineTrackingProtection: Boolean = true,
-    allowListConvenienceTrackingProtection: Boolean = true,
 ) = ContentBlocking.Settings.Builder().apply {
     enhancedTrackingProtectionLevel(getEtpLevel())
     enhancedTrackingProtectionCategory(getEtpCategory())
@@ -50,8 +48,6 @@ fun TrackingProtectionPolicy.toContentBlockingSetting(
     queryParameterStrippingAllowList(*queryParameterStrippingAllowList.split(",").toTypedArray())
     queryParameterStrippingStripList(*queryParameterStrippingStripList.split(",").toTypedArray())
     bounceTrackingProtectionMode(bounceTrackingProtectionMode.mode)
-    allowListBaselineTrackingProtection(allowListBaselineTrackingProtection)
-    allowListConvenienceTrackingProtection(allowListConvenienceTrackingProtection)
 }.build()
 
 /**

@@ -366,31 +366,6 @@ public class ContentBlocking {
         getSettings().setBounceTrackingProtectionMode(mode);
         return this;
       }
-
-      /**
-       * When set to true, the baseline allow list for tracking protection is enabled. The baseline
-       * allow list includes entries for fixing major site breakages.
-       *
-       * @param enabled A boolean indicating whether to enable the baseline allow list.
-       * @return The Builder instance.
-       */
-      public @NonNull Builder allowListBaselineTrackingProtection(final boolean enabled) {
-        getSettings().setAllowListBaselineTrackingProtection(enabled);
-        return this;
-      }
-
-      /**
-       * When set to true, the convenience allow list for tracking protection is enabled. The
-       * convenience allow list includes entries for fixing convenience features, such as the review
-       * section.
-       *
-       * @param enabled A boolean indicating whether to enable the convenience allow list.
-       * @return The Builder instance.
-       */
-      public @NonNull Builder allowListConvenienceTrackingProtection(final boolean enabled) {
-        getSettings().setAllowListConvenienceTrackingProtection(enabled);
-        return this;
-      }
     }
 
     /* package */ final Pref<String> mAt =
@@ -438,12 +413,6 @@ public class ContentBlocking {
 
     /* package */ final Pref<String> mEtpCategory =
         new Pref<String>("browser.contentblocking.category", "standard");
-
-    /* package */ final Pref<Boolean> mAllowListBaselineTrackingProtection =
-        new Pref<Boolean>("privacy.trackingprotection.allow_list.baseline.enabled", true);
-
-    /* package */ final Pref<Boolean> mAllowListConvenienceTrackingProtection =
-        new Pref<Boolean>("privacy.trackingprotection.allow_list.convenience.enabled", false);
 
     /* package */ final Pref<Integer> mCbhMode =
         new Pref<Integer>(
@@ -1096,46 +1065,6 @@ public class ContentBlocking {
     public @NonNull Settings setBounceTrackingProtectionMode(
         final @CBCBounceTrackingProtectionMode int mode) {
       mBounceTrackingProtectionMode.commit(mode);
-      return this;
-    }
-
-    /**
-     * Gets the tracking protection baseline allow list status.
-     *
-     * @return Indicates if the baseline allow list is enabled or not.
-     */
-    public boolean getAllowListBaselineTrackingProtection() {
-      return mAllowListBaselineTrackingProtection.get();
-    }
-
-    /**
-     * Gets the tracking protection convenience allow list status.
-     *
-     * @return Indicates if the convenience allow list is enabled or not.
-     */
-    public boolean getAllowListConvenienceTrackingProtection() {
-      return mAllowListConvenienceTrackingProtection.get();
-    }
-
-    /**
-     * Sets the tracking protection allow list baseline status.
-     *
-     * @param enabled A boolean indicating whether to enable the baseline allow list.
-     * @return This Settings instance.
-     */
-    public @NonNull Settings setAllowListBaselineTrackingProtection(final boolean enabled) {
-      mAllowListBaselineTrackingProtection.commit(enabled);
-      return this;
-    }
-
-    /**
-     * Sets the tracking protection allow list convenience status.
-     *
-     * @param enabled A boolean indicating whether to enable the convenience allow list.
-     * @return This Settings instance.
-     */
-    public @NonNull Settings setAllowListConvenienceTrackingProtection(final boolean enabled) {
-      mAllowListConvenienceTrackingProtection.commit(enabled);
       return this;
     }
   }

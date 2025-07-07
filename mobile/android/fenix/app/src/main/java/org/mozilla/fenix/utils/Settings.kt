@@ -1012,26 +1012,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         false,
     )
 
-    val strictAllowListBaselineTrackingProtection by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tracking_protection_strict_allow_list_baseline),
-        true,
-    )
-
-    val strictAllowListConvenienceTrackingProtection by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tracking_protection_strict_allow_list_convenience),
-        false,
-    )
-
-    val customAllowListBaselineTrackingProtection by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tracking_protection_custom_allow_list_baseline),
-        true,
-    )
-
-    val customAllowListConvenienceTrackingProtection by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_tracking_protection_custom_allow_list_convenience),
-        false,
-    )
-
     @VisibleForTesting(otherwise = PRIVATE)
     fun setStrictETP() {
         preferences.edit {
