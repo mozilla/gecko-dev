@@ -28,8 +28,7 @@ class SearchEngineSuggestionProvider(
     private val context: Context,
     private val searchEnginesList: List<SearchEngine>,
     private val selectShortcutEngine: (engine: SearchEngine) -> Unit,
-    @StringRes
-    private val title: Int,
+    @param:StringRes private val title: Int,
     private val description: String?,
     private val searchIcon: Bitmap?,
     internal val maxSuggestions: Int = DEFAULT_MAX_SUGGESTIONS,

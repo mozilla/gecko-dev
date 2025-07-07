@@ -30,8 +30,7 @@ import mozilla.components.concept.menu.candidate.TextStyle
 class SimpleBrowserMenuItem(
     private val label: String,
     private val textSize: Float = NO_ID.toFloat(),
-    @ColorRes
-    private val textColorResource: Int = NO_ID,
+    @param:ColorRes private val textColorResource: Int = NO_ID,
     override val isCollapsingMenuLimit: Boolean = false,
     private val listener: (() -> Unit)? = null,
 ) : BrowserMenuItem {

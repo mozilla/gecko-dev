@@ -144,7 +144,7 @@ class StudiesAdapter(
         }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal data class Section(@StringRes val title: Int, val visibleDivider: Boolean = true)
+    internal data class Section(@param:StringRes val title: Int, val visibleDivider: Boolean = true)
 
     /**
      * Removes the portion of the list that contains the provided [study].

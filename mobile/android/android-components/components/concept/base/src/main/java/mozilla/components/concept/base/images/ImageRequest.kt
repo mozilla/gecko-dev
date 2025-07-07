@@ -23,6 +23,6 @@ data class ImageSaveRequest(val id: String, val isPrivate: Boolean)
  */
 data class ImageLoadRequest(
     val id: String,
-    @Px val size: Int,
+    @param:Px val size: Int,
     val isPrivate: Boolean,
 )

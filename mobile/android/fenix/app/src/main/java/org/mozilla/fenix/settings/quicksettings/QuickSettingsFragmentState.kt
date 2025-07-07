@@ -78,8 +78,8 @@ data class WebsiteInfoState(
  * An enum for the different website info icons and their descriptions.
  */
 enum class WebsiteInfoUiValues(
-    @StringRes val siteInfoRes: Int,
-    @DrawableRes val iconRes: Int,
+    @param:StringRes val siteInfoRes: Int,
+    @param:DrawableRes val iconRes: Int,
 ) {
     SECURE(
         R.string.quick_settings_sheet_secure_connection_2,

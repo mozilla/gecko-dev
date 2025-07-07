@@ -242,17 +242,17 @@ data class MenuPositioningData(
     /**
      * [WindowManager#LayoutParams#x] of params the menu will be added with.
      */
-    @Px val x: Int = 0,
+    @param:Px val x: Int = 0,
 
     /**
      * [WindowManager#LayoutParams#y] of params the menu will be added with.
      */
-    @Px val y: Int = 0,
+    @param:Px val y: Int = 0,
 
     /**
      * [View#measuredHeight] of the menu.
      */
-    @Px val containerHeight: Int = 0,
+    @param:Px val containerHeight: Int = 0,
 
     /**
      * [PopupWindow#animationStyle] of the menu.

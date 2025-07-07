@@ -51,12 +51,9 @@ internal fun TextView.setColorResource(@ColorRes textColorResource: Int) {
  */
 open class BrowserMenuImageText(
     private val label: String,
-    @DrawableRes
-    internal val imageResource: Int,
-    @ColorRes
-    open var iconTintColorResource: Int = NO_ID,
-    @ColorRes
-    private val textColorResource: Int = NO_ID,
+    @param:DrawableRes internal val imageResource: Int,
+    @param:ColorRes open var iconTintColorResource: Int = NO_ID,
+    @param:ColorRes private val textColorResource: Int = NO_ID,
     open var enabled: Boolean = true,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,

@@ -16,8 +16,8 @@ import androidx.annotation.Dimension.Companion.PX
  * @param bottom Padding end in PX.
  */
 data class Padding(
-    @Dimension(unit = PX) val left: Int,
-    @Dimension(unit = PX) val top: Int,
-    @Dimension(unit = PX) val right: Int,
-    @Dimension(unit = PX) val bottom: Int,
+    @param:Dimension(unit = PX) val left: Int,
+    @param:Dimension(unit = PX) val top: Int,
+    @param:Dimension(unit = PX) val right: Int,
+    @param:Dimension(unit = PX) val bottom: Int,
 )

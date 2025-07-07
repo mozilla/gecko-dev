@@ -24,7 +24,7 @@ sealed class MenuIcon
  */
 data class DrawableMenuIcon(
     override val drawable: Drawable?,
-    @ColorInt override val tint: Int? = null,
+    @param:ColorInt override val tint: Int? = null,
     val effect: MenuIconEffect? = null,
 ) : MenuIcon(), MenuIconWithDrawable {
 
@@ -45,7 +45,7 @@ data class DrawableMenuIcon(
  */
 data class DrawableButtonMenuIcon(
     override val drawable: Drawable?,
-    @ColorInt override val tint: Int? = null,
+    @param:ColorInt override val tint: Int? = null,
     val onClick: () -> Unit = {},
 ) : MenuIcon(), MenuIconWithDrawable {
 
@@ -70,7 +70,7 @@ data class AsyncDrawableMenuIcon(
     val loadDrawable: suspend (width: Int, height: Int) -> Drawable?,
     val loadingDrawable: Drawable? = null,
     val fallbackDrawable: Drawable? = null,
-    @ColorInt val tint: Int? = null,
+    @param:ColorInt val tint: Int? = null,
     val effect: MenuIconEffect? = null,
 ) : MenuIcon()
 
@@ -83,7 +83,7 @@ data class AsyncDrawableMenuIcon(
  */
 data class TextMenuIcon(
     val text: String,
-    @ColorInt val backgroundTint: Int? = null,
+    @param:ColorInt val backgroundTint: Int? = null,
     val textStyle: TextStyle = TextStyle(),
 ) : MenuIcon()
 

@@ -31,7 +31,7 @@ import org.mozilla.fenix.debugsettings.tabs.TabTools as TabToolsScreen
  * optional parameters for arguments or deep linking.
  * @property title The string ID of the destination's title.
  */
-enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
+enum class DebugDrawerRoute(val route: String, @param:StringRes val title: Int) {
     /**
      * The navigation route for [TabToolsScreen].
      */

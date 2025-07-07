@@ -18,7 +18,7 @@ import androidx.compose.runtime.Composable
  */
 data class DebugDrawerDestination(
     val route: String,
-    @StringRes val title: Int,
+    @param:StringRes val title: Int,
     val onClick: () -> Unit,
     val content: @Composable () -> Unit,
 )

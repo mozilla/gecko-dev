@@ -212,8 +212,8 @@ private fun CFRBottomSheetHandle(
  */
 data class MenuCFRState(
     val showCFR: Boolean,
-    @StringRes val titleRes: Int,
-    @StringRes val messageRes: Int,
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val messageRes: Int,
     val orientation: OrientationMode,
     val onShown: () -> Unit,
     val onDismiss: (Boolean) -> Unit,

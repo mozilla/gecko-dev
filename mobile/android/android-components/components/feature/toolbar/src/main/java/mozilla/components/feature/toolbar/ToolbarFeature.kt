@@ -82,8 +82,8 @@ class ToolbarFeature(
      */
     data class UrlRenderConfiguration(
         internal val publicSuffixList: PublicSuffixList,
-        @ColorInt internal val registrableDomainColor: Int,
-        @ColorInt internal val urlColor: Int? = null,
+        @param:ColorInt internal val registrableDomainColor: Int,
+        @param:ColorInt internal val urlColor: Int? = null,
         internal val renderStyle: RenderStyle = RenderStyle.ColoredUrl,
     )
 

@@ -196,10 +196,8 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
     data class PromptStyling(
         val gravity: Int = Gravity.BOTTOM,
         val shouldWidthMatchParent: Boolean = true,
-        @ColorRes
-        val positiveButtonBackgroundColor: Int? = null,
-        @ColorRes
-        val positiveButtonTextColor: Int? = null,
+        @param:ColorRes val positiveButtonBackgroundColor: Int? = null,
+        @param:ColorRes val positiveButtonTextColor: Int? = null,
         val positiveButtonRadius: Float? = null,
     ) : Parcelable
 
@@ -208,13 +206,11 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
      */
     @Parcelize
     data class PromptText(
-        @StringRes
+        @param:StringRes
         val titleText: Int = R.string.mozac_feature_downloads_cancel_active_downloads_warning_content_title,
-        @StringRes
+        @param:StringRes
         val bodyText: Int = R.string.mozac_feature_downloads_cancel_active_private_downloads_warning_content_body,
-        @StringRes
-        val acceptText: Int = R.string.mozac_feature_downloads_cancel_active_downloads_accept,
-        @StringRes
-        val denyText: Int = R.string.mozac_feature_downloads_cancel_active_private_downloads_deny,
+        @param:StringRes val acceptText: Int = R.string.mozac_feature_downloads_cancel_active_downloads_accept,
+        @param:StringRes val denyText: Int = R.string.mozac_feature_downloads_cancel_active_private_downloads_deny,
     ) : Parcelable
 }

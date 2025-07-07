@@ -379,8 +379,7 @@ abstract class AbstractFetchDownloadService : Service() {
      * @param notificationAccentColor accent color for all download notifications.
      */
     data class Style(
-        @ColorRes
-        val notificationAccentColor: Int = R.color.mozac_feature_downloads_notification,
+        @param:ColorRes val notificationAccentColor: Int = R.color.mozac_feature_downloads_notification,
     )
 
     /**

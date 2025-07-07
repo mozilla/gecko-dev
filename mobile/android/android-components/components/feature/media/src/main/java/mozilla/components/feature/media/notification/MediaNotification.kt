@@ -144,7 +144,7 @@ private suspend fun SessionState.toNotificationData(
 private data class NotificationData(
     val title: String = "",
     val description: String = "",
-    @DrawableRes val icon: Int = R.drawable.mozac_feature_media_playing,
+    @param:DrawableRes val icon: Int = R.drawable.mozac_feature_media_playing,
     val largeIcon: Bitmap? = null,
     val action: NotificationCompat.Action? = null,
     val contentIntent: PendingIntent? = null,

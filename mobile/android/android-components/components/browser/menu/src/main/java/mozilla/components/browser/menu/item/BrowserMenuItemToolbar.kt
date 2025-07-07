@@ -94,9 +94,9 @@ class BrowserMenuItemToolbar(
      * @param listener Callback to be invoked when the button is pressed.
      */
     open class Button(
-        @DrawableRes val imageResource: Int,
+        @param:DrawableRes val imageResource: Int,
         val contentDescription: String,
-        @ColorRes val iconTintColorResource: Int = NO_ID,
+        @param:ColorRes val iconTintColorResource: Int = NO_ID,
         val isEnabled: () -> Boolean = { true },
         val longClickListener: (() -> Unit)? = null,
         val listener: () -> Unit,
@@ -150,12 +150,12 @@ class BrowserMenuItemToolbar(
      * @param listener Callback to be invoked when the button is pressed.
      */
     open class TwoStateButton(
-        @DrawableRes val primaryImageResource: Int,
+        @param:DrawableRes val primaryImageResource: Int,
         val primaryContentDescription: String,
-        @ColorRes val primaryImageTintResource: Int = NO_ID,
-        @DrawableRes val secondaryImageResource: Int = primaryImageResource,
+        @param:ColorRes val primaryImageTintResource: Int = NO_ID,
+        @param:DrawableRes val secondaryImageResource: Int = primaryImageResource,
         val secondaryContentDescription: String = primaryContentDescription,
-        @ColorRes val secondaryImageTintResource: Int = primaryImageTintResource,
+        @param:ColorRes val secondaryImageTintResource: Int = primaryImageTintResource,
         val isInPrimaryState: () -> Boolean = { true },
         val disableInSecondaryState: Boolean = false,
         longClickListener: (() -> Unit)? = null,

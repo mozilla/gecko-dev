@@ -435,7 +435,7 @@ class CrashReporter internal constructor(
         internal val appName: String = "App",
         internal val organizationName: String = "Mozilla",
         internal val message: String? = null,
-        @StyleRes internal val theme: Int = R.style.Theme_Mozac_CrashReporter,
+        @param:StyleRes internal val theme: Int = R.style.Theme_Mozac_CrashReporter,
     )
 
     companion object {

@@ -37,7 +37,7 @@ sealed class BrowserMenuHighlight {
      * displaying their own highlight.
      */
     data class LowPriority(
-        @ColorInt val notificationTint: Int,
+        @param:ColorInt val notificationTint: Int,
         override val label: String? = null,
         override val canPropagate: Boolean = true,
     ) : BrowserMenuHighlight() {
@@ -58,7 +58,7 @@ sealed class BrowserMenuHighlight {
      * displaying their own highlight.
      */
     data class HighPriority(
-        @ColorInt val backgroundTint: Int,
+        @param:ColorInt val backgroundTint: Int,
         override val label: String? = null,
         val endImageResource: Int = NO_ID,
         override val canPropagate: Boolean = true,
@@ -79,10 +79,10 @@ sealed class BrowserMenuHighlight {
      */
     @Deprecated("Replace with LowPriority or HighPriority highlight")
     open class ClassicHighlight(
-        @DrawableRes val startImageResource: Int,
-        @DrawableRes val endImageResource: Int,
-        @DrawableRes val backgroundResource: Int,
-        @ColorRes val colorResource: Int,
+        @param:DrawableRes val startImageResource: Int,
+        @param:DrawableRes val endImageResource: Int,
+        @param:DrawableRes val backgroundResource: Int,
+        @param:ColorRes val colorResource: Int,
         override val canPropagate: Boolean = true,
     ) : BrowserMenuHighlight() {
         override val label: String? = null

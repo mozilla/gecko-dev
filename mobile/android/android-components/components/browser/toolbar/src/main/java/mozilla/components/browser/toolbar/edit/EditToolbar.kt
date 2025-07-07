@@ -73,12 +73,12 @@ class EditToolbar internal constructor(
      * @property suggestionForeground The foreground color used for autocomplete suggestions.
      */
     data class Colors(
-        @ColorInt val clear: Int,
-        @ColorInt val icon: Int?,
-        @ColorInt val hint: Int,
-        @ColorInt val text: Int,
-        @ColorInt val suggestionBackground: Int,
-        @ColorInt val suggestionForeground: Int?,
+        @param:ColorInt val clear: Int,
+        @param:ColorInt val icon: Int?,
+        @param:ColorInt val hint: Int,
+        @param:ColorInt val text: Int,
+        @param:ColorInt val suggestionBackground: Int,
+        @param:ColorInt val suggestionForeground: Int?,
     )
 
     private val autocompleteDispatcher = SupervisorJob() +

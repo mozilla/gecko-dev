@@ -156,11 +156,8 @@ class WebExtensionBrowserMenuBuilder(
      * Allows to customize how items should look like.
      */
     data class Style(
-        @ColorRes
-        val webExtIconTintColorResource: Int = NO_ID,
-        @DrawableRes
-        val backPressMenuItemDrawableRes: Int = iconsR.drawable.mozac_ic_back_24,
-        @DrawableRes
-        val addonsManagerMenuItemDrawableRes: Int = iconsR.drawable.mozac_ic_extension_24,
+        @param:ColorRes val webExtIconTintColorResource: Int = NO_ID,
+        @param:DrawableRes val backPressMenuItemDrawableRes: Int = iconsR.drawable.mozac_ic_back_24,
+        @param:DrawableRes val addonsManagerMenuItemDrawableRes: Int = iconsR.drawable.mozac_ic_extension_24,
     )
 }

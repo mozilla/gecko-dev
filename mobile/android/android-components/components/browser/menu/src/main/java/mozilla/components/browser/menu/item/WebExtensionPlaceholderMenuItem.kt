@@ -19,8 +19,7 @@ import mozilla.components.browser.menu.R
  */
 class WebExtensionPlaceholderMenuItem(
     val id: String,
-    @ColorRes
-    val iconTintColorResource: Int = NO_ID,
+    @param:ColorRes val iconTintColorResource: Int = NO_ID,
 ) : BrowserMenuItem {
     override var visible: () -> Boolean = { false }
 

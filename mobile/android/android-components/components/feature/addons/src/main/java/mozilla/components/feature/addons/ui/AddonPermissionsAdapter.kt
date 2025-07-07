@@ -62,7 +62,7 @@ class AddonPermissionsAdapter(
     /**
      * Allows to customize how permission items should look like.
      */
-    data class Style(@ColorRes val itemsTextColor: Int? = null) {
+    data class Style(@param:ColorRes val itemsTextColor: Int? = null) {
         internal fun maybeSetItemTextColor(textView: TextView) {
             itemsTextColor?.let {
                 val color = ContextCompat.getColor(textView.context, it)

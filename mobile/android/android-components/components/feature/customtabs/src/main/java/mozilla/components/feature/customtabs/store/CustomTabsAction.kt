@@ -34,7 +34,7 @@ data class SaveCreatorPackageNameAction(
  */
 data class ValidateRelationshipAction(
     override val token: CustomTabsSessionToken,
-    @Relation val relation: Int,
+    @param:Relation val relation: Int,
     val origin: Uri,
     val status: VerificationStatus,
 ) : CustomTabsAction()

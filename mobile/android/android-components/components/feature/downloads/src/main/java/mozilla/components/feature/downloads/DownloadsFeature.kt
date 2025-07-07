@@ -501,10 +501,8 @@ class DownloadsFeature(
     data class PromptsStyling(
         val gravity: Int,
         val shouldWidthMatchParent: Boolean = false,
-        @ColorRes
-        val positiveButtonBackgroundColor: Int? = null,
-        @ColorRes
-        val positiveButtonTextColor: Int? = null,
+        @param:ColorRes val positiveButtonBackgroundColor: Int? = null,
+        @param:ColorRes val positiveButtonTextColor: Int? = null,
         val positiveButtonRadius: Float? = null,
         val fileNameEndMargin: Int? = null,
     )

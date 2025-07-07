@@ -28,7 +28,7 @@ interface CfrPreferencesRepository {
      * An enum for all CFR pref keys
      */
     enum class CfrPreference(
-        @StringRes val preferenceKey: Int,
+        @param:StringRes val preferenceKey: Int,
     ) {
         HomepageSearchBar(preferenceKey = R.string.pref_key_should_searchbar_cfr),
         TabAutoCloseBanner(preferenceKey = R.string.pref_key_should_show_auto_close_tabs_banner),

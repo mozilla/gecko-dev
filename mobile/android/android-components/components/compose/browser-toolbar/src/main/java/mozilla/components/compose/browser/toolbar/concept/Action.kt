@@ -27,8 +27,8 @@ sealed class Action {
      * being long clicked.
      */
     data class ActionButtonRes(
-        @DrawableRes val drawableResId: Int,
-        @StringRes val contentDescription: Int,
+        @param:DrawableRes val drawableResId: Int,
+        @param:StringRes val contentDescription: Int,
         val state: ActionButton.State = ActionButton.State.DEFAULT,
         val highlighted: Boolean = false,
         val onClick: BrowserToolbarInteraction,
@@ -102,7 +102,7 @@ sealed class Action {
              * The [DrawableRes] as icon for this button.
              */
             @JvmInline
-            value class DrawableResIcon(@DrawableRes val resourceId: Int) : Icon
+            value class DrawableResIcon(@param:DrawableRes val resourceId: Int) : Icon
         }
 
         /**
@@ -119,7 +119,7 @@ sealed class Action {
              * The [StringRes] to display as text in this button.
              */
             @JvmInline
-            value class StringResText(@StringRes val resourceId: Int) : Text
+            value class StringResText(@param:StringRes val resourceId: Int) : Text
         }
 
         /**
@@ -136,7 +136,7 @@ sealed class Action {
              * The [StringRes] to use as content description of this button.
              */
             @JvmInline
-            value class StringResContentDescription(@StringRes val resourceId: Int) : ContentDescription
+            value class StringResContentDescription(@param:StringRes val resourceId: Int) : ContentDescription
         }
     }
 

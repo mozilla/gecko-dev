@@ -71,7 +71,7 @@ class CustomTabsToolbarFeature(
     private val menuBuilder: BrowserMenuBuilder? = null,
     private val menuItemIndex: Int = menuBuilder?.items?.size ?: 0,
     private val window: Window? = null,
-    @NightMode private val appNightMode: Int = MODE_NIGHT_FOLLOW_SYSTEM,
+    @param:NightMode private val appNightMode: Int = MODE_NIGHT_FOLLOW_SYSTEM,
     private val forceActionButtonTinting: Boolean = false,
     private val customTabsToolbarButtonConfig: CustomTabsToolbarButtonConfig =
         CustomTabsToolbarButtonConfig(),

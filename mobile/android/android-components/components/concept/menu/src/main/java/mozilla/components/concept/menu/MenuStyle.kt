@@ -20,10 +20,10 @@ import androidx.annotation.Px
  */
 data class MenuStyle(
     val backgroundColor: ColorStateList? = null,
-    @Px val minWidth: Int? = null,
-    @Px val maxWidth: Int? = null,
-    @Px val horizontalOffset: Int? = null,
-    @Px val verticalOffset: Int? = null,
+    @param:Px val minWidth: Int? = null,
+    @param:Px val maxWidth: Int? = null,
+    @param:Px val horizontalOffset: Int? = null,
+    @param:Px val verticalOffset: Int? = null,
     val completelyOverlap: Boolean = false,
 ) {
     constructor(

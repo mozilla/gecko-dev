@@ -35,12 +35,10 @@ import mozilla.components.concept.menu.candidate.TypefaceStyle
 class BrowserMenuCategory(
     internal val label: String,
     private val textSize: Float = NO_ID.toFloat(),
-    @ColorRes
-    private val textColorResource: Int = NO_ID,
-    @ColorRes
-    private val backgroundColorResource: Int = NO_ID,
-    @TypefaceStyle private val textStyle: Int = Typeface.BOLD,
-    @TextAlignment private val textAlignment: Int = View.TEXT_ALIGNMENT_VIEW_START,
+    @param:ColorRes private val textColorResource: Int = NO_ID,
+    @param:ColorRes private val backgroundColorResource: Int = NO_ID,
+    @param:TypefaceStyle private val textStyle: Int = Typeface.BOLD,
+    @param:TextAlignment private val textAlignment: Int = View.TEXT_ALIGNMENT_VIEW_START,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,
 ) : BrowserMenuItem {

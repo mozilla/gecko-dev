@@ -36,7 +36,7 @@ import org.mozilla.fenix.home.setup.ui.SetupChecklistViewHolder
 import org.mozilla.fenix.home.topsites.TopSitePagerViewHolder
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
 
-sealed class AdapterItem(@LayoutRes val viewType: Int) {
+sealed class AdapterItem(@param:LayoutRes val viewType: Int) {
     object TopPlaceholderItem : AdapterItem(TopPlaceholderViewHolder.LAYOUT_ID)
 
     /**

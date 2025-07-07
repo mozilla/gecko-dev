@@ -5,6 +5,7 @@
 package mozilla.components.feature.awesomebar.provider
 
 import android.graphics.Bitmap
+import androidx.annotation.IntRange
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.search.SearchEngine
@@ -55,7 +56,7 @@ class SearchTermSuggestionsProvider(
     private val historyStorage: PlacesHistoryStorage,
     private val searchUseCase: SearchUseCase,
     private val searchEngine: SearchEngine?,
-    @androidx.annotation.IntRange(from = 0, to = SEARCH_TERMS_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT.toLong())
+    @param:IntRange(from = 0, to = SEARCH_TERMS_MAXIMUM_ALLOWED_SUGGESTIONS_LIMIT.toLong())
     private val maxNumberOfSuggestions: Int = DEFAULT_SUGGESTION_LIMIT,
     private val icon: Bitmap? = null,
     private val engine: Engine? = null,

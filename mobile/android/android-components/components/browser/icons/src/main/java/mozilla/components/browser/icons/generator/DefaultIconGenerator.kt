@@ -29,9 +29,9 @@ import kotlin.math.abs
  * representing the URL.
  */
 class DefaultIconGenerator(
-    @DimenRes private val cornerRadiusDimen: Int? = R.dimen.mozac_browser_icons_generator_default_corner_radius,
-    @ColorRes private val textColorRes: Int = R.color.mozac_browser_icons_generator_default_text_color,
-    @ArrayRes private val backgroundColorsRes: Int = R.array.mozac_browser_icons_photon_palette,
+    @param:DimenRes private val cornerRadiusDimen: Int? = R.dimen.mozac_browser_icons_generator_default_corner_radius,
+    @param:ColorRes private val textColorRes: Int = R.color.mozac_browser_icons_generator_default_text_color,
+    @param:ArrayRes private val backgroundColorsRes: Int = R.array.mozac_browser_icons_photon_palette,
 ) : IconGenerator {
 
     override fun generate(context: Context, request: IconRequest): Icon {

@@ -101,7 +101,7 @@ sealed interface MenuItem {
      */
     data class IconItem(
         override val text: Text,
-        @DrawableRes val drawableRes: Int,
+        @param:DrawableRes val drawableRes: Int,
         override val level: Level = Level.Default,
         override val testTag: String = "",
         override val onClick: () -> Unit,

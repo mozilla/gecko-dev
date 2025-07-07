@@ -134,8 +134,8 @@ data class ProtectionsState(
  */
 @Parcelize
 enum class CookieBannerUIMode(
-    @StringRes val description: Int? = null,
-    @DrawableRes val icon: Int? = null,
+    @param:StringRes val description: Int? = null,
+    @param:DrawableRes val icon: Int? = null,
 ) : Parcelable {
 
     /**
@@ -182,9 +182,9 @@ enum class CookieBannerUIMode(
  * The 6 categories of Tracking Protection to display
  */
 enum class TrackingProtectionCategory(
-    @StringRes val title: Int,
-    @StringRes val description: Int,
-    @DrawableRes val icon: Int,
+    @param:StringRes val title: Int,
+    @param:StringRes val description: Int,
+    @param:DrawableRes val icon: Int,
 ) {
     SOCIAL_MEDIA_TRACKERS(
         R.string.etp_social_media_trackers_title,

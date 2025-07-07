@@ -25,7 +25,7 @@ import org.mozilla.fenix.ext.components
  * @param listener Callback to be invoked when this menu item is clicked.
  */
 class BrowserMenuSignIn(
-    @ColorRes private val textColorResource: Int,
+    @param:ColorRes private val textColorResource: Int,
     @DrawableRes imageResource: Int = R.drawable.ic_signed_out,
     listener: () -> Unit = {},
 ) : BrowserMenuImageText(

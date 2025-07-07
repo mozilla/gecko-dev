@@ -23,8 +23,8 @@ sealed interface TabCounterMenuItem {
      * @property onClick Invoked when the item is clicked.
      */
     sealed class IconItem(
-        @StringRes val textResource: Int,
-        @DrawableRes val drawableRes: Int,
+        @param:StringRes val textResource: Int,
+        @param:DrawableRes val drawableRes: Int,
         open val onClick: () -> Unit,
     ) : TabCounterMenuItem {
 

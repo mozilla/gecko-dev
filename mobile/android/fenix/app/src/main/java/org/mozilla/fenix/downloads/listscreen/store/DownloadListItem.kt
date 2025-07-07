@@ -66,7 +66,7 @@ data class FileItem(
      * @property predicate The predicate for the content type filter
      */
     enum class ContentTypeFilter(
-        @StringRes val stringRes: Int,
+        @param:StringRes val stringRes: Int,
         val predicate: (String?) -> Boolean,
     ) {
         All(
@@ -156,7 +156,7 @@ data class FileItem(
          * Indicates that an [Initiated] download is now actively being downloaded.
          */
         data class Downloading(
-            @FloatRange(from = 0.0, to = 1.0) val progress: Float?,
+            @param:FloatRange(from = 0.0, to = 1.0) val progress: Float?,
         ) : Status {
             override fun transition(action: DownloadControlAction): Status = when (action) {
                 DownloadControlAction.PAUSE -> Paused(progress = progress)
@@ -169,7 +169,7 @@ data class FileItem(
          * Indicates that the download that has been [Downloading] has been paused.
          */
         data class Paused(
-            @FloatRange(from = 0.0, to = 1.0) val progress: Float?,
+            @param:FloatRange(from = 0.0, to = 1.0) val progress: Float?,
         ) : Status {
             override fun transition(action: DownloadControlAction): Status = when (action) {
                 DownloadControlAction.RESUME -> Downloading(progress = progress)
@@ -231,7 +231,7 @@ data class HeaderItem(
  * Enum class representing the time period used to group download items
  */
 enum class TimeCategory(
-    @StringRes val stringRes: Int,
+    @param:StringRes val stringRes: Int,
 ) {
     /**
      * Represents a download that is in progress

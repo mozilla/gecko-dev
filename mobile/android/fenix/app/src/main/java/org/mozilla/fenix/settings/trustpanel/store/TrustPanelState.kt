@@ -105,7 +105,7 @@ sealed class WebsitePermission(
  * Represents the different possible autoplay values for a site.
  */
 enum class AutoplayValue(
-    @StringRes val title: Int,
+    @param:StringRes val title: Int,
     val autoplayAudibleStatus: AutoplayStatus,
     val autoplayInaudibleStatus: AutoplayStatus,
 ) {

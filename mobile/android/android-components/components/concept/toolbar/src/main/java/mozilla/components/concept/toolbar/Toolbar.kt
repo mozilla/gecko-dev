@@ -289,7 +289,7 @@ interface Toolbar : ScrollableToolbar {
         override val weight: () -> Int = { -1 },
         private val background: Int = 0,
         private val padding: Padding? = null,
-        @ColorRes val iconTintColorResource: Int = ViewGroup.NO_ID,
+        @param:ColorRes val iconTintColorResource: Int = ViewGroup.NO_ID,
         private val longClickListener: (() -> Unit)? = null,
         private val listener: () -> Unit,
     ) : Action {
@@ -362,7 +362,7 @@ interface Toolbar : ScrollableToolbar {
         override val visible: () -> Boolean = { true },
         override val weight: () -> Int = { -1 },
         private var selected: Boolean = false,
-        @DrawableRes private val background: Int = 0,
+        @param:DrawableRes private val background: Int = 0,
         private val padding: Padding? = null,
         private val listener: (Boolean) -> Unit,
     ) : Action {
@@ -445,7 +445,7 @@ interface Toolbar : ScrollableToolbar {
      * @param padding A optional custom padding.
      */
     open class ActionSpace(
-        @Dimension(unit = DP) private val desiredWidth: Int,
+        @param:Dimension(unit = DP) private val desiredWidth: Int,
         private val padding: Padding? = null,
     ) : Action {
         override fun createView(parent: ViewGroup): View = View(parent.context).apply {

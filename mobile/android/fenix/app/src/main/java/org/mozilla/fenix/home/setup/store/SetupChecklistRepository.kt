@@ -53,7 +53,7 @@ interface SetupChecklistRepository {
  *
  * @property preferenceKey The string resource key for the preference.
  */
-enum class SetupChecklistPreference(@StringRes val preferenceKey: Int) {
+enum class SetupChecklistPreference(@param:StringRes val preferenceKey: Int) {
     SetToDefault(R.string.pref_key_default_browser),
     SignIn(R.string.pref_key_fxa_signed_in),
     ThemeComplete(R.string.pref_key_setup_step_theme),

@@ -17,10 +17,10 @@ import androidx.annotation.IntDef
  * @param color: The color to apply to the text.
  */
 data class TextStyle(
-    @Dimension(unit = Dimension.PX) val size: Float? = null,
-    @ColorInt val color: Int? = null,
-    @TypefaceStyle val textStyle: Int = Typeface.NORMAL,
-    @TextAlignment val textAlignment: Int = View.TEXT_ALIGNMENT_INHERIT,
+    @param:Dimension(unit = Dimension.PX) val size: Float? = null,
+    @param:ColorInt val color: Int? = null,
+    @param:TypefaceStyle val textStyle: Int = Typeface.NORMAL,
+    @param:TextAlignment val textAlignment: Int = View.TEXT_ALIGNMENT_INHERIT,
 )
 
 /**

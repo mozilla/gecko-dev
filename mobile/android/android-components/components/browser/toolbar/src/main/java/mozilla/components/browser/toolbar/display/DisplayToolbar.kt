@@ -102,17 +102,17 @@ class DisplayToolbar internal constructor(
      * insecure and secure colours respectively.
      */
     data class Colors(
-        @ColorInt val siteInfoIconSecure: Int,
-        @ColorInt val siteInfoIconInsecure: Int,
-        @ColorInt val siteInfoIconLocalPdf: Int,
-        @ColorInt val emptyIcon: Int,
-        @ColorInt val menu: Int,
-        @ColorInt val hint: Int,
-        @ColorInt val title: Int,
-        @ColorInt val text: Int,
-        @ColorInt val trackingProtection: Int?,
-        @ColorInt val separator: Int,
-        @ColorInt val highlight: Int?,
+        @param:ColorInt val siteInfoIconSecure: Int,
+        @param:ColorInt val siteInfoIconInsecure: Int,
+        @param:ColorInt val siteInfoIconLocalPdf: Int,
+        @param:ColorInt val emptyIcon: Int,
+        @param:ColorInt val menu: Int,
+        @param:ColorInt val hint: Int,
+        @param:ColorInt val title: Int,
+        @param:ColorInt val text: Int,
+        @param:ColorInt val trackingProtection: Int?,
+        @param:ColorInt val separator: Int,
+        @param:ColorInt val highlight: Int?,
     )
 
     /**

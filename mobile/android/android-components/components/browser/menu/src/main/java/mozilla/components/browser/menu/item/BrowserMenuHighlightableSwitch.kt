@@ -32,9 +32,9 @@ import mozilla.components.concept.menu.candidate.LowPriorityHighlightEffect
  */
 class BrowserMenuHighlightableSwitch(
     label: String,
-    @DrawableRes private val startImageResource: Int,
-    @ColorRes private val iconTintColorResource: Int = NO_ID,
-    @ColorRes private val textColorResource: Int = NO_ID,
+    @param:DrawableRes private val startImageResource: Int,
+    @param:ColorRes private val iconTintColorResource: Int = NO_ID,
+    @param:ColorRes private val textColorResource: Int = NO_ID,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,
     override val highlight: BrowserMenuHighlight.LowPriority,

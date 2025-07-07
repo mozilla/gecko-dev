@@ -11,9 +11,9 @@ import org.mozilla.fenix.R
 
 @Parcelize
 enum class TrackingProtectionMode(
-    @StringRes val preferenceKey: Int,
-    @StringRes val titleRes: Int,
-    @StringRes val contentDescriptionRes: Int,
+    @param:StringRes val preferenceKey: Int,
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val contentDescriptionRes: Int,
 ) : Parcelable {
 
     STANDARD(

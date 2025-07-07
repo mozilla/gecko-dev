@@ -34,8 +34,8 @@ data class BrowserScreenState(
  * @property readableColor Color for text or icons shown in the toolbar with enough contrast to be easily readable.
  */
 data class CustomTabColors(
-    @ColorInt val toolbarColor: Int? = null,
-    @ColorInt val systemBarsColor: Int? = null,
-    @ColorInt val navigationBarDividerColor: Int? = null,
-    @ColorInt val readableColor: Int? = null,
+    @param:ColorInt val toolbarColor: Int? = null,
+    @param:ColorInt val systemBarsColor: Int? = null,
+    @param:ColorInt val navigationBarDividerColor: Int? = null,
+    @param:ColorInt val readableColor: Int? = null,
 )

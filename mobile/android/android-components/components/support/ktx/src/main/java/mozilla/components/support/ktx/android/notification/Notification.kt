@@ -46,4 +46,4 @@ fun ensureNotificationChannelExists(
 /**
  * Wraps the data of a NotificationChannel as this class is available after API 26.
  */
-class ChannelData(val id: String, @StringRes val name: Int, val importance: Int)
+class ChannelData(val id: String, @param:StringRes val name: Int, val importance: Int)

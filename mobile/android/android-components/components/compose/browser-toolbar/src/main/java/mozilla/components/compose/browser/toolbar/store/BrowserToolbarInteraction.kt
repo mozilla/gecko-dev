@@ -94,7 +94,7 @@ sealed class BrowserToolbarMenuItem {
              * The [DrawableRes] as icon for this menu item.
              */
             @JvmInline
-            value class DrawableResIcon(@DrawableRes val resourceId: Int) : Icon
+            value class DrawableResIcon(@param:DrawableRes val resourceId: Int) : Icon
         }
 
         /**
@@ -111,7 +111,7 @@ sealed class BrowserToolbarMenuItem {
              * The [StringRes] to display as text in this menu item.
              */
             @JvmInline
-            value class StringResText(@StringRes val resourceId: Int) : Text
+            value class StringResText(@param:StringRes val resourceId: Int) : Text
         }
 
         /**
@@ -128,7 +128,7 @@ sealed class BrowserToolbarMenuItem {
              * The [StringRes] to use as content description of this menu item.
              */
             @JvmInline
-            value class StringResContentDescription(@StringRes val resourceId: Int) : ContentDescription
+            value class StringResContentDescription(@param:StringRes val resourceId: Int) : ContentDescription
         }
     }
 

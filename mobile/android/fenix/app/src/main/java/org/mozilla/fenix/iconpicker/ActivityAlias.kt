@@ -138,14 +138,14 @@ sealed class IconBackground {
      *
      * @property colorResId The color resource ID to use.
      */
-    data class Color(@ColorRes val colorResId: Int) : IconBackground()
+    data class Color(@param:ColorRes val colorResId: Int) : IconBackground()
 
     /**
      * A drawable background.
      *
      * @property drawableResId The drawable resource ID to use.
      */
-    data class Drawable(@DrawableRes val drawableResId: Int) : IconBackground()
+    data class Drawable(@param:DrawableRes val drawableResId: Int) : IconBackground()
 }
 
 /**

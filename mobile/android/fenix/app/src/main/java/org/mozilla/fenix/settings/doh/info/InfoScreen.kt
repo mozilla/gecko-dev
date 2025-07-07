@@ -161,7 +161,7 @@ private fun InfoScreenPreview() {
  * that you want to use as placeholders.
  */
 internal data class BulletPoint(
-    @StringRes val textRes: Int,
+    @param:StringRes val textRes: Int,
     val placeholders: List<Int> = emptyList(),
 )
 
@@ -172,7 +172,7 @@ internal data class BulletPoint(
  * This enum is used to categorize the level or mode of an info screen.
  */
 internal enum class InfoScreenTopic(
-    @StringRes val titleId: Int,
+    @param:StringRes val titleId: Int,
     val bulletPoints: List<Pair<BulletPoint, SupportUtils.SumoTopic?>>,
 ) {
     DEFAULT(

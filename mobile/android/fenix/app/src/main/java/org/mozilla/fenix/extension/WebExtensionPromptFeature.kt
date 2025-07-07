@@ -42,7 +42,7 @@ import org.mozilla.fenix.theme.ThemeManager
  */
 class WebExtensionPromptFeature(
     private val store: BrowserStore,
-    @UiContext private val context: Context,
+    @param:UiContext private val context: Context,
     private val fragmentManager: FragmentManager,
     private val onLinkClicked: (String, Boolean) -> Unit,
     private val addonManager: AddonManager = context.components.addonManager,

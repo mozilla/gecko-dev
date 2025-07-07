@@ -31,7 +31,7 @@ import androidx.browser.customtabs.CustomTabsSessionToken
  * @property externalAppType How this custom tab is being displayed.
  */
 data class CustomTabConfig(
-    @ColorScheme val colorScheme: Int? = null,
+    @param:ColorScheme val colorScheme: Int? = null,
     val colorSchemes: ColorSchemes? = null,
     val closeButtonIcon: Bitmap? = null,
     val enableUrlbarHiding: Boolean = false,
@@ -93,10 +93,10 @@ data class CustomTabMenuItem(
  * @property navigationBarDividerColor Optional background color for the navigation bar divider.
  */
 data class ColorSchemeParams(
-    @ColorInt val toolbarColor: Int? = null,
-    @ColorInt val secondaryToolbarColor: Int? = null,
-    @ColorInt val navigationBarColor: Int? = null,
-    @ColorInt val navigationBarDividerColor: Int? = null,
+    @param:ColorInt val toolbarColor: Int? = null,
+    @param:ColorInt val secondaryToolbarColor: Int? = null,
+    @param:ColorInt val navigationBarColor: Int? = null,
+    @param:ColorInt val navigationBarDividerColor: Int? = null,
 )
 
 /**

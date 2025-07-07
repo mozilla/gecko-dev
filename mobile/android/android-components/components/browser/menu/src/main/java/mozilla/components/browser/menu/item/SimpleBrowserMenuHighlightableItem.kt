@@ -35,9 +35,9 @@ import mozilla.components.concept.menu.candidate.TextStyle
  */
 class SimpleBrowserMenuHighlightableItem(
     private val label: String,
-    @ColorRes private val textColorResource: Int = NO_ID,
+    @param:ColorRes private val textColorResource: Int = NO_ID,
     private val textSize: Float = NO_ID.toFloat(),
-    @ColorInt val backgroundTint: Int,
+    @param:ColorInt val backgroundTint: Int,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,
     var isHighlighted: () -> Boolean = { true },

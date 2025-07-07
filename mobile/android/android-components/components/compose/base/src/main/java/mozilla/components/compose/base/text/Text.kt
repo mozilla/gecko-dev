@@ -28,7 +28,7 @@ sealed interface Text {
      *
      * @property value The [Int] resource value.
      */
-    data class Resource(@StringRes val value: Int) : Text
+    data class Resource(@param:StringRes val value: Int) : Text
 }
 
 /**

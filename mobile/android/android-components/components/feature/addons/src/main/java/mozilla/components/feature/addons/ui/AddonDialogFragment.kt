@@ -45,16 +45,11 @@ open class AddonDialogFragment : AppCompatDialogFragment() {
     data class PromptsStyling(
         val gravity: Int,
         val shouldWidthMatchParent: Boolean = false,
-        @ColorRes
-        val confirmButtonBackgroundColor: Int? = null,
-        @ColorRes
-        val confirmButtonTextColor: Int? = null,
-        @ColorRes
-        val confirmButtonDisabledBackgroundColor: Int? = null,
-        @ColorRes
-        val confirmButtonDisabledTextColor: Int? = null,
-        @ColorRes
-        val learnMoreLinkTextColor: Int? = null,
+        @param:ColorRes val confirmButtonBackgroundColor: Int? = null,
+        @param:ColorRes val confirmButtonTextColor: Int? = null,
+        @param:ColorRes val confirmButtonDisabledBackgroundColor: Int? = null,
+        @param:ColorRes val confirmButtonDisabledTextColor: Int? = null,
+        @param:ColorRes val learnMoreLinkTextColor: Int? = null,
         val confirmButtonRadius: Float? = null,
     )
 }

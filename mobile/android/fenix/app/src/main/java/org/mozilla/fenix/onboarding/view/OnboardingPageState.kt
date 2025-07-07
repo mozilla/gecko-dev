@@ -23,7 +23,7 @@ import org.mozilla.fenix.compose.LinkTextState
  * @property onRecordImpressionEvent Callback for recording impression event.
  */
 data class OnboardingPageState(
-    @DrawableRes val imageRes: Int,
+    @param:DrawableRes val imageRes: Int,
     val title: String,
     val description: String,
     val privacyCaption: Caption? = null,
@@ -57,7 +57,7 @@ data class Caption(
  */
 data class ToolbarOption(
     val toolbarType: ToolbarOptionType,
-    @DrawableRes val imageRes: Int,
+    @param:DrawableRes val imageRes: Int,
     val label: String,
 )
 

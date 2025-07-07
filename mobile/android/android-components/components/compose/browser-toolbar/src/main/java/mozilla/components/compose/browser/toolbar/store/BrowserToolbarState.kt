@@ -92,7 +92,7 @@ data class DisplayState(
  * If `null` is provided the default colors will be used.
  */
 data class ProgressBarConfig(
-    @IntRange(from = 0, to = 100) val progress: Int,
+    @param:IntRange(from = 0, to = 100) val progress: Int,
     val gravity: ProgressBarGravity,
     val color: List<Color>? = null,
 )

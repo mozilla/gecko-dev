@@ -125,7 +125,7 @@ sealed class Crash {
         override val timestamp: Long,
         val minidumpPath: String?,
         val extrasPath: String?,
-        @ProcessVisibility val processVisibility: String?,
+        @param:ProcessVisibility val processVisibility: String?,
         val processType: String?,
         override val breadcrumbs: ArrayList<Breadcrumb>,
         val remoteType: String?,

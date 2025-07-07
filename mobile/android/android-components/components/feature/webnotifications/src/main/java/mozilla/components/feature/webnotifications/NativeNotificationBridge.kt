@@ -24,7 +24,7 @@ import mozilla.components.support.utils.PendingIntentUtils
 
 internal class NativeNotificationBridge(
     private val icons: BrowserIcons,
-    @DrawableRes private val smallIcon: Int,
+    @param:DrawableRes private val smallIcon: Int,
 ) {
     companion object {
         internal const val EXTRA_ON_CLICK = "mozac.feature.webnotifications.generic.onclick"

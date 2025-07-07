@@ -23,7 +23,7 @@ import org.mozilla.fenix.R
 data class MicrosurveyUIData(
     val id: String,
     val promptTitle: String,
-    @DrawableRes val icon: Int,
+    @param:DrawableRes val icon: Int,
     val question: String,
     val answers: List<String>,
     val utmContent: String? = null,

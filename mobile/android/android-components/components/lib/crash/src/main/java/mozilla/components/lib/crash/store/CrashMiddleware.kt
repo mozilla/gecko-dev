@@ -16,7 +16,7 @@ import mozilla.components.lib.crash.R
  *
  * @property labelId The string resource label ID associated with the option.
  */
-enum class CrashReportOption(@StringRes val labelId: Int) {
+enum class CrashReportOption(@param:StringRes val labelId: Int) {
     Ask(R.string.crash_reporting_ask),
     Auto(R.string.crash_reporting_auto),
     Never(R.string.crash_reporting_never),

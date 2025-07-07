@@ -28,8 +28,7 @@ import java.lang.reflect.Modifier
  */
 class BrowserMenuImageSwitch(
     @get:VisibleForTesting(otherwise = Modifier.PRIVATE)
-    @DrawableRes
-    val imageResource: Int,
+    @param:DrawableRes val imageResource: Int,
     label: String,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,

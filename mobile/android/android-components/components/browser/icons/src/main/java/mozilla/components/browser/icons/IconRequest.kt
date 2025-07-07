@@ -23,7 +23,7 @@ data class IconRequest(
     val url: String,
     val size: Size = Size.DEFAULT,
     val resources: List<Resource> = emptyList(),
-    @ColorInt val color: Int? = null,
+    @param:ColorInt val color: Int? = null,
     val isPrivate: Boolean = false,
     val waitOnNetworkLoad: Boolean = true,
 ) {
@@ -33,7 +33,7 @@ data class IconRequest(
      *
      * We are trying to limit the supported sizes in order to optimize our caching strategy.
      */
-    enum class Size(@DimenRes val dimen: Int) {
+    enum class Size(@param:DimenRes val dimen: Int) {
         DEFAULT(R.dimen.mozac_browser_icons_size_default),
         LAUNCHER(R.dimen.mozac_browser_icons_size_launcher),
         LAUNCHER_ADAPTIVE(R.dimen.mozac_browser_icons_size_launcher_adaptive),

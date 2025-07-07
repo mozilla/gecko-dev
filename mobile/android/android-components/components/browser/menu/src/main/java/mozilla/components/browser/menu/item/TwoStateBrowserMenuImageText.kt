@@ -40,10 +40,10 @@ import mozilla.components.concept.menu.candidate.TextStyle
 class TwoStateBrowserMenuImageText(
     private val primaryLabel: String,
     private val secondaryLabel: String,
-    @ColorRes internal val textColorResource: Int = NO_ID,
+    @param:ColorRes internal val textColorResource: Int = NO_ID,
     enabled: Boolean = true,
-    @DrawableRes val primaryStateIconResource: Int,
-    @DrawableRes val secondaryStateIconResource: Int,
+    @param:DrawableRes val primaryStateIconResource: Int,
+    @param:DrawableRes val secondaryStateIconResource: Int,
     @ColorRes iconTintColorResource: Int = NO_ID,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,

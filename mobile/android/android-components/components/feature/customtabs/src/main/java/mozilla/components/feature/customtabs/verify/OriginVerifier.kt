@@ -28,7 +28,7 @@ import mozilla.components.service.digitalassetlinks.RelationChecker
  */
 class OriginVerifier(
     private val packageName: String,
-    @Relation private val relation: Int,
+    @param:Relation private val relation: Int,
     packageManager: PackageManager,
     private val relationChecker: RelationChecker,
 ) {

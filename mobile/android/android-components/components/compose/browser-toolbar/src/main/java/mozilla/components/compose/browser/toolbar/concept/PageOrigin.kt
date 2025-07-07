@@ -25,7 +25,7 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteractio
  * that does not fit the available space.
  */
 data class PageOrigin(
-    @StringRes val hint: Int,
+    @param:StringRes val hint: Int,
     val title: String?,
     val url: CharSequence?,
     val textGravity: TextGravity = TEXT_GRAVITY_START,

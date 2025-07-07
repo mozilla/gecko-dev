@@ -17,8 +17,8 @@ import androidx.annotation.Px
  * A lower scale factor results in less pixelation.
  */
 data class DesiredSize(
-    @Px val targetSize: Int,
-    @Px val minSize: Int,
-    @Px val maxSize: Int,
+    @param:Px val targetSize: Int,
+    @param:Px val minSize: Int,
+    @param:Px val maxSize: Int,
     val maxScaleFactor: Float,
 )

@@ -32,7 +32,7 @@ import mozilla.components.support.utils.ColorUtils
  * @property selected if true, this is the color that will be set when the dialog is closed.
  */
 data class ColorItem(
-    @ColorInt val color: Int,
+    @param:ColorInt val color: Int,
     val contentDescription: String,
     val selected: Boolean = false,
 )

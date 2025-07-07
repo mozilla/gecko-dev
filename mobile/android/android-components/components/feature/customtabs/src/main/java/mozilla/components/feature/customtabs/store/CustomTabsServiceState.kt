@@ -41,7 +41,7 @@ data class CustomTabState(
  */
 data class OriginRelationPair(
     val origin: Uri,
-    @CustomTabsService.Relation val relation: Int,
+    @param:CustomTabsService.Relation val relation: Int,
 )
 
 /**

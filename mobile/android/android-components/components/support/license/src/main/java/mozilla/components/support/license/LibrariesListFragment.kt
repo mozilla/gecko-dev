@@ -41,8 +41,8 @@ abstract class LibrariesListFragment : Fragment(R.layout.fragment_libraries_list
      * @property metadata the information needed to parse the [licenses] file.
      */
     data class LicenseData(
-        @RawRes val licenses: Int,
-        @RawRes val metadata: Int,
+        @param:RawRes val licenses: Int,
+        @param:RawRes val metadata: Int,
     )
 
     /**

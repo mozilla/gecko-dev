@@ -12,7 +12,7 @@ import org.mozilla.fenix.nimbus.OnboardingCardData
  */
 data class OnboardingPageUiData(
     val type: Type,
-    @DrawableRes val imageRes: Int,
+    @param:DrawableRes val imageRes: Int,
     val title: String,
     val description: String,
     val primaryButtonLabel: String,

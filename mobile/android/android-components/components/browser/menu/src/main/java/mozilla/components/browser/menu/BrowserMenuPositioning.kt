@@ -39,17 +39,17 @@ internal data class MenuPositioningData(
     /**
      * Distance between [display top, anchor top margin]. Used for better positioning the menu.
      */
-    @Px val availableHeightToTop: Int = 0,
+    @param:Px val availableHeightToTop: Int = 0,
 
     /**
      * Distance between [display bottom, anchor bottom margin]. Used for better positioning the menu.
      */
-    @Px val availableHeightToBottom: Int = 0,
+    @param:Px val availableHeightToBottom: Int = 0,
 
     /**
      * [View#measuredHeight] of the menu. May be bigger than the available screen height.
      */
-    @Px val containerViewHeight: Int = 0,
+    @param:Px val containerViewHeight: Int = 0,
 )
 
 /**

@@ -36,12 +36,9 @@ import mozilla.components.concept.menu.candidate.TextStyle
  */
 class ParentBrowserMenuItem(
     internal val label: String,
-    @DrawableRes
-    private val imageResource: Int,
-    @ColorRes
-    private val iconTintColorResource: Int = NO_ID,
-    @ColorRes
-    private val textColorResource: Int = NO_ID,
+    @param:DrawableRes private val imageResource: Int,
+    @param:ColorRes private val iconTintColorResource: Int = NO_ID,
+    @param:ColorRes private val textColorResource: Int = NO_ID,
     internal val subMenu: BrowserMenu,
     override val isCollapsingMenuLimit: Boolean = false,
     override val isSticky: Boolean = false,

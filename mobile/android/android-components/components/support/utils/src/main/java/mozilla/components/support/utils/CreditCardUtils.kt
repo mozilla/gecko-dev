@@ -17,7 +17,7 @@ import kotlin.math.log10
  */
 data class CreditCardIssuerNetwork(
     val name: String,
-    @DrawableRes val icon: Int,
+    @param:DrawableRes val icon: Int,
 )
 
 /**

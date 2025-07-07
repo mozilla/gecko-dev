@@ -35,7 +35,7 @@ internal const val DEFAULT_COUNTRY = "US"
 internal data class Country(
     val countryCode: String,
     val displayName: String,
-    @StringRes val subregionTitleResource: Int,
+    @param:StringRes val subregionTitleResource: Int,
     val subregions: List<String>,
 )
 
