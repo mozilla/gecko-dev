@@ -2192,13 +2192,21 @@ void MacroAssembler::test32LoadPtr(Condition cond, const Address& addr,
   loadPtr(src, dest);
   bind(&skip);
 }
-void MacroAssembler::test32MovePtr(Condition, const Address&, Imm32, Register,
-                                   Register) {
-  MOZ_CRASH();
+void MacroAssembler::test32MovePtr(Condition cond, const Address& addr,
+                                   Imm32 mask, Register src, Register dest) {
+  MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+  Label skip;
+  branchTest32(Assembler::InvertCondition(cond), addr, mask, &skip);
+  movePtr(src, dest);
+  bind(&skip);
 }
 void MacroAssembler::test32MovePtr(Condition cond, Register operand, Imm32 mask,
                                    Register src, Register dest) {
-  MOZ_CRASH();
+  MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+  Label skip;
+  branchTest32(Assembler::InvertCondition(cond), operand, mask, &skip);
+  movePtr(src, dest);
+  bind(&skip);
 }
 void MacroAssembler::xor32(Register src, Register dest) {
   ma_xor(dest, dest, src);
