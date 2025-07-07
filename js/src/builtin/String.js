@@ -880,7 +880,7 @@ function String_toLocaleLowerCase() {
   }
 
   if (requestedLocale === undefined) {
-    requestedLocale = DefaultLocale();
+    requestedLocale = intl_DefaultLocale();
   }
 
   // Steps 7-16.
@@ -925,7 +925,7 @@ function String_toLocaleUpperCase() {
   }
 
   if (requestedLocale === undefined) {
-    requestedLocale = DefaultLocale();
+    requestedLocale = intl_DefaultLocale();
   }
 
   // Steps 7-16.

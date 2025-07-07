@@ -9,6 +9,8 @@
 
 #include "js/TypeDecls.h"
 
+class JSLinearString;
+
 namespace js {
 
 extern const JSClass IntlClass;
@@ -57,17 +59,6 @@ extern const JSClass IntlClass;
                                                    JS::Value* vp);
 
 /**
- * Return the supported locale for the input locale if ICU supports that locale
- * (perhaps via fallback, e.g. supporting "de-CH" through "de" support implied
- * by a "de-DE" locale). Otherwise uses the last-ditch locale.
- *
- * Usage: result = intl_supportedLocaleOrFallback(locale)
- */
-[[nodiscard]] extern bool intl_supportedLocaleOrFallback(JSContext* cx,
-                                                         unsigned argc,
-                                                         JS::Value* vp);
-
-/**
  * Returns the list of supported values for the given key. Throws a RangeError
  * if the key isn't one of {"calendar", "collation", "currency",
  * "numberingSystem", "timeZone", "unit"}.
@@ -77,6 +68,16 @@ extern const JSClass IntlClass;
 [[nodiscard]] extern bool intl_SupportedValuesOf(JSContext* cx, unsigned argc,
                                                  JS::Value* vp);
 
+namespace intl {
+
+/**
+ * Return the supported locale for the default locale if ICU supports that
+ * default locale (perhaps via fallback, e.g. supporting "de-CH" through "de"
+ * support implied by a "de-DE" locale). Otherwise uses the last-ditch locale.
+ */
+JSLinearString* ComputeDefaultLocale(JSContext* cx);
+
+}  // namespace intl
 }  // namespace js
 
 #endif /* builtin_intl_IntlObject_h */

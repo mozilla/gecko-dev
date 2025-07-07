@@ -142,38 +142,6 @@ function IsASCIIAlphaString(s) {
   return true;
 }
 
-var localeCache = {
-  runtimeDefaultLocale: undefined,
-  defaultLocale: undefined,
-};
-
-/**
- * Returns the BCP 47 language tag for the host environment's current locale.
- *
- * Spec: ECMAScript Internationalization API Specification, 6.2.4.
- */
-function DefaultLocale() {
-  if (intl_IsRuntimeDefaultLocale(localeCache.runtimeDefaultLocale)) {
-    return localeCache.defaultLocale;
-  }
-
-  // If we didn't have a cache hit, compute the candidate default locale.
-  var runtimeDefaultLocale = intl_RuntimeDefaultLocale();
-  var locale = intl_supportedLocaleOrFallback(runtimeDefaultLocale);
-
-  assertIsValidAndCanonicalLanguageTag(locale, "the computed default locale");
-  assert(
-    startOfUnicodeExtensions(locale) < 0,
-    "the computed default locale must not contain a Unicode extension sequence"
-  );
-
-  // Cache the computed locale until the runtime default locale changes.
-  localeCache.defaultLocale = locale;
-  localeCache.runtimeDefaultLocale = runtimeDefaultLocale;
-
-  return locale;
-}
-
 /**
  * Canonicalizes a locale list.
  *
@@ -249,7 +217,7 @@ function CanonicalizeLocaleList(locales) {
  * Spec: RFC 4647, section 3.4.
  */
 function BestAvailableLocale(availableLocales, locale) {
-  return intl_BestAvailableLocale(availableLocales, locale, DefaultLocale());
+  return intl_BestAvailableLocale(availableLocales, locale, intl_DefaultLocale());
 }
 
 /**
@@ -305,7 +273,7 @@ function LookupMatcher(availableLocales, requestedLocales) {
   }
 
   // Steps 3-4.
-  result.locale = DefaultLocale();
+  result.locale = intl_DefaultLocale();
 
   // Step 5.
   return result;
