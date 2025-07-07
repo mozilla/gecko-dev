@@ -170,7 +170,12 @@ class InfoBarNotification {
       this.addImpression();
     }
 
-    if (content.type === TYPES.UNIVERSAL) {
+    // Only add if universal infobar is still active. Prevents race condition
+    // where a notification could add itself after removeUniversalInfobars().
+    if (
+      content.type === TYPES.UNIVERSAL &&
+      InfoBar._activeInfobar?.message.content.type === TYPES.UNIVERSAL
+    ) {
       InfoBar._universalInfobars.push({
         box: notificationContainer,
         notification: this.notification,
@@ -367,7 +372,10 @@ export const InfoBar = {
   },
 
   async showNotificationAllWindows(notification) {
-    for (let win of Services.wm.getEnumerator(null)) {
+    for (let win of Services.wm.getEnumerator("navigator:browser")) {
+      if (!win.gBrowser || win.document?.readyState !== "complete") {
+        continue;
+      }
       this.maybeLoadCustomElement(win);
       this.maybeInsertFTL(win);
       const browser = win.gBrowser.selectedBrowser;
@@ -376,18 +384,19 @@ export const InfoBar = {
   },
 
   async showInfoBarMessage(browser, message, dispatch, universalInNewWin) {
+    const win = browser?.ownerGlobal;
+    if (!win || lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
+      return null;
+    }
+    const isUniversal = message.content.type === TYPES.UNIVERSAL;
+    // Check if this is the first instance of a universal infobar
+    const isFirstUniversal = !universalInNewWin && isUniversal;
     // Prevent stacking multiple infobars
     if (this._activeInfobar && !universalInNewWin) {
       return null;
     }
-
-    const isUniversal = message.content.type === TYPES.UNIVERSAL;
-    // Check if this is the first instance of a universal infobar
-    const isFirstUniversal = !universalInNewWin && isUniversal;
-    const win = browser?.ownerGlobal;
-
-    if (!win || lazy.PrivateBrowsingUtils.isWindowPrivate(win)) {
-      return null;
+    if (!universalInNewWin) {
+      this._activeInfobar = { message, dispatch };
     }
 
     this.maybeLoadCustomElement(win);
@@ -449,6 +458,12 @@ export const InfoBar = {
 
     const onWindowReady = () => {
       if (!win.gBrowser || win.closed) {
+        return;
+      }
+      if (
+        !InfoBar._activeInfobar ||
+        InfoBar._activeInfobar.message !== message
+      ) {
         return;
       }
       this.showInfoBarMessage(
