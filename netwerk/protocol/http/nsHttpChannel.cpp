@@ -1857,10 +1857,12 @@ nsresult nsHttpChannel::InitTransaction() {
   // So we pretend that the permission for these has already been denied
   // in order to avoid prompting.
   uint32_t flags = 0;
+  using CF = nsIClassifiedChannel::ClassificationFlags;
   if (StaticPrefs::network_lna_block_trackers() &&
       NS_SUCCEEDED(
           mLoadInfo->GetTriggeringThirdPartyClassificationFlags(&flags)) &&
-      flags != 0) {
+      (flags & (CF::CLASSIFIED_ANY_BASIC_TRACKING |
+                CF::CLASSIFIED_ANY_SOCIAL_TRACKING)) != 0) {
     perms.mLocalHostPermission = LNAPermission::Denied;
     perms.mLocalNetworkPermission = LNAPermission::Denied;
 

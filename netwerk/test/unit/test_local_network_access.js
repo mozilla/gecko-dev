@@ -5,11 +5,39 @@ const { HttpServer } = ChromeUtils.importESModule(
 );
 
 function makeChannel(url) {
+  let uri2 = NetUtil.newURI(url);
+  // by default system principal is used, which cannot be used for permission based tests
+  // because the default system principal has all permissions
+  var principal = Services.scriptSecurityManager.createContentPrincipal(
+    uri2,
+    {}
+  );
   return NetUtil.newChannel({
     uri: url,
-    loadUsingSystemPrincipal: true,
+    loadingPrincipal: principal,
+    securityFlags: Ci.nsILoadInfo.SEC_REQUIRE_SAME_ORIGIN_INHERITS_SEC_CONTEXT,
+    contentPolicyType: Ci.nsIContentPolicy.TYPE_OTHER,
   }).QueryInterface(Ci.nsIHttpChannel);
 }
+
+var ChannelCreationObserver = {
+  QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
+  observe(aSubject, aTopic) {
+    if (aTopic == "http-on-opening-request") {
+      var chan = aSubject.QueryInterface(Ci.nsIHttpChannel);
+      if (chan.URI.spec.includes("test_lna_social_tracker")) {
+        chan.loadInfo.triggeringThirdPartyClassificationFlags =
+          Ci.nsIClassifiedChannel.CLASSIFIED_ANY_SOCIAL_TRACKING;
+      } else if (chan.URI.spec.includes("test_lna_basic_tracker")) {
+        chan.loadInfo.triggeringThirdPartyClassificationFlags =
+          Ci.nsIClassifiedChannel.CLASSIFIED_ANY_BASIC_TRACKING;
+      } else if (chan.URI.spec.includes("test_lna_content_tracker")) {
+        chan.loadInfo.triggeringThirdPartyClassificationFlags =
+          Ci.nsIClassifiedChannel.CLASSIFIED_TRACKING_CONTENT;
+      }
+    }
+  },
+};
 
 ChromeUtils.defineLazyGetter(this, "H1_URL", function () {
   return "http://localhost:" + httpServer.identity.primaryPort;
@@ -28,6 +56,8 @@ function pathHandler(metadata, response) {
 }
 
 add_setup(async () => {
+  Services.prefs.setBoolPref("network.lna.block_trackers", true);
+  Services.obs.addObserver(ChannelCreationObserver, "http-on-opening-request");
   // H1 Server
   httpServer = new HttpServer();
   httpServer.registerPathHandler("/test_lna", pathHandler);
@@ -46,7 +76,7 @@ add_setup(async () => {
       await httpServer.stop();
     } catch (e) {
       // Ignore errors during cleanup
-      console.error("Error during cleanup:", e);
+      info("Error during cleanup:", e);
     }
   });
   await server.registerPathHandler("/test_lna", (req, resp) => {
@@ -99,10 +129,63 @@ add_task(async function lna_blocking_tests() {
     [false, Ci.nsILoadInfo.Public, "/test_lna", Cr.NS_OK, H2_URL],
     [false, Ci.nsILoadInfo.Private, "/test_lna", Cr.NS_OK, H2_URL],
     [false, Ci.nsILoadInfo.Local, "/test_lna", Cr.NS_OK, H2_URL],
+    // Test cases for local network access from trackers
+    // NO LNA then request should not be blocked
+    [false, Ci.nsILoadInfo.Local, "/test_lna_basic_tracker", Cr.NS_OK, H2_URL],
+    [false, Ci.nsILoadInfo.Local, "/test_lna_social_tracker", Cr.NS_OK, H2_URL],
+    [
+      false,
+      Ci.nsILoadInfo.Local,
+      "/test_lna_content_tracker",
+      Cr.NS_OK,
+      H2_URL,
+    ],
+    [
+      false,
+      Ci.nsILoadInfo.Public,
+      "/test_lna_basic_tracker",
+      Cr.NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED,
+      H2_URL,
+    ],
+    [
+      false,
+      Ci.nsILoadInfo.Public,
+      "/test_lna_social_tracker",
+      Cr.NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED,
+      H2_URL,
+    ],
+    [
+      false,
+      Ci.nsILoadInfo.Public,
+      "/test_lna_content_tracker",
+      Cr.NS_OK,
+      H2_URL,
+    ],
+    [
+      false,
+      Ci.nsILoadInfo.Private,
+      "/test_lna_basic_tracker",
+      Cr.NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED,
+      H2_URL,
+    ],
+    [
+      false,
+      Ci.nsILoadInfo.Private,
+      "/test_lna_social_tracker",
+      Cr.NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED,
+      H2_URL,
+    ],
+    [
+      false,
+      Ci.nsILoadInfo.Private,
+      "/test_lna_content_tracker",
+      Cr.NS_OK,
+      H2_URL,
+    ],
   ];
 
   for (let [blocking, space, suffix, expectedStatus, url] of testCases) {
-    info(`do_test ${url}, ${space} -> ${expectedStatus}`);
+    info(`do_test ${url}${suffix}, ${space} -> ${expectedStatus}`);
 
     Services.prefs.setBoolPref("network.lna.blocking", blocking);
 
