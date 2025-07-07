@@ -1089,6 +1089,14 @@ static bool JapaneseEraYearToCommonEraYear(
   return true;
 }
 
+static constexpr int32_t ethiopianYearsFromCreationToIncarnation = 5500;
+
+static int32_t FromAmeteAlemToAmeteMihret(int32_t year) {
+  // Subtract the number of years from creation to incarnation to anchor
+  // at the date of incarnation.
+  return year - ethiopianYearsFromCreationToIncarnation;
+}
+
 static UniqueICU4XDate CreateDateFromCodes(
     JSContext* cx, CalendarId calendarId, const icu4x::capi::Calendar* calendar,
     EraYear eraYear, MonthCode monthCode, int32_t day,
@@ -1515,55 +1523,91 @@ static bool CalendarDateYear(JSContext* cx, CalendarId calendar,
                              const icu4x::capi::Date* date, int32_t* result) {
   MOZ_ASSERT(calendar != CalendarId::ISO8601);
 
-  // FIXME: ICU4X doesn't yet support CalendarDateYear, so we need to manually
-  // adjust the era year to determine the non-era year.
-  //
-  // https://github.com/unicode-org/icu4x/issues/3962
-
-  if (!CalendarEraRelevant(calendar)) {
-    int32_t year = icu4x::capi::icu4x_Date_era_year_or_related_iso_mv1(date);
-    *result = year;
-    return true;
-  }
-
-  if (calendar != CalendarId::Japanese) {
-    MOZ_ASSERT(CalendarEras(calendar).size() == 2);
-
-    int32_t year = icu4x::capi::icu4x_Date_era_year_or_related_iso_mv1(date);
-    MOZ_ASSERT(year > 0, "era years are strictly positive in ICU4X");
-
-    EraCode era;
-    if (!CalendarDateEra(cx, calendar, date, &era)) {
-      return false;
+  switch (calendar) {
+    case CalendarId::ISO8601:
+    case CalendarId::Buddhist:
+    case CalendarId::Coptic:
+    case CalendarId::EthiopianAmeteAlem:
+    case CalendarId::Hebrew:
+    case CalendarId::Indian:
+    case CalendarId::Persian:
+    case CalendarId::Gregorian:
+    case CalendarId::Islamic:
+    case CalendarId::IslamicCivil:
+    case CalendarId::IslamicRGSA:
+    case CalendarId::IslamicTabular:
+    case CalendarId::IslamicUmmAlQura:
+    case CalendarId::Japanese: {
+      *result = icu4x::capi::icu4x_Date_extended_year_mv1(date);
+      return true;
     }
 
-    // Map from era year to extended year.
-    //
-    // For example in the Gregorian calendar:
-    //
-    // ----------------------------
-    // | Era Year | Extended Year |
-    // | 2 CE     |  2            |
-    // | 1 CE     |  1            |
-    // | 1 BCE    |  0            |
-    // | 2 BCE    | -1            |
-    // ----------------------------
-    if (era == EraCode::Inverse) {
-      year = -(year - 1);
-    } else {
-      MOZ_ASSERT(era == EraCode::Standard);
+    case CalendarId::Chinese:
+    case CalendarId::Dangi: {
+      // Return the related ISO year for Chinese/Dangi.
+      *result = icu4x::capi::icu4x_Date_era_year_or_related_iso_mv1(date);
+      return true;
     }
 
-    *result = year;
-    return true;
+    case CalendarId::Ethiopian: {
+      // ICU4X implements the current CLDR rules for Ethopian (Amete Mihret)
+      // calendar eras. It's unclear if CLDR reflects modern use of the
+      // calendar, therefore we map all years to a single era, anchored at the
+      // date of incarnation.
+      //
+      // https://unicode-org.atlassian.net/browse/CLDR-18739
+
+      int32_t year = icu4x::capi::icu4x_Date_extended_year_mv1(date);
+
+      auto eraName = EraName(date);
+      MOZ_ASSERT(
+          eraName == IcuEraName(CalendarId::Ethiopian, EraCode::Standard) ||
+          eraName ==
+              IcuEraName(CalendarId::EthiopianAmeteAlem, EraCode::Standard));
+
+      // Workaround for <https://github.com/unicode-org/icu4x/issues/6719>.
+      if (eraName ==
+          IcuEraName(CalendarId::EthiopianAmeteAlem, EraCode::Standard)) {
+        year = FromAmeteAlemToAmeteMihret(year);
+      }
+
+      *result = year;
+      return true;
+    }
+
+    case CalendarId::ROC: {
+      static_assert(CalendarEras(CalendarId::ROC).size() == 2);
+
+      // ICU4X returns the related ISO year for the extended year, but we want
+      // to anchor the extended year at 1 ROC instead.
+      //
+      // https://github.com/unicode-org/icu4x/issues/6720
+
+      int32_t year = icu4x::capi::icu4x_Date_era_year_or_related_iso_mv1(date);
+      MOZ_ASSERT(year > 0, "era years are strictly positive in ICU4X");
+
+      auto eraName = EraName(date);
+      MOZ_ASSERT(eraName == IcuEraName(CalendarId::ROC, EraCode::Standard) ||
+                 eraName == IcuEraName(CalendarId::ROC, EraCode::Inverse));
+
+      // Map from era year to extended year. Examples:
+      //
+      // ----------------------------
+      // | Era Year | Extended Year |
+      // | 2 ROC    |  2            |
+      // | 1 ROC    |  1            |
+      // | 1 BROC   |  0            |
+      // | 2 BROC   | -1            |
+      // ----------------------------
+      if (eraName == IcuEraName(CalendarId::ROC, EraCode::Inverse)) {
+        year = -(year - 1);
+      }
+
+      *result = year;
+      return true;
+    }
   }
-
-  // Japanese uses a proleptic Gregorian calendar, so we can use the ISO year.
-  UniqueICU4XIsoDate isoDate{icu4x::capi::icu4x_Date_to_iso_mv1(date)};
-  int32_t isoYear = icu4x::capi::icu4x_IsoDate_year_mv1(isoDate.get());
-
-  *result = isoYear;
-  return true;
+  MOZ_CRASH("invalid calendar id");
 }
 
 /**
