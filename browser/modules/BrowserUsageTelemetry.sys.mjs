@@ -1263,6 +1263,13 @@ export let BrowserUsageTelemetry = {
       Glean.tabgroup.tabInteractions.new.add();
     }
 
+    const userContextId = event?.target?.getAttribute("usercontextid");
+    if (userContextId) {
+      Glean.containers.containerTabOpened.record({
+        container_id: String(userContextId),
+      });
+    }
+
     // In the case of opening multiple tabs at once, avoid enumerating all open
     // tabs and windows each time a tab opens.
     this._onTabsOpenedTask.disarm();
@@ -1295,6 +1302,13 @@ export let BrowserUsageTelemetry = {
       } else {
         Glean.tabgroup.tabInteractions.close_tab_other.add();
       }
+    }
+
+    const userContextId = event?.target?.getAttribute("usercontextid");
+    if (userContextId) {
+      Glean.containers.containerTabClosed.record({
+        container_id: String(userContextId),
+      });
     }
 
     if (event.target?.pinned) {
