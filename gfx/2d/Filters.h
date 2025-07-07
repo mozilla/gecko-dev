@@ -272,6 +272,7 @@ enum LightingAtts {
   ATT_LIGHTING_COLOR,               // Color
   ATT_LIGHTING_SURFACE_SCALE,       // Float
   ATT_LIGHTING_KERNEL_UNIT_LENGTH,  // Size
+  ATT_LIGHTING_RENDER_RECT,         // IntRect
 
   ATT_DIFFUSE_LIGHTING_DIFFUSE_CONSTANT,  // Float
 

@@ -544,6 +544,8 @@ static inline REFCLSID GetCLDIDForFilterType(FilterType aType) {
       return CLSID_D2D1ArithmeticComposite;
     case FilterType::COMPOSITE:
       return CLSID_D2D1Composite;
+    case FilterType::CONVOLVE_MATRIX:
+      return CLSID_D2D1ConvolveMatrix;
     case FilterType::GAUSSIAN_BLUR:
       return CLSID_D2D1GaussianBlur;
     case FilterType::DIRECTIONAL_BLUR:
@@ -584,13 +586,8 @@ static bool IsTransferFilterType(FilterType aType) {
   }
 }
 
-static bool HasUnboundedOutputRegion(FilterType aType) {
-  if (IsTransferFilterType(aType)) {
-    return true;
-  }
-
+static bool IsLightingFilterType(FilterType aType) {
   switch (aType) {
-    case FilterType::COLOR_MATRIX:
     case FilterType::POINT_DIFFUSE:
     case FilterType::SPOT_DIFFUSE:
     case FilterType::DISTANT_DIFFUSE:
@@ -603,11 +600,21 @@ static bool HasUnboundedOutputRegion(FilterType aType) {
   }
 }
 
+static bool HasUnboundedOutputRegion(FilterType aType) {
+  if (IsTransferFilterType(aType) || IsLightingFilterType(aType)) {
+    return true;
+  }
+
+  return aType == FilterType::COLOR_MATRIX;
+}
+
 /* static */
 already_AddRefed<FilterNode> FilterNodeD2D1::Create(ID2D1DeviceContext* aDC,
                                                     FilterType aType) {
   if (aType == FilterType::CONVOLVE_MATRIX) {
     return MakeAndAddRef<FilterNodeConvolveD2D1>(aDC);
+  } else if (IsLightingFilterType(aType)) {
+    return MakeAndAddRef<FilterNodeLightingD2D1>(aDC, aType);
   }
 
   RefPtr<ID2D1Effect> effect;
@@ -822,19 +829,12 @@ void FilterNodeD2D1::SetAttribute(uint32_t aIndex, const DeviceColor& aValue) {
   UINT32 input = GetD2D1PropForAttribute(mType, aIndex);
   MOZ_ASSERT(input < mEffect->GetPropertyCount());
 
-  switch (mType) {
-    case FilterType::POINT_DIFFUSE:
-    case FilterType::SPOT_DIFFUSE:
-    case FilterType::DISTANT_DIFFUSE:
-    case FilterType::POINT_SPECULAR:
-    case FilterType::SPOT_SPECULAR:
-    case FilterType::DISTANT_SPECULAR:
-      mEffect->SetValue(input, D2D1::Vector3F(aValue.r, aValue.g, aValue.b));
-      break;
-    default:
-      mEffect->SetValue(input,
-                        D2D1::Vector4F(aValue.r * aValue.a, aValue.g * aValue.a,
-                                       aValue.b * aValue.a, aValue.a));
+  if (IsLightingFilterType(mType)) {
+    mEffect->SetValue(input, D2D1::Vector3F(aValue.r, aValue.g, aValue.b));
+  } else {
+    mEffect->SetValue(input,
+                      D2D1::Vector4F(aValue.r * aValue.a, aValue.g * aValue.a,
+                                     aValue.b * aValue.a, aValue.a));
   }
 }
 
@@ -904,58 +904,111 @@ void FilterNodeOpacityD2D1::SetAttribute(uint32_t aIndex, Float aValue) {
                     D2D1_COLORMATRIX_ALPHA_MODE_STRAIGHT);
 }
 
-FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext* aDC)
-    : FilterNodeD2D1(nullptr, FilterType::CONVOLVE_MATRIX),
-      mEdgeMode(EDGE_MODE_DUPLICATE) {
-  // Correctly handling the interaction of edge mode and source rect is a bit
-  // tricky with D2D1 effects. We want the edge mode to only apply outside of
-  // the source rect (as specified by the ATT_CONVOLVE_MATRIX_RENDER_RECT
-  // attribute). So if our input surface or filter is smaller than the source
-  // rect, we need to add transparency around it until we reach the edges of
-  // the source rect, and only then do any repeating or edge duplicating.
-  // Unfortunately, the border effect does not have a source rect attribute -
-  // it only looks at the output rect of its input filter or surface. So we use
-  // our custom ExtendInput effect to adjust the output rect of our input.
-  // All of this is only necessary when our edge mode is not EDGE_MODE_NONE, so
-  // we update the filter chain dynamically in UpdateChain().
-
+FilterNodeRenderRectD2D1::FilterNodeRenderRectD2D1(ID2D1DeviceContext* aDC,
+                                                   FilterType aType)
+    : FilterNodeD2D1(nullptr, aType) {
   HRESULT hr;
 
-  hr = aDC->CreateEffect(CLSID_D2D1ConvolveMatrix, getter_AddRefs(mEffect));
+  hr = aDC->CreateEffect(GetCLDIDForFilterType(aType), getter_AddRefs(mEffect));
 
   if (FAILED(hr) || !mEffect) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
+    gfxWarning() << "Failed to create FilterNodeRenderRectD2D1 filter! "
+                 << static_cast<int>(aType);
     return;
   }
-
-  mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_BORDER_MODE,
-                    D2D1_BORDER_MODE_SOFT);
 
   hr = aDC->CreateEffect(CLSID_ExtendInputEffect,
                          getter_AddRefs(mExtendInputEffect));
 
   if (FAILED(hr) || !mExtendInputEffect) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
+    gfxWarning() << "Failed to create FilterNodeRenderRectD2D1 "
+                 << "ExtendInput filter!";
     return;
   }
 
   hr = aDC->CreateEffect(CLSID_D2D1Border, getter_AddRefs(mBorderEffect));
 
   if (FAILED(hr) || !mBorderEffect) {
-    gfxWarning() << "Failed to create ConvolveMatrix filter!";
+    gfxWarning() << "Failed to create FilterNodeRenderRectD2D1 "
+                 << "BorderEffect filter!";
     return;
   }
 
   mBorderEffect->SetInputEffect(0, mExtendInputEffect.get());
+}
+
+void FilterNodeRenderRectD2D1::SetInput(uint32_t aIndex, FilterNode* aFilter) {
+  FilterNodeD2D1::SetInput(aIndex, aFilter);
+
+  UpdateChain();
+}
+
+void FilterNodeRenderRectD2D1::UpdateRenderRect() {
+  mExtendInputEffect->SetValue(
+      EXTENDINPUT_PROP_OUTPUT_RECT,
+      D2D1::Vector4F(Float(mRenderRect.x), Float(mRenderRect.y),
+                     Float(mRenderRect.XMost()), Float(mRenderRect.YMost())));
+}
+
+void FilterNodeConvolveD2D1::UpdateOffset() {
+  D2D1_VECTOR_2F vector = D2D1::Vector2F(
+      (Float(mKernelSize.width) - 1.0f) / 2.0f - Float(mTarget.x),
+      (Float(mKernelSize.height) - 1.0f) / 2.0f - Float(mTarget.y));
+
+  mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_KERNEL_OFFSET, vector);
+}
+
+FilterNodeLightingD2D1::FilterNodeLightingD2D1(ID2D1DeviceContext* aDC,
+                                               FilterType aType)
+    : FilterNodeRenderRectD2D1(aDC, aType) {
+  // The shape of the filter graph:
+  //
+  // input --> extendinput --> border --> mEffect = Lighting
+
+  mEffect->SetInputEffect(0, mBorderEffect.get());
+
+  mBorderEffect->SetValue(D2D1_BORDER_PROP_EDGE_MODE_X,
+                          D2D1_BORDER_EDGE_MODE_CLAMP);
+  mBorderEffect->SetValue(D2D1_BORDER_PROP_EDGE_MODE_Y,
+                          D2D1_BORDER_EDGE_MODE_CLAMP);
 
   UpdateChain();
   UpdateRenderRect();
 }
 
-void FilterNodeConvolveD2D1::SetInput(uint32_t aIndex, FilterNode* aFilter) {
-  FilterNodeD2D1::SetInput(aIndex, aFilter);
+ID2D1Effect* FilterNodeLightingD2D1::InputEffect() {
+  return mExtendInputEffect.get();
+}
+
+void FilterNodeLightingD2D1::UpdateChain() {
+  RefPtr<ID2D1Effect> inputEffect;
+  if (mInputFilters.size() > 0 && mInputFilters[0]) {
+    inputEffect = mInputFilters[0]->OutputEffect();
+  }
+
+  mExtendInputEffect->SetInputEffect(0, inputEffect);
+}
+
+void FilterNodeLightingD2D1::SetAttribute(uint32_t aIndex,
+                                          const IntRect& aValue) {
+  if (aIndex != ATT_LIGHTING_RENDER_RECT) {
+    MOZ_ASSERT(false);
+    return;
+  }
+
+  mRenderRect = aValue;
+
+  UpdateRenderRect();
+}
+
+FilterNodeConvolveD2D1::FilterNodeConvolveD2D1(ID2D1DeviceContext* aDC)
+    : FilterNodeRenderRectD2D1(nullptr, FilterType::CONVOLVE_MATRIX),
+      mEdgeMode(EDGE_MODE_DUPLICATE) {
+  mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_BORDER_MODE,
+                    D2D1_BORDER_MODE_SOFT);
 
   UpdateChain();
+  UpdateRenderRect();
 }
 
 void FilterNodeConvolveD2D1::SetAttribute(uint32_t aIndex, uint32_t aValue) {
@@ -1043,21 +1096,6 @@ void FilterNodeConvolveD2D1::SetAttribute(uint32_t aIndex,
   mRenderRect = aValue;
 
   UpdateRenderRect();
-}
-
-void FilterNodeConvolveD2D1::UpdateOffset() {
-  D2D1_VECTOR_2F vector = D2D1::Vector2F(
-      (Float(mKernelSize.width) - 1.0f) / 2.0f - Float(mTarget.x),
-      (Float(mKernelSize.height) - 1.0f) / 2.0f - Float(mTarget.y));
-
-  mEffect->SetValue(D2D1_CONVOLVEMATRIX_PROP_KERNEL_OFFSET, vector);
-}
-
-void FilterNodeConvolveD2D1::UpdateRenderRect() {
-  mExtendInputEffect->SetValue(
-      EXTENDINPUT_PROP_OUTPUT_RECT,
-      D2D1::Vector4F(Float(mRenderRect.X()), Float(mRenderRect.Y()),
-                     Float(mRenderRect.XMost()), Float(mRenderRect.YMost())));
 }
 
 FilterNodeExtendInputAdapterD2D1::FilterNodeExtendInputAdapterD2D1(

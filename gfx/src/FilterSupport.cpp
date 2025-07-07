@@ -1082,6 +1082,8 @@ static already_AddRefed<FilterNode> FilterNodeFromPrimitiveDescription(
       filter->SetAttribute(ATT_LIGHTING_SURFACE_SCALE, aLighting.mSurfaceScale);
       filter->SetAttribute(ATT_LIGHTING_KERNEL_UNIT_LENGTH,
                            aLighting.mKernelUnitLength);
+      filter->SetAttribute(ATT_LIGHTING_RENDER_RECT,
+                           mDescription.PrimitiveSubregion());
 
       if (isSpecular) {
         filter->SetAttribute(ATT_SPECULAR_LIGHTING_SPECULAR_CONSTANT,

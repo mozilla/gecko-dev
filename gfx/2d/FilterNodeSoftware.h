@@ -749,6 +749,7 @@ class FilterNodeLightingSoftware : public FilterNodeSoftware {
   void SetAttribute(uint32_t aIndex, const Size&) override;
   void SetAttribute(uint32_t aIndex, const Point3D&) override;
   void SetAttribute(uint32_t aIndex, const DeviceColor&) override;
+  void SetAttribute(uint32_t aIndex, const IntRect&) override;
   IntRect MapRectToSource(const IntRect& aRect, const IntRect& aMax,
                           FilterNode* aSourceNode) override;
 
@@ -769,6 +770,7 @@ class FilterNodeLightingSoftware : public FilterNodeSoftware {
   Float mSurfaceScale;
   Size mKernelUnitLength;
   DeviceColor mColor;
+  IntRect mRenderRect;
 #if defined(MOZILLA_INTERNAL_API) && defined(NS_BUILD_REFCNT_LOGGING)
   const char* mTypeName;
 #endif
