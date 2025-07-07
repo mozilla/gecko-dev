@@ -705,16 +705,6 @@ skip script test262/intl402/PluralRules/prototype/resolvedOptions/order.js
 skip script test262/intl402/PluralRules/prototype/constructor/notation.js
 skip script test262/intl402/PluralRules/notation.js
 
-# https://github.com/tc39/proposal-temporal/pull/3107
-skip script test262/intl402/Temporal/ZonedDateTime/from/zoneddatetime-sub-minute-offset.js
-skip script test262/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/equals/sub-minute-offset.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/since/sub-minute-offset.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/until/sub-minute-offset.js
-skip script test262/intl402/Temporal/Duration/compare/relativeto-sub-minute-offset.js
-skip script test262/intl402/Temporal/Duration/prototype/round/relativeto-sub-minute-offset.js
-skip script test262/intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset.js
-
 
 ###########################################################
 # Tests disabled due to issues in test262 importer script #

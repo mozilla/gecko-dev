@@ -452,6 +452,14 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
   // Step 5.l.
   matchBehaviour = MatchBehaviour::MatchMinutes;
 
+  // Step 5.m.
+  if (parsed.timeZone().constructed<OffsetTimeZone>()) {
+    // Steps 5.m.i-iii.
+    if (parsed.timeZone().ref<OffsetTimeZone>().hasSubMinutePrecision) {
+      matchBehaviour = MatchBehaviour::MatchExactly;
+    }
+  }
+
   // Steps 5.n-q.
   ZonedDateTimeOptions resolvedOptions;
   if (!ToTemporalZonedDateTimeOptions(cx, options, &resolvedOptions)) {
