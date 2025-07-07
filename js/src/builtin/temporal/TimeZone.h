@@ -262,6 +262,14 @@ struct ParsedTimeZone;
 enum class TemporalDisambiguation;
 
 /**
+ * Create a new |TimeZoneObject| whose identifier is |identifier| and whose
+ * primary identifier is |primaryIdentifier|.
+ */
+TimeZoneObject* CreateTimeZoneObject(
+    JSContext* cx, JS::Handle<JSLinearString*> identifier,
+    JS::Handle<JSLinearString*> primaryIdentifier);
+
+/**
  * SystemTimeZoneIdentifier ( )
  */
 JSLinearString* ComputeSystemTimeZoneIdentifier(JSContext* cx);
