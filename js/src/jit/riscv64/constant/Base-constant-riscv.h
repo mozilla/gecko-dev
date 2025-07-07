@@ -3,6 +3,10 @@
 // found in the LICENSE file.
 #ifndef jit_riscv64_constant_Base_constant_riscv__h_
 #define jit_riscv64_constant_Base_constant_riscv__h_
+
+#include "mozilla/Assertions.h"
+#include "mozilla/Types.h"
+
 namespace js {
 namespace jit {
 
