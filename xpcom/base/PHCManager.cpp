@@ -21,13 +21,13 @@ static const char kPHCEnabledPref[] = "memory.phc.enabled";
 static const char kPHCMinRamMBPref[] = "memory.phc.min_ram_mb";
 static const char kPHCAvgDelayFirst[] = "memory.phc.avg_delay.first";
 static const char kPHCAvgDelayNormal[] = "memory.phc.avg_delay.normal";
-static const char kPHCAvgDelayPageRuse[] = "memory.phc.avg_delay.page_reuse";
+static const char kPHCAvgDelayPageReuse[] = "memory.phc.avg_delay.page_reuse";
 
 static const char kPHCAvgDelayContentFirst[] =
     "memory.phc.avg_delay.content.first";
 static const char kPHCAvgDelayContentNormal[] =
     "memory.phc.avg_delay.content.normal";
-static const char kPHCAvgDelayContentPageRuse[] =
+static const char kPHCAvgDelayContentPageReuse[] =
     "memory.phc.avg_delay.content.page_reuse";
 
 // True if PHC has ever been enabled for this process.
@@ -71,10 +71,10 @@ static void PrefChangeCallback(const char* aPrefName, void* aNull) {
              (0 == strcmp(aPrefName, kPHCMinRamMBPref)) ||
              (0 == strcmp(aPrefName, kPHCAvgDelayFirst)) ||
              (0 == strcmp(aPrefName, kPHCAvgDelayNormal)) ||
-             (0 == strcmp(aPrefName, kPHCAvgDelayPageRuse)) ||
+             (0 == strcmp(aPrefName, kPHCAvgDelayPageReuse)) ||
              (0 == strcmp(aPrefName, kPHCAvgDelayContentFirst)) ||
              (0 == strcmp(aPrefName, kPHCAvgDelayContentNormal)) ||
-             (0 == strcmp(aPrefName, kPHCAvgDelayContentPageRuse)));
+             (0 == strcmp(aPrefName, kPHCAvgDelayContentPageReuse)));
 
   UpdatePHCState();
 }
@@ -84,11 +84,11 @@ void InitPHCState() {
   Preferences::RegisterCallback(PrefChangeCallback, kPHCMinRamMBPref);
   Preferences::RegisterCallback(PrefChangeCallback, kPHCAvgDelayFirst);
   Preferences::RegisterCallback(PrefChangeCallback, kPHCAvgDelayNormal);
-  Preferences::RegisterCallback(PrefChangeCallback, kPHCAvgDelayPageRuse);
+  Preferences::RegisterCallback(PrefChangeCallback, kPHCAvgDelayPageReuse);
   Preferences::RegisterCallback(PrefChangeCallback, kPHCAvgDelayContentFirst);
   Preferences::RegisterCallback(PrefChangeCallback, kPHCAvgDelayContentNormal);
   Preferences::RegisterCallback(PrefChangeCallback,
-                                kPHCAvgDelayContentPageRuse);
+                                kPHCAvgDelayContentPageReuse);
   UpdatePHCState();
 }
 
