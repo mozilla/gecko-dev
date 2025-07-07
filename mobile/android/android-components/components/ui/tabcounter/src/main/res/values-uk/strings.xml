@@ -10,6 +10,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_open_tab_counter_tab_tray">Відкриті неприватні вкладки: %1$s. Торкніться, щоб перемкнути вкладку.</string>
+  <!--
+    Message announced to the user when the tab counter is selected in private browsing mode.
+    Used by a11y services. The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_private">Відкриті приватні вкладки: %1$s. Торкніться, щоб перемкнути вкладку.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Нова вкладка</string>
   <!-- Browser menu button that creates a private tab -->

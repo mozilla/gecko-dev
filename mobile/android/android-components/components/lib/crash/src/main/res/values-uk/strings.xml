@@ -26,4 +26,10 @@
   <string name="mozac_lib_crash_no_crashes">Жодних звітів про збої не надсилалось.</string>
   <!-- Text link that will show an app chooser to share a crash report with a third-party app (e.g. gmail) -->
   <string name="mozac_lib_crash_share">Поділитися</string>
+  <!-- String for Ask before sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_ask">Запитувати перед надсиланням</string>
+  <!-- String for Send crash reports automatically radio button in Data Collection Screen -->
+  <string name="crash_reporting_auto">Надсилати автоматично</string>
+  <!-- String for Never sending crash reports radio button in Data Collection Screen -->
+  <string name="crash_reporting_never">Ніколи не надсилати</string>
 </resources>

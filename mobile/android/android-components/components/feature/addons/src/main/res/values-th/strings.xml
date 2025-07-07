@@ -90,6 +90,54 @@
   <string name="mozac_feature_addons_permissions_show_all_sites">แสดงเว็บไซต์ทั้งหมด</string>
   <!-- Description for text button that hides the majority of the list of domain permissions -->
   <string name="mozac_feature_addons_permissions_show_fewer_sites">แสดงเว็บไซต์น้อยลง</string>
+  <!-- Short description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_short_description">ข้อมูลการยืนยันตัวตน</string>
+  <!-- Short description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_short_description">ที่คั่นหน้า</string>
+  <!-- Short description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_short_description">กิจกรรมการเรียกดู</string>
+  <!-- Short description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_short_description">ข้อมูลการเงินและการชำระเงิน</string>
+  <!-- Short description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_short_description">ข้อมูลสุขภาพ</string>
+  <!-- Short description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_short_description">ตำแหน่งที่ตั้ง</string>
+  <!-- Short description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_short_description">การสื่อสารส่วนบุคคล</string>
+  <!-- Short description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_short_description">ข้อมูลที่ระบุตัวบุคคลได้</string>
+  <!-- Short description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_short_description">คำค้นหา</string>
+  <!-- Short description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_short_description">ข้อมูลทางเทคนิคและการโต้ตอบ</string>
+  <!-- Short description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_short_description">กิจกรรมเว็บไซต์</string>
+  <!-- Short description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_short_description">เนื้อหาเว็บไซต์</string>
+  <!-- Long description for the authenticationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_authenticationInfo_long_description">แบ่งปันข้อมูลการยืนยันตัวตนกับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the bookmarksInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_bookmarksInfo_long_description">แบ่งปันข้อมูลที่คั่นหน้ากับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the browsingActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_browsingActivity_long_description">แบ่งปันข้อมูลกิจกรรมการเรียกดูกับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the financialAndPaymentInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_financialAndPaymentInfo_long_description">แบ่งปันข้อมูลการเงินและการชำระเงินกับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the healthInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_healthInfo_long_description">แบ่งปันข้อมูลสุขภาพกับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the locationInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_locationInfo_long_description">แบ่งปันข้อมูลตำแหน่งที่ตั้งกับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the personalCommunications data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personalCommunications_long_description">แบ่งปันการสื่อสารส่วนบุคคลกับนักพัฒนาส่วนขยาย</string>
+  <!-- Long description for the personallyIdentifyingInfo data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_personallyIdentifyingInfo_long_description">แบ่งปันข้อมูลที่ระบุตัวบุคคลได้กับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the searchTerms data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_searchTerms_long_description">แบ่งปันคำค้นหากับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the technicalAndInteraction data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_technicalAndInteraction_long_description">แบ่งปันข้อมูลทางเทคนิคและการโต้ตอบกับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the websiteActivity data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteActivity_long_description">แบ่งปันกิจกรรมเว็บไซต์กับผู้พัฒนาส่วนขยาย</string>
+  <!-- Long description for the websiteContent data collection permission -->
+  <string name="mozac_feature_addons_permissions_data_collection_websiteContent_long_description">แบ่งปันเนื้อหาเว็บไซต์กับผู้พัฒนาส่วนขยาย</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">รุ่น</string>
   <!-- The author of an add-on. -->
@@ -110,6 +158,8 @@
   <string name="mozac_feature_addons_settings_on">เปิด</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_allow_in_private_browsing" moz:removedIn="141" tools:ignore="UnusedResources">อนุญาตในการเรียกดูแบบส่วนตัว</string>
+  <!-- Indicates the add-on is allowed in private browsing mode. -->
+  <string name="mozac_feature_addons_settings_allow_in_private_browsing_2">อนุญาตให้ส่วนขยายทำงานในการท่องเว็บส่วนตัว</string>
   <!-- Indicates the add-on is allowed in private browsing mode. -->
   <string name="mozac_feature_addons_settings_run_in_private_browsing">เรียกใช้ในการเรียกดูแบบส่วนตัว</string>
   <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
@@ -136,12 +186,24 @@
   <string name="mozac_feature_addons_report">รายงาน</string>
   <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_permissions_dialog_title" moz:removedIn="141" tools:ignore="UnusedResources">เพิ่ม %1$s หรือไม่?</string>
+  <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_permissions_dialog_title_2">เพิ่ม %1$s</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title" moz:removedIn="142" tools:ignore="UnusedResources">%1$s ขอสิทธิอนุญาตเพิ่มเติม</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">ส่วนขยายต้องการสิทธิอนุญาตจากคุณเพื่อ:</string>
+  <!-- Heading for the permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_permissions">สิทธิ์ที่ต้องการ:</string>
+  <!-- Heading for the data collection permissions section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_required_data_collection">การรวบรวมข้อมูลที่ต้องการ:</string>
+  <!-- Heading for the optional settings section in the add-on install dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">การตั้งค่าที่เป็นทางเลือก:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">ส่วนเสริมต้องการ:</string>
+  <!-- Heading for the permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_permissions">สิทธิ์ใหม่:</string>
+  <!-- Heading for the data collection permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_data_collection">การรวบรวมข้อมูลใหม่:</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">เพิ่ม</string>
   <!-- This is a button to allow the optional permissions requested by an add-on . -->
@@ -150,6 +212,8 @@
   <string name="mozac_feature_addons_permissions_dialog_deny">ปฏิเสธ</string>
   <!-- Text link to learn more about permission requests on the add-on permissions dialog . -->
   <string name="mozac_feature_addons_permissions_dialog_learn_more">เรียนรู้เพิ่มเติม</string>
+  <!-- This is the text for the "technical and interaction" checkbox shown in the add-on permissions dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_technical_and_interaction_data">แบ่งปันข้อมูลทางเทคนิคและการโต้ตอบกับผู้พัฒนาส่วนขยาย</string>
   <!-- This is a button to cancel the add-on installation . -->
   <string name="mozac_feature_addons_permissions_dialog_cancel">ยกเลิก</string>
   <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->

@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s จะล้างประวัติการค้นหาและประวัติการเรียกดูของคุณจากแท็บส่วนตัวเมื่อคุณปิดแท็บเหล่านั้นหรือออกจากแอป แม้ว่าสิ่งนี้จะไม่ทำให้คุณไม่เปิดเผยตัวตนกับเว็บไซต์หรือผู้ให้บริการอินเทอร์เน็ตของคุณ แต่จะทำให้การรักษาความเป็นส่วนตัวของสิ่งที่คุณทำออนไลน์จากผู้อื่นที่ใช้อุปกรณ์เครื่องนี้ง่ายขึ้น</string>
   <string name="private_browsing_common_myths">ความเข้าใจผิดที่พบบ่อยเกี่ยวกับการท่องเว็บแบบส่วนตัว</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">วาระการท่องเว็บแบบส่วนตัว</string>
   <!--
     True Private Browsing Mode
 
@@ -316,6 +318,8 @@
   <string name="browser_menu_sign_in">ลงชื่อเข้า</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">ซิงค์รหัสผ่าน แท็บ และอื่นๆ</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">ซิงค์ที่คั่นหน้า รหัสผ่าน แท็บและอื่น ๆ</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">ลงชื่อเข้าอีกครั้งเพื่อซิงค์</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -374,6 +378,8 @@
   <string name="browser_menu_edit_bookmark">แก้ไขที่คั่นหน้า</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf" moz:removedIn="141" tools:ignore="UnusedResources">บันทึกเป็น PDF…</string>
+  <!-- Browser menu label that the saves the currently visited page as a PDF -->
+  <string name="browser_menu_save_as_pdf_2">บันทึกเป็น PDF</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
   <string name="browser_menu_turn_on_reader_view" moz:removedIn="141" tools:ignore="UnusedResources">เปิดมุมมองผู้อ่าน</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
@@ -382,8 +388,12 @@
   <string name="browser_menu_open_in_normal_tab" moz:removedIn="141" tools:ignore="UnusedResources">ย้ายไปยังแท็บที่ไม่เป็นส่วนตัว</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page" moz:removedIn="141" tools:ignore="UnusedResources">แปลหน้า…</string>
+  <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
+  <string name="browser_menu_translate_page_2">แปลหน้า</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
   <string name="browser_menu_webcompat_reporter">รายงานไซต์ที่ใช้งานไม่ได้…</string>
+  <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
+  <string name="browser_menu_webcompat_reporter_2">รายงานไซต์ที่ใช้งานไม่ได้</string>
   <!--
     Browser menu label that is displayed when the current page has been translated by the translation feature.
     %1$s is the name of the language that page was translated to (e.g. English).
@@ -393,11 +403,17 @@
   <string name="browser_menu_translated">แปลแล้ว</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">พิมพ์…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">พิมพ์</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">ออกจาก %1$s</string>
+  <!-- Label text within the set as default banner -->
+  <string name="browser_menu_default_banner_subtitle">ง่ายและรวดเร็ว แก้ไขได้ทุกเมื่อ</string>
+  <!-- Content description for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss">ยกเลิก</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -838,6 +854,8 @@
   <string name="preferences_category_account">บัญชี</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">ตำแหน่งของแถบที่อยู่</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">รูปแบบแถบเครื่องมือ</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">ชุดตกแต่ง</string>
   <!-- Preference for customizing the home screen -->
@@ -920,6 +938,12 @@
   <string name="preferences_open_links_in_apps_never">ไม่เลย</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">ตัวจัดการการดาวน์โหลดภายนอก</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">จัดการการดาวน์โหลดด้วยแอปอื่น</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">การลบไฟล์ออกจากตัวจัดการดาวน์โหลดจะลบไฟล์เหล่านั้นออกจากอุปกรณ์ของคุณด้วย</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">ดาวน์โหลด</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">เปิดใช้งานปูม Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -948,6 +972,20 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">ถ้าคุณเชื่อถือส่วนขยายนี้ คุณสามารถให้สิทธิ์แก่ส่วนขยายนี้ในทุกเว็บไซต์ได้</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">ส่วนขยายนี้ไม่จำเป็นต้องขอสิทธิ์ใด</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">ผู้พัฒนาระบุว่าส่วนขยายนี้รวบรวม: %1$s</string>
+  <!-- The description of data collection permissions listed in the addon's permissions screen.  %1$s is a formatted list of permissions. -->
+  <string name="addons_permissions_required_data_collection_description_2">ผู้พัฒนาระบุว่าส่วนขยายนี้รวบรวม: %1$s</string>
+  <!-- The description of the "none" data collection permission, when the extension doesn't collect anything according to the developer. -->
+  <string name="addons_permissions_none_required_data_collection_description">ผู้พัฒนาระบุว่าส่วนขยายนี้ไม่ต้องการการรวบรวมข้อมูล</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">สิทธิ์ที่ต้องการ:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">สิทธิอนุญาตที่เลือกได้:</string>
+  <!-- The title of the required data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_data_collection">การรวบรวมข้อมูลที่ต้องการ:</string>
+  <!-- The title of the optional data collection permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_data_collection">การรวบรวมข้อมูลที่เป็นทางเลือก:</string>
   <!--
     Add-on Preferences
 
@@ -1071,6 +1109,12 @@
   <string name="alternative_app_icon_option_momo">โมโม่</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">สร้างโดย @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">สีทึบ</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">ไล่ระดับสี</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">อื่น ๆ</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1179,6 +1223,8 @@
   <string name="exceptions_empty_message_learn_more_link">เรียนรู้เพิ่มเติม</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">ส่งข้อมูลทางเทคนิคและการโต้ตอบ</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">เรียนรู้เพิ่มเติมเกี่ยวกับข้อมูลทางเทคนิค</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">เรียนรู้เพิ่มเติม</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
@@ -1191,6 +1237,16 @@
   <string name="preferences_automatically_send_crashes_title">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">ข้อมูลนี้ช่วยให้เราสามารถวินิจฉัยและแก้ไขปัญหาเกี่ยวกับเบราว์เซอร์ได้ รายงานอาจรวมถึงข้อมูลส่วนตัวหรือข้อมูลละเอียดอ่อน</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับรายงานข้อขัดข้อง</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">รายงานข้อขัดข้อง</string>
+  <string name="usage_data_category">ข้อมูลการใช้งาน</string>
+  <string name="studies_data_category">การศึกษา</string>
+  <string name="technical_data_category">ข้อมูลทางเทคนิค</string>
+  <string name="crash_reporting_description">รายงานข้อขัดข้องทำให้เราสามารถวินิจฉัยและแก้ไขปัญหาเกี่ยวกับเบราว์เซอร์ได้ รายงานอาจมีข้อมูลส่วนตัวหรือข้อมูลละเอียดอ่อน</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">การวัดผลแคมเปญ</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">ข้อมูลการวัดผลแคมเปญ</string>
   <!--
@@ -1230,6 +1286,10 @@
   <string name="preference_top_toolbar">ด้านบน</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">ด้านล่าง</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">ธรรมดา</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">ขยาย</string>
   <!--
     Theme Preferences
 
@@ -1498,6 +1558,8 @@
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">จำนวนรายการที่ลบ: %1$d</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">ดาวน์โหลดไฟล์ด้วย:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">ลบ “%1$s” แล้ว</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1542,6 +1604,16 @@
   <string name="download_navigate_back_description">นำทางย้อนกลับ</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
   <string name="download_close_search_description">ย้อนกลับและปิดการค้นหา</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">หยุดชั่วคราว</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">ทำต่อ</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">ลองใหม่</string>
   <string name="download_clear_search_description">ล้าง</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">แบ่งปัน URL</string>
@@ -1686,8 +1758,12 @@
   <string name="unsubmitted_crash_dialog_checkbox_label">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">ปิด</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">ไม่ต้องแสดงอีกครั้ง</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">ส่งรายงานข้อผิดพลาด</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">เรียนรู้เพิ่มเติม</string>
   <!--
     Bookmarks
 
@@ -2547,6 +2623,22 @@
   <string name="saved_login_clear_username">ล้างชื่อผู้ใช้</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">ล้างชื่อโฮสต์</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">เมนูรายละเอียดการเข้าสู่ระบบ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">นำทางย้อนกลับ</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">แก้ไข</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">ลบ</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">นำทางย้อนกลับ</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">บันทึกการเข้าสู่ระบบใหม่</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">นำทางย้อนกลับ</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">แก้ไขการเข้าสู่ระบบ</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">เปิดไซต์ในเบราว์เซอร์</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

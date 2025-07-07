@@ -10,6 +10,11 @@
     The %1$s will be replaced by the number of opened tabs
   -->
   <string name="mozac_open_tab_counter_tab_tray">Počet otevřených neanonymních panelů: %1$s. Pro přepnutí panelu klepněte.</string>
+  <!--
+    Message announced to the user when the tab counter is selected in private browsing mode.
+    Used by a11y services. The %1$s will be replaced by the number of opened tabs
+  -->
+  <string name="mozac_tab_counter_private">Počet otevřených anonymních panelů: %1$s. Pro přepnutí panelu klepněte.</string>
   <!-- Browser menu button that creates a new tab -->
   <string name="mozac_browser_menu_new_tab">Nový panel</string>
   <!-- Browser menu button that creates a private tab -->
