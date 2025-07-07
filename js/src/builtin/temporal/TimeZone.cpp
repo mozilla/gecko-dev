@@ -735,6 +735,46 @@ bool js::temporal::ToTemporalTimeZone(JSContext* cx,
   return ToTemporalTimeZone(cx, timeZoneName, result);
 }
 
+JSLinearString* js::temporal::ToValidCanonicalTimeZoneIdentifier(
+    JSContext* cx, Handle<JSString*> timeZone) {
+  Rooted<ParsedTimeZone> parsedTimeZone(cx);
+  if (!ParseTimeZoneIdentifier(cx, timeZone, &parsedTimeZone)) {
+    // TODO: Test262 expects the time zone string is part of the error message,
+    // so we have to overwrite the error message.
+    //
+    // https://github.com/tc39/test262/pull/4463
+    if (!cx->isExceptionPending() || cx->isThrowingOutOfMemory()) {
+      return nullptr;
+    }
+
+    // Clear the previous exception to ensure the error stack is recomputed.
+    cx->clearPendingException();
+
+    if (auto chars = QuoteString(cx, timeZone)) {
+      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                               JSMSG_TEMPORAL_TIMEZONE_INVALID_IDENTIFIER,
+                               chars.get());
+    }
+    return nullptr;
+  }
+
+  auto timeZoneId = parsedTimeZone.name();
+  if (timeZoneId) {
+    Rooted<JSLinearString*> identifier(cx);
+    Rooted<JSLinearString*> primaryIdentifier(cx);
+    if (!ValidateAndCanonicalizeTimeZoneName(cx, timeZoneId, &identifier,
+                                             &primaryIdentifier)) {
+      return nullptr;
+    }
+    return primaryIdentifier;
+  }
+
+  int32_t offsetMinutes = parsedTimeZone.offset();
+  MOZ_ASSERT(std::abs(offsetMinutes) < UnitsPerDay(TemporalUnit::Minute));
+
+  return FormatOffsetTimeZoneIdentifier(cx, offsetMinutes);
+}
+
 /**
  * GetOffsetNanosecondsFor ( timeZone, epochNs )
  */

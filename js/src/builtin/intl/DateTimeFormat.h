@@ -147,29 +147,6 @@ class DateTimeFormatObject : public NativeObject {
                                                JS::Value* vp);
 
 /**
- * 6.4.1 IsValidTimeZoneName ( timeZone )
- *
- * Verifies that the given string is a valid time zone name. If it is a valid
- * time zone name, its IANA time zone name is returned. Otherwise returns null.
- *
- * ES2017 Intl draft rev 4a23f407336d382ed5e3471200c690c9b020b5f3
- *
- * Usage: ianaTimeZone = intl_IsValidTimeZoneName(timeZone)
- */
-[[nodiscard]] extern bool intl_IsValidTimeZoneName(JSContext* cx, unsigned argc,
-                                                   JS::Value* vp);
-
-/**
- * Return the canonicalized time zone name. Canonicalization resolves link
- * names to their target time zones.
- *
- * Usage: ianaTimeZone = intl_canonicalizeTimeZone(timeZone)
- */
-[[nodiscard]] extern bool intl_canonicalizeTimeZone(JSContext* cx,
-                                                    unsigned argc,
-                                                    JS::Value* vp);
-
-/**
  * Returns a String value representing x (which must be a Number value)
  * according to the effective locale and the formatting options of the
  * given DateTimeFormat.

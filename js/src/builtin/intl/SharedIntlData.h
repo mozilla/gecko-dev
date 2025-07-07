@@ -209,13 +209,6 @@ class SharedIntlData {
 
  public:
   /**
-   * Returns the validated time zone name in |result|. If the input time zone
-   * isn't a valid IANA time zone name, |result| remains unchanged.
-   */
-  bool validateTimeZoneName(JSContext* cx, JS::Handle<JSLinearString*> timeZone,
-                            JS::MutableHandle<JSAtom*> result);
-
-  /**
    * Returns the canonical time zone name. |timeZone| must be a valid time zone
    * name.
    */
