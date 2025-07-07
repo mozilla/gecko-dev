@@ -9448,11 +9448,6 @@ var TabContextMenu = {
         triggeringPrincipal,
       });
 
-      Glean.containers.tabAssignedContainer.record({
-        from_container_id: tab.getAttribute("usercontextid"),
-        to_container_id: userContextId,
-      });
-
       if (gBrowser.selectedTab == tab) {
         gBrowser.selectedTab = newTab;
       }
