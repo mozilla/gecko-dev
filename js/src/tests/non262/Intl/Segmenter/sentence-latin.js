@@ -85,11 +85,8 @@ for (let [string, words] of Object.entries(strings)) {
   // A single sentence in English.
   assertEq([...english.segment(string)].length, 1);
 
-  // ICU4C: Two sentences in Greek.
-  // assertEq([...greek.segment(string)].length, 2);
-
-  // ICU4X: A single sentence in Greek.
-  assertEq([...greek.segment(string)].length, 1);
+  // Two sentences in Greek.
+  assertEq([...greek.segment(string)].length, 2);
 }
 
 if (typeof reportCompare === "function")
