@@ -19,7 +19,6 @@ module.exports = {
     "Services-mock": `${fixturesDir}/Services`,
     "ChromeUtils-mock": `${fixturesDir}/ChromeUtils`,
 
-    "^Glean": `${fixturesDir}/Glean`,
     "^promise": `${fixturesDir}/promise`,
     "^resource://devtools/client/shared/fluent-l10n/fluent-l10n.js": `${fixturesDir}/fluent-l10n`,
     "^resource://devtools/client/shared/unicode-url.js": `${fixturesDir}/unicode-url`,
