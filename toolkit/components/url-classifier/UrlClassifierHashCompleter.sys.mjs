@@ -482,9 +482,9 @@ HashCompleterRequest.prototype = {
     // channel.
     if (this._channel && this._channel.isPending()) {
       log("cancelling request to " + this.gethashUrl + " (timeout)\n");
-      Services.telemetry
-        .getKeyedHistogramById("URLCLASSIFIER_COMPLETE_TIMEOUT2")
-        .add(this.telemetryProvider, 1);
+      Glean.urlclassifier.completeTimeout
+        .get(this.telemetryProvider, true)
+        .add(1);
       this._channel.cancel(Cr.NS_BINDING_ABORTED);
     }
   },
@@ -921,9 +921,9 @@ HashCompleterRequest.prototype = {
       );
     }
 
-    Services.telemetry
-      .getKeyedHistogramById("URLCLASSIFIER_COMPLETE_TIMEOUT2")
-      .add(this.telemetryProvider, 0);
+    Glean.urlclassifier.completeTimeout
+      .get(this.telemetryProvider, false)
+      .add(1);
 
     // Notify the RequestBackoff once a response is received.
     this._completer.finishRequest(this, httpStatus);

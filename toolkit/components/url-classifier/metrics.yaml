@@ -458,3 +458,33 @@ urlclassifier:
       - dlee@mozilla.com
     expires: never
     telemetry_mirror: URLCLASSIFIER_UI_EVENTS
+
+  complete_timeout:
+    type: dual_labeled_counter
+    description: >
+      This metric is recorded every time a gethash lookup is performed, `true`
+      is recorded if the lookup times out. Keyed by provider
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram URLCLASSIFIER_COMPLETE_TIMEOUT2.
+    dual_labels:
+      key:
+        description: No static keys unfortunately.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1172688
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1172688
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1311926
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1531034
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: URLCLASSIFIER_COMPLETE_TIMEOUT2
