@@ -50,6 +50,7 @@ interface XULElement : Element {
   undefined openMenu(boolean open);
 };
 
+XULElement includes ElementOffsetAttributes;
 XULElement includes GlobalEventHandlers;
 XULElement includes HTMLOrForeignElement;
 XULElement includes ElementCSSInlineStyle;
