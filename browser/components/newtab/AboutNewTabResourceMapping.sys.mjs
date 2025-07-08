@@ -16,6 +16,7 @@ export const TRAINHOP_XPI_VERSION_PREF =
 
 const lazy = XPCOMUtils.declareLazy({
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
+  AddonSettings: "resource://gre/modules/addons/AddonSettings.sys.mjs",
   AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
   NewTabGleanUtils: "resource://newtab/lib/NewTabGleanUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
@@ -466,6 +467,20 @@ export var AboutNewTabResourceMapping = {
               new Error(
                 `train-hop add-on install cancelled on mismatching add-on version` +
                   `(actual ${newInstall.addon.version}, expected ${trainhopAddonVersion})`
+              )
+            );
+            newInstall.cancel();
+          }
+
+          if (
+            lazy.AddonSettings.REQUIRE_SIGNING &&
+            newInstall.addon.signedState !==
+              lazy.AddonManager.SIGNEDSTATE_SYSTEM
+          ) {
+            deferred.reject(
+              new Error(
+                `trainhop add-on install cancelled on invalid signed state` +
+                  `(actual ${newInstall.addon.signedState}, expected ${lazy.AddonManager.SIGNEDSTATE_SYSTEM})`
               )
             );
             newInstall.cancel();

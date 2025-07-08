@@ -73,20 +73,54 @@ add_task(async function test_trainhop_addon_download_errors() {
     }
   );
 
+  const invalidSignatureXPI = AddonTestUtils.createTempWebExtensionFile({
+    manifest: {
+      version: `${BUILTIN_ADDON_VERSION}.123`,
+      browser_specific_settings: {
+        gecko: { id: BUILTIN_ADDON_ID },
+      },
+    },
+  });
+  server.registerPathHandler(
+    "/data/invalid-signature.xpi",
+    (request, response) => {
+      server._handler._writeFileResponse(
+        request,
+        invalidSignatureXPI,
+        response
+      );
+    }
+  );
+
   await ExperimentAPI.ready();
   await testDownloadError("data/non-existing.xpi");
   await testDownloadError("data/invalid-zip.xpi");
   await testDownloadError("data/broken-manifest.xpi");
-  await testDownloadError("data/invalid-manifest.xpi");
+  await testDownloadError(
+    "data/invalid-manifest.xpi",
+    `${BUILTIN_ADDON_VERSION}.123`
+  );
+  const oldUsePrivilegedSignatures = AddonTestUtils.usePrivilegedSignatures;
+  AddonTestUtils.usePrivilegedSignatures = false;
+  await testDownloadError(
+    "data/invalid-signature.xpi",
+    `${BUILTIN_ADDON_VERSION}.123`,
+    AddonManager.STATE_CANCELLED
+  );
+  AddonTestUtils.usePrivilegedSignatures = oldUsePrivilegedSignatures;
 
-  async function testDownloadError(xpi_download_path) {
+  async function testDownloadError(
+    xpi_download_path,
+    addon_version = "9999.0",
+    expectedInstallState = AddonManager.STATE_DOWNLOAD_FAILED
+  ) {
     Services.fog.testResetFOG();
     const nimbusFeatureCleanup = await NimbusTestUtils.enrollWithFeatureConfig(
       {
         featureId: TRAINHOP_NIMBUS_FEATURE_ID,
         value: {
           xpi_download_path,
-          addon_version: "9999.0",
+          addon_version,
         },
       },
       { isRollout: true }
@@ -94,17 +128,25 @@ add_task(async function test_trainhop_addon_download_errors() {
 
     const promiseDownloadFailed =
       AddonTestUtils.promiseInstallEvent("onDownloadFailed");
+    const promiseDownloadEnded =
+      AddonTestUtils.promiseInstallEvent("onDownloadEnded");
 
     info("Trigger download and install train-hop add-on version");
     const promiseTrainhopRequest =
       AboutNewTabResourceMapping.updateTrainhopAddonState();
 
     info("Wait for AddonManager onDownloadFailed");
-    const [install] = await promiseDownloadFailed;
+    const [install] = await Promise.race([
+      promiseDownloadFailed,
+      // Ensure the test fails right away if the unexpected
+      // onDownloadEnded install event is resolved.
+      promiseDownloadEnded,
+    ]);
+
     Assert.equal(
       install.state,
-      AddonManager.STATE_DOWNLOAD_FAILED,
-      "Expect install state to be STATE_DOWNLOAD_FAILED"
+      expectedInstallState,
+      `Expect install state to be ${AddonManager._states.get(expectedInstallState)}`
     );
 
     info("Wait for updateTrainhopAddonState call to be resolved as expected");
