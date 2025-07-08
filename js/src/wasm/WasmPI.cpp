@@ -21,7 +21,6 @@
 #include "builtin/Promise.h"
 #include "debugger/DebugAPI.h"
 #include "debugger/Debugger.h"
-#include "jit/arm/Simulator-arm.h"
 #include "jit/JitRuntime.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
@@ -42,8 +41,16 @@
 #include "wasm/WasmGcObject-inl.h"
 #include "wasm/WasmInstance-inl.h"
 
+#ifdef JS_CODEGEN_ARM
+#  include "jit/arm/Simulator-arm.h"
+#endif
+
 #ifdef JS_CODEGEN_ARM64
 #  include "jit/arm64/vixl/Simulator-vixl.h"
+#endif
+
+#ifdef JS_CODEGEN_RISCV64
+#  include "jit/riscv64/Simulator-riscv64.h"
 #endif
 
 #ifdef XP_WIN
@@ -122,6 +129,30 @@ void SuspenderObjectData::switchSimulatorToSuspendable() {
   mainFP_ = (void*)Simulator::Current()->get_register(Simulator::fp);
   Simulator::Current()->set_register(Simulator::sp, (int)suspendableSP_);
   Simulator::Current()->set_register(Simulator::fp, (int)suspendableFP_);
+}
+#  endif
+
+#  ifdef JS_SIMULATOR_RISCV64
+void SuspenderObjectData::switchSimulatorToMain() {
+  suspendableSP_ = (void*)Simulator::Current()->getRegister(Simulator::sp);
+  suspendableFP_ = (void*)Simulator::Current()->getRegister(Simulator::fp);
+  Simulator::Current()->setRegister(
+      Simulator::sp,
+      static_cast<int64_t>(reinterpret_cast<uintptr_t>(mainSP_)));
+  Simulator::Current()->setRegister(
+      Simulator::fp,
+      static_cast<int64_t>(reinterpret_cast<uintptr_t>(mainFP_)));
+}
+
+void SuspenderObjectData::switchSimulatorToSuspendable() {
+  mainSP_ = (void*)Simulator::Current()->getRegister(Simulator::sp);
+  mainFP_ = (void*)Simulator::Current()->getRegister(Simulator::fp);
+  Simulator::Current()->setRegister(
+      Simulator::sp,
+      static_cast<int64_t>(reinterpret_cast<uintptr_t>(suspendableSP_)));
+  Simulator::Current()->setRegister(
+      Simulator::fp,
+      static_cast<int64_t>(reinterpret_cast<uintptr_t>(suspendableFP_)));
 }
 #  endif
 
@@ -537,7 +568,8 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
   MOZ_RELEASE_ASSERT(suspender->data()->suspendedBy() == nullptr);
 
 #  ifdef JS_SIMULATOR
-#    if defined(JS_SIMULATOR_ARM64) || defined(JS_SIMULATOR_ARM)
+#    if defined(JS_SIMULATOR_ARM64) || defined(JS_SIMULATOR_ARM) || \
+        defined(JS_SIMULATOR_RISCV64)
   // The simulator is using its own stack, however switching is needed for
   // virtual registers.
   stacks->switchSimulatorToMain();
