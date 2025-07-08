@@ -43,6 +43,11 @@
           "fieldset > #description"
         );
 
+        is(
+          legend.childElementCount,
+          0,
+          "There are no child elements in the legend"
+        );
         is(legend.innerText, "Test label", "legend is set");
         is(description.innerText, "Test description", "description is set");
         ok(
@@ -181,6 +186,54 @@
           slottedEl.previousElementSibling == legendEl,
           "Slotted support link element should be placed inline with the legend when there is no description"
         );
+      });
+
+      add_task(async function testMozFieldsetHeadingLevel() {
+        render(
+          html`
+            <moz-fieldset label="Test label" headinglevel="3">
+              <label><input type="checkbox" /> First setting</label>
+              <label><input type="checkbox" /> Second setting</label>
+              <label><input type="checkbox" /> Third setting</label>
+            </moz-fieldset>
+          `,
+          renderTarget
+        );
+
+        let fieldset = renderTarget.querySelector("moz-fieldset");
+        await fieldset.updateComplete;
+
+        let legendEl = fieldset.shadowRoot.querySelector("fieldset > legend");
+
+        is(legendEl.childElementCount, 1, "The legend has a child");
+        is(legendEl.innerText, "Test label", "The legend text is correct");
+        let headingEl = legendEl.firstElementChild;
+        is(headingEl.localName, "h3", "The legend has an h3");
+        is(headingEl.innerText, "Test label", "The heading has the text");
+
+        fieldset.headingLevel = 7;
+        await fieldset.updateComplete;
+
+        is(legendEl.childElementCount, 0, "The legend has no child elements");
+        is(legendEl.innerText, "Test label", "The legend text is correct");
+
+        fieldset.headingLevel = 0;
+        await fieldset.updateComplete;
+
+        is(legendEl.childElementCount, 0, "The legend has no child elements");
+        is(legendEl.innerText, "Test label", "The legend text is correct");
+
+        // Check 1-6
+        for (let i = 1; i <= 6; i++) {
+          fieldset.headingLevel = i;
+          await fieldset.updateComplete;
+
+          is(legendEl.childElementCount, 1, "The legend has a child");
+          is(legendEl.innerText, "Test label", "The legend text is correct");
+          headingEl = legendEl.firstElementChild;
+          is(headingEl.localName, `h${i}`, `The legend has an h${i}`);
+          is(headingEl.innerText, "Test label", "The heading has the text");
+        }
       });
     </script>
   </head>

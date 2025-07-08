@@ -11,6 +11,12 @@ import "../moz-toggle/moz-toggle.mjs";
 export default {
   title: "UI Widgets/Fieldset",
   component: "moz-fieldset",
+  argTypes: {
+    headingLevel: {
+      options: ["", "1", "2", "3", "4", "5", "6"],
+      control: { type: "select" },
+    },
+  },
   parameters: {
     status: "in-development",
     fluent: `
@@ -29,11 +35,13 @@ const Template = ({
   l10nId,
   supportPage,
   hasSlottedSupportLinks,
+  headingLevel,
 }) => html`
   <moz-fieldset
     data-l10n-id=${l10nId}
     .label=${label}
     .description=${description}
+    .headingLevel=${headingLevel}
     support-page=${supportPage}
     style="width: 400px;"
   >
@@ -95,4 +103,10 @@ export const WithDescriptionAndSlottedSupportLink = Template.bind({});
 WithDescriptionAndSlottedSupportLink.args = {
   ...WithDescription.args,
   hasSlottedSupportLinks: true,
+};
+
+export const WithHeadingLegend = Template.bind({});
+WithHeadingLegend.args = {
+  ...WithDescription.args,
+  headingLevel: "2",
 };
