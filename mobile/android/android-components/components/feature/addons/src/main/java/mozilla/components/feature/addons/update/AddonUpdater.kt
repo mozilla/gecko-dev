@@ -33,7 +33,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.components.concept.engine.webextension.WebExtension
-import mozilla.components.concept.engine.webextension.WebExtensionException
 import mozilla.components.concept.engine.webextension.isUnsupported
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.R
@@ -617,7 +616,7 @@ internal class AddonUpdaterWorker(
                 manager.updateAddon(extensionId) { status ->
                     val result = when (status) {
                         AddonUpdater.Status.NotInstalled -> {
-                            logger.error("Not installed extension with id $extensionId removed from the update queue")
+                            logger.error("Extension with id $extensionId removed from the update queue")
                             Result.failure()
                         }
                         AddonUpdater.Status.NoUpdateAvailable -> {
@@ -630,10 +629,10 @@ internal class AddonUpdaterWorker(
                         }
                         is AddonUpdater.Status.Error -> {
                             logger.error(
-                                "Unable to update extension $extensionId, re-schedule ${status.message}",
+                                "Error while trying to update extension $extensionId - status=${status.message}",
                                 status.exception,
                             )
-                            retryIfRecoverable(status.exception)
+                            Result.failure()
                         }
                     }
                     saveUpdateAttempt(extensionId, status)
@@ -641,27 +640,15 @@ internal class AddonUpdaterWorker(
                 }
             } catch (exception: Exception) {
                 logger.error(
-                    "Unable to update extension $extensionId, re-schedule ${exception.message}",
+                    "Unable to update extension $extensionId - reason=${exception.message}",
                     exception,
                 )
                 saveUpdateAttempt(extensionId, AddonUpdater.Status.Error(exception.message ?: "", exception))
                 if (exception.shouldReport()) {
                     GlobalAddonDependencyProvider.onCrash?.invoke(exception)
                 }
-                continuation.resume(retryIfRecoverable(exception))
+                continuation.resume(Result.failure())
             }
-        }
-    }
-
-    @VisibleForTesting
-    // We want to ensure, we are only retrying when the throwable isRecoverable,
-    // this could cause side effects as described on:
-    // https://github.com/mozilla-mobile/android-components/issues/8681
-    internal fun retryIfRecoverable(throwable: Throwable): Result {
-        return if (throwable is WebExtensionException && throwable.isRecoverable) {
-            Result.retry()
-        } else {
-            Result.success()
         }
     }
 
