@@ -199,6 +199,38 @@ application_reputation:
     expires: never
     telemetry_mirror: APPLICATION_REPUTATION_SERVER_VERDICT
 
+  server_verdict_2:
+    type: dual_labeled_counter
+    description: >
+      Application reputation remote verdict, keyed by file extension
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram APPLICATION_REPUTATION_SERVER_VERDICT_2.
+    dual_labels:
+      key:
+        description: File extension.
+      category:
+        labels:
+          - Safe
+          - Dangerous
+          - Uncommon
+          - PotentiallyUnwanted
+          - DangerousHost
+          - Unknown
+        description: Labels of the keyed categorical legacy telemetry histogram
+          APPLICATION_REPUTATION_SERVER_VERDICT_2.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1501974
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1589042
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1501974
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1589042
+    notification_emails:
+      - dlee@mozilla.com
+      - safebrowsing-telemetry@mozilla.org
+    expires: never
+    telemetry_mirror: APPLICATION_REPUTATION_SERVER_VERDICT_2
+
   remote_lookup_response_time:
     type: timing_distribution
     description: >

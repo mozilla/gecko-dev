@@ -1882,8 +1882,9 @@ nsresult PendingLookup::OnStopRequestInternal(nsIRequest* aRequest,
   mozilla::glean::application_reputation::server_verdict.AccumulateSingleSample(
       std::min<uint32_t>(response.verdict(), 7));
   const char* ext = GetFileExt(mFileName);
-  AccumulateCategoricalKeyed(nsCString(ext), VerdictToLabel(std::min<uint32_t>(
-                                                 response.verdict(), 7)));
+  mozilla::glean::application_reputation::server_verdict_2.Get(
+      nsCString(ext),
+      VerdictToLabel(std::min<uint32_t>(response.verdict(), 7)));
   switch (response.verdict()) {
     case safe_browsing::ClientDownloadResponse::DANGEROUS:
       aVerdict = nsIApplicationReputationService::VERDICT_DANGEROUS;

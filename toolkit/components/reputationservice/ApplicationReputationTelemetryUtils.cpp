@@ -7,8 +7,6 @@
 #include "chrome/common/safe_browsing/csd.pb.h"
 
 using ServerLabel = mozilla::glean::application_reputation::Server2Label;
-using ServerVerdictLabel =
-    mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_SERVER_VERDICT_2;
 
 struct NSErrorTelemetryResult {
   nsresult mValue;
@@ -174,20 +172,19 @@ ServerLabel HTTPStatusToLabel(uint32_t aStatus) {
   }
 }
 
-mozilla::Telemetry::LABELS_APPLICATION_REPUTATION_SERVER_VERDICT_2
-VerdictToLabel(uint32_t aVerdict) {
+nsLiteralCString VerdictToLabel(uint32_t aVerdict) {
   switch (aVerdict) {
     case safe_browsing::ClientDownloadResponse::DANGEROUS:
-      return ServerVerdictLabel::Dangerous;
+      return "Dangerous"_ns;
     case safe_browsing::ClientDownloadResponse::DANGEROUS_HOST:
-      return ServerVerdictLabel::DangerousHost;
+      return "DangerousHost"_ns;
     case safe_browsing::ClientDownloadResponse::POTENTIALLY_UNWANTED:
-      return ServerVerdictLabel::PotentiallyUnwanted;
+      return "PotentiallyUnwanted"_ns;
     case safe_browsing::ClientDownloadResponse::UNCOMMON:
-      return ServerVerdictLabel::Uncommon;
+      return "Uncommon"_ns;
     case safe_browsing::ClientDownloadResponse::UNKNOWN:
-      return ServerVerdictLabel::Unknown;
+      return "Unknown"_ns;
     default:
-      return ServerVerdictLabel::Safe;
+      return "Safe"_ns;
   }
 }
