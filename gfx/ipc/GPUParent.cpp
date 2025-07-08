@@ -104,25 +104,6 @@ namespace mozilla::gfx {
 using namespace ipc;
 using namespace layers;
 
-static media::MediaCodecsSupported GetFullMediaCodecSupport(
-    bool aForceRefresh = false) {
-#if defined(XP_WIN)
-  // Re-initializing WMFPDM if forcing a refresh is required or hardware
-  // decoding is supported in order to get HEVC result properly. We will disable
-  // it later if the pref is OFF.
-  if (aForceRefresh || (gfx::gfxVars::IsInitialized() &&
-                        gfx::gfxVars::CanUseHardwareVideoDecoding())) {
-    WMFDecoderModule::Init(WMFDecoderModule::Config::ForceEnableHEVC);
-  }
-  auto disableHEVCIfNeeded = MakeScopeExit([]() {
-    if (!StaticPrefs::media_hevc_enabled()) {
-      WMFDecoderModule::DisableForceEnableHEVC();
-    }
-  });
-#endif
-  return media::MCSInfo::GetSupportFromFactory(aForceRefresh);
-}
-
 static GPUParent* sGPUParent;
 
 GPUParent::GPUParent() : mLaunchTime(TimeStamp::Now()) { sGPUParent = this; }
@@ -431,7 +412,7 @@ mozilla::ipc::IPCResult GPUParent::RecvInit(
           []() {
             NS_DispatchToMainThread(NS_NewRunnableFunction(
                 "GPUParent::UpdateMediaCodecsSupported",
-                [supported = GetFullMediaCodecSupport()]() {
+                [supported = media::MCSInfo::GetSupportFromFactory()]() {
                   Unused << GPUParent::GetSingleton()
                                 ->SendUpdateMediaCodecsSupported(supported);
                 }));
@@ -527,7 +508,7 @@ mozilla::ipc::IPCResult GPUParent::RecvUpdateVar(const GfxVarUpdate& aUpdate) {
                   []() {
                     NS_DispatchToMainThread(NS_NewRunnableFunction(
                         "GPUParent::UpdateMediaCodecsSupported",
-                        [supported = GetFullMediaCodecSupport(
+                        [supported = media::MCSInfo::GetSupportFromFactory(
                              true /* force refresh */)]() {
                           Unused << GPUParent::GetSingleton()
                                         ->SendUpdateMediaCodecsSupported(
