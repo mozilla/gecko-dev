@@ -221,3 +221,29 @@ dom.quota:
       - storage-telemetry@mozilla.com
     expires: never
     telemetry_mirror: QM_SHUTDOWN_TIME_V0
+
+  first_initialization_attempt:
+    type: dual_labeled_counter
+    description: >
+      True if the first initialization attempt succeeded, keyed by the
+      initialization type.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram QM_FIRST_INITIALIZATION_ATTEMPT.
+    dual_labels:
+      key:
+        description: No static keys unfortunately.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1592934
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1592934
+    notification_emails:
+      - jan.varga@gmail.com
+      - storage-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: QM_FIRST_INITIALIZATION_ATTEMPT
