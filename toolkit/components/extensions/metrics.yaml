@@ -486,6 +486,58 @@ extensions.counters:
       no_lint:
         - GIFFT_NON_PING_LIFETIME
 
+    browser_action_preload_result_by_addonid:
+      type: dual_labeled_counter
+      description: >
+        The number of times a browserAction popup is preloaded and results in one
+        of the categories, keyed by addon id.
+
+        This metric was generated to correspond to the Legacy Telemetry
+        categorical histogram
+        WEBEXT_BROWSERACTION_POPUP_PRELOAD_RESULT_COUNT_BY_ADDONID.
+      dual_labels:
+        key:
+          description: addon id.
+        category:
+          labels:
+            - popupShown
+            - clearAfterHover
+            - clearAfterMousedown
+          description: Labels of the keyed categorical legacy telemetry histogram
+            WEBEXT_BROWSERACTION_POPUP_PRELOAD_RESULT_COUNT_BY_ADDONID.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1578225
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1623315
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1666980
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1706839
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1745271
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1777402
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958168
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1960567
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1483002
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1513556
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1578225
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1623315
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1666980
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1706839
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1745271
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1777402
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1811155
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958168
+      notification_emails:
+        - addons-dev-internal@mozilla.com
+        - lgreco@mozilla.com
+      expires: 147
+      telemetry_mirror: WEBEXT_BROWSERACTION_POPUP_PRELOAD_RESULT_COUNT_BY_ADDONID
+
     event_page_idle_result:
       type: labeled_counter
       expires: never
@@ -518,6 +570,49 @@ extensions.counters:
       telemetry_mirror: h#WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT
       no_lint:
         - GIFFT_NON_PING_LIFETIME
+
+    event_page_idle_result_by_addonid:
+      type: dual_labeled_counter
+      description: >
+        The number of times an event page hit the idle timeout and results in one
+        of the categories, keyed by addon id.
+
+        This metric was generated to correspond to the Legacy Telemetry
+        categorical histogram WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT_BY_ADDONID.
+      dual_labels:
+        key:
+          description: addon id.
+        category:
+          labels:
+            - suspend
+            - reset_other
+            - reset_event
+            - reset_listeners
+            - reset_nativeapp
+            - reset_streamfilter
+            - reset_parentapicall
+            - permissions_request
+            - launchWebAuthFlow
+          description: Labels of the keyed categorical legacy telemetry histogram
+            WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT_BY_ADDONID.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1787940
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1817103
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958168
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1960567
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1787940
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1817103
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1861303
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1912170
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1958168
+      notification_emails:
+        - addons-dev-internal@mozilla.com
+        - lgreco@mozilla.com
+      expires: 147
+      telemetry_mirror: WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT_BY_ADDONID
 
 extensions.timing:
 

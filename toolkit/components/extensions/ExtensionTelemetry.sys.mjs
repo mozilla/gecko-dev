@@ -8,13 +8,6 @@ import { ExtensionUtils } from "resource://gre/modules/ExtensionUtils.sys.mjs";
 
 const { DefaultWeakMap } = ExtensionUtils;
 
-// Map of the base histogram ids for the metrics recorded for the extensions.
-const HISTOGRAMS_IDS = {
-  browserActionPreloadResult: "WEBEXT_BROWSERACTION_POPUP_PRELOAD_RESULT_COUNT",
-  eventPageRunningTime: "WEBEXT_EVENTPAGE_RUNNING_TIME_MS",
-  eventPageIdleResult: "WEBEXT_EVENTPAGE_IDLE_RESULT_COUNT",
-};
-
 const GLEAN_METRICS_TYPES = {
   backgroundPageLoad: "timing_distribution",
   browserActionPopupOpen: "timing_distribution",
@@ -218,8 +211,7 @@ class ExtensionTelemetryMetric {
       return;
     }
 
-    const baseId = HISTOGRAMS_IDS[metric];
-    if (!baseId) {
+    if (!GLEAN_METRICS_TYPES[metric]) {
       Cu.reportError(`Unknown metric ${metric}`);
       return;
     }
@@ -252,11 +244,10 @@ class ExtensionTelemetryMetric {
           return;
         }
         Glean.extensionsCounters[metric][category].add(value ?? 1);
-
-        // TODO: migrate this to Glean once bug 1657470 is fixed.
-        Services.telemetry
-          .getKeyedHistogramById(`${baseId}_BY_ADDONID`)
-          .add(extensionId, category, value);
+        // Capitalization on 'ByAddonid' is a result of glean naming rules.
+        Glean.extensionsCounters[metric + "ByAddonid"]
+          .get(extensionId, category)
+          .add(value);
 
         break;
       }
