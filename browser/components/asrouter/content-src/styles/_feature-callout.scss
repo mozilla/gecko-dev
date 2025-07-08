@@ -486,7 +486,7 @@
             margin-inline-start: 1px;
             padding: 8px;
             min-height: var(--button-min-height);
-            min-width: 30px;
+            min-width: var(--button-min-height);
             box-sizing: border-box;
             background-image: url('chrome://global/skin/icons/arrow-down.svg');
             background-repeat: no-repeat;
