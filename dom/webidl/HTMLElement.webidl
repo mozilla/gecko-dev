@@ -104,7 +104,7 @@ partial interface HTMLElement {
   readonly attribute ElementInternals? internals;
 
   [ChromeOnly]
-  readonly attribute boolean isFormAssociatedCustomElements;
+  readonly attribute boolean isFormAssociatedCustomElement;
 };
 
 interface mixin TouchEventHandlers {

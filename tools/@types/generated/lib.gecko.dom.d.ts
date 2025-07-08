@@ -10305,7 +10305,7 @@ interface HTMLElement extends Element, ElementCSSInlineStyle, GlobalEventHandler
     inputMode: string;
     readonly internals: ElementInternals | null;
     readonly isContentEditable: boolean;
-    readonly isFormAssociatedCustomElements: boolean;
+    readonly isFormAssociatedCustomElement: boolean;
     lang: string;
     nonce: string;
     readonly offsetHeight: number;

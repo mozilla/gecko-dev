@@ -3743,11 +3743,9 @@ ElementInternals* nsGenericHTMLElement::GetInternals() const {
   return nullptr;
 }
 
-bool nsGenericHTMLElement::IsFormAssociatedCustomElements() const {
-  if (CustomElementData* data = GetCustomElementData()) {
-    return data->IsFormAssociated();
-  }
-  return false;
+bool nsGenericHTMLElement::IsFormAssociatedCustomElement() const {
+  CustomElementData* data = GetCustomElementData();
+  return data && data->IsFormAssociated();
 }
 
 void nsGenericHTMLElement::GetAutocapitalize(nsAString& aValue) const {

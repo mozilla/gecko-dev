@@ -59,9 +59,8 @@ void HTMLElement::GetEventTargetParent(EventChainPreVisitor& aVisitor) {
 }
 
 nsINode* HTMLElement::GetScopeChainParent() const {
-  if (IsFormAssociatedCustomElements()) {
-    auto* form = GetFormInternal();
-    if (form) {
+  if (IsFormAssociatedCustomElement()) {
+    if (auto* form = GetFormInternal()) {
       return form;
     }
   }

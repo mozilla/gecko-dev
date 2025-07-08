@@ -60,17 +60,17 @@ export class FormValidationChild extends JSWindowActorChild {
           ChromeUtils.getClassName(element) === "HTMLTextAreaElement" ||
           ChromeUtils.getClassName(element) === "HTMLSelectElement" ||
           ChromeUtils.getClassName(element) === "HTMLButtonElement" ||
-          element.isFormAssociatedCustomElements
+          element.isFormAssociatedCustomElement
         )
       ) {
         continue;
       }
 
-      let validationMessage = element.isFormAssociatedCustomElements
+      let validationMessage = element.isFormAssociatedCustomElement
         ? element.internals.validationMessage
         : element.validationMessage;
 
-      if (element.isFormAssociatedCustomElements) {
+      if (element.isFormAssociatedCustomElement) {
         // For element that are form-associated custom elements, user agents
         // should use their validation anchor instead.
         // It is not clear how constraint validation should work for FACE in
