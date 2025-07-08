@@ -55,7 +55,7 @@ fun initializeGlean(applicationContext: Context, logger: Logger, isTelemetryUplo
     Glean.registerPings(Pings)
 
     // Set the metric configuration from Nimbus.
-    Glean.applyServerKnobsConfig(FxNimbus.features.glean.value().metricsEnabled.toString())
+    Glean.applyServerKnobsConfig(FxNimbus.features.glean.value().gleanMetricConfiguration.toJSONObject().toString())
 
     Glean.initialize(
         applicationContext = applicationContext,
