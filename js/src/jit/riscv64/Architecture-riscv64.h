@@ -284,7 +284,7 @@ class FloatRegisters {
   static const char* GetName(Code code) {
     static const char* const Names[] = {
         "ft0", "ft1", "ft2",  "ft3",  "ft4", "ft5", "ft6",  "ft7",
-        "fs0", "fs2", "fa0",  "fa1",  "fa2", "fa3", "fa4",  "fa5",
+        "fs0", "fs1", "fa0",  "fa1",  "fa2", "fa3", "fa4",  "fa5",
         "fa6", "fa7", "fs2",  "fs3",  "fs4", "fs5", "fs6",  "fs7",
         "fs8", "fs9", "fs10", "fs11", "ft8", "ft9", "ft10", "ft11"};
     static_assert(TotalPhys == std::size(Names), "Table is the correct size");
