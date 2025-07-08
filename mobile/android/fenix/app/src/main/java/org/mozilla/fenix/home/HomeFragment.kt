@@ -126,6 +126,7 @@ import org.mozilla.fenix.home.sessioncontrol.viewholders.CollectionHeaderViewHol
 import org.mozilla.fenix.home.store.HomepageState
 import org.mozilla.fenix.home.toolbar.DefaultToolbarController
 import org.mozilla.fenix.home.toolbar.FenixHomeToolbar
+import org.mozilla.fenix.home.toolbar.HomeNavigationBar
 import org.mozilla.fenix.home.toolbar.HomeToolbarComposable
 import org.mozilla.fenix.home.toolbar.HomeToolbarComposable.Companion.DirectToSearchConfig
 import org.mozilla.fenix.home.toolbar.HomeToolbarView
@@ -176,6 +177,9 @@ class HomeFragment : Fragment() {
     private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
 
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
+
+    @VisibleForTesting
+    internal var homeNavigationBar: HomeNavigationBar? = null
 
     private var _bottomToolbarContainerView: BottomToolbarContainerView? = null
     private val bottomToolbarContainerView: BottomToolbarContainerView
@@ -318,6 +322,17 @@ class HomeFragment : Fragment() {
                     ),
                 )
             }
+        }
+
+        if (!requireContext().settings().shouldUseSimpleToolbar) {
+            homeNavigationBar = HomeNavigationBar(
+                context = requireContext(),
+                lifecycleOwner = this,
+                container = binding.navigationBarContainer,
+                appStore = components.appStore,
+                browserStore = store,
+                settings = requireContext().settings(),
+            )
         }
 
         if (requireContext().settings().isExperimentationEnabled) {
@@ -578,6 +593,7 @@ class HomeFragment : Fragment() {
                     (awesomeBarComposable ?: initializeAwesomeBarComposable(toolbarStore, modifier))
                         ?.SearchSuggestions()
                 },
+                navigationBarContent = homeNavigationBar?.asComposable(),
             )
 
             false -> HomeToolbarView(

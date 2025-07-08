@@ -58,6 +58,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -83,6 +84,7 @@ import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.home.toolbar.BrowserToolbarMiddleware.HomeToolbarAction
+import org.mozilla.fenix.home.toolbar.DisplayActions.FakeClicked
 import org.mozilla.fenix.home.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.home.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.home.toolbar.TabCounterInteractions.AddNewPrivateTab
@@ -109,6 +111,11 @@ class BrowserToolbarMiddlewareTest {
     private val lifecycleOwner = FakeLifecycleOwner(Lifecycle.State.RESUMED)
     private val browsingModeManager = SimpleBrowsingModeManager(Normal)
 
+    @Before
+    fun setup() = runTestOnMain {
+        every { testContext.settings().shouldUseSimpleToolbar } returns true
+    }
+
     @Test
     fun `WHEN initializing the toolbar THEN add browser end actions`() = runTestOnMain {
         val middleware = BrowserToolbarMiddleware(
@@ -134,6 +141,38 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButtonRes
+        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
+        assertEquals(expectedMenuButton, menuButton)
+    }
+
+    @Test
+    fun `WHEN initializing the toolbar AND should not use simple toolbar THEN add browser end actions`() = runTestOnMain {
+        every { testContext.settings().shouldUseSimpleToolbar } returns false
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk(), mockk())
+
+        val toolbarStore = buildStore(middleware)
+
+        val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
+        assertEquals(0, toolbarBrowserActions.size)
+    }
+
+    @Test
+    fun `WHEN initializing the navigation bar AND should not use simple toolbar THEN add navigation bar actions`() = runTestOnMain {
+        every { testContext.settings().shouldUseSimpleToolbar } returns false
+        val middleware = BrowserToolbarMiddleware(appStore, browserStore, mockk(), mockk())
+
+        val toolbarStore = buildStore(middleware)
+
+        val navigationActions = toolbarStore.state.displayState.navigationActions
+        assertEquals(5, navigationActions.size)
+        val bookmarkButton = navigationActions[0] as ActionButtonRes
+        val shareButton = navigationActions[1] as ActionButtonRes
+        val newTabButton = navigationActions[2] as ActionButtonRes
+        val tabCounterButton = navigationActions[3] as TabCounterAction
+        val menuButton = navigationActions[4] as ActionButtonRes
+        assertEquals(expectedBookmarkButton, bookmarkButton)
+        assertEquals(expectedShareButton, shareButton)
+        assertEquals(expectedNewTabButton, newTabButton)
         assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
@@ -739,10 +778,31 @@ class BrowserToolbarMiddlewareTest {
             }
         },
     )
+
     private val expectedMenuButton = ActionButtonRes(
         drawableResId = R.drawable.mozac_ic_ellipsis_vertical_24,
         contentDescription = R.string.content_description_menu,
         onClick = MenuClicked,
+    )
+
+    private val expectedBookmarkButton = ActionButtonRes(
+        drawableResId = R.drawable.mozac_ic_bookmark_24,
+        contentDescription = R.string.browser_menu_bookmark_this_page_2,
+        state = ActionButton.State.DISABLED,
+        onClick = FakeClicked,
+    )
+
+    private val expectedShareButton = ActionButtonRes(
+        drawableResId = R.drawable.mozac_ic_share_android_24,
+        contentDescription = R.string.browser_menu_share,
+        state = ActionButton.State.DISABLED,
+        onClick = FakeClicked,
+    )
+
+    private val expectedNewTabButton = ActionButtonRes(
+        drawableResId = R.drawable.mozac_ic_plus_24,
+        contentDescription = R.string.home_screen_shortcut_open_new_tab_2,
+        onClick = AddNewTab,
     )
 
     private class FakeLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
