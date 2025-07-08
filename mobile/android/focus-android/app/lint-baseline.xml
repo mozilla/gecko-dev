@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.10.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.10.1)" variant="all" version="8.10.1">
+<issues format="6" by="lint 8.11.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.11.0)" variant="all" version="8.11.0">
 
     <issue
         id="CommitTransaction"
@@ -43,6 +43,17 @@
             file="src/main/java/org/mozilla/focus/ext/Context.kt"
             line="72"
             column="33"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `breakStrategy` is only used in API level 23 and higher (current min is 21)"
+        errorLine1="            android:breakStrategy=&quot;simple&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/layout/dialog_tracking_protection_sheet.xml"
+            line="34"
+            column="13"/>
     </issue>
 
     <issue
@@ -349,7 +360,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/locale/screen/LanguageMiddleware.kt"
-            line="85"
+            line="86"
             column="13"/>
     </issue>
 
@@ -494,6 +505,633 @@
             file="src/main/res/drawable/wordmark2.xml"
             line="7"
             column="20"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/about/AboutFragment.kt"
+            line="18"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Icon"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/BaseComposeFragment.kt"
+            line="17"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.IconButton"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/BaseComposeFragment.kt"
+            line="18"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Scaffold"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/BaseComposeFragment.kt"
+            line="19"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/BaseComposeFragment.kt"
+            line="20"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.TopAppBar"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/BaseComposeFragment.kt"
+            line="21"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Button"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/biometrics/BiometricAuthenticationFragmentCompose.kt"
+            line="13"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.ButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/biometrics/BiometricAuthenticationFragmentCompose.kt"
+            line="14"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/biometrics/BiometricAuthenticationFragmentCompose.kt"
+            line="15"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/browser/integration/BrowserToolbarIntegration.kt"
+            line="12"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/utils/ClickableSubstringLink.kt"
+            line="9"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Icon"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/cookiebannerreducer/CookieBannerReducerItem.kt"
+            line="16"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/cookiebannerreducer/CookieBannerReducerItem.kt"
+            line="17"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.DropdownMenu"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/menu/CustomDropdownMenu.kt"
+            line="8"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.DropdownMenuItem"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/menu/CustomDropdownMenu.kt"
+            line="9"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/menu/CustomDropdownMenu.kt"
+            line="10"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Colors"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/theme/FocusColors.kt"
+            line="7"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.AlertDialog"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/dialog/FocusDialog.kt"
+            line="9"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.MaterialTheme"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/dialog/FocusDialog.kt"
+            line="10"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/dialog/FocusDialog.kt"
+            line="11"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.TextButton"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/dialog/FocusDialog.kt"
+            line="12"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.TextField"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/dialog/FocusDialog.kt"
+            line="13"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.TextFieldDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/dialog/FocusDialog.kt"
+            line="14"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Colors"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/theme/FocusTheme.kt"
+            line="8"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.MaterialTheme"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/theme/FocusTheme.kt"
+            line="9"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.darkColors"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/theme/FocusTheme.kt"
+            line="10"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.lightColors"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/theme/FocusTheme.kt"
+            line="11"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Typography"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/theme/FocusTypography.kt"
+            line="7"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/input/InputToolbarIntegration.kt"
+            line="9"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/ui/preferences/LearnMoreLink.kt"
+            line="11"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.RadioButton"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/locale/screen/LocaleFragmentCompose.kt"
+            line="20"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.RadioButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/locale/screen/LocaleFragmentCompose.kt"
+            line="21"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/locale/screen/LocaleFragmentCompose.kt"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Button"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingFirstScreenCompose.kt"
+            line="15"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.ButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingFirstScreenCompose.kt"
+            line="16"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingFirstScreenCompose.kt"
+            line="17"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.minimumInteractiveComponentSize"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingFirstScreenCompose.kt"
+            line="18"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Button"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingSecondScreenCompose.kt"
+            line="15"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.ButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingSecondScreenCompose.kt"
+            line="16"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/fragment/onboarding/OnboardingSecondScreenCompose.kt"
+            line="17"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Icon"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/privacy/PreferenceToolTipCompose.kt"
+            line="18"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.IconButton"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/privacy/PreferenceToolTipCompose.kt"
+            line="19"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/privacy/PreferenceToolTipCompose.kt"
+            line="20"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Button"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/searchwidget/PromoteSearchWidgetDialogCompose.kt"
+            line="18"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.ButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/searchwidget/PromoteSearchWidgetDialogCompose.kt"
+            line="19"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Icon"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/searchwidget/PromoteSearchWidgetDialogCompose.kt"
+            line="20"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.IconButton"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/searchwidget/PromoteSearchWidgetDialogCompose.kt"
+            line="21"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/searchwidget/PromoteSearchWidgetDialogCompose.kt"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/topsites/RenameTopSiteDialog.kt"
+            line="7"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Button"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragmentCompose.kt"
+            line="19"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.ButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragmentCompose.kt"
+            line="20"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.RadioButton"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragmentCompose.kt"
+            line="21"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.RadioButtonDefaults"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragmentCompose.kt"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/settings/permissions/permissionoptions/SitePermissionOptionsFragmentCompose.kt"
+            line="23"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Card"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/topsites/TopSites.kt"
+            line="21"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Surface"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/topsites/TopSites.kt"
+            line="22"
+            column="8"/>
+    </issue>
+
+    <issue
+        id="UsingMaterialAndMaterial3Libraries"
+        message="Using a material import while also using the material3 library"
+        errorLine1="import androidx.compose.material.Text"
+        errorLine2="       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/focus/topsites/TopSites.kt"
+            line="23"
+            column="8"/>
     </issue>
 
     <issue
@@ -1709,7 +2347,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="18"
+            line="19"
             column="13"/>
     </issue>
 
@@ -1720,7 +2358,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="19"
+            line="20"
             column="13"/>
     </issue>
 
@@ -1731,7 +2369,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="22"
+            line="23"
             column="13"/>
     </issue>
 
@@ -1742,7 +2380,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="29"
+            line="30"
             column="13"/>
     </issue>
 
@@ -1753,7 +2391,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="37"
+            line="38"
             column="13"/>
     </issue>
 
@@ -1764,7 +2402,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="75"
+            line="76"
             column="13"/>
     </issue>
 
@@ -1775,7 +2413,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="79"
+            line="80"
             column="13"/>
     </issue>
 
@@ -1786,7 +2424,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="119"
+            line="120"
             column="13"/>
     </issue>
 
@@ -2265,12 +2903,34 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.string.onboarding_first_screen_terms_of_use_link` appears to be unused"
+        errorLine1="    &lt;string name=&quot;onboarding_first_screen_terms_of_use_link&quot; moz:removedIn=&quot;141&quot; tools:ignore=&quot;BrandUsage&quot;>Firefox Terms of Use.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="516"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.onboarding_first_screen_privacy_notice_text` appears to be unused"
+        errorLine1="    &lt;string name=&quot;onboarding_first_screen_privacy_notice_text&quot; moz:removedIn=&quot;141&quot; tools:ignore=&quot;BrandUsage&quot;>Firefox cares about your privacy. Learn more in our %1$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="522"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.string.firstrun_defaultbrowser_text2` appears to be unused"
         errorLine1="    &lt;string name=&quot;firstrun_defaultbrowser_text2&quot;>Take private browsing to the next level. Block ads and other content that can track you across sites and bog down page load times.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="551"
+            line="560"
             column="13"/>
     </issue>
 
@@ -2281,7 +2941,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="556"
+            line="565"
             column="13"/>
     </issue>
 
@@ -2292,7 +2952,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="561"
+            line="570"
             column="13"/>
     </issue>
 
@@ -2303,7 +2963,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="566"
+            line="575"
             column="13"/>
     </issue>
 
@@ -2314,7 +2974,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="568"
+            line="577"
             column="13"/>
     </issue>
 
@@ -2325,7 +2985,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="569"
+            line="578"
             column="13"/>
     </issue>
 
@@ -2336,7 +2996,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="570"
+            line="579"
             column="13"/>
     </issue>
 
@@ -2347,7 +3007,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="573"
+            line="582"
             column="13"/>
     </issue>
 
@@ -2358,7 +3018,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="578"
+            line="587"
             column="13"/>
     </issue>
 
@@ -2369,7 +3029,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="583"
+            line="592"
             column="13"/>
     </issue>
 
@@ -2380,7 +3040,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="606"
+            line="615"
             column="13"/>
     </issue>
 
@@ -2391,7 +3051,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="616"
+            line="625"
             column="13"/>
     </issue>
 
@@ -2402,7 +3062,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="617"
+            line="626"
             column="13"/>
     </issue>
 
@@ -2413,7 +3073,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="618"
+            line="627"
             column="13"/>
     </issue>
 
@@ -2424,7 +3084,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="622"
+            line="631"
             column="13"/>
     </issue>
 
@@ -2435,7 +3095,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="623"
+            line="632"
             column="13"/>
     </issue>
 
@@ -2446,7 +3106,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="625"
+            line="634"
             column="13"/>
     </issue>
 
@@ -2457,7 +3117,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="628"
+            line="637"
             column="13"/>
     </issue>
 
@@ -2468,7 +3128,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="635"
+            line="644"
             column="13"/>
     </issue>
 
@@ -2479,7 +3139,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="640"
+            line="649"
             column="13"/>
     </issue>
 
@@ -2490,7 +3150,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="644"
+            line="653"
             column="13"/>
     </issue>
 
@@ -2501,7 +3161,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="647"
+            line="656"
             column="13"/>
     </issue>
 
@@ -2512,7 +3172,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="649"
+            line="658"
             column="13"/>
     </issue>
 
@@ -2523,7 +3183,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="651"
+            line="660"
             column="13"/>
     </issue>
 
@@ -2534,7 +3194,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="654"
+            line="663"
             column="13"/>
     </issue>
 
@@ -2545,7 +3205,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="801"
+            line="810"
             column="13"/>
     </issue>
 
@@ -2556,7 +3216,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="804"
+            line="813"
             column="13"/>
     </issue>
 
@@ -2567,7 +3227,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="807"
+            line="816"
             column="13"/>
     </issue>
 
@@ -2578,7 +3238,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="810"
+            line="819"
             column="13"/>
     </issue>
 
@@ -2589,7 +3249,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="813"
+            line="822"
             column="13"/>
     </issue>
 
@@ -2600,7 +3260,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="816"
+            line="825"
             column="13"/>
     </issue>
 
@@ -2611,7 +3271,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="832"
+            line="841"
             column="13"/>
     </issue>
 
@@ -2622,7 +3282,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="839"
+            line="848"
             column="13"/>
     </issue>
 
@@ -2633,7 +3293,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="843"
+            line="852"
             column="13"/>
     </issue>
 
@@ -2644,7 +3304,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="868"
+            line="877"
             column="13"/>
     </issue>
 
@@ -2655,7 +3315,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="873"
+            line="882"
             column="13"/>
     </issue>
 
@@ -2666,7 +3326,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="878"
+            line="887"
             column="13"/>
     </issue>
 
@@ -2677,7 +3337,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="884"
+            line="893"
             column="13"/>
     </issue>
 
@@ -2688,7 +3348,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="890"
+            line="899"
             column="13"/>
     </issue>
 
@@ -2699,7 +3359,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="895"
+            line="904"
             column="13"/>
     </issue>
 
@@ -2710,7 +3370,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="898"
+            line="907"
             column="13"/>
     </issue>
 
@@ -2721,7 +3381,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="901"
+            line="910"
             column="13"/>
     </issue>
 
@@ -2732,7 +3392,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="904"
+            line="913"
             column="13"/>
     </issue>
 
@@ -2743,7 +3403,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="928"
+            line="937"
             column="13"/>
     </issue>
 
@@ -2754,7 +3414,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="931"
+            line="940"
             column="13"/>
     </issue>
 
@@ -2765,7 +3425,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1006"
+            line="1015"
             column="13"/>
     </issue>
 
@@ -2776,7 +3436,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1009"
+            line="1018"
             column="13"/>
     </issue>
 
@@ -2787,7 +3447,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1015"
+            line="1024"
             column="13"/>
     </issue>
 
@@ -2798,7 +3458,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1030"
+            line="1039"
             column="13"/>
     </issue>
 
@@ -3111,7 +3771,7 @@
 
     <issue
         id="RtlHardcoded"
-        message="Redundant attribute `paddingLeft`; already defining `paddingStart` with `targetSdkVersion` 35"
+        message="Redundant attribute `paddingLeft`; already defining `paddingStart` with `targetSdkVersion` 36"
         errorLine1="        android:paddingLeft=&quot;5dp&quot;/>"
         errorLine2="        ~~~~~~~~~~~~~~~~~~~">
         <location
