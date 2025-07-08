@@ -659,19 +659,10 @@ void WebRenderLayerManager::ClearCachedResources() {
   mWebRenderCommandBuilder.ClearCachedResources();
   DiscardImages();
   mStateManager.ClearCachedResources();
-  CompositorBridgeChild* compositorBridge = GetCompositorBridgeChild();
-  if (compositorBridge) {
+  if (CompositorBridgeChild* compositorBridge = GetCompositorBridgeChild()) {
     compositorBridge->ClearCachedResources();
   }
   WrBridge()->EndClearCachedResources();
-}
-
-void WebRenderLayerManager::ClearAnimationResources() {
-  if (!WrBridge()->IPCOpen()) {
-    gfxCriticalNote << "IPC Channel is already torn down unexpectedly\n";
-    return;
-  }
-  WrBridge()->SendClearAnimationResources();
 }
 
 void WebRenderLayerManager::WrUpdated() {
