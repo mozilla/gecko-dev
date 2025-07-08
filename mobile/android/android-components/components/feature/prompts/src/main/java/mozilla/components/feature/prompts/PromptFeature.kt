@@ -953,7 +953,6 @@ class PromptFeature private constructor(
                     // For v1, we only handle a single login and drop all others on the floor
                     entry = promptRequest.logins[0],
                     icon = session.content.icon,
-                    onShowSnackbarAfterLoginChange = onSaveLogin,
                 )
             }
 

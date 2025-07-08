@@ -2819,7 +2819,6 @@ class PromptFeatureTest {
                     username = "username",
                     password = "password",
                 ),
-                onShowSnackbarAfterLoginChange = { _ -> },
             ),
         )
         feature.activePrompt = WeakReference(fragment)

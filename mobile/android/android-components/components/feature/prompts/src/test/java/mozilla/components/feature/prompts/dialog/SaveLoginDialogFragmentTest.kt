@@ -49,7 +49,6 @@ class SaveLoginDialogFragmentTest : TestCase() {
                 hint = hint,
                 entry = entry,
                 icon = icon,
-                onShowSnackbarAfterLoginChange = { _ -> },
             ),
         )
         doReturn(appCompatContext).`when`(fragment).requireContext()
@@ -96,7 +95,6 @@ class SaveLoginDialogFragmentTest : TestCase() {
                 hint = hint,
                 entry = entry,
                 icon = icon,
-                onShowSnackbarAfterLoginChange = { _ -> },
             ),
         )
         val defaultIconResource = iconsR.drawable.mozac_ic_globe_24

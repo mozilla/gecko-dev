@@ -114,11 +114,11 @@
     <!-- Pressing this will dismiss the suggested strong password dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_dismiss">Not now</string>
     <!-- Title for showing the suggest strong password saved confirmation snackbar -->
-    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Password saved</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title" tools:ignore="UnusedResources" moz:removedIn="142">Password saved</string>
     <!-- Title for showing the suggest strong password updated confirmation snackbar -->
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Password updated</string>
     <!-- Title for showing the username updated confirmation snackbar -->
-    <string name="mozac_feature_prompt_login_snackbar_username_updated">Username updated</string>
+    <string name="mozac_feature_prompt_login_snackbar_username_updated" tools:ignore="UnusedResources" moz:removedIn="142">Username updated</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">Resend data to this site?</string>
