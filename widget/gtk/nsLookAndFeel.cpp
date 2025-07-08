@@ -1144,11 +1144,6 @@ nsresult nsLookAndFeel::NativeGetInt(IntID aID, int32_t& aResult) {
       aResult = EffectiveTheme().mTitlebarRadius;
       break;
     }
-    case IntID::TitlebarButtonSpacing: {
-      EnsureInit();
-      aResult = EffectiveTheme().mTitlebarButtonSpacing;
-      break;
-    }
     case IntID::AllowOverlayScrollbarsOverlap: {
       aResult = 1;
       break;
@@ -2301,14 +2296,6 @@ void nsLookAndFeel::PerThemeData::Init() {
     mTitlebar = GetColorPair(style, GTK_STATE_FLAG_NORMAL);
     mTitlebarInactive = GetColorPair(style, GTK_STATE_FLAG_BACKDROP);
     mTitlebarRadius = GetBorderRadius(style);
-    mTitlebarButtonSpacing = [&] {
-      // Account for the spacing property in the header bar.
-      // Default to 6 pixels (gtk/gtkheaderbar.c)
-      gint spacing = 6;
-      g_object_get(GtkWidgets::Get(GtkWidgets::Type::HeaderBar), "spacing",
-                   &spacing, nullptr);
-      return spacing;
-    }();
   }
 
   // We special-case the header bar color in Adwaita, Yaru and Breeze to be the

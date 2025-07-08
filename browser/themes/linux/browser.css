@@ -163,6 +163,13 @@
 .titlebar-buttonbox {
   z-index: 1;
   align-items: stretch;
+  /* The spacing on each side of the titlebar button. In libadwaita, that's
+   * 3px of gap + 5px * 2 of padding = 13px / 2, see:
+   * https://gitlab.gnome.org/GNOME/libadwaita/-/blob/fe21c3c823443a8f2333cf3cc09ba3d0fa753228/src/stylesheet/widgets/_header-bar.scss#L164
+   * We want a contiguous hit region so we use 6.5px of padding instead.
+   */
+  --titlebar-button-spacing: 6.5px;
+  --titlebar-button-end-spacing: 10px;
   --max-titlebar-button-position: max(
     env(-moz-gtk-csd-maximize-button-position),
     env(-moz-gtk-csd-minimize-button-position),
@@ -181,11 +188,10 @@
   color: inherit;
   align-items: center;
   padding: 0;
-  padding-inline: calc(env(-moz-gtk-csd-titlebar-button-spacing) / 2);
-  /* We want double the end spacing for the last button */
+  padding-inline: var(--titlebar-button-spacing);
   padding-inline-end: max(
-    env(-moz-gtk-csd-titlebar-button-spacing) / 2,
-    env(-moz-gtk-csd-titlebar-button-spacing) * (var(--titlebar-button-position) - var(--max-titlebar-button-position) + 1)
+    var(--titlebar-button-spacing),
+    var(--titlebar-button-end-spacing) * (var(--titlebar-button-position) - var(--max-titlebar-button-position) + 1)
   );
   order: var(--titlebar-button-position);
   /* In GTK applications, you can drag the window by titlebar buttons */
