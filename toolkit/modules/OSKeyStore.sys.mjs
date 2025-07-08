@@ -234,30 +234,22 @@ export var OSKeyStore = {
 
     if (generateKeyIfNotAvailable) {
       unlockPromise = unlockPromise.then(async reauthResult => {
-        try {
-          if (
-            !(await lazy.nativeOSKeyStore.asyncSecretAvailable(
-              this.STORE_LABEL
-            ))
-          ) {
-            lazy.log.debug(
-              "ensureLoggedIn: Secret unavailable, attempt to generate new secret."
-            );
-            let recoveryPhrase =
-              await lazy.nativeOSKeyStore.asyncGenerateSecret(this.STORE_LABEL);
-            // TODO We should somehow have a dialog to ask the user to write this down,
-            // and another dialog somewhere for the user to restore the secret with it.
-            // (Intentionally not printing it out in the console)
-            lazy.log.debug(
-              "ensureLoggedIn: Secret generated. Recovery phrase length: " +
-                recoveryPhrase.length
-            );
-          }
-        } catch (e) {
+        if (
+          !(await lazy.nativeOSKeyStore.asyncSecretAvailable(this.STORE_LABEL))
+        ) {
           lazy.log.debug(
-            `ensureLoggedIn: asyncSecretAvailable failed: ${e.result}`
+            "ensureLoggedIn: Secret unavailable, attempt to generate new secret."
           );
-          throw e;
+          let recoveryPhrase = await lazy.nativeOSKeyStore.asyncGenerateSecret(
+            this.STORE_LABEL
+          );
+          // TODO We should somehow have a dialog to ask the user to write this down,
+          // and another dialog somewhere for the user to restore the secret with it.
+          // (Intentionally not printing it out in the console)
+          lazy.log.debug(
+            "ensureLoggedIn: Secret generated. Recovery phrase length: " +
+              recoveryPhrase.length
+          );
         }
         return reauthResult;
       });

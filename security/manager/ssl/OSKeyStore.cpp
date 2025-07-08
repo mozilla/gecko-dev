@@ -73,17 +73,7 @@ static nsresult GenerateRandom(std::vector<uint8_t>& r) {
 nsresult OSKeyStore::SecretAvailable(const nsACString& aLabel,
                                      /* out */ bool* aAvailable) {
   NS_ENSURE_STATE(mKs);
-  nsresult rv = mKs->SecretAvailable(aLabel);
-  *aAvailable = false;
-  if (rv == nsresult::NS_ERROR_NOT_AVAILABLE) {
-    // This indicates that there was no such entry in the keystore. Returning
-    // false from this function suggests generating a new entry so this fits.
-    return NS_OK;
-  }
-  // We want to raise other errors
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  *aAvailable = true;
+  *aAvailable = mKs->SecretAvailable(aLabel);
   return NS_OK;
 }
 
@@ -708,16 +698,13 @@ nsresult AbstractOSKeyStore::DoCipher(const UniquePK11SymKey& aSymKey,
   return NS_OK;
 }
 
-nsresult AbstractOSKeyStore::SecretAvailable(const nsACString& aLabel) {
+bool AbstractOSKeyStore::SecretAvailable(const nsACString& aLabel) {
   nsAutoCString secret;
   nsresult rv = RetrieveSecret(aLabel, secret);
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (secret.Length() == 0) {
-    // This should probably never happen.
-    MOZ_ASSERT(false, "Secret from OS key store must not have zero length");
-    return nsresult::NS_ERROR_ILLEGAL_VALUE;
+  if (NS_FAILED(rv) || secret.Length() == 0) {
+    return false;
   }
-  return NS_OK;
+  return true;
 }
 
 nsresult AbstractOSKeyStore::EncryptDecrypt(const nsACString& aLabel,
