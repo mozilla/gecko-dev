@@ -9,7 +9,6 @@
 #include "DNSLogging.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkDnsMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/ThreadSafety.h"
 #include "TRRService.h"
 
@@ -291,10 +290,10 @@ void AddrHostRecord::ResolveComplete() {
     if (mNativeSuccess) {
       glean::dns::native_lookup_time.AccumulateRawDuration(mNativeDuration);
     }
-    AccumulateCategoricalKeyed(
-        TRRService::ProviderKey(),
-        mNativeSuccess ? Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::osOK
-                       : Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::osFail);
+    glean::dns::lookup_disposition
+        .Get(TRRService::ProviderKey(),
+             mNativeSuccess ? "osOK"_ns : "osFail"_ns)
+        .Add();
   }
 
   if (mResolverType == DNSResolverType::TRR) {
@@ -304,10 +303,9 @@ void AddrHostRecord::ResolveComplete() {
       glean::dns::trr_lookup_time.Get(TRRService::ProviderKey())
           .AccumulateRawDuration(mTrrDuration);
     }
-    AccumulateCategoricalKeyed(
-        TRRService::ProviderKey(),
-        mTRRSuccess ? Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrOK
-                    : Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrFail);
+    glean::dns::lookup_disposition
+        .Get(TRRService::ProviderKey(), mTRRSuccess ? "trrOK"_ns : "trrFail"_ns)
+        .Add();
   }
 
   if (nsHostResolver::Mode() == nsIDNSService::MODE_TRRFIRST ||
@@ -379,25 +377,25 @@ void AddrHostRecord::ResolveComplete() {
   if (mEffectiveTRRMode == nsIRequest::TRR_FIRST_MODE) {
     if (flags & nsIDNSService::RESOLVE_DISABLE_TRR) {
       // TRR is disabled on request, which is a next-level back-off method.
-      Telemetry::Accumulate(Telemetry::DNS_TRR_DISABLED3,
-                            TRRService::ProviderKey(), mNativeSuccess);
+      glean::dns::trr_disabled
+          .Get(TRRService::ProviderKey(),
+               mNativeSuccess ? "true"_ns : "false"_ns)
+          .Add();
     } else {
       if (mTRRSuccess) {
-        AccumulateCategoricalKeyed(TRRService::ProviderKey(),
-                                   Telemetry::LABELS_DNS_TRR_FIRST4::TRR);
+        glean::dns::trr_first.Get(TRRService::ProviderKey(), "TRR"_ns).Add();
       } else if (mNativeSuccess) {
         if (mResolverType == DNSResolverType::TRR) {
-          AccumulateCategoricalKeyed(
-              TRRService::ProviderKey(),
-              Telemetry::LABELS_DNS_TRR_FIRST4::NativeAfterTRR);
+          glean::dns::trr_first
+              .Get(TRRService::ProviderKey(), "NativeAfterTRR"_ns)
+              .Add();
         } else {
-          AccumulateCategoricalKeyed(TRRService::ProviderKey(),
-                                     Telemetry::LABELS_DNS_TRR_FIRST4::Native);
+          glean::dns::trr_first.Get(TRRService::ProviderKey(), "Native"_ns)
+              .Add();
         }
       } else {
-        AccumulateCategoricalKeyed(
-            TRRService::ProviderKey(),
-            Telemetry::LABELS_DNS_TRR_FIRST4::BothFailed);
+        glean::dns::trr_first.Get(TRRService::ProviderKey(), "BothFailed"_ns)
+            .Add();
       }
     }
   }

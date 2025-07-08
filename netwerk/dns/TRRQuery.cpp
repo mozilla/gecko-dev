@@ -5,7 +5,7 @@
 #include "TRRQuery.h"
 
 #include "mozilla/StaticPrefs_network.h"
-#include "mozilla/Telemetry.h"
+#include "mozilla/glean/NetwerkDnsMetrics.h"
 #include "nsQueryObject.h"
 #include "TRR.h"
 #include "TRRService.h"
@@ -327,23 +327,22 @@ AHostResolver::LookupStatus TRRQuery::CompleteLookup(
 
   if (resolverType == DNSResolverType::TRR) {
     if (mTrrAUsed == OK) {
-      AccumulateCategoricalKeyed(
-          TRRService::ProviderKey(),
-          Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrAOK);
+      glean::dns::lookup_disposition.Get(TRRService::ProviderKey(), "trrAOK"_ns)
+          .Add();
     } else if (mTrrAUsed == FAILED) {
-      AccumulateCategoricalKeyed(
-          TRRService::ProviderKey(),
-          Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrAFail);
+      glean::dns::lookup_disposition
+          .Get(TRRService::ProviderKey(), "trrAFail"_ns)
+          .Add();
     }
 
     if (mTrrAAAAUsed == OK) {
-      AccumulateCategoricalKeyed(
-          TRRService::ProviderKey(),
-          Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrAAAAOK);
+      glean::dns::lookup_disposition
+          .Get(TRRService::ProviderKey(), "trrAAAAOK"_ns)
+          .Add();
     } else if (mTrrAAAAUsed == FAILED) {
-      AccumulateCategoricalKeyed(
-          TRRService::ProviderKey(),
-          Telemetry::LABELS_DNS_LOOKUP_DISPOSITION3::trrAAAAFail);
+      glean::dns::lookup_disposition
+          .Get(TRRService::ProviderKey(), "trrAAAAFail"_ns)
+          .Add();
     }
   }
 

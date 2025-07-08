@@ -529,3 +529,220 @@ dns:
       - necko@mozilla.com
     expires: never
     telemetry_mirror: DNS_BLACKLIST_COUNT
+
+  trr_http_version:
+    type: dual_labeled_counter
+    description: >
+      HTTP version used by DoH endpoint
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DNS_TRR_HTTP_VERSION2.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - h_1
+          - h_2
+          - h_3
+        description: Labels of the keyed categorical legacy telemetry histogram
+          DNS_TRR_HTTP_VERSION2.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1460314
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700119
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1460314
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1700119
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_TRR_HTTP_VERSION2
+
+  trr_first:
+    type: dual_labeled_counter
+    description: >
+      TRR-first mode distribution. 0=Worked, 1=fell back fine after TRR fail,
+      2=native worked, 3=both failed; Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DNS_TRR_FIRST4.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - TRR
+          - NativeAfterTRR
+          - Native
+          - BothFailed
+        description: Labels of the keyed categorical legacy telemetry histogram
+          DNS_TRR_FIRST4.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1497252
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1497252
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_TRR_FIRST4
+
+  trr_disabled:
+    type: dual_labeled_counter
+    description: >
+      Resolve success rate when in TRR-first and called TRR-disabled (fall-back
+      mode); Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram DNS_TRR_DISABLED3.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1472659
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1472659
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_TRR_DISABLED3
+
+  trr_blacklisted:
+    type: dual_labeled_counter
+    description: >
+      DNS check for TRR was blocked by blacklist; Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram DNS_TRR_BLACKLISTED3.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1434852
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1434852
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_TRR_BLACKLISTED3
+
+  trr_ns_verfified:
+    type: dual_labeled_counter
+    description: >
+      TRR managed to verify NS entry; Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram DNS_TRR_NS_VERFIFIED3.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1453825
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1453825
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_TRR_NS_VERFIFIED3
+
+  trr_success:
+    type: dual_labeled_counter
+    description: >
+      How often TRR (Trusted Recursive Resolver) requests are fine, time-out or
+      error. Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DNS_TRR_SUCCESS3.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - Fine
+          - Timeout
+          - Bad
+        description: Labels of the keyed categorical legacy telemetry histogram
+          DNS_TRR_SUCCESS3.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1497438
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1497438
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_TRR_SUCCESS3
+
+  lookup_disposition:
+    type: dual_labeled_counter
+    description: >
+      DNS: lookup algorithm; Keyed by TRR domain
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram DNS_LOOKUP_DISPOSITION3.
+    dual_labels:
+      key:
+        description: string identifying the current DoH server, "(other)" if not a built-in server.
+      category:
+        labels:
+          - trrOK
+          - trrFail
+          - trrAOK
+          - trrAFail
+          - trrAAAAOK
+          - trrAAAAFail
+          - osOK
+          - osFail
+        description: Labels of the keyed categorical legacy telemetry histogram
+          DNS_LOOKUP_DISPOSITION3.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1434852
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1434852
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1640867
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1646452
+    notification_emails:
+      - necko@mozilla.com
+      - vgosu@mozilla.com
+    expires: never
+    telemetry_mirror: DNS_LOOKUP_DISPOSITION3

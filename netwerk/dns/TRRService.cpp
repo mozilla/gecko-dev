@@ -20,6 +20,7 @@
 
 #include "mozilla/Preferences.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/glean/NetwerkDnsMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Tokenizer.h"
 #include "mozilla/dom/ContentParent.h"
@@ -1145,13 +1146,12 @@ void TRRService::RecordTRRStatus(TRR* aTrrRequest) {
 
   nsresult channelStatus = aTrrRequest->ChannelStatus();
 
-  Telemetry::AccumulateCategoricalKeyed(
-      ProviderKey(), NS_SUCCEEDED(channelStatus)
-                         ? Telemetry::LABELS_DNS_TRR_SUCCESS3::Fine
-                         : (channelStatus == NS_ERROR_NET_TIMEOUT_EXTERNAL
-                                ? Telemetry::LABELS_DNS_TRR_SUCCESS3::Timeout
-                                : Telemetry::LABELS_DNS_TRR_SUCCESS3::Bad));
-
+  glean::dns::trr_success.Get(
+      ProviderKey(),
+      NS_SUCCEEDED(channelStatus)
+          ? "Fine"_ns
+          : (channelStatus == NS_ERROR_NET_TIMEOUT_EXTERNAL ? "Timeout"_ns
+                                                            : "Bad"_ns));
   mConfirmation.RecordTRRStatus(aTrrRequest);
 }
 
@@ -1318,8 +1318,10 @@ void TRRService::ConfirmationContext::CompleteConfirmation(nsresult aStatus,
     MOZ_ASSERT(State() == CONFIRM_FAILED);
   }
 
-  Telemetry::Accumulate(Telemetry::DNS_TRR_NS_VERFIFIED3,
-                        TRRService::ProviderKey(), (State() == CONFIRM_OK));
+  glean::dns::trr_ns_verfified
+      .Get(TRRService::ProviderKey(),
+           (State() == CONFIRM_OK) ? "true"_ns : "false"_ns)
+      .Add();
 }
 
 AHostResolver::LookupStatus TRRService::CompleteLookup(
