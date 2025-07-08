@@ -2,11 +2,11 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import json
 from pathlib import Path
 
 import mozunit
 import pytest
+from mozfile import json
 from mozilla_version.gecko import GeckoVersion
 
 from mozrelease.balrog import generate_update_properties

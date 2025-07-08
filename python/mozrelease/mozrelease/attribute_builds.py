@@ -4,7 +4,6 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
-import json
 import logging
 import mmap
 import os
@@ -14,6 +13,8 @@ import sys
 import tempfile
 import urllib.parse
 from pathlib import Path
+
+from mozfile import json
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 log = logging.getLogger()

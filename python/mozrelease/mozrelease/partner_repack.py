@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Documentation: https://firefox-source-docs.mozilla.org/taskcluster/partner-repacks.html
 
-import json
 import logging
 import os
 import re
@@ -16,6 +15,7 @@ from pathlib import Path
 from shutil import copy, copytree, move, rmtree, which
 from subprocess import Popen
 
+from mozfile import json
 from redo import retry
 
 logging.basicConfig(
@@ -272,7 +272,7 @@ def getUpstreamArtifacts(upstream_tasks, repack_stub_installer):
             else:
                 artifact_ids[name] = taskId
     log.debug(
-        "Found artifacts: %s" % json.dumps(artifact_ids, indent=4, sort_keys=True)
+        "Found artifacts: %s" % json.dumps(artifact_ids, indent=2, sort_keys=True)
     )
     return artifact_ids
 
