@@ -495,6 +495,6 @@ class TextPercentageSeekBarPreference @JvmOverloads constructor(
         private const val MIN_VALUE = 50
         private const val DECIMAL_CONVERSION = 100f
         private const val TEXT_SIZE = 16f
-        private const val SEEK_BAR_MAX = 100
+        private const val SEEK_BAR_MAX = 200
     }
 }
