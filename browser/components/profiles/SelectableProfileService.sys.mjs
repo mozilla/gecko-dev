@@ -438,6 +438,8 @@ class SelectableProfileServiceClass extends EventEmitter {
     this.#badge = null;
     this.#connection = null;
 
+    this.clearPrefObservers();
+
     lazy.EveryWindow.unregisterCallback(this.#everyWindowCallbackId);
 
     Services.obs.removeObserver(this, "pds-datastore-changed");
@@ -861,16 +863,20 @@ class SelectableProfileServiceClass extends EventEmitter {
     await this.#setDBPref(prefName, value);
   }
 
+  clearPrefObservers() {
+    for (let prefName of this.#observedPrefs) {
+      Services.prefs.removeObserver(prefName, this.prefObserver);
+    }
+    this.#observedPrefs.clear();
+  }
+
   /**
    * Fetch all prefs from the DB and write to the current instance.
    */
   async loadSharedPrefsFromDatabase() {
     // This stops us from observing the change during the load and means we stop observing any prefs
     // no longer in the database.
-    for (let prefName of this.#observedPrefs) {
-      Services.prefs.removeObserver(prefName, this.prefObserver);
-    }
-    this.#observedPrefs.clear();
+    this.clearPrefObservers();
 
     for (let { name, value, type } of await this.getAllDBPrefs()) {
       if (SelectableProfileServiceClass.ignoredSharedPrefs.includes(name)) {
