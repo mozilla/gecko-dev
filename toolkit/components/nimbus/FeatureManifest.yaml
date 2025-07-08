@@ -1479,7 +1479,15 @@ newtabTrainhopAddon:
         about:config pref) from which the xpi should be downloaded.
     addon_version:
       type: string
-      description: Expected addon version (install the xpi is cancelled if it mismatches the one set here).
+      description: |
+        Expected addon version (installing the xpi is cancelled if it mismatches the one set here).
+        The trainhop add-on version is also stored in an about:config pref, to be used on early
+        application startup to determine if the trainhop add-on version should be uninstalled
+        (and not be used for the newtab resources mapping to safely uninstall it later in the
+        same application session).
+      setPref:
+        branch: user
+        pref: browser.newtabpage.trainhopAddon.version
 
 newtabMerinoOhttp:
   description: Sending request to merino over OHTTP in newtab

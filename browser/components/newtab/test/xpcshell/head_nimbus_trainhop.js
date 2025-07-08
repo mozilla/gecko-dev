@@ -11,7 +11,8 @@
 
 /* import-globals-from ../../../../extensions/newtab/test/xpcshell/head.js */
 
-/* exported assertNewTabResourceMapping, assertTrainhopAddonNimbusExposure
+/* exported assertNewTabResourceMapping, assertTrainhopAddonNimbusExposure,
+ *          assertTrainhopAddonVersionPref,
  *          asyncAssertNewTabAddon, asyncAssertNimbusTrainhopAddonStaged,
  *          cancelPendingInstall, server,
  *          BUILTIN_ADDON_ID, BUILTIN_ADDON_VERSION,
@@ -224,6 +225,19 @@ function assertTrainhopAddonNimbusExposure({ expectedExposure }) {
     expectedExposure
       ? "Got the expected exposure Glean event for the newtabTrainhopAddon Nimbus feature"
       : "Got no exposure Glean event for the newtabTrainhopAddon as expected"
+  );
+}
+
+function assertTrainhopAddonVersionPref(expectedTrainhopAddonVersion) {
+  Assert.equal(
+    Services.prefs.getStringPref(
+      "browser.newtabpage.trainhopAddon.version",
+      ""
+    ),
+    expectedTrainhopAddonVersion,
+    expectedTrainhopAddonVersion
+      ? "Expect browser.newtab.trainhopAddon.version about:config pref to be set while client is enrolled"
+      : "Expect browser.newtab.trainhopAddon.version about:config pref to be empty while client is unenrolled"
   );
 }
 
