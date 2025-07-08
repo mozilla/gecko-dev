@@ -170,7 +170,7 @@ TextTrackCueList* TextTrack::GetActiveCues() {
   return nullptr;
 }
 
-void TextTrack::GetActiveCueArray(nsTArray<RefPtr<TextTrackCue> >& aCues) {
+void TextTrack::GetActiveCueArray(nsTArray<RefPtr<TextTrackCue>>& aCues) {
   if (mMode != TextTrackMode::Disabled) {
     mActiveCueList->GetArray(aCues);
   }
@@ -274,8 +274,8 @@ void TextTrack::NotifyCueActiveStateChanged(TextTrackCue* aCue) {
 }
 
 void TextTrack::GetCurrentCuesAndOtherCues(
-    RefPtr<TextTrackCueList>& aCurrentCues,
-    RefPtr<TextTrackCueList>& aOtherCues,
+    nsTArray<RefPtr<TextTrackCue>>* aCurrentCues,
+    nsTArray<RefPtr<TextTrackCue>>* aOtherCues,
     const media::TimeInterval& aInterval) const {
   const HTMLMediaElement* mediaElement = GetMediaElement();
   if (!mediaElement) {
@@ -299,7 +299,7 @@ void TextTrack::GetCurrentCuesAndOtherCues(
     if (cue->StartTime() <= playbackTime && cue->EndTime() > playbackTime) {
       WEBVTT_LOG("Add cue %p [%f:%f] to current cue list", cue,
                  cue->StartTime(), cue->EndTime());
-      aCurrentCues->AddCue(*cue);
+      aCurrentCues->AppendElement(cue);
     } else {
       // As the spec didn't have a restriction for the negative duration, it
       // does happen sometime if user sets it explicitly. It would be treated as
@@ -311,7 +311,7 @@ void TextTrack::GetCurrentCuesAndOtherCues(
                 media::TimeUnit::FromSeconds(cue->StartTime()))) {
           WEBVTT_LOG("[Negative duration] Add cue %p [%f:%f] to other cue list",
                      cue, cue->StartTime(), cue->EndTime());
-          aOtherCues->AddCue(*cue);
+          aOtherCues->AppendElement(cue);
         }
         continue;
       }
@@ -325,7 +325,7 @@ void TextTrack::GetCurrentCuesAndOtherCues(
       // contains any cues which are overlapping within the time interval.
       WEBVTT_LOG("Add cue %p [%f:%f] to other cue list", cue, cue->StartTime(),
                  cue->EndTime());
-      aOtherCues->AddCue(*cue);
+      aOtherCues->AppendElement(cue);
     }
   }
 }
