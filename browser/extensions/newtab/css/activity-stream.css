@@ -2037,20 +2037,7 @@ main section {
   z-index: 5;
   position: fixed;
   inset-block-end: var(--space-xlarge);
-}
-@media (height < 700px) {
-  .personalizeButtonWrapper {
-    position: absolute;
-    inset-block-end: var(--space-xlarge);
-    inset-inline-end: var(--space-xlarge);
-  }
-}
-@media (height >= 700px) {
-  .personalizeButtonWrapper {
-    position: fixed;
-    inset-block-end: var(--space-xlarge);
-    inset-inline-end: var(--space-xlarge);
-  }
+  inset-inline-end: var(--space-xlarge);
 }
 
 .personalize-button {

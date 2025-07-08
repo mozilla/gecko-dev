@@ -5,18 +5,7 @@
   z-index: 5;
   position: fixed;
   inset-block-end: var(--space-xlarge);
-
-  @media (height < 700px) {
-    position: absolute;
-    inset-block-end: var(--space-xlarge);
-    inset-inline-end: var(--space-xlarge);
-  }
-
-  @media (height >= 700px) {
-    position: fixed;
-    inset-block-end: var(--space-xlarge);
-    inset-inline-end: var(--space-xlarge);
-  }
+  inset-inline-end: var(--space-xlarge);
 }
 
 .personalize-button {
