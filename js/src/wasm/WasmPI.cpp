@@ -809,6 +809,46 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
           : "$a0", "$a3", CALLER_SAVED_REGS, "cc", "memory")
   INLINED_ASM(24, 32, 40, 48);
 
+#  elif defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)
+#    define CALLER_SAVED_REGS                                             \
+        "ra",                                                             \
+        "t0", "t1", "t2", "t3", "t4", "t5", "t6",                         \
+        "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7",                   \
+        "ft0", "ft1", "ft2", "ft3", "ft4", "ft5", "ft6", "ft7",           \
+        "ft8", "ft9", "ft10", "ft11",                                     \
+        "fa0", "fa1", "fa2", "fa3", "fa4", "fa5", "fa6", "fa7",           \
+        "fs0", "fs1", "fs2", "fs3", "fs4", "fs5", "fs6", "fs7",           \
+        "fs8", "fs9", "fs10", "fs11"
+#    define INLINED_ASM(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP) \
+      CHECK_OFFSETS(MAIN_FP, MAIN_SP, SUSPENDABLE_FP, SUSPENDABLE_SP);    \
+      asm volatile(                                                       \
+          "\n   mv      a0, %1"                                           \
+          "\n   sd      fp, " #SUSPENDABLE_FP "(a0)"                      \
+          "\n   sd      sp, " #SUSPENDABLE_SP "(a0)"                      \
+                                                                          \
+          "\n   ld      fp, " #MAIN_FP "(a0)"                             \
+          "\n   ld      sp, " #MAIN_SP "(a0)"                             \
+                                                                          \
+          "\n   addi    sp, sp, -16"                                      \
+          "\n   sd      a0, 8(sp)"                                        \
+                                                                          \
+          "\n   mv      a0, %3"                                           \
+          "\n   jalr    ra, 0(%2)"                                        \
+                                                                          \
+          "\n   ld      a3, 8(sp)"                                        \
+          "\n   addi    sp, sp, 16"                                       \
+                                                                          \
+          "\n   sd      fp, " #MAIN_FP "(a3)"                             \
+          "\n   sd      sp, " #MAIN_SP "(a3)"                             \
+                                                                          \
+          "\n   ld      fp, " #SUSPENDABLE_FP "(a3)"                      \
+          "\n   ld      sp, " #SUSPENDABLE_SP "(a3)"                      \
+          "\n   mv      %0, a0"                                           \
+          : "=r"(res)                                                     \
+          : "r"(stacks), "r"(fn), "r"(data)                               \
+          : "ra", "a0", "a3", CALLER_SAVED_REGS, "cc", "memory")
+  INLINED_ASM(24, 32, 40, 48);
+
 #  else
   MOZ_CRASH("Not supported for this platform");
 #  endif
