@@ -2552,48 +2552,32 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
 
   LOG("  parentRect gravity: %d anchor gravity: %d\n", rectAnchor, menuAnchor);
 
-  // Gtk default is: GDK_ANCHOR_FLIP | GDK_ANCHOR_SLIDE | GDK_ANCHOR_RESIZE.
-  // We want to SLIDE_X menu on the dual monitor setup rather than resize it
-  // on the other monitor.
-  GdkAnchorHints hints =
-      GdkAnchorHints(GDK_ANCHOR_FLIP | GDK_ANCHOR_SLIDE_X | GDK_ANCHOR_RESIZE);
-
   // slideHorizontal from nsMenuPopupFrame::SetPopupPosition
-  int8_t position = popupFrame->GetAlignmentPosition();
-  if (position >= POPUPPOSITION_BEFORESTART &&
-      position <= POPUPPOSITION_AFTEREND) {
-    hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE_X);
-  }
-  // slideVertical from nsMenuPopupFrame::SetPopupPosition
-  if (position >= POPUPPOSITION_STARTBEFORE &&
-      position <= POPUPPOSITION_ENDAFTER) {
-    hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE_Y);
-  }
-
-  FlipType flipType = popupFrame->GetFlipType();
-  if (rectAnchor == GDK_GRAVITY_CENTER && menuAnchor == GDK_GRAVITY_CENTER) {
-    // only slide
-    hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
-  } else {
-    switch (flipType) {
-      case FlipType::Both:
-      case FlipType::Default:
-        hints = GdkAnchorHints(hints | GDK_ANCHOR_FLIP);
-        break;
-      case FlipType::Slide:
-        hints = GdkAnchorHints(hints | GDK_ANCHOR_SLIDE);
-        break;
-      case FlipType::None:
-        break;
+  const int8_t position = popupFrame->GetAlignmentPosition();
+  // Gtk default is: GDK_ANCHOR_FLIP | GDK_ANCHOR_SLIDE | GDK_ANCHOR_RESIZE.
+  const auto hints = GdkAnchorHints([&] {
+    // We want tooltips to flip vertically or slide only.
+    // See nsMenuPopupFrame::SetPopupPosition().
+    // https://searchfox.org/mozilla-central/rev/d0f5bc50aff3462c9d1546b88d60c5cb020eb15c/layout/xul/nsMenuPopupFrame.cpp#1603
+    if (mPopupType == PopupType::Tooltip) {
+      return GDK_ANCHOR_FLIP_Y | GDK_ANCHOR_SLIDE;
     }
-  }
-
-  // We want tooltips to flip verticaly or slide only.
-  // See nsMenuPopupFrame::SetPopupPosition().
-  // https://searchfox.org/mozilla-central/rev/d0f5bc50aff3462c9d1546b88d60c5cb020eb15c/layout/xul/nsMenuPopupFrame.cpp#1603
-  if (mPopupType == PopupType::Tooltip) {
-    hints = GdkAnchorHints(GDK_ANCHOR_FLIP_Y | GDK_ANCHOR_SLIDE);
-  }
+    // We want to SLIDE_X menu on dual monitor setup rather than resize it
+    // on the other monitor, so we always allow sliding horizontally.
+    // slideVertical position check comes from the same variable in
+    // nsMenuPopupFrame::SetPopupPosition.
+    //
+    // NOTE(emilio): It feels odd to not honor Gecko's FlipType more, but
+    // historically we've done that... Maybe reconsider? But note that
+    // flipping is tried before sliding, so it seems not too bad?
+    const bool slideVertical =
+        (position >= POPUPPOSITION_STARTBEFORE &&
+         position <= POPUPPOSITION_ENDAFTER) ||
+        popupFrame->GetFlipType() == FlipType::Slide ||
+        (rectAnchor == GDK_GRAVITY_CENTER && menuAnchor == GDK_GRAVITY_CENTER);
+    return GDK_ANCHOR_FLIP | GDK_ANCHOR_SLIDE_X |
+           (slideVertical ? GDK_ANCHOR_SLIDE_Y : 0) | GDK_ANCHOR_RESIZE;
+  }());
 
   return {
       anchorRect,
