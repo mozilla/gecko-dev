@@ -2273,6 +2273,14 @@ VARIABLES = {
         being packaged into an extension instead of the main dist/bin results.
         """,
     ),
+    "XPI_PKGNAME": (
+        str,
+        str,
+        """The name of the package associated to an extension XPI to generate.
+
+        Override the name of the package generated for an XPI extension.
+        """,
+    ),
     "DIST_SUBDIR": (
         str,
         str,

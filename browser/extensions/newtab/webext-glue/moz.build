@@ -8,6 +8,7 @@ with Files("**"):
     BUG_COMPONENT = ("Firefox", "New Tab Page")
 
 XPI_NAME = "newtab"
+XPI_PKGNAME = "newtab@mozilla.org"
 
 DIST_SUBDIR = ""
 

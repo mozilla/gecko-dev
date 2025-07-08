@@ -8,6 +8,7 @@ with Files("**"):
     BUG_COMPONENT = ("Web Compatibility", "Tooling & Investigations")
 
 XPI_NAME = "webcompat"
+XPI_PKGNAME = "webcompat@mozilla.org"
 
 DIST_SUBDIR = ""
 

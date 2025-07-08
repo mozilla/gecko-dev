@@ -908,7 +908,7 @@ endef
 
 # When you move this out of the tools tier, please remove the corresponding
 # hacks in recursivemake.py that check if Makefile.in sets the variable.
-ifneq ($(XPI_PKGNAME),)
+ifdef XPI_PKGNAME
 $(eval $(call xpi_package_rule,$(XPI_PKGNAME),$(FINAL_TARGET),$(FINAL_TARGET)/..,tools realchrome))
 endif
 
