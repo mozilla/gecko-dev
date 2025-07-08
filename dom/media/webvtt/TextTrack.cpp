@@ -357,10 +357,19 @@ HTMLMediaElement* TextTrack::GetMediaElement() const {
 void TextTrack::CueBuckets::AddCue(TextTrackCue* aCue) {
   if (aCue->GetActive()) {
     ActiveCues().AppendElement(aCue);
+    if (aCue->PauseOnExit()) {
+      mHasPauseOnExist[static_cast<uint8_t>(CueActivityState::Active)] = true;
+    }
   } else {
     InactiveCues().AppendElement(aCue);
+    if (aCue->PauseOnExit()) {
+      mHasPauseOnExist[static_cast<uint8_t>(CueActivityState::Inactive)] = true;
+    }
   }
   AllCues().AppendElement(aCue);
+  if (aCue->PauseOnExit()) {
+    mHasPauseOnExist[static_cast<uint8_t>(CueActivityState::All)] = true;
+  }
 }
 
 }  // namespace mozilla::dom

@@ -121,9 +121,19 @@ class TextTrack final : public DOMEventTargetHelper {
       return mCues[static_cast<size_t>(CueActivityState::All)];
     }
 
+    bool HasPauseOnExit(CueActivityState aState) const {
+      MOZ_DIAGNOSTIC_ASSERT(aState != CueActivityState::Count);
+      return mHasPauseOnExist[static_cast<uint8_t>(aState)];
+    }
+
    private:
     nsTArray<RefPtr<TextTrackCue>>
         mCues[static_cast<size_t>(CueActivityState::Count)];
+
+    // Returns true if any cue has in the given stage has the PauseOnExit flag
+    // set to true.
+    bool mHasPauseOnExist[static_cast<size_t>(CueActivityState::Count)] = {
+        false};
   };
 
   // Use this function to get `current cues` and `other cues` which are
