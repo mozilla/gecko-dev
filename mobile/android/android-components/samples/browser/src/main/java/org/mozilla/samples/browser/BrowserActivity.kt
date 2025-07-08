@@ -60,7 +60,8 @@ open class BrowserActivity : LocaleAwareAppCompatActivity(), ComponentCallbacks2
         components.notificationsDelegate.bindToActivity(this)
     }
 
-    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
+    // https://bugzilla.mozilla.org/show_bug.cgi?id=1975910
+    @Suppress("GestureBackNavigation", "MissingSuperCall", "OVERRIDE_DEPRECATION")
     override fun onBackPressed() {
         supportFragmentManager.fragments.forEach {
             if (it is UserInteractionHandler && it.onBackPressed()) {
