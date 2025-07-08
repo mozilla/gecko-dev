@@ -647,8 +647,9 @@ void TextTrackManager::TimeMarchesOn() {
   }
 
   // Step 1, 2, 3.
-  nsTArray<RefPtr<TextTrackCue>> currentCues;
-  nsTArray<RefPtr<TextTrackCue>> otherCues;
+  using CueBuckets = TextTrack::CueBuckets;
+  CueBuckets currentCues;
+  CueBuckets otherCues;
   auto currentPlaybackTime =
       media::TimeUnit::FromSeconds(mMediaElement->CurrentTime());
   bool hasNormalPlayback = !mHasSeeked;
@@ -680,7 +681,7 @@ void TextTrackManager::TimeMarchesOn() {
   // Step 4.
   nsTArray<RefPtr<TextTrackCue>> missedCues;
   if (hasNormalPlayback) {
-    for (auto& cue : otherCues) {
+    for (auto& cue : otherCues.AllCues()) {
       if (cue->StartTime() >= mLastTimeMarchesOnCalled.ToSeconds() &&
           cue->EndTime() <= currentPlaybackTime.ToSeconds()) {
         missedCues.AppendElement(cue);
@@ -688,8 +689,8 @@ void TextTrackManager::TimeMarchesOn() {
     }
   }
 
-  WEBVTT_LOGV("TimeMarchesOn currentCues %zu", currentCues.Length());
-  WEBVTT_LOGV("TimeMarchesOn otherCues %zu", otherCues.Length());
+  WEBVTT_LOGV("TimeMarchesOn currentCues %zu", currentCues.AllCues().Length());
+  WEBVTT_LOGV("TimeMarchesOn otherCues %zu", otherCues.AllCues().Length());
   WEBVTT_LOGV("TimeMarchesOn missedCues %zu", missedCues.Length());
   // Step 5. Empty now.
   // TODO: Step 6: fire timeupdate?
@@ -698,22 +699,10 @@ void TextTrackManager::TimeMarchesOn() {
   // 1. All of the cues in current cues have their active flag set.
   // 2. None of the cues in other cues have their active flag set.
   // 3. Missed cues is empty.
-  bool c1 = true;
-  for (const auto& cue : currentCues) {
-    if (!cue->GetActive()) {
-      c1 = false;
-      break;
-    }
-  }
-  bool c2 = true;
-  for (const auto& cue : otherCues) {
-    if (cue->GetActive()) {
-      c2 = false;
-      break;
-    }
-  }
-  bool c3 = missedCues.IsEmpty();
-  if (c1 && c2 && c3) {
+  const bool hasOnlyActiveCurrentCues = currentCues.InactiveCues().IsEmpty();
+  const bool hasNoActiveOtherCues = otherCues.ActiveCues().IsEmpty();
+  const bool hasNoMissedCues = missedCues.IsEmpty();
+  if (hasOnlyActiveCurrentCues && hasNoActiveOtherCues && hasNoMissedCues) {
     mLastTimeMarchesOnCalled = currentPlaybackTime;
     WEBVTT_LOG("TimeMarchesOn step 7 return, mLastTimeMarchesOnCalled %lf",
                mLastTimeMarchesOnCalled.ToSeconds());
@@ -722,8 +711,8 @@ void TextTrackManager::TimeMarchesOn() {
 
   // Step 8. Respect PauseOnExit flag if not seek.
   if (hasNormalPlayback) {
-    for (const auto& cue : otherCues) {
-      if (cue->PauseOnExit() && cue->GetActive()) {
+    for (const auto& cue : otherCues.ActiveCues()) {
+      if (cue->PauseOnExit()) {
         WEBVTT_LOG("TimeMarchesOn pause the MediaElement");
         mMediaElement->Pause();
         break;
@@ -760,7 +749,8 @@ void TextTrackManager::TimeMarchesOn() {
   }
 
   // Step 11, 17.
-  for (const auto& cue : otherCues) {
+  nsTArray<RefPtr<TextTrackCue>> cuesShouldDispatchExit;
+  for (const auto& cue : otherCues.AllCues()) {
     if (cue->GetActive() || missedCues.Contains(cue)) {
       double time =
           cue->StartTime() > cue->EndTime() ? cue->StartTime() : cue->EndTime();
@@ -777,17 +767,15 @@ void TextTrackManager::TimeMarchesOn() {
   }
 
   // Step 12, 17.
-  for (const auto& cue : currentCues) {
-    if (!cue->GetActive()) {
-      WEBVTT_LOG("Prepare 'enter' event for cue %p [%f, %f] in current cues",
-                 cue.get(), cue->StartTime(), cue->EndTime());
-      SimpleTextTrackEvent* event = new SimpleTextTrackEvent(
-          u"enter"_ns, cue->StartTime(), cue->GetTrack(), cue);
-      eventList.InsertElementSorted(
-          event, CompareSimpleTextTrackEvents(mMediaElement));
-      affectedTracks.AddTextTrack(cue->GetTrack(),
-                                  CompareTextTracks(mMediaElement));
-    }
+  for (const auto& cue : currentCues.InactiveCues()) {
+    WEBVTT_LOG("Prepare 'enter' event for cue %p [%f, %f] in current cues",
+               cue.get(), cue->StartTime(), cue->EndTime());
+    SimpleTextTrackEvent* event = new SimpleTextTrackEvent(
+        u"enter"_ns, cue->StartTime(), cue->GetTrack(), cue);
+    eventList.InsertElementSorted(event,
+                                  CompareSimpleTextTrackEvents(mMediaElement));
+    affectedTracks.AddTextTrack(cue->GetTrack(),
+                                CompareTextTracks(mMediaElement));
     cue->SetActive(true);
   }
 

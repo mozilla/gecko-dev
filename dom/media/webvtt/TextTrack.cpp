@@ -278,8 +278,7 @@ void TextTrack::NotifyCueActiveStateChanged(TextTrackCue* aCue) {
 }
 
 void TextTrack::GetOverlappingCurrentAndOtherCues(
-    nsTArray<RefPtr<TextTrackCue>>* aCurrentCues,
-    nsTArray<RefPtr<TextTrackCue>>* aOtherCues,
+    CueBuckets* aCurrentCues, CueBuckets* aOtherCues,
     const media::TimeInterval& aInterval) const {
   const HTMLMediaElement* mediaElement = GetMediaElement();
   if (!mediaElement || Mode() == TextTrackMode::Disabled ||
@@ -324,7 +323,7 @@ void TextTrack::GetOverlappingCurrentAndOtherCues(
     if (cueStart <= playbackTime && cueEnd > playbackTime) {
       WEBVTT_LOG("Add cue %p [%f:%f] to current cue list", cue, cueStart,
                  cueEnd);
-      aCurrentCues->AppendElement(cue);
+      aCurrentCues->AddCue(cue);
     } else {
       // As the spec doesn't have a restriction for the negative duration, it
       // does happen sometime if user sets it explicitly. It would be treated as
@@ -335,7 +334,7 @@ void TextTrack::GetOverlappingCurrentAndOtherCues(
         if (aInterval.Contains(media::TimeUnit::FromSeconds(cueStart))) {
           WEBVTT_LOG("[Negative duration] Add cue %p [%f:%f] to other cue list",
                      cue, cueStart, cueEnd);
-          aOtherCues->AppendElement(cue);
+          aOtherCues->AddCue(cue);
         }
         continue;
       }
@@ -346,13 +345,22 @@ void TextTrack::GetOverlappingCurrentAndOtherCues(
         continue;
       }
       WEBVTT_LOG("Add cue %p [%f:%f] to other cue list", cue, cueStart, cueEnd);
-      aOtherCues->AppendElement(cue);
+      aOtherCues->AddCue(cue);
     }
   }
 }
 
 HTMLMediaElement* TextTrack::GetMediaElement() const {
   return mTextTrackList ? mTextTrackList->GetMediaElement() : nullptr;
+}
+
+void TextTrack::CueBuckets::AddCue(TextTrackCue* aCue) {
+  if (aCue->GetActive()) {
+    ActiveCues().AppendElement(aCue);
+  } else {
+    InactiveCues().AppendElement(aCue);
+  }
+  AllCues().AppendElement(aCue);
 }
 
 }  // namespace mozilla::dom
