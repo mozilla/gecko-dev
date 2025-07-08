@@ -21,7 +21,6 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
-from six import string_types
 
 import mozharness
 from mozharness.base.errors import VirtualenvErrorList
@@ -237,10 +236,9 @@ class VirtualenvMixin:
                 silent=True,
                 ignore_errors=True,
             )
-            if not isinstance(pip_freeze_output, string_types):
+            if not isinstance(pip_freeze_output, str):
                 self.fatal(
-                    "package_versions: Error encountered running `pip freeze`: "
-                    + pip_freeze_output
+                    f"package_versions: Error encountered running `pip freeze`: {pip_freeze_output}"
                 )
 
         for l in pip_freeze_output.splitlines():
