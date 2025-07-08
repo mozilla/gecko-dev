@@ -29,17 +29,16 @@ import {
   EncodableTextureFormat,
   isCompressedTextureFormat,
   getRequiredFeatureForTextureFormat,
-  isTextureFormatUsableAsStorageFormat,
   isTextureFormatUsableAsRenderAttachment,
   isTextureFormatMultisampled,
   is32Float,
   isSintOrUintFormat,
   isTextureFormatResolvable,
-  isTextureFormatUsableAsReadWriteStorageTexture,
   isDepthTextureFormat,
   isStencilTextureFormat,
   textureViewDimensionAndFormatCompatibleForDevice,
   textureDimensionAndFormatCompatibleForDevice,
+  isTextureFormatUsableWithStorageAccessMode,
 } from './format_info.js';
 import { checkElementsEqual, checkElementsBetween } from './util/check_contents.js';
 import { CommandBufferMaker, EncoderType } from './util/command_buffer_maker.js';
@@ -565,22 +564,17 @@ export class GPUTestBase extends Fixture<GPUTestSubcaseBatchState> {
     }
   }
 
-  skipIfTextureFormatNotUsableAsStorageTexture(...formats: (GPUTextureFormat | undefined)[]) {
-    for (const format of formats) {
-      if (format && !isTextureFormatUsableAsStorageFormat(this.device, format)) {
-        this.skip(`Texture with ${format} is not usable as a storage texture`);
-      }
-    }
-  }
-
-  skipIfTextureFormatNotUsableAsReadWriteStorageTexture(
+  skipIfTextureFormatNotUsableWithStorageAccessMode(
+    access: GPUStorageTextureAccess | 'read' | 'write' | 'read_write',
     ...formats: (GPUTextureFormat | undefined)[]
   ) {
     for (const format of formats) {
       if (!format) continue;
 
-      if (!isTextureFormatUsableAsReadWriteStorageTexture(this.device, format)) {
-        this.skip(`Texture with ${format} is not usable as a storage texture`);
+      if (!isTextureFormatUsableWithStorageAccessMode(this.device, format, access)) {
+        this.skip(
+          `Texture with ${format} is not usable as a storage texture with access ${access}`
+        );
       }
     }
   }
@@ -638,7 +632,7 @@ export class GPUTestBase extends Fixture<GPUTestSubcaseBatchState> {
         this.skipIfTextureFormatNotUsableAsRenderAttachment(format);
       }
       if (usage & GPUTextureUsage.STORAGE_BINDING) {
-        this.skipIfTextureFormatNotUsableAsStorageTexture(format);
+        this.skipIfTextureFormatNotUsableWithStorageAccessMode('write-only', format);
       }
     }
   }

@@ -1680,7 +1680,7 @@ export const kAllTextureFormats = keysOf(kAllTextureFormatInfo);
  * * isTextureFormatResolvable
  * * isTextureFormatBlendable
  * * isTextureFormatMultisampled
- * * isTextureFormatUsableAsStorageFormat
+ * * isTextureFormatUsableAsStorageTexture
  * * isTextureFormatUsableAsReadWriteStorageTexture
  * * isTextureFormatUsableAsStorageFormatInCreateShaderModule
  *
@@ -1733,6 +1733,24 @@ export const kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly = [
 'rg11b10ufloat'];
 
 
+export const kTextureFormatsTier2EnablesStorageReadWrite = [
+'r8unorm',
+'r8uint',
+'r8sint',
+'rgba8unorm',
+'rgba8uint',
+'rgba8sint',
+'r16uint',
+'r16sint',
+'r16float',
+'rgba16uint',
+'rgba16sint',
+'rgba16float',
+'rgba32uint',
+'rgba32sint',
+'rgba32float'];
+
+
 // Texture formats that may possibly be used as a storage texture.
 // Some may require certain features to be enabled.
 export const kPossibleStorageTextureFormats = [
@@ -1745,7 +1763,9 @@ export const kPossibleStorageTextureFormats = [
 // Texture formats that may possibly be used as a storage texture.
 // Some may require certain features to be enabled.
 export const kPossibleReadWriteStorageTextureFormats = [
-...kPossibleStorageTextureFormats.filter((f) => kTextureFormatInfo[f].color?.readWriteStorage)];
+...kPossibleStorageTextureFormats.filter((f) => kTextureFormatInfo[f].color?.readWriteStorage),
+// these can be used as storage when texture-formats-tier2 is enabled
+...kTextureFormatsTier2EnablesStorageReadWrite];
 
 
 // Texture formats that may possibly be multisampled.
@@ -2175,6 +2195,10 @@ function isTextureFormatTier1EnablesStorageReadOnlyWriteOnly(format) {
   return kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly.includes(format);
 }
 
+function isTextureFormatTier2EnablesStorageReadWrite(format) {
+  return kTextureFormatsTier2EnablesStorageReadWrite.includes(format);
+}
+
 export function canCopyToAspectOfTextureFormat(format, aspect) {
   const info = kTextureFormatInfo[format];
   switch (aspect) {
@@ -2389,7 +2413,10 @@ export function isTextureFormatPossiblyStorageReadable(format) {
  * The texture may require certain features to be enabled.
  */
 export function isTextureFormatPossiblyStorageReadWritable(format) {
-  return !!kTextureFormatInfo[format].color?.readWriteStorage;
+  return (
+    !!kTextureFormatInfo[format].color?.readWriteStorage ||
+    isTextureFormatTier2EnablesStorageReadWrite(format));
+
 }
 
 export function is16Float(format) {
@@ -2420,13 +2447,13 @@ export const kCompatModeUnsupportedStorageTextureFormats = [
 
 
 /**
- * Return true if the format can be used as a storage texture.
+ * Return true if the format can be used as a write only storage texture.
  * Note: Some formats can be compiled in a shader but can not be used
  * in a pipeline or elsewhere. This function returns whether or not the format
  * can be used in general. If you want to know if the format can used when compiling
  * a shader @see {@link isTextureFormatUsableAsStorageFormatInCreateShaderModule}
  */
-export function isTextureFormatUsableAsStorageFormat(
+function isTextureFormatUsableAsWriteOnlyStorageTexture(
 device,
 format)
 {
@@ -2449,6 +2476,52 @@ format)
 }
 
 /**
+ * Return true if the format can be used with the given access mode
+ * access can be either GPUStorageTextureAccess or WGSL access
+ * Note: Some formats can be compiled in a shader but can not be used
+ * in a pipeline or elsewhere. This function returns whether or not the format
+ * can be used in general. If you want to know if the format can used when compiling
+ * a shader @see {@link isTextureFormatUsableAsStorageFormatInCreateShaderModule}
+ */
+export function isTextureFormatUsableWithStorageAccessMode(
+device,
+format,
+access)
+{
+  switch (access) {
+    case 'read':
+    case 'read-only':
+      return isTextureFormatUsableAsReadOnlyStorageTexture(device, format);
+    case 'write':
+    case 'write-only':
+      return isTextureFormatUsableAsWriteOnlyStorageTexture(device, format);
+    case 'read_write':
+    case 'read-write':
+      return isTextureFormatUsableAsReadWriteStorageTexture(device, format);
+  }
+}
+
+/**
+ * Return true if the format can be used as a read only storage texture.
+ * Note: Some formats can be compiled in a shader but can not be used
+ * in a pipeline or elsewhere. This function returns whether or not the format
+ * can be used in general. If you want to know if the format can used when compiling
+ * a shader @see {@link isTextureFormatUsableAsStorageFormatInCreateShaderModule}
+ */
+function isTextureFormatUsableAsReadOnlyStorageTexture(
+device,
+format)
+{
+  // This is the only storage texture format that isn't readable as a storage format.
+  if (format === 'bgra8unorm') {
+    return false;
+  }
+  // All other formats that can be used as a storage texture can be used as
+  // both read-only and write-only.
+  return isTextureFormatUsableAsWriteOnlyStorageTexture(device, format);
+}
+
+/**
  * Returns true if format can be used with createShaderModule on the device.
  * Some formats may require a feature to be enabled before they can be used
  * as a storage texture. Others, can't be used in a pipeline but can be compiled
@@ -2468,14 +2541,14 @@ format)
   return !!(info.color?.storage || info.depth?.storage || info.stencil?.storage);
 }
 
-export function isTextureFormatUsableAsReadWriteStorageTexture(
+function isTextureFormatUsableAsReadWriteStorageTexture(
 device,
 format)
 {
-  return (
-    isTextureFormatUsableAsStorageFormat(device, format) &&
-    !!kTextureFormatInfo[format].color?.readWriteStorage);
-
+  if (isTextureFormatTier2EnablesStorageReadWrite(format)) {
+    return device.features.has('texture-formats-tier2');
+  }
+  return !!kTextureFormatInfo[format].color?.readWriteStorage;
 }
 
 export function isRegularTextureFormat(format) {

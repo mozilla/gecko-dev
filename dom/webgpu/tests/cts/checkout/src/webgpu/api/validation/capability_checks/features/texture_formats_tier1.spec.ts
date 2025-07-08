@@ -249,3 +249,70 @@ g.test('bind_group_layout,storage_texture')
       });
     }, !enable_feature);
   });
+
+g.test('pipeline_auto_layout,storage_texture')
+  .desc(
+    `
+  Test creating a pipeline with auto layout with a storage texture binding format enabled by
+  'texture-formats-tier1' fails if the feature is not enabled.
+  `
+  )
+  .params(u =>
+    u
+      .combine('format', kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly)
+      .combine('access', ['read', 'write'] as const) // Tier1 enables read-only/write-only for these
+      .combine('enable_feature', [true, false])
+      .beginSubcases()
+      .combine('isAsync', [false, true] as const)
+      .combine('type', ['compute', 'render'] as const)
+  )
+  .beforeAllSubcases(t => {
+    const { enable_feature } = t.params;
+    if (enable_feature) {
+      t.selectDeviceOrSkipTestCase('texture-formats-tier1');
+    }
+  })
+  .fn(t => {
+    const { format, access, enable_feature, isAsync, type } = t.params;
+
+    const code = `
+      @group(0) @binding(0) var tex1d: texture_storage_1d<${format}, ${access}>;
+      @group(0) @binding(1) var tex2d: texture_storage_1d<${format}, ${access}>;
+      @group(0) @binding(2) var tex3d: texture_storage_1d<${format}, ${access}>;
+
+      fn useTextures() {
+        _ = tex1d;
+        _ = tex2d;
+        _ = tex3d;
+      }
+
+      @compute @workgroup_size(1) fn cs() {
+        useTextures();
+      }
+
+      @vertex fn vs() -> @builtin(position) vec4f {
+        return vec4f(0);
+      }
+      @fragment fn fs() -> @location(0) vec4f {
+        useTextures();
+        return vec4f(0);
+      }
+    `;
+
+    const module = t.device.createShaderModule({ code });
+
+    if (type === 'compute') {
+      const descriptor: GPUComputePipelineDescriptor = {
+        layout: 'auto',
+        compute: { module },
+      };
+      vtu.doCreateComputePipelineTest(t, isAsync, enable_feature, descriptor);
+    } else {
+      const descriptor: GPURenderPipelineDescriptor = {
+        layout: 'auto',
+        vertex: { module },
+        fragment: { module, targets: [{ format: 'rgba8unorm' }] },
+      };
+      vtu.doCreateRenderPipelineTest(t, isAsync, enable_feature, descriptor);
+    }
+  });

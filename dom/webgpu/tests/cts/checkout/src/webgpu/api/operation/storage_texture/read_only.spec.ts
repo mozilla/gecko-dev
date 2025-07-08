@@ -553,7 +553,7 @@ g.test('basic')
   .fn(t => {
     const { format, shaderStage, dimension, depthOrArrayLayers } = t.params;
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+    t.skipIfTextureFormatNotUsableWithStorageAccessMode('read-only', format);
 
     if (t.isCompatibility) {
       if (shaderStage === 'fragment') {

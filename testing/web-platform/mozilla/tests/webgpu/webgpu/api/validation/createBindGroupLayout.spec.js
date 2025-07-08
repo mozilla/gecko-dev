@@ -21,8 +21,7 @@ import {
   getBindingLimitForBindingType } from
 '../../capability_info.js';
 import {
-  isTextureFormatUsableAsReadWriteStorageTexture,
-  isTextureFormatUsableAsStorageFormat,
+  isTextureFormatUsableWithStorageAccessMode,
   kAllTextureFormats } from
 '../../format_info.js';
 
@@ -511,11 +510,7 @@ fn((t) => {
   const { format, access } = t.params;
   t.skipIfTextureFormatNotSupported(format);
 
-  const success =
-  isTextureFormatUsableAsStorageFormat(t.device, format) &&
-  !(
-  access === 'read-write' && !isTextureFormatUsableAsReadWriteStorageTexture(t.device, format));
-
+  const success = isTextureFormatUsableWithStorageAccessMode(t.device, format, access);
 
   t.expectValidationError(() => {
     t.device.createBindGroupLayout({

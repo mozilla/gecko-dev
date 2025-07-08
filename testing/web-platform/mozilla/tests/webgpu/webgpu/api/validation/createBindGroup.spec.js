@@ -873,7 +873,11 @@ combine('resourceFormat', kPossibleStorageTextureFormats)
 fn((t) => {
   const { storageTextureFormat, resourceFormat } = t.params;
   t.skipIfTextureFormatNotSupported(storageTextureFormat, resourceFormat);
-  t.skipIfTextureFormatNotUsableAsStorageTexture(storageTextureFormat, resourceFormat);
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode(
+    'write-only',
+    storageTextureFormat,
+    resourceFormat
+  );
 
   const bindGroupLayout = t.device.createBindGroupLayout({
     entries: [

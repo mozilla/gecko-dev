@@ -485,7 +485,7 @@ expand('baseMipLevel', baseMipLevel)
 fn((t) => {
   skipIfNoStorageTexturesInStage(t, t.params.stage);
   t.skipIfTextureFormatNotSupported(t.params.format);
-  t.skipIfTextureFormatNotUsableAsStorageTexture(t.params.format);
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode(t.params.access, t.params.format);
 
   const values = testValues(t.params);
   const texture = t.createTextureTracked({

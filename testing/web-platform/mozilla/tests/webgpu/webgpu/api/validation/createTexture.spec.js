@@ -16,13 +16,13 @@ import {
   getBlockInfoForTextureFormat,
   isTextureFormatMultisampled,
   isTextureFormatColorRenderable,
-  isTextureFormatUsableAsStorageFormat,
   isTextureFormatPossiblyUsableAsColorRenderAttachment,
   isTextureFormatPossiblyStorageReadable,
   isColorTextureFormat,
   textureFormatsAreViewCompatible,
   textureDimensionAndFormatCompatibleForDevice,
-  getMaxValidTextureSizeForFormatAndDimension } from
+  getMaxValidTextureSizeForFormatAndDimension,
+  isTextureFormatUsableWithStorageAccessMode } from
 '../../format_info.js';
 import { maxMipLevelCount } from '../../util/texture/base.js';
 
@@ -373,7 +373,7 @@ fn((t) => {
 
   const satisfyWithStorageUsageRequirement =
   (usage & GPUConst.TextureUsage.STORAGE_BINDING) === 0 ||
-  isTextureFormatUsableAsStorageFormat(t.device, format);
+  isTextureFormatUsableWithStorageAccessMode(t.device, format, 'write-only');
 
   const success =
   sampleCount === 1 && satisfyWithStorageUsageRequirement ||
@@ -1029,7 +1029,8 @@ fn((t) => {
   // Note that we unconditionally test copy usages for all formats and
   // expect failure if copying from or to is not supported.
   if (usage & GPUTextureUsage.STORAGE_BINDING) {
-    if (!isTextureFormatUsableAsStorageFormat(t.device, format)) success = false;
+    if (!isTextureFormatUsableWithStorageAccessMode(t.device, format, 'write-only'))
+    success = false;
   }
   if (usage & GPUTextureUsage.RENDER_ATTACHMENT) {
     if (appliedDimension === '1d') success = false;

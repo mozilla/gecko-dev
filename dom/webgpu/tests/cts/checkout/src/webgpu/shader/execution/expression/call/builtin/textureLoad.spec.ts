@@ -712,7 +712,7 @@ Parameters:
     const { format, stage, samplePoints, C } = t.params;
 
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+    t.skipIfTextureFormatNotUsableWithStorageAccessMode('read-only', format);
     skipIfStorageTexturesNotSupportedInStage(t, stage);
 
     // We want at least 3 blocks or something wide enough for 3 mip levels.
@@ -791,7 +791,7 @@ Parameters:
     const { format, stage, samplePoints, C, baseMipLevel } = t.params;
 
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+    t.skipIfTextureFormatNotUsableWithStorageAccessMode('read-only', format);
     skipIfStorageTexturesNotSupportedInStage(t, stage);
 
     // We want at least 3 blocks or something wide enough for 3 mip levels.
@@ -883,7 +883,7 @@ Parameters:
       t.params;
 
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+    t.skipIfTextureFormatNotUsableWithStorageAccessMode('read-only', format);
     skipIfStorageTexturesNotSupportedInStage(t, stage);
 
     // We want at least 3 blocks or something wide enough for 3 mip levels.
@@ -971,7 +971,7 @@ Parameters:
     const { format, stage, samplePoints, C } = t.params;
 
     t.skipIfTextureFormatNotSupported(format);
-    t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+    t.skipIfTextureFormatNotUsableWithStorageAccessMode('read-only', format);
     skipIfStorageTexturesNotSupportedInStage(t, stage);
 
     // We want at least 3 blocks or something wide enough for 3 mip levels.

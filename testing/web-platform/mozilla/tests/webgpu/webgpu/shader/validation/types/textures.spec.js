@@ -26,7 +26,8 @@ combine('shaderScalarType', ['f32', 'u32', 'i32', 'bool', 'f16'])
 ).
 fn((t) => {
   const { format, shaderScalarType } = t.params;
-  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+  t.skipIfTextureFormatNotSupported(format);
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode('read-only', format);
   const validShaderScalarType = getPlainTypeInfo(getTextureFormatType(format));
   const shaderValueType = `vec4<${shaderScalarType}>`;
   const wgsl = `

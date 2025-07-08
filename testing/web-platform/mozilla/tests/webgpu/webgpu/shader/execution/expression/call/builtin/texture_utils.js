@@ -2309,6 +2309,22 @@ componentNdx)
   }
 }
 
+function getTextureViewDescription(softwareTexture) {
+  const size = reifyExtent3D(softwareTexture.descriptor.size);
+  const { baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount, baseMipLevelSize } =
+  getBaseMipLevelInfo(softwareTexture);
+  const physicalMipLevelCount = softwareTexture.descriptor.mipLevelCount ?? 1;
+
+  return `
+   physical size: [${size.width}, ${size.height}, ${size.depthOrArrayLayers}]
+    baseMipLevel: ${baseMipLevel}
+   mipLevelCount: ${mipLevelCount}
+baseMipLevelSize: [${baseMipLevelSize.join(', ')}]
+  baseArrayLayer: ${baseArrayLayer}
+ arrayLayerCount: ${arrayLayerCount}
+physicalMipCount: ${physicalMipLevelCount}
+  `;
+}
 /**
  * Checks the result of each call matches the expected result.
  */
@@ -2346,8 +2362,11 @@ gpuTexture)
   getMaxFractionalDiffForTextureFormat(softwareTexture.descriptor.format) :
   0;
 
+  t.debug(() => getTextureViewDescription(softwareTexture));
+
   for (let callIdx = 0; callIdx < calls.length; callIdx++) {
     const call = calls[callIdx];
+    t.debug(`#${callIdx}: ${describeTextureCall(call)}`);
     const gotRGBA = results.results[callIdx];
     const expectRGBA = softwareTextureRead(t, stage, call, softwareTexture, sampler);
     // Issues with textureSampleBias
@@ -2502,19 +2521,12 @@ gpuTexture)
     rgbaComponentsToCheck.map((component) => p[component]);
 
     if (bad) {
-      const { baseMipLevel, mipLevelCount, baseArrayLayer, arrayLayerCount, baseMipLevelSize } =
-      getBaseMipLevelInfo(softwareTexture);
+      const { baseMipLevelSize } = getBaseMipLevelInfo(softwareTexture);
       const physicalMipLevelCount = softwareTexture.descriptor.mipLevelCount ?? 1;
       const lodClamp = getEffectiveLodClamp(call.builtin, sampler, softwareTexture);
 
       const desc = describeTextureCall(call);
-      errs.push(`result was not as expected:
-   physical size: [${size.width}, ${size.height}, ${size.depthOrArrayLayers}]
-    baseMipLevel: ${baseMipLevel}
-   mipLevelCount: ${mipLevelCount}
-  baseArrayLayer: ${baseArrayLayer}
- arrayLayerCount: ${arrayLayerCount}
-physicalMipCount: ${physicalMipLevelCount}
+      errs.push(`result was not as expected:${getTextureViewDescription(softwareTexture)}
      lodMinClamp: ${lodClamp.min} (effective)
      lodMaxClamp: ${lodClamp.max} (effective)
             call: ${desc}  // #${callIdx}`);

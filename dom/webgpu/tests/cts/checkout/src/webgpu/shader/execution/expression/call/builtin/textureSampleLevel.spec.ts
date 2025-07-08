@@ -20,6 +20,7 @@ import {
   createTextureWithRandomDataAndGetTexels,
   doTextureCalls,
   generateSamplePointsCube,
+  generateTextureBuiltinInputs1D,
   generateTextureBuiltinInputs2D,
   generateTextureBuiltinInputs3D,
   getDepthOrArrayLayersForViewDimension,
@@ -33,11 +34,109 @@ import {
   SamplePointMethods,
   skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable,
   TextureCall,
+  vec1,
   vec2,
   vec3,
 } from './texture_utils.js';
 
 export const g = makeTestGroup(AllFeaturesMaxLimitsGPUTest);
+
+g.test('sampled_1d_coords')
+  .specURL('https://www.w3.org/TR/WGSL/#texturesamplelevel')
+  .desc(
+    `
+fn textureSampleLevel(t: texture_1d<f32>, s: sampler, coords: f32, level: f32) -> vec4<f32>
+
+Parameters:
+ * t  The sampled or depth texture to sample.
+ * s  The sampler type.
+ * coords The texture coordinates used for sampling.
+ * level
+    * The mip level, with level 0 containing a full size version of the texture.
+    * For the functions where level is a f32, fractional values may interpolate between
+      two levels if the format is filterable according to the Texture Format Capabilities.
+    * When not specified, mip level 0 is sampled.
+`
+  )
+  .params(u =>
+    u
+      .combine('stage', kShortShaderStages)
+      .combine('format', kAllTextureFormats)
+      .filter(t => isPotentiallyFilterableAndFillable(t.format))
+      .combine('filt', ['nearest', 'linear'] as const)
+      .filter(t => t.filt === 'nearest' || isTextureFormatPossiblyFilterableAsTextureF32(t.format))
+      .combine('modeU', kShortAddressModes)
+      .combine('modeV', kShortAddressModes)
+      .beginSubcases()
+      .combine('samplePoints', kSamplePointMethods)
+  )
+  .fn(async t => {
+    const { format, stage, samplePoints, modeU, modeV, filt: minFilter } = t.params;
+    t.skipIfTextureFormatAndDimensionNotCompatible(format, '1d');
+    skipIfTextureFormatNotSupportedOrNeedsFilteringAndIsUnfilterable(t, minFilter, format);
+
+    // We want at least 4 blocks or something wide enough for 3 mip levels.
+    const [width, height] = chooseTextureSize({
+      minSize: 8,
+      minBlocks: 4,
+      format,
+      viewDimension: '1d',
+    });
+
+    const descriptor: GPUTextureDescriptor = {
+      format,
+      dimension: '1d',
+      size: { width, height },
+      usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING,
+    };
+    const viewDescriptor = {};
+    const { texels, texture } = await createTextureWithRandomDataAndGetTexels(t, descriptor);
+    const softwareTexture = { texels, descriptor, viewDescriptor };
+    const sampler: GPUSamplerDescriptor = {
+      addressModeU: kShortAddressModeToAddressMode[modeU],
+      addressModeV: kShortAddressModeToAddressMode[modeV],
+      minFilter,
+      magFilter: minFilter,
+      mipmapFilter: minFilter,
+    };
+
+    const calls: TextureCall<vec1>[] = generateTextureBuiltinInputs1D(50, {
+      method: samplePoints,
+      sampler,
+      softwareTexture,
+      mipLevel: { num: texture.mipLevelCount, type: 'f32' },
+      hashInputs: [stage, format, samplePoints, modeU, modeV, minFilter],
+    }).map(({ coords, mipLevel }) => {
+      return {
+        builtin: 'textureSampleLevel',
+        coordType: 'f',
+        coords,
+        mipLevel,
+        levelType: 'f',
+      };
+    });
+    const textureType = appendComponentTypeForFormatToTextureType('texture_1d', format);
+    const results = await doTextureCalls(
+      t,
+      texture,
+      viewDescriptor,
+      textureType,
+      sampler,
+      calls,
+      stage
+    );
+    const res = await checkCallResults(
+      t,
+      { texels, descriptor, viewDescriptor },
+      textureType,
+      sampler,
+      calls,
+      results,
+      stage,
+      texture
+    );
+    t.expectOK(res);
+  });
 
 g.test('sampled_2d_coords')
   .specURL('https://www.w3.org/TR/WGSL/#texturesamplelevel')

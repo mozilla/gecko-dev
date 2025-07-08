@@ -201,7 +201,11 @@ export class Fixture<S extends SubcaseBatchState = SubcaseBatchState> {
   }
 
   /** Log a debug message. */
-  debug(msg: string): void {
+  debug(msg: string | (() => string)): void {
+    if (!this.rec.debugging) return;
+    if (typeof msg === 'function') {
+      msg = msg();
+    }
     this.rec.debug(new Error(msg));
   }
 

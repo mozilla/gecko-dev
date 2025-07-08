@@ -7,6 +7,10 @@ Note: entry point matching tests are in shader_module/entry_point.spec.ts
 `;import { AllFeaturesMaxLimitsGPUTest } from '../.././gpu_test.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { keysOf } from '../../../common/util/data_tables.js';
+import {
+  isTextureFormatUsableWithStorageAccessMode,
+  kPossibleStorageTextureFormats } from
+'../../format_info.js';
 import { kValue } from '../../util/constants.js';
 import { getShaderWithEntryPoint } from '../../util/shader.js';
 
@@ -771,4 +775,39 @@ fn((t) => {
     doResourcesMatch(apiResource, wgslResource),
     descriptor
   );
+});
+
+g.test('storage_texture,format').
+desc(
+  `
+Test that a pipeline with auto layout and storage texture access combo that is not supported
+generates a validation error at createComputePipeline(Async)
+  `
+).
+params((u) =>
+u //
+.combine('format', kPossibleStorageTextureFormats).
+beginSubcases().
+combine('isAsync', [true, false]).
+combine('access', ['read', 'write', 'read_write']).
+combine('dimension', ['1d', '2d', '3d'])
+).
+fn((t) => {
+  const { format, isAsync, access, dimension } = t.params;
+  t.skipIfTextureFormatNotSupported(format);
+
+  const code = `
+      @group(0) @binding(0) var tex: texture_storage_${dimension}<${format}, ${access}>;
+      @compute @workgroup_size(1) fn main() {
+        _ = tex;
+      }
+    `;
+  const module = t.device.createShaderModule({ code });
+
+  const success = isTextureFormatUsableWithStorageAccessMode(t.device, format, access);
+  const descriptor = {
+    layout: 'auto',
+    compute: { module }
+  };
+  vtu.doCreateComputePipelineTest(t, isAsync, success, descriptor);
 });

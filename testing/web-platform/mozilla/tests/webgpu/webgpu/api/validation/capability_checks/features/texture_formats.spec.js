@@ -336,7 +336,7 @@ beforeAllSubcases((t) => {
 }).
 fn((t) => {
   const { format, enable_required_feature } = t.params;
-  t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+  t.skipIfTextureFormatNotUsableWithStorageAccessMode('write-only', format);
 
   t.shouldThrow(enable_required_feature ? false : 'TypeError', () => {
     t.device.createBindGroupLayout({

@@ -3,6 +3,10 @@ misc createRenderPipeline and createRenderPipelineAsync validation tests.
 `;
 
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
+import {
+  isTextureFormatUsableWithStorageAccessMode,
+  kPossibleStorageTextureFormats,
+} from '../../../format_info.js';
 import { kDefaultVertexShaderCode, kDefaultFragmentShaderCode } from '../../../util/shader.js';
 import * as vtu from '../validation_test_utils.js';
 
@@ -146,4 +150,45 @@ g.test('external_texture')
     };
 
     vtu.doCreateRenderPipelineTest(t, false, true, descriptor);
+  });
+
+g.test('storage_texture,format')
+  .desc(
+    `
+Test that a pipeline with auto layout and storage texture access combo that is not supported
+generates a validation error at createComputePipeline(Async)
+  `
+  )
+  .params(u =>
+    u //
+      .combine('format', kPossibleStorageTextureFormats)
+      .beginSubcases()
+      .combine('isAsync', [true, false] as const)
+      .combine('access', ['read', 'write', 'read_write'] as const)
+      .combine('dimension', ['1d', '2d', '3d'] as const)
+  )
+  .fn(t => {
+    const { format, isAsync, access, dimension } = t.params;
+    t.skipIfTextureFormatNotSupported(format);
+
+    const code = `
+      @group(0) @binding(0) var tex: texture_storage_${dimension}<${format}, ${access}>;
+      @vertex fn vs() -> @builtin(position) vec4f {
+        return vec4f(0);
+      }
+
+      @fragment fn fs() -> @location(0) vec4f {
+        _ = tex;
+        return vec4f(0);
+      }
+    `;
+    const module = t.device.createShaderModule({ code });
+
+    const success = isTextureFormatUsableWithStorageAccessMode(t.device, format, access);
+    const descriptor: GPURenderPipelineDescriptor = {
+      layout: 'auto',
+      vertex: { module },
+      fragment: { module, targets: [{ format: 'rgba8unorm' }] },
+    };
+    vtu.doCreateRenderPipelineTest(t, isAsync, success, descriptor);
   });

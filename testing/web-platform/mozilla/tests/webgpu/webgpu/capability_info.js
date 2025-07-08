@@ -907,7 +907,8 @@ export const kFeatureNameInfo =
   'dual-source-blending': {},
   'subgroups': {},
   'core-features-and-limits': {},
-  'texture-formats-tier1': {}
+  'texture-formats-tier1': {},
+  'texture-formats-tier2': {}
 };
 /** List of all GPUFeatureName values. */
 export const kFeatureNames = keysOf(kFeatureNameInfo);

@@ -346,7 +346,7 @@ fn((t) => {
   switch (method) {
     case 'storage-write-compute':
     case 'storage-write-fragment':
-      t.skipIfTextureFormatNotUsableAsStorageTexture(format);
+      t.skipIfTextureFormatNotUsableWithStorageAccessMode('write-only', format);
       break;
     case 'render-pass-store':
       t.skipIfTextureFormatNotUsableAsRenderAttachment(format);

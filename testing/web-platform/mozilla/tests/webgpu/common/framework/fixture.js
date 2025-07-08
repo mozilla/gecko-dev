@@ -202,6 +202,10 @@ export class Fixture {
 
   /** Log a debug message. */
   debug(msg) {
+    if (!this.rec.debugging) return;
+    if (typeof msg === 'function') {
+      msg = msg();
+    }
     this.rec.debug(new Error(msg));
   }
 
