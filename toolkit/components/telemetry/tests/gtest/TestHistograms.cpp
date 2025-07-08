@@ -59,8 +59,8 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedCountHistogram) {
                        "TELEMETRY_TEST_KEYED_COUNT"_ns, true);
 
   // Accumulate data in the provided key within the histogram
-  Telemetry::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_COUNT, "sample"_ns,
-                        kExpectedValue);
+  TelemetryHistogram::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_COUNT,
+                                 "sample"_ns, kExpectedValue);
 
   // Get a snapshot for all the histograms
   JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
@@ -98,11 +98,12 @@ TEST_F(TelemetryTestFixture, TestKeyedKeysHistogram) {
 
   // Test the accumulation on both the allowed and unallowed keys, using
   // the API that accepts histogram IDs.
-  Telemetry::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_KEYS, "not-allowed"_ns,
-                        1);
-  Telemetry::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_KEYS, "testkey"_ns, 0);
-  Telemetry::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_KEYS, "CommonKey"_ns,
-                        1);
+  TelemetryHistogram::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_KEYS,
+                                 "not-allowed"_ns, 1);
+  TelemetryHistogram::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_KEYS,
+                                 "testkey"_ns, 0);
+  TelemetryHistogram::Accumulate(Telemetry::TELEMETRY_TEST_KEYED_KEYS,
+                                 "CommonKey"_ns, 1);
 
   // Get a snapshot for all the histograms
   JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
@@ -191,6 +192,13 @@ TEST_F(TelemetryTestFixture, AccumulateCategoricalHistogram) {
       << "The histogram is not returning expected value";
 }
 
+template <class E>
+void AccumulateCategoricalKeyed(const nsCString& key, E enumValue) {
+  TelemetryHistogram::Accumulate(static_cast<Telemetry::HistogramID>(
+                                     Telemetry::CategoricalLabelId<E>::value),
+                                 key, static_cast<uint32_t>(enumValue));
+};
+
 TEST_F(TelemetryTestFixture, AccumulateKeyedCategoricalHistogram) {
   const uint32_t kSampleExpectedValue = 2;
   const uint32_t kOtherSampleExpectedValue = 1;
@@ -202,15 +210,15 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedCategoricalHistogram) {
 
   // Accumulate one unit into the categorical histogram with label
   // Telemetry::LABELS_TELEMETRY_TEST_KEYED_CATEGORICAL::CommonLabel
-  Telemetry::AccumulateCategoricalKeyed(
+  AccumulateCategoricalKeyed(
       "sample"_ns,
       Telemetry::LABELS_TELEMETRY_TEST_KEYED_CATEGORICAL::CommonLabel);
   // Accumulate another unit into the same categorical histogram
-  Telemetry::AccumulateCategoricalKeyed(
+  AccumulateCategoricalKeyed(
       "sample"_ns,
       Telemetry::LABELS_TELEMETRY_TEST_KEYED_CATEGORICAL::CommonLabel);
   // Accumulate another unit into a different categorical histogram
-  Telemetry::AccumulateCategoricalKeyed(
+  AccumulateCategoricalKeyed(
       "other-sample"_ns,
       Telemetry::LABELS_TELEMETRY_TEST_KEYED_CATEGORICAL::CommonLabel);
 

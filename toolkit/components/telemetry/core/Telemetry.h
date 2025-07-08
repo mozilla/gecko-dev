@@ -51,36 +51,6 @@ void Init();
  */
 void ShutdownTelemetry();
 
-/**
- * DEPRECATED:
- * Adds sample to a keyed histogram defined in TelemetryHistogramEnums.h
- * The only remaining callers should use keyed boolean or keyed categorical
- * histograms, that do not have glean equivalents yet (see bug 1657470).
- *
- * @param id - keyed histogram id
- * @param key - the string key
- * @param sample - value to record.
- */
-void Accumulate(HistogramID id, const nsCString& key, uint32_t sample);
-
-/**
- * DEPRECATED:
- * Adds sample to a keyed categorical histogram defined in
- * TelemetryHistogramEnums.h This is the typesafe - and preferred - way to use
- * the keyed categorical histograms by passing values from the corresponding
- * Telemetry::LABELS_* enum.
- *
- * @param key - the string key
- * @param enumValue - Label value from one of the Telemetry::LABELS_* enums.
- */
-template <class E>
-void AccumulateCategoricalKeyed(const nsCString& key, E enumValue) {
-  static_assert(IsCategoricalLabelEnum<E>::value,
-                "Only categorical label enum types are supported.");
-  Accumulate(static_cast<HistogramID>(CategoricalLabelId<E>::value), key,
-             static_cast<uint32_t>(enumValue));
-};
-
 const char* GetHistogramName(HistogramID id);
 
 /**

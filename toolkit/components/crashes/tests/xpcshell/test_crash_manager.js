@@ -1214,6 +1214,7 @@ add_task(async function test_telemetryHistogram() {
   let h = Telemetry.getKeyedHistogramById("PROCESS_CRASH_SUBMIT_ATTEMPT");
   h.clear();
   Telemetry.clearScalars();
+  Services.fog.testResetFOG();
 
   let m = await getManager();
   let processTypes = [];
@@ -1241,7 +1242,7 @@ add_task(async function test_telemetryHistogram() {
       let key = processType + "-" + crashType;
 
       keys.push(key);
-      h.add(key, 1);
+      Glean.crash.submitAttempt[key].add(1);
       keysCount++;
     }
   }

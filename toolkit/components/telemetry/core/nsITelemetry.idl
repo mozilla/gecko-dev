@@ -287,11 +287,6 @@ interface nsITelemetry : nsISupports
    *
    * @param id - unique identifier from TelemetryHistograms.h
    * The returned object has the following functions:
-   *   add(string key, [optional] value) - Adds a sample of `value` to the histogram for that key.
-                                         If no histogram for that key exists yet, it is created.
-                                         `value` may be a categorical histogram's label as a string,
-                                         a boolean histogram's value as a boolean,
-                                         or a number that fits inside a uint32_t.
    *   snapshot([optional] {store}) - Returns the snapshots of all the registered keys in the form
                                       {key1: snapshot1, key2: snapshot2, ...} in the specified store.
    *                                  Defaults to the "main" store.

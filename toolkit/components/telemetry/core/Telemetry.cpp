@@ -1521,10 +1521,6 @@ void RecordShutdownEndTimeStamp() {
 
 namespace mozilla::Telemetry {
 
-void Accumulate(HistogramID aID, const nsCString& aKey, uint32_t aSample) {
-  TelemetryHistogram::Accumulate(aID, aKey, aSample);
-}
-
 const char* GetHistogramName(HistogramID id) {
   return TelemetryHistogram::GetHistogramName(id);
 }
