@@ -116,18 +116,18 @@ nsresult NSSKeyStore::DeleteSecret(const nsACString& aLabel) {
   return NS_OK;
 }
 
-bool NSSKeyStore::SecretAvailable(const nsACString& aLabel) {
+nsresult NSSKeyStore::SecretAvailable(const nsACString& aLabel) {
   if (!mSlot) {
-    return false;
+    return NS_ERROR_NOT_AVAILABLE;
   }
 
   UniquePK11SymKey symKey(PK11_ListFixedKeysInSlot(
       mSlot.get(), const_cast<char*>(PromiseFlatCString(aLabel).get()),
       nullptr));
   if (!symKey) {
-    return false;
+    return NS_ERROR_NOT_AVAILABLE;
   }
-  return true;
+  return NS_OK;
 }
 
 nsresult NSSKeyStore::EncryptDecrypt(const nsACString& aLabel,

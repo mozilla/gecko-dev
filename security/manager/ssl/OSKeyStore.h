@@ -31,9 +31,9 @@ class AbstractOSKeyStore {
   virtual nsresult DeleteSecret(const nsACString& label) = 0;
   virtual ~AbstractOSKeyStore() = default;
 
-  // Returns true if the secret with the given label is available in the key
-  // store, false otherwise.
-  virtual bool SecretAvailable(const nsACString& label);
+  // Returns NS_OK if the secret with the given label is available in the key
+  // store, an error indicating why it was not available otherwise.
+  virtual nsresult SecretAvailable(const nsACString& label);
   // Perform encryption or decryption operation with the given secret and input
   // bytes. The output is written in outBytes. This function can make use of the
   // AesGcm class to use NSS for encryption and decryption.

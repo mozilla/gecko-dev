@@ -23,7 +23,7 @@ class NSSKeyStore final : public AbstractOSKeyStore {
                                   const std::vector<uint8_t>& inBytes,
                                   std::vector<uint8_t>& outBytes,
                                   bool encrypt) override;
-  virtual bool SecretAvailable(const nsACString& label) override;
+  virtual nsresult SecretAvailable(const nsACString& label) override;
   virtual ~NSSKeyStore();
 
  private:

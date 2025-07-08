@@ -140,6 +140,11 @@ nsresult KeychainSecret::RetrieveSecret(const nsACString& aLabel,
   CFTypeRef item;
   // https://developer.apple.com/documentation/security/1398306-secitemcopymatching
   OSStatus rv = SecItemCopyMatching(searchDictionary.get(), &item);
+  if (rv == errSecItemNotFound) {
+    MOZ_LOG(gKeychainSecretLog, LogLevel::Debug,
+            ("Key not found in key store"));
+    return NS_ERROR_NOT_AVAILABLE;
+  }
   if (rv != errSecSuccess) {
     MOZ_LOG(gKeychainSecretLog, LogLevel::Debug,
             ("SecItemCopyMatching failed: %d", rv));

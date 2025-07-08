@@ -91,9 +91,17 @@ nsresult CredentialManagerSecret::RetrieveSecret(
   // https://docs.microsoft.com/en-us/windows/desktop/api/wincred/nf-wincred-credreada
   BOOL ok = CredReadA(label.get(), CRED_TYPE_GENERIC, 0, &pcred_raw);
   ScopedCREDENTIALA pcred(pcred_raw);
+
+  unsigned long error = GetLastError();
+  if (!ok && error == ERROR_NOT_FOUND) {
+    MOZ_LOG(gCredentialManagerSecretLog, LogLevel::Debug,
+            ("Key not found in key store"));
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   if (!ok) {
     MOZ_LOG(gCredentialManagerSecretLog, LogLevel::Debug,
-            ("CredReadA failed %lu", GetLastError()));
+            ("CredReadA failed %lu", error));
     return NS_ERROR_FAILURE;
   }
   MOZ_ASSERT(pcred);
