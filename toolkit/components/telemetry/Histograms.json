@@ -8834,16 +8834,6 @@
     "n_buckets": 10000,
     "description": "The number of edges serialized into a heap snapshot."
   },
-  "DEVTOOLS_JAVASCRIPT_ERROR_DISPLAYED": {
-    "alert_emails": ["nicolas.b.pierron@mozilla.com"],
-    "record_in_processes": ["main", "content"],
-    "products": ["firefox", "fennec"],
-    "bug_numbers": [1255133, 1378449],
-    "expires_in_version": "never",
-    "kind": "boolean",
-    "keyed": true,
-    "description": "Records the key-identifiers of error messages when they are displayed in the webconsole of the debugger. Nothing should be recorded unless they are visible on the user screen."
-  },
   "DEVTOOLS_TOOLBOX_HOST": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

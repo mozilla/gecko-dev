@@ -4,9 +4,13 @@
 
 "use strict";
 
-class Telemetry {
-  recordEvent() {}
-  start() {}
-  finish() {}
-}
-module.exports = Telemetry;
+module.exports = {
+  devtoolsConsole: {
+    javascriptErrorDisplayed: new Proxy(
+      {},
+      {
+        get: () => ({ add: () => {} }),
+      }
+    ),
+  },
+};

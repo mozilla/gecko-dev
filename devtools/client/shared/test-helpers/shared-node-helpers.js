@@ -41,6 +41,7 @@ function setMocksInGlobal() {
 
   global.Services = require("Services-mock");
   global.ChromeUtils = require("ChromeUtils-mock");
+  global.Glean = require("Glean");
 
   global.isWorker = false;
 
