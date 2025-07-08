@@ -4072,8 +4072,7 @@ static JSFunction* NewPromiseCombinatorElementFunction(
     fn->setExtendedSlot(
         PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc,
         maybeResolveFunc);
-    fn->setExtendedSlot(PromiseCombinatorElementFunctionSlot_Data,
-                        NullValue());
+    fn->setExtendedSlot(PromiseCombinatorElementFunctionSlot_Data, NullValue());
   } else {
     fn->setExtendedSlot(
         PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc,
