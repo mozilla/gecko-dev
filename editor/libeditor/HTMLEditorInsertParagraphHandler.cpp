@@ -101,20 +101,20 @@ HTMLEditor::InsertParagraphSeparatorAsSubAction(const Element& aEditingHost) {
     }
   }
 
-  AutoInsertParagraphHandler insertParagraphHandler;
+  AutoInsertParagraphHandler insertParagraphHandler(*this, aEditingHost);
   Result<EditActionResult, nsresult> insertParagraphResult =
-      insertParagraphHandler.Run(*this, aEditingHost);
+      insertParagraphHandler.Run();
   NS_WARNING_ASSERTION(insertParagraphResult.isOk(),
                        "AutoInsertParagraphHandler::Run() failed");
   return insertParagraphResult;
 }
 
-Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
-    HTMLEditor& aHTMLEditor, const Element& aEditingHost) {
-  MOZ_ASSERT(aHTMLEditor.IsEditActionDataAvailable());
-  MOZ_ASSERT(aHTMLEditor.IsTopLevelEditSubActionDataAvailable());
+Result<EditActionResult, nsresult>
+HTMLEditor::AutoInsertParagraphHandler::Run() {
+  MOZ_ASSERT(mHTMLEditor.IsEditActionDataAvailable());
+  MOZ_ASSERT(mHTMLEditor.IsTopLevelEditSubActionDataAvailable());
 
-  nsresult rv = aHTMLEditor.EnsureNoPaddingBRElementForEmptyEditor();
+  nsresult rv = mHTMLEditor.EnsureNoPaddingBRElementForEmptyEditor();
   if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
     return Err(NS_ERROR_EDITOR_DESTROYED);
   }
@@ -122,9 +122,9 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
                        "EditorBase::EnsureNoPaddingBRElementForEmptyEditor() "
                        "failed, but ignored");
 
-  if (NS_SUCCEEDED(rv) && aHTMLEditor.SelectionRef().IsCollapsed()) {
+  if (NS_SUCCEEDED(rv) && mHTMLEditor.SelectionRef().IsCollapsed()) {
     nsresult rv =
-        aHTMLEditor.EnsureCaretNotAfterInvisibleBRElement(aEditingHost);
+        mHTMLEditor.EnsureCaretNotAfterInvisibleBRElement(mEditingHost);
     if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
       return Err(NS_ERROR_EDITOR_DESTROYED);
     }
@@ -132,7 +132,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
                          "HTMLEditor::EnsureCaretNotAfterInvisibleBRElement() "
                          "failed, but ignored");
     if (NS_SUCCEEDED(rv)) {
-      nsresult rv = aHTMLEditor.PrepareInlineStylesForCaret();
+      nsresult rv = mHTMLEditor.PrepareInlineStylesForCaret();
       if (NS_WARN_IF(rv == NS_ERROR_EDITOR_DESTROYED)) {
         return Err(NS_ERROR_EDITOR_DESTROYED);
       }
@@ -142,25 +142,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
     }
   }
 
-  AutoClonedSelectionRangeArray selectionRanges(aHTMLEditor.SelectionRef());
-  {
-    // If the editing host is the body element, the selection may be outside
-    // aEditingHost.  In the case, we should use the editing host outside the
-    // <body> only here for keeping our traditional behavior for now.
-    // This should be fixed in bug 1634351.
-    const Element* editingHostMaybeOutsideBody = &aEditingHost;
-    if (aEditingHost.IsHTMLElement(nsGkAtoms::body)) {
-      editingHostMaybeOutsideBody =
-          aHTMLEditor.ComputeEditingHost(LimitInBodyElement::No);
-      if (NS_WARN_IF(!editingHostMaybeOutsideBody)) {
-        return Err(NS_ERROR_FAILURE);
-      }
-    }
-    selectionRanges.EnsureOnlyEditableRanges(*editingHostMaybeOutsideBody);
-    if (NS_WARN_IF(selectionRanges.Ranges().IsEmpty())) {
-      return Err(NS_ERROR_FAILURE);
-    }
-  }
+  AutoClonedSelectionRangeArray selectionRanges(mHTMLEditor.SelectionRef());
+  selectionRanges.EnsureOnlyEditableRanges(mEditingHost);
 
   auto pointToInsert =
       selectionRanges.GetFirstRangeStartPoint<EditorDOMPoint>();
@@ -182,14 +165,14 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
     pointToInsert = pointToInsert.ParentPoint();
   }
 
-  if (aHTMLEditor.IsMailEditor()) {
+  if (mHTMLEditor.IsMailEditor()) {
     if (const RefPtr<Element> mailCiteElement =
-            aHTMLEditor.GetMostDistantAncestorMailCiteElement(
+            mHTMLEditor.GetMostDistantAncestorMailCiteElement(
                 *pointToInsert.ContainerAs<nsIContent>())) {
       // Split any mailcites in the way.  Should we abort this if we encounter
       // table cell boundaries?
       Result<CaretPoint, nsresult> caretPointOrError =
-          HandleInMailCiteElement(aHTMLEditor, *mailCiteElement, pointToInsert);
+          HandleInMailCiteElement(*mailCiteElement, pointToInsert);
       if (MOZ_UNLIKELY(caretPointOrError.isErr())) {
         NS_WARNING(
             "AutoInsertParagraphHandler::HandleInMailCiteElement() failed");
@@ -202,7 +185,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
       MOZ_ASSERT(caretPoint.CaretPointRef().GetChild());
       MOZ_ASSERT(
           caretPoint.CaretPointRef().GetChild()->IsHTMLElement(nsGkAtoms::br));
-      nsresult rv = caretPoint.SuggestCaretPointTo(aHTMLEditor, {});
+      nsresult rv = caretPoint.SuggestCaretPointTo(mHTMLEditor, {});
       if (NS_FAILED(rv)) {
         NS_WARNING("CaretPoint::SuggestCaretPointTo() failed");
         return Err(rv);
@@ -220,10 +203,10 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
   // insert new paragraph nor <br> element.
   // XXX Currently, we don't support editing outside <body> element, but Blink
   //     does it.
-  if (aEditingHost.GetParentElement() &&
-      HTMLEditUtils::IsSimplyEditableNode(*aEditingHost.GetParentElement()) &&
+  if (mEditingHost.GetParentElement() &&
+      HTMLEditUtils::IsSimplyEditableNode(*mEditingHost.GetParentElement()) &&
       !nsContentUtils::ContentIsFlattenedTreeDescendantOf(
-          pointToInsert.ContainerAs<nsIContent>(), &aEditingHost)) {
+          pointToInsert.ContainerAs<nsIContent>(), &mEditingHost)) {
     return Err(NS_ERROR_EDITOR_NO_EDITABLE_RANGE);
   }
 
@@ -238,27 +221,24 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
 
   // If we cannot insert a <p>/<div> element at the selection, we should insert
   // a <br> element or a linefeed instead.
-  const ParagraphSeparator separator =
-      aHTMLEditor.GetDefaultParagraphSeparator();
-  if (ShouldInsertLineBreakInstead(aHTMLEditor, editableBlockElement,
-                                   pointToInsert, separator, aEditingHost)) {
+  if (ShouldInsertLineBreakInstead(editableBlockElement, pointToInsert)) {
     const Maybe<LineBreakType> lineBreakType =
-        aHTMLEditor.GetPreferredLineBreakType(
-            *pointToInsert.ContainerAs<nsIContent>(), aEditingHost);
+        mHTMLEditor.GetPreferredLineBreakType(
+            *pointToInsert.ContainerAs<nsIContent>(), mEditingHost);
     if (MOZ_UNLIKELY(!lineBreakType)) {
       // Cannot insert a line break there.
       return EditActionResult::IgnoredResult();
     }
     if (lineBreakType.value() == LineBreakType::Linefeed) {
       Result<EditorDOMPoint, nsresult> insertLineFeedResult =
-          AutoInsertLineBreakHandler::InsertLinefeed(aHTMLEditor, pointToInsert,
-                                                     aEditingHost);
+          AutoInsertLineBreakHandler::InsertLinefeed(mHTMLEditor, pointToInsert,
+                                                     mEditingHost);
       if (MOZ_UNLIKELY(insertLineFeedResult.isErr())) {
         NS_WARNING("AutoInsertLineBreakHandler::InsertLinefeed() failed");
         return insertLineFeedResult.propagateErr();
       }
       nsresult rv =
-          aHTMLEditor.CollapseSelectionTo(insertLineFeedResult.inspect());
+          mHTMLEditor.CollapseSelectionTo(insertLineFeedResult.inspect());
       if (NS_FAILED(rv)) {
         NS_WARNING("EditorBase::CollapseSelectionTo() failed");
         return Err(rv);
@@ -267,13 +247,13 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
     }
 
     Result<CreateElementResult, nsresult> insertBRElementResult =
-        InsertBRElement(aHTMLEditor, pointToInsert, aEditingHost);
+        InsertBRElement(pointToInsert);
     if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
       NS_WARNING("AutoInsertParagraphHandler::InsertBRElement() failed");
       return insertBRElementResult.propagateErr();
     }
     nsresult rv =
-        insertBRElementResult.inspect().SuggestCaretPointTo(aHTMLEditor, {});
+        insertBRElementResult.inspect().SuggestCaretPointTo(mHTMLEditor, {});
     if (NS_FAILED(rv)) {
       NS_WARNING("CreateElementResult::SuggestCaretPointTo() failed");
       return Err(rv);
@@ -286,20 +266,21 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
   // a splittable block element, we should wrap selected contents in a new
   // paragraph, then, split it.
   if (!HTMLEditUtils::IsSplittableNode(*editableBlockElement) &&
-      separator != ParagraphSeparator::br) {
-    MOZ_ASSERT(separator == ParagraphSeparator::div ||
-               separator == ParagraphSeparator::p);
+      mDefaultParagraphSeparator != ParagraphSeparator::br) {
+    MOZ_ASSERT(mDefaultParagraphSeparator == ParagraphSeparator::div ||
+               mDefaultParagraphSeparator == ParagraphSeparator::p);
     // FIXME: If there is no splittable block element, the other browsers wrap
     // the right nodes into new paragraph, but keep the left node as-is.
     // We should follow them to make here simpler and better compatibility.
     Result<RefPtr<Element>, nsresult> suggestBlockElementToPutCaretOrError =
-        aHTMLEditor.FormatBlockContainerWithTransaction(
+        mHTMLEditor.FormatBlockContainerWithTransaction(
             selectionRanges,
-            MOZ_KnownLive(HTMLEditor::ToParagraphSeparatorTagName(separator)),
+            MOZ_KnownLive(HTMLEditor::ToParagraphSeparatorTagName(
+                mDefaultParagraphSeparator)),
             // For keeping the traditional behavior at insertParagraph command,
             // let's use the XUL paragraph state command targets even if we're
             // handling HTML insertParagraph command.
-            FormatBlockMode::XULParagraphStateCommand, aEditingHost);
+            FormatBlockMode::XULParagraphStateCommand, mEditingHost);
     if (MOZ_UNLIKELY(suggestBlockElementToPutCaretOrError.isErr())) {
       NS_WARNING("HTMLEditor::FormatBlockContainerWithTransaction() failed");
       return suggestBlockElementToPutCaretOrError.propagateErr();
@@ -324,7 +305,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
     if (NS_WARN_IF(!HTMLEditUtils::IsSplittableNode(*editableBlockElement))) {
       // Didn't create a new block for some reason, fall back to <br>
       Result<CreateElementResult, nsresult> insertBRElementResult =
-          InsertBRElement(aHTMLEditor, pointToInsert, aEditingHost);
+          InsertBRElement(pointToInsert);
       if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
         NS_WARNING("AutoInsertParagraphHandler::InsertBRElement() failed");
         return insertBRElementResult.propagateErr();
@@ -340,7 +321,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
         return Err(NS_ERROR_FAILURE);
       }
       nsresult rv = CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
-          aHTMLEditor, pointToPutCaret, blockElementToPutCaret, {});
+          pointToPutCaret, blockElementToPutCaret, {});
       if (NS_FAILED(rv)) {
         NS_WARNING(
             "AutoInsertParagraphHandler::"
@@ -363,7 +344,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
           {EmptyCheckOption::TreatSingleBRElementAsVisible},
           BlockInlineCheck::UseComputedDisplayOutsideStyle)) {
     Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-        aHTMLEditor.InsertLineBreak(
+        mHTMLEditor.InsertLineBreak(
             WithTransaction::Yes, LineBreakType::BRElement,
             EditorDOMPoint::AtEndOf(*editableBlockElement));
     if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
@@ -385,12 +366,11 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
 
   RefPtr<Element> maybeNonEditableListItem =
       HTMLEditUtils::GetClosestAncestorListItemElement(*editableBlockElement,
-                                                       &aEditingHost);
+                                                       &mEditingHost);
   if (maybeNonEditableListItem &&
       HTMLEditUtils::IsSplittableNode(*maybeNonEditableListItem)) {
     Result<InsertParagraphResult, nsresult> insertParagraphInListItemResult =
-        HandleInListItemElement(aHTMLEditor, *maybeNonEditableListItem,
-                                pointToInsert, aEditingHost);
+        HandleInListItemElement(*maybeNonEditableListItem, pointToInsert);
     if (MOZ_UNLIKELY(insertParagraphInListItemResult.isErr())) {
       if (NS_WARN_IF(insertParagraphInListItemResult.unwrapErr() ==
                      NS_ERROR_EDITOR_DESTROYED)) {
@@ -410,7 +390,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
     const EditorDOMPoint pointToPutCaret =
         unwrappedInsertParagraphInListItemResult.UnwrapCaretPoint();
     nsresult rv = CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
-        aHTMLEditor, pointToPutCaret, listItemOrParagraphElement,
+        pointToPutCaret, listItemOrParagraphElement,
         {SuggestCaret::AndIgnoreTrivialError});
     if (NS_FAILED(rv)) {
       NS_WARNING(
@@ -425,8 +405,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
 
   if (HTMLEditUtils::IsHeader(*editableBlockElement)) {
     Result<InsertParagraphResult, nsresult>
-        insertParagraphInHeadingElementResult = HandleInHeadingElement(
-            aHTMLEditor, *editableBlockElement, pointToInsert);
+        insertParagraphInHeadingElementResult =
+            HandleInHeadingElement(*editableBlockElement, pointToInsert);
     if (MOZ_UNLIKELY(insertParagraphInHeadingElementResult.isErr())) {
       NS_WARNING(
           "AutoInsertParagraphHandler::HandleInHeadingElement() failed, but "
@@ -443,7 +423,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
     const EditorDOMPoint pointToPutCaret =
         unwrappedInsertParagraphInHeadingElementResult.UnwrapCaretPoint();
     nsresult rv = CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
-        aHTMLEditor, pointToPutCaret, blockElementToPutCaret,
+        pointToPutCaret, blockElementToPutCaret,
         {SuggestCaret::OnlyIfHasSuggestion,
          SuggestCaret::AndIgnoreTrivialError});
     if (NS_FAILED(rv)) {
@@ -464,17 +444,16 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
   //     Gmail.  So, let's use traditional odd behavior only when the default
   //     paragraph separator is <br>.  Otherwise, take consistent behavior
   //     between <p> container and <div> container.
-  if ((separator == ParagraphSeparator::br &&
+  if ((mDefaultParagraphSeparator == ParagraphSeparator::br &&
        editableBlockElement->IsHTMLElement(nsGkAtoms::p)) ||
-      (separator != ParagraphSeparator::br &&
+      (mDefaultParagraphSeparator != ParagraphSeparator::br &&
        editableBlockElement->IsAnyOfHTMLElements(nsGkAtoms::p,
                                                  nsGkAtoms::div))) {
     // Paragraphs: special rules to look for <br>s
     Result<SplitNodeResult, nsresult> splitNodeResult = HandleInParagraph(
-        aHTMLEditor, *editableBlockElement,
-        insertedPaddingBRElement ? EditorDOMPoint(insertedPaddingBRElement)
-                                 : pointToInsert,
-        aEditingHost);
+        *editableBlockElement, insertedPaddingBRElement
+                                   ? EditorDOMPoint(insertedPaddingBRElement)
+                                   : pointToInsert);
     if (MOZ_UNLIKELY(splitNodeResult.isErr())) {
       NS_WARNING("HTMLEditor::HandleInsertParagraphInParagraph() failed");
       return splitNodeResult.propagateErr();
@@ -488,7 +467,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
       const EditorDOMPoint pointToPutCaret =
           unwrappedSplitNodeResult.UnwrapCaretPoint();
       nsresult rv = CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
-          aHTMLEditor, pointToPutCaret, rightParagraphElement,
+          pointToPutCaret, rightParagraphElement,
           {SuggestCaret::AndIgnoreTrivialError});
       if (NS_FAILED(rv)) {
         NS_WARNING(
@@ -513,7 +492,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
 
   // If nobody handles this edit action, let's insert new <br> at the selection.
   Result<CreateElementResult, nsresult> insertBRElementResult =
-      InsertBRElement(aHTMLEditor, pointToInsert, aEditingHost);
+      InsertBRElement(pointToInsert);
   if (MOZ_UNLIKELY(insertBRElementResult.isErr())) {
     NS_WARNING("AutoInsertParagraphHandler::InsertBRElement() failed");
     return insertBRElementResult.propagateErr();
@@ -523,7 +502,7 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
   EditorDOMPoint pointToPutCaret =
       unwrappedInsertBRElementResult.UnwrapCaretPoint();
   rv = CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
-      aHTMLEditor, pointToPutCaret, blockElementToPutCaret, {});
+      pointToPutCaret, blockElementToPutCaret, {});
   if (NS_FAILED(rv)) {
     NS_WARNING(
         "AutoInsertParagraphHandler::"
@@ -534,10 +513,8 @@ Result<EditActionResult, nsresult> HTMLEditor::AutoInsertParagraphHandler::Run(
 }
 
 bool HTMLEditor::AutoInsertParagraphHandler::ShouldInsertLineBreakInstead(
-    HTMLEditor& aHTMLEditor, const Element* aEditableBlockElement,
-    const EditorDOMPoint& aCandidatePointToSplit,
-    ParagraphSeparator aDefaultParagraphSeparator,
-    const Element& aEditingHost) {
+    const Element* aEditableBlockElement,
+    const EditorDOMPoint& aCandidatePointToSplit) {
   // If there is no block parent in the editing host, i.e., the editing
   // host itself is also a non-block element, we should insert a line
   // break.
@@ -551,16 +528,16 @@ bool HTMLEditor::AutoInsertParagraphHandler::ShouldInsertLineBreakInstead(
   // element cannot contain a <p> element, we should insert a <br>
   // element.
   if (!HTMLEditUtils::IsSplittableNode(*aEditableBlockElement)) {
-    return aDefaultParagraphSeparator == ParagraphSeparator::br ||
+    return mDefaultParagraphSeparator == ParagraphSeparator::br ||
            !HTMLEditUtils::CanElementContainParagraph(*aEditableBlockElement) ||
            (aCandidatePointToSplit.IsInContentNode() &&
-            aHTMLEditor
+            mHTMLEditor
                     .GetPreferredLineBreakType(
                         *aCandidatePointToSplit.ContainerAs<nsIContent>(),
-                        aEditingHost)
+                        mEditingHost)
                     .valueOr(LineBreakType::BRElement) ==
                 LineBreakType::Linefeed &&
-            HTMLEditUtils::IsDisplayOutsideInline(aEditingHost));
+            HTMLEditUtils::IsDisplayOutsideInline(mEditingHost));
   }
 
   // If the nearest block parent is a single-line container declared in
@@ -588,7 +565,6 @@ bool HTMLEditor::AutoInsertParagraphHandler::ShouldInsertLineBreakInstead(
 // static
 nsresult HTMLEditor::AutoInsertParagraphHandler::
     CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
-        HTMLEditor& aHTMLEditor,
         const EditorDOMPoint& aCandidatePointToPutCaret,
         const Element* aBlockElementShouldHaveCaret,
         const SuggestCaretOptions& aOptions) {
@@ -613,7 +589,7 @@ nsresult HTMLEditor::AutoInsertParagraphHandler::
       pointToPutCaret = pointToPutCaretOrError.unwrap();
     }
   }
-  nsresult rv = aHTMLEditor.CollapseSelectionTo(pointToPutCaret);
+  nsresult rv = mHTMLEditor.CollapseSelectionTo(pointToPutCaret);
   if (NS_FAILED(rv) && MOZ_LIKELY(rv != NS_ERROR_EDITOR_DESTROYED) &&
       aOptions.contains(SuggestCaret::AndIgnoreTrivialError)) {
     rv = NS_SUCCESS_EDITOR_BUT_IGNORED_TRIVIAL_ERROR;
@@ -623,12 +599,11 @@ nsresult HTMLEditor::AutoInsertParagraphHandler::
 
 Result<CreateElementResult, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
-    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToBreak,
-    const Element& aEditingHost) {
+    const EditorDOMPoint& aPointToBreak) {
   MOZ_ASSERT(aPointToBreak.IsInContentNode());
 
   const bool editingHostIsEmpty = HTMLEditUtils::IsEmptyNode(
-      aEditingHost, {EmptyCheckOption::TreatNonEditableContentAsInvisible});
+      mEditingHost, {EmptyCheckOption::TreatNonEditableContentAsInvisible});
   const WSRunScanner wsRunScanner(WSRunScanner::Scan::EditableNodes,
                                   aPointToBreak,
                                   BlockInlineCheck::UseComputedDisplayStyle);
@@ -661,9 +636,9 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
 
   // First, insert a <br> element.
   RefPtr<Element> brElement;
-  if (aHTMLEditor.IsPlaintextMailComposer()) {
+  if (mHTMLEditor.IsPlaintextMailComposer()) {
     Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-        aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
+        mHTMLEditor.InsertLineBreak(WithTransaction::Yes,
                                     LineBreakType::BRElement, aPointToBreak);
     if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
       NS_WARNING(
@@ -687,7 +662,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
       // FIXME: Normalize surrounding white-spaces before splitting the
       // insertion point here.
       Result<SplitNodeResult, nsresult> splitLinkNodeResult =
-          aHTMLEditor.SplitNodeDeepWithTransaction(
+          mHTMLEditor.SplitNodeDeepWithTransaction(
               *linkNode, pointToBreak,
               SplitAtEdges::eDoNotCreateEmptyContainer);
       if (MOZ_UNLIKELY(splitLinkNodeResult.isErr())) {
@@ -701,7 +676,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
       //       ComputeEditingHost() which depends on selection.  Therefore,
       //       we cannot skip updating selection here.
       nsresult rv = splitLinkNodeResult.inspect().SuggestCaretPointTo(
-          aHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
+          mHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
                         SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
       if (NS_FAILED(rv)) {
         NS_WARNING("SplitNodeResult::SuggestCaretPointTo() failed");
@@ -712,7 +687,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
     }
     Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
         WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::BRElement,
-                                                    aHTMLEditor, pointToBreak);
+                                                    mHTMLEditor, pointToBreak);
     if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::InsertLineBreak(LineBreakType::"
@@ -734,7 +709,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
   auto afterBRElement = EditorDOMPoint::After(brElement);
 
   const auto InsertAdditionalInvisibleLineBreak =
-      [&aHTMLEditor, &afterBRElement]()
+      [this, &afterBRElement]()
           MOZ_CAN_RUN_SCRIPT -> Result<CreateLineBreakResult, nsresult> {
     // Empty last line is invisible if it's immediately before either parent or
     // another block's boundary so that we need to put invisible <br> element
@@ -742,7 +717,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
     Result<CreateLineBreakResult, nsresult>
         insertPaddingBRElementResultOrError =
             WhiteSpaceVisibilityKeeper::InsertLineBreak(
-                LineBreakType::BRElement, aHTMLEditor, afterBRElement);
+                LineBreakType::BRElement, mHTMLEditor, afterBRElement);
     NS_WARNING_ASSERTION(insertPaddingBRElementResultOrError.isOk(),
                          "WhiteSpaceVisibilityKeeper::InsertLineBreak("
                          "LineBreakType::BRElement) failed");
@@ -798,7 +773,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
         forwardScanFromAfterBRElementResult.BRElementPtr()) {
       MOZ_ASSERT(forwardScanFromAfterBRElementResult.BRElementPtr());
       Result<MoveNodeResult, nsresult> moveBRElementResult =
-          aHTMLEditor.MoveNodeWithTransaction(
+          mHTMLEditor.MoveNodeWithTransaction(
               MOZ_KnownLive(
                   *forwardScanFromAfterBRElementResult.BRElementPtr()),
               afterBRElement);
@@ -807,7 +782,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
         return moveBRElementResult.propagateErr();
       }
       nsresult rv = moveBRElementResult.inspect().SuggestCaretPointTo(
-          aHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
+          mHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
                         SuggestCaret::OnlyIfTransactionsAllowedToDoIt,
                         SuggestCaret::AndIgnoreTrivialError});
       if (NS_FAILED(rv)) {
@@ -858,8 +833,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElement(
 
 Result<CaretPoint, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
-    HTMLEditor& aHTMLEditor, Element& aMailCiteElement,
-    const EditorDOMPoint& aPointToSplit) {
+    Element& aMailCiteElement, const EditorDOMPoint& aPointToSplit) {
   MOZ_ASSERT(aPointToSplit.IsSet());
   NS_ASSERTION(!HTMLEditUtils::IsEmptyNode(
                    aMailCiteElement,
@@ -868,7 +842,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
                "for you?");
 
   auto splitCiteElementResult =
-      SplitMailCiteElement(aHTMLEditor, aPointToSplit, aMailCiteElement);
+      SplitMailCiteElement(aPointToSplit, aMailCiteElement);
   if (MOZ_UNLIKELY(splitCiteElementResult.isErr())) {
     NS_WARNING("Failed to split a mail-cite element");
     return splitCiteElementResult.propagateErr();
@@ -901,7 +875,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
     nsIContent* lastChild = leftCiteElement->GetLastChild();
     if (lastChild && !lastChild->IsHTMLElement(nsGkAtoms::br)) {
       Result<CreateLineBreakResult, nsresult>
-          insertPaddingBRElementResultOrError = aHTMLEditor.InsertLineBreak(
+          insertPaddingBRElementResultOrError = mHTMLEditor.InsertLineBreak(
               WithTransaction::Yes, LineBreakType::BRElement,
               EditorDOMPoint::AtEndOf(*leftCiteElement));
       if (MOZ_UNLIKELY(insertPaddingBRElementResultOrError.isErr())) {
@@ -923,7 +897,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
   // left cite hasn't been created because the split point was start of the
   // cite node, <br> should be inserted before the current cite.
   Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-      aHTMLEditor.InsertLineBreak(
+      mHTMLEditor.InsertLineBreak(
           WithTransaction::Yes, LineBreakType::BRElement,
           unwrappedSplitCiteElementResult.AtSplitPoint<EditorDOMPoint>());
   if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
@@ -946,7 +920,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
   {
     nsresult rvOfInsertPaddingBRElement =
         MaybeInsertPaddingBRElementToInlineMailCiteElement(
-            aHTMLEditor, insertBRElementResult.AtLineBreak<EditorDOMPoint>(),
+            insertBRElementResult.AtLineBreak<EditorDOMPoint>(),
             aMailCiteElement);
     if (NS_FAILED(rvOfInsertPaddingBRElement)) {
       NS_WARNING(
@@ -963,7 +937,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
     // MOZ_KnownLive(leftCiteElement) because it's grabbed by
     // unwrappedSplitCiteElementResult.
     nsresult rv =
-        aHTMLEditor.DeleteNodeWithTransaction(MOZ_KnownLive(*leftCiteElement));
+        mHTMLEditor.DeleteNodeWithTransaction(MOZ_KnownLive(*leftCiteElement));
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
       return Err(rv);
@@ -977,7 +951,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
     // MOZ_KnownLive(rightCiteElement) because it's grabbed by
     // unwrappedSplitCiteElementResult.
     nsresult rv =
-        aHTMLEditor.DeleteNodeWithTransaction(MOZ_KnownLive(*rightCiteElement));
+        mHTMLEditor.DeleteNodeWithTransaction(MOZ_KnownLive(*rightCiteElement));
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
       return Err(rv);
@@ -994,8 +968,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInMailCiteElement(
 
 Result<SplitNodeResult, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::SplitMailCiteElement(
-    HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToSplit,
-    Element& aMailCiteElement) {
+    const EditorDOMPoint& aPointToSplit, Element& aMailCiteElement) {
   EditorDOMPoint pointToSplit(aPointToSplit);
 
   // If our selection is just before a break, nudge it to be just after
@@ -1029,7 +1002,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitMailCiteElement(
 
   Result<EditorDOMPoint, nsresult> pointToSplitOrError =
       WhiteSpaceVisibilityKeeper::NormalizeWhiteSpacesToSplitAt(
-          aHTMLEditor, pointToSplit,
+          mHTMLEditor, pointToSplit,
           {WhiteSpaceVisibilityKeeper::NormalizeOption::
                StopIfPrecedingWhiteSpacesEndsWithNBP,
            WhiteSpaceVisibilityKeeper::NormalizeOption::
@@ -1046,7 +1019,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitMailCiteElement(
   }
 
   Result<SplitNodeResult, nsresult> splitResult =
-      aHTMLEditor.SplitNodeDeepWithTransaction(
+      mHTMLEditor.SplitNodeDeepWithTransaction(
           aMailCiteElement, pointToSplit,
           SplitAtEdges::eDoNotCreateEmptyContainer);
   if (MOZ_UNLIKELY(splitResult.isErr())) {
@@ -1057,7 +1030,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitMailCiteElement(
   }
   // FIXME: We should make the caller handle `Selection`.
   nsresult rv = splitResult.inspect().SuggestCaretPointTo(
-      aHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
+      mHTMLEditor, {SuggestCaret::OnlyIfHasSuggestion,
                     SuggestCaret::OnlyIfTransactionsAllowedToDoIt});
   if (NS_FAILED(rv)) {
     NS_WARNING("SplitNodeResult::SuggestCaretPointTo() failed");
@@ -1068,7 +1041,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitMailCiteElement(
 
 nsresult HTMLEditor::AutoInsertParagraphHandler::
     MaybeInsertPaddingBRElementToInlineMailCiteElement(
-        HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToInsertBRElement,
+        const EditorDOMPoint& aPointToInsertBRElement,
         Element& aMailCiteElement) {
   if (!HTMLEditUtils::IsInlineContent(aMailCiteElement,
                                       BlockInlineCheck::UseHTMLDefaultStyle)) {
@@ -1111,7 +1084,7 @@ nsresult HTMLEditor::AutoInsertParagraphHandler::
     return NS_SUCCESS_DOM_NO_OPERATION;
   }
   Result<CreateLineBreakResult, nsresult> insertAnotherBRElementResultOrError =
-      aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
+      mHTMLEditor.InsertLineBreak(WithTransaction::Yes,
                                   LineBreakType::BRElement,
                                   aPointToInsertBRElement);
   if (MOZ_UNLIKELY(insertAnotherBRElementResultOrError.isErr())) {
@@ -1129,11 +1102,10 @@ nsresult HTMLEditor::AutoInsertParagraphHandler::
 
 Result<InsertParagraphResult, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
-    HTMLEditor& aHTMLEditor, Element& aHeadingElement,
-    const EditorDOMPoint& aPointToSplit) {
+    Element& aHeadingElement, const EditorDOMPoint& aPointToSplit) {
   // FIXME: Stop splitting aHeadingElement if it's not required.
   auto splitHeadingResult =
-      [&aHTMLEditor, &aPointToSplit, &aHeadingElement]()
+      [this, &aPointToSplit, &aHeadingElement]()
           MOZ_CAN_RUN_SCRIPT -> Result<SplitNodeResult, nsresult> {
     // Normalize collapsible white-spaces around the split point to keep
     // them visible after the split.  Note that this does not touch
@@ -1141,7 +1113,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
     // WhiteSpaceVisibilityKeeper::ReplaceTextAndRemoveEmptyTextNodes().
     Result<EditorDOMPoint, nsresult> preparationResult =
         WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
-            aHTMLEditor, aPointToSplit, aHeadingElement);
+            mHTMLEditor, aPointToSplit, aHeadingElement);
     if (MOZ_UNLIKELY(preparationResult.isErr())) {
       NS_WARNING(
           "WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement() "
@@ -1153,7 +1125,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
 
     // Split the header
     Result<SplitNodeResult, nsresult> splitResult =
-        aHTMLEditor.SplitNodeDeepWithTransaction(
+        mHTMLEditor.SplitNodeDeepWithTransaction(
             aHeadingElement, pointToSplit,
             SplitAtEdges::eAllowToCreateEmptyContainer);
     NS_WARNING_ASSERTION(
@@ -1190,7 +1162,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
           {EmptyCheckOption::TreatSingleBRElementAsVisible,
            EmptyCheckOption::TreatNonEditableContentAsInvisible})) {
     Result<CreateElementResult, nsresult> insertPaddingBRElementResult =
-        aHTMLEditor.InsertPaddingBRElementForEmptyLastLineWithTransaction(
+        mHTMLEditor.InsertPaddingBRElementForEmptyLastLineWithTransaction(
             EditorDOMPoint(leftHeadingElement, 0u));
     if (MOZ_UNLIKELY(insertPaddingBRElementResult.isErr())) {
       NS_WARNING(
@@ -1220,7 +1192,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
   //       the heading element.
   // MOZ_KnownLive(rightHeadingElement) because it's grabbed by
   // unwrappedSplitHeadingResult.
-  nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
+  nsresult rv = mHTMLEditor.DeleteNodeWithTransaction(
       MOZ_KnownLive(*rightHeadingElement));
   if (NS_FAILED(rv)) {
     NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
@@ -1262,19 +1234,19 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
   // XXX This makes HTMLEditor instance stateful.  So, we should move this out
   // from AutoInsertParagraphHandler with adding a method which HTMLEditor can
   // consider to do this.
-  aHTMLEditor.TopLevelEditSubActionDataRef().mCachedPendingStyles->Clear();
-  aHTMLEditor.mPendingStylesToApplyToNewContent->ClearAllStyles();
+  mHTMLEditor.TopLevelEditSubActionDataRef().mCachedPendingStyles->Clear();
+  mHTMLEditor.mPendingStylesToApplyToNewContent->ClearAllStyles();
 
   // Create a paragraph if the right heading element is not followed by an
   // editable <br> element.
   nsStaticAtom& newParagraphTagName =
-      &aHTMLEditor.DefaultParagraphSeparatorTagName() == nsGkAtoms::br
+      &mDefaultParagraphSeparatorTagName == nsGkAtoms::br
           ? *nsGkAtoms::p
-          : aHTMLEditor.DefaultParagraphSeparatorTagName();
+          : mDefaultParagraphSeparatorTagName;
   // We want a wrapper element even if we separate with a <br>.
   // MOZ_KnownLive(newParagraphTagName) because it's available until shutdown.
   Result<CreateElementResult, nsresult> createNewParagraphElementResult =
-      aHTMLEditor.CreateAndInsertElement(
+      mHTMLEditor.CreateAndInsertElement(
           WithTransaction::Yes, MOZ_KnownLive(newParagraphTagName),
           EditorDOMPoint::After(*leftHeadingElement),
           HTMLEditor::InsertNewBRElement);
@@ -1297,18 +1269,17 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInHeadingElement(
 
 Result<SplitNodeResult, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
-    HTMLEditor& aHTMLEditor, Element& aParentDivOrP,
-    const EditorDOMPoint& aCandidatePointToSplit, const Element& aEditingHost) {
+    Element& aParentDivOrP, const EditorDOMPoint& aCandidatePointToSplit) {
   MOZ_ASSERT(aCandidatePointToSplit.IsSetAndValid());
 
   // First, get a better split point to avoid to create a new empty link in the
   // right paragraph.
   EditorDOMPoint pointToSplit = GetBetterSplitPointToAvoidToContinueLink(
-      aHTMLEditor, aCandidatePointToSplit, aParentDivOrP);
+      aCandidatePointToSplit, aParentDivOrP);
   MOZ_ASSERT(pointToSplit.IsSetAndValid());
 
   const bool createNewParagraph =
-      aHTMLEditor.GetReturnInParagraphCreatesNewParagraph();
+      mHTMLEditor.GetReturnInParagraphCreatesNewParagraph();
   RefPtr<HTMLBRElement> brElement;
   if (createNewParagraph && pointToSplit.GetContainer() == &aParentDivOrP) {
     // We are try to split only the current paragraph.  Therefore, we don't need
@@ -1342,7 +1313,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
             HTMLEditUtils::CanNodeContain(
                 *pointToInsertBR.ContainerAs<nsIContent>(), *nsGkAtoms::br)) {
           Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-              aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
+              mHTMLEditor.InsertLineBreak(WithTransaction::Yes,
                                           LineBreakType::BRElement,
                                           pointToInsertBR);
           if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
@@ -1384,7 +1355,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
             HTMLEditUtils::CanNodeContain(
                 *pointToInsertBR.ContainerAs<nsIContent>(), *nsGkAtoms::br)) {
           Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-              aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
+              mHTMLEditor.InsertLineBreak(WithTransaction::Yes,
                                           LineBreakType::BRElement,
                                           pointToInsertBR);
           if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
@@ -1428,8 +1399,8 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
       // WhiteSpaceVisibilityKeeper::ReplaceTextAndRemoveEmptyTextNodes().
       Result<EditorDOMPoint, nsresult> pointToSplitOrError =
           WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
-              aHTMLEditor, pointToSplit, aParentDivOrP);
-      if (NS_WARN_IF(aHTMLEditor.Destroyed())) {
+              mHTMLEditor, pointToSplit, aParentDivOrP);
+      if (NS_WARN_IF(mHTMLEditor.Destroyed())) {
         return Err(NS_ERROR_EDITOR_DESTROYED);
       }
       if (MOZ_UNLIKELY(pointToSplitOrError.isErr())) {
@@ -1443,7 +1414,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
         pointToSplit = pointToSplitOrError.unwrap();
       }
       Result<SplitNodeResult, nsresult> splitParentDivOrPResult =
-          aHTMLEditor.SplitNodeWithTransaction(pointToSplit);
+          mHTMLEditor.SplitNodeWithTransaction(pointToSplit);
       if (MOZ_UNLIKELY(splitParentDivOrPResult.isErr())) {
         NS_WARNING("HTMLEditor::SplitNodeWithTransaction() failed");
         return splitParentDivOrPResult;
@@ -1466,10 +1437,10 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
       if (pointToInsertBR.IsInContentNode() &&
           HTMLEditUtils::CanNodeContain(
               *pointToInsertBR.ContainerAs<nsIContent>(), *nsGkAtoms::br)) {
-        AutoTrackDOMPoint trackPointToSplit(aHTMLEditor.RangeUpdaterRef(),
+        AutoTrackDOMPoint trackPointToSplit(mHTMLEditor.RangeUpdaterRef(),
                                             &pointToSplit);
         Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-            aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
+            mHTMLEditor.InsertLineBreak(WithTransaction::Yes,
                                         LineBreakType::BRElement,
                                         pointToInsertBR);
         if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
@@ -1501,13 +1472,13 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
     //     cases than this.
     brElement = HTMLBRElement::FromNodeOrNull(HTMLEditUtils::GetPreviousContent(
         pointToSplit, {WalkTreeOption::IgnoreNonEditableNode},
-        BlockInlineCheck::Unused, &aEditingHost));
+        BlockInlineCheck::Unused, &mEditingHost));
     if (!brElement || HTMLEditUtils::IsInvisibleBRElement(*brElement) ||
         EditorUtils::IsPaddingBRElementForEmptyLastLine(*brElement)) {
       // is there a BR after it?
       brElement = HTMLBRElement::FromNodeOrNull(HTMLEditUtils::GetNextContent(
           pointToSplit, {WalkTreeOption::IgnoreNonEditableNode},
-          BlockInlineCheck::Unused, &aEditingHost));
+          BlockInlineCheck::Unused, &mEditingHost));
       if (!brElement || HTMLEditUtils::IsInvisibleBRElement(*brElement) ||
           EditorUtils::IsPaddingBRElementForEmptyLastLine(*brElement)) {
         // If insertParagraph does not create a new paragraph, default to
@@ -1519,7 +1490,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
             HTMLEditUtils::CanNodeContain(
                 *pointToSplit.ContainerAs<nsIContent>(), *nsGkAtoms::br)) {
           Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-              aHTMLEditor.InsertLineBreak(
+              mHTMLEditor.InsertLineBreak(
                   WithTransaction::Yes, LineBreakType::BRElement, pointToSplit);
           if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
             NS_WARNING(
@@ -1544,8 +1515,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
   }
 
   Result<SplitNodeResult, nsresult> splitParagraphResult =
-      SplitParagraphWithTransaction(aHTMLEditor, aParentDivOrP, pointToSplit,
-                                    brElement, aEditingHost);
+      SplitParagraphWithTransaction(aParentDivOrP, pointToSplit, brElement);
   if (MOZ_UNLIKELY(splitParagraphResult.isErr())) {
     NS_WARNING(
         "AutoInsertParagraphHandler::SplitParagraphWithTransaction() failed");
@@ -1565,7 +1535,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInParagraph(
 // static
 EditorDOMPoint HTMLEditor::AutoInsertParagraphHandler::
     GetBetterSplitPointToAvoidToContinueLink(
-        HTMLEditor& aHTMLEditor, const EditorDOMPoint& aCandidatePointToSplit,
+        const EditorDOMPoint& aCandidatePointToSplit,
         const Element& aElementToSplit) {
   // We shouldn't create new anchor element which has non-empty href unless
   // splitting middle of it because we assume that users don't want to create
@@ -1644,12 +1614,11 @@ EditorDOMPoint HTMLEditor::AutoInsertParagraphHandler::
 
 Result<SplitNodeResult, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
-    HTMLEditor& aHTMLEditor, Element& aParentDivOrP,
-    const EditorDOMPoint& aStartOfRightNode,
-    HTMLBRElement* aMayBecomeVisibleBRElement, const Element& aEditingHost) {
+    Element& aParentDivOrP, const EditorDOMPoint& aStartOfRightNode,
+    HTMLBRElement* aMayBecomeVisibleBRElement) {
   Result<EditorDOMPoint, nsresult> preparationResult =
       WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
-          aHTMLEditor, aStartOfRightNode, aParentDivOrP);
+          mHTMLEditor, aStartOfRightNode, aParentDivOrP);
   if (MOZ_UNLIKELY(preparationResult.isErr())) {
     NS_WARNING(
         "WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement() failed");
@@ -1660,7 +1629,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
 
   // Split the paragraph.
   Result<SplitNodeResult, nsresult> splitDivOrPResult =
-      aHTMLEditor.SplitNodeDeepWithTransaction(
+      mHTMLEditor.SplitNodeDeepWithTransaction(
           aParentDivOrP, pointToSplit,
           SplitAtEdges::eAllowToCreateEmptyContainer);
   if (MOZ_UNLIKELY(splitDivOrPResult.isErr())) {
@@ -1693,7 +1662,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
   if (aMayBecomeVisibleBRElement &&
       HTMLEditUtils::IsVisibleBRElement(*aMayBecomeVisibleBRElement)) {
     nsresult rv =
-        aHTMLEditor.DeleteNodeWithTransaction(*aMayBecomeVisibleBRElement);
+        mHTMLEditor.DeleteNodeWithTransaction(*aMayBecomeVisibleBRElement);
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
       return Err(rv);
@@ -1703,7 +1672,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
   // Remove ID attribute on the paragraph from the right node.
   // MOZ_KnownLive(rightDivOrParagraphElement) because it's grabbed by
   // unwrappedSplitDivOrPResult.
-  nsresult rv = aHTMLEditor.RemoveAttributeWithTransaction(
+  nsresult rv = mHTMLEditor.RemoveAttributeWithTransaction(
       MOZ_KnownLive(*rightDivOrParagraphElement), *nsGkAtoms::id);
   if (NS_FAILED(rv)) {
     NS_WARNING(
@@ -1721,7 +1690,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
   // MOZ_KnownLive(leftDivOrParagraphElement) because it's grabbed by
   // splitDivOrResult.
   rv = InsertBRElementIfEmptyBlockElement(
-      aHTMLEditor, MOZ_KnownLive(*leftDivOrParagraphElement));
+      MOZ_KnownLive(*leftDivOrParagraphElement));
   if (NS_FAILED(rv)) {
     NS_WARNING(
         "InsertBRElementIfEmptyBlockElement(leftDivOrParagraphElement) failed");
@@ -1748,7 +1717,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
           auto pointAtBRElement = lineBreak->To<EditorDOMPoint>();
           {
             AutoEditorDOMPointChildInvalidator lockOffset(pointAtBRElement);
-            nsresult rv = aHTMLEditor.UpdateBRElementType(
+            nsresult rv = mHTMLEditor.UpdateBRElementType(
                 MOZ_KnownLive(lineBreak->BRElementRef()),
                 BRElementType::PaddingForEmptyLastLine);
             if (NS_FAILED(rv)) {
@@ -1763,14 +1732,14 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
         // inline container and then, existing line break (if there is)
         // becomes unnecessary.
         Result<EditorDOMPoint, nsresult> lineBreakPointOrError =
-            aHTMLEditor.DeleteLineBreakWithTransaction(
-                lineBreak.ref(), nsIEditor::eStrip, aEditingHost);
+            mHTMLEditor.DeleteLineBreakWithTransaction(
+                lineBreak.ref(), nsIEditor::eStrip, mEditingHost);
         if (MOZ_UNLIKELY(lineBreakPointOrError.isErr())) {
           NS_WARNING("HTMLEditor::DeleteLineBreakWithTransaction() failed");
           return lineBreakPointOrError.propagateErr();
         }
         Result<CreateElementResult, nsresult> insertPaddingBRElementResult =
-            aHTMLEditor.InsertPaddingBRElementForEmptyLastLineWithTransaction(
+            mHTMLEditor.InsertPaddingBRElementForEmptyLastLineWithTransaction(
                 EditorDOMPoint::AtEndOf(deepestInlineContainerElement));
         if (MOZ_UNLIKELY(insertPaddingBRElementResult.isErr())) {
           NS_WARNING(
@@ -1789,7 +1758,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
     // If there is no inline container elements, we just need to make the
     // right paragraph visible.
     nsresult rv = InsertBRElementIfEmptyBlockElement(
-        aHTMLEditor, MOZ_KnownLive(*rightDivOrParagraphElement));
+        MOZ_KnownLive(*rightDivOrParagraphElement));
     if (NS_FAILED(rv)) {
       NS_WARNING(
           "InsertBRElementIfEmptyBlockElement(rightDivOrParagraphElement) "
@@ -1815,7 +1784,7 @@ HTMLEditor::AutoInsertParagraphHandler::SplitParagraphWithTransaction(
 
 nsresult
 HTMLEditor::AutoInsertParagraphHandler::InsertBRElementIfEmptyBlockElement(
-    HTMLEditor& aHTMLEditor, Element& aMaybeBlockElement) {
+    Element& aMaybeBlockElement) {
   if (!HTMLEditUtils::IsBlockElement(
           aMaybeBlockElement, BlockInlineCheck::UseComputedDisplayStyle)) {
     return NS_OK;
@@ -1832,7 +1801,7 @@ HTMLEditor::AutoInsertParagraphHandler::InsertBRElementIfEmptyBlockElement(
   //      if there are some empty inline container, we should put the <br>
   //      into the last one.
   Result<CreateLineBreakResult, nsresult> insertBRElementResultOrError =
-      aHTMLEditor.InsertLineBreak(WithTransaction::Yes,
+      mHTMLEditor.InsertLineBreak(WithTransaction::Yes,
                                   LineBreakType::BRElement,
                                   EditorDOMPoint(&aMaybeBlockElement, 0u));
   if (MOZ_UNLIKELY(insertBRElementResultOrError.isErr())) {
@@ -1873,12 +1842,11 @@ Element* HTMLEditor::AutoInsertParagraphHandler::
 
 Result<InsertParagraphResult, nsresult>
 HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
-    HTMLEditor& aHTMLEditor, Element& aListItemElement,
-    const EditorDOMPoint& aPointToSplit, const Element& aEditingHost) {
+    Element& aListItemElement, const EditorDOMPoint& aPointToSplit) {
   MOZ_ASSERT(HTMLEditUtils::IsListItem(&aListItemElement));
 
   // If aListItemElement is empty, then we want to outdent its content.
-  if (&aEditingHost != aListItemElement.GetParentElement() &&
+  if (&mEditingHost != aListItemElement.GetParentElement() &&
       HTMLEditUtils::IsEmptyBlockElement(
           aListItemElement,
           {EmptyCheckOption::TreatNonEditableContentAsInvisible},
@@ -1890,7 +1858,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
     if (!HTMLEditUtils::IsLastChild(aListItemElement,
                                     {WalkTreeOption::IgnoreNonEditableNode})) {
       Result<SplitNodeResult, nsresult> splitListItemParentResult =
-          aHTMLEditor.SplitNodeWithTransaction(
+          mHTMLEditor.SplitNodeWithTransaction(
               EditorDOMPoint(&aListItemElement));
       if (MOZ_UNLIKELY(splitListItemParentResult.isErr())) {
         NS_WARNING("HTMLEditor::SplitNodeWithTransaction() failed");
@@ -1921,7 +1889,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
     // the grand parent list element in order to outdent.
     if (HTMLEditUtils::IsAnyListElement(afterLeftListElement.GetContainer())) {
       Result<MoveNodeResult, nsresult> moveListItemElementResult =
-          aHTMLEditor.MoveNodeWithTransaction(aListItemElement,
+          mHTMLEditor.MoveNodeWithTransaction(aListItemElement,
                                               afterLeftListElement);
       if (MOZ_UNLIKELY(moveListItemElementResult.isErr())) {
         NS_WARNING("HTMLEditor::MoveNodeWithTransaction() failed");
@@ -1933,18 +1901,18 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
     }
 
     // Otherwise, replace the empty aListItemElement with a new paragraph.
-    nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(aListItemElement);
+    nsresult rv = mHTMLEditor.DeleteNodeWithTransaction(aListItemElement);
     if (NS_FAILED(rv)) {
       NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
       return Err(rv);
     }
     nsStaticAtom& newParagraphTagName =
-        &aHTMLEditor.DefaultParagraphSeparatorTagName() == nsGkAtoms::br
+        &mDefaultParagraphSeparatorTagName == nsGkAtoms::br
             ? *nsGkAtoms::p
-            : aHTMLEditor.DefaultParagraphSeparatorTagName();
+            : mDefaultParagraphSeparatorTagName;
     // MOZ_KnownLive(newParagraphTagName) because it's available until shutdown.
     Result<CreateElementResult, nsresult> createNewParagraphElementResult =
-        aHTMLEditor.CreateAndInsertElement(
+        mHTMLEditor.CreateAndInsertElement(
             WithTransaction::Yes, MOZ_KnownLive(newParagraphTagName),
             afterLeftListElement, HTMLEditor::InsertNewBRElement);
     if (MOZ_UNLIKELY(createNewParagraphElementResult.isErr())) {
@@ -1966,7 +1934,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
   // First, sort out white-spaces.
   Result<EditorDOMPoint, nsresult> preparationResult =
       WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement(
-          aHTMLEditor, aPointToSplit, aListItemElement);
+          mHTMLEditor, aPointToSplit, aListItemElement);
   if (preparationResult.isErr()) {
     NS_WARNING(
         "WhiteSpaceVisibilityKeeper::PrepareToSplitBlockElement() failed");
@@ -1977,7 +1945,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
 
   // Now split the list item.
   Result<SplitNodeResult, nsresult> splitListItemResult =
-      aHTMLEditor.SplitNodeDeepWithTransaction(
+      mHTMLEditor.SplitNodeDeepWithTransaction(
           aListItemElement, pointToSplit,
           SplitAtEdges::eAllowToCreateEmptyContainer);
   if (MOZ_UNLIKELY(splitListItemResult.isErr())) {
@@ -2016,7 +1984,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
           {EmptyCheckOption::TreatSingleBRElementAsVisible,
            EmptyCheckOption::TreatNonEditableContentAsInvisible})) {
     Result<CreateElementResult, nsresult> insertPaddingBRElementResult =
-        aHTMLEditor.InsertPaddingBRElementForEmptyLastLineWithTransaction(
+        mHTMLEditor.InsertPaddingBRElementForEmptyLastLineWithTransaction(
             EditorDOMPoint(&leftListItemElement, 0u));
     if (MOZ_UNLIKELY(insertPaddingBRElementResult.isErr())) {
       NS_WARNING(
@@ -2044,7 +2012,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
       // MOZ_KnownLive(nextDefinitionListItemTagName) because it's available
       // until shutdown.
       Result<CreateElementResult, nsresult> createNewListItemElementResult =
-          aHTMLEditor.CreateAndInsertElement(
+          mHTMLEditor.CreateAndInsertElement(
               WithTransaction::Yes,
               MOZ_KnownLive(nextDefinitionListItemTagName),
               EditorDOMPoint::After(rightListItemElement));
@@ -2061,7 +2029,7 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
       MOZ_ASSERT(newListItemElement);
       // MOZ_KnownLive(rightListItemElement) because it's grabbed by
       // unwrappedSplitListItemElement.
-      nsresult rv = aHTMLEditor.DeleteNodeWithTransaction(
+      nsresult rv = mHTMLEditor.DeleteNodeWithTransaction(
           MOZ_KnownLive(rightListItemElement));
       if (NS_FAILED(rv)) {
         NS_WARNING("EditorBase::DeleteNodeWithTransaction() failed");
@@ -2080,9 +2048,9 @@ HTMLEditor::AutoInsertParagraphHandler::HandleInListItemElement(
     // MOZ_KnownLive(rightListItemElement) because they are grabbed by
     // unwrappedSplitListItemElement.
     Result<EditorDOMPoint, nsresult> pointToPutCaretOrError =
-        aHTMLEditor.CopyLastEditableChildStylesWithTransaction(
+        mHTMLEditor.CopyLastEditableChildStylesWithTransaction(
             MOZ_KnownLive(leftListItemElement),
-            MOZ_KnownLive(rightListItemElement), aEditingHost);
+            MOZ_KnownLive(rightListItemElement), mEditingHost);
     if (MOZ_UNLIKELY(pointToPutCaretOrError.isErr())) {
       NS_WARNING(
           "HTMLEditor::CopyLastEditableChildStylesWithTransaction() failed");
