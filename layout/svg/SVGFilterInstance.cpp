@@ -107,6 +107,14 @@ bool SVGFilterInstance::ComputeBounds() {
   return true;
 }
 
+float SVGFilterInstance::GetPrimitiveUserSpaceUnitValue(
+    uint8_t aCtxType) const {
+  SVGAnimatedLength val;
+  val.Init(aCtxType, 0xff, 1.0f, SVGLength_Binding::SVG_LENGTHTYPE_NUMBER);
+
+  return UserSpaceToFilterSpace(aCtxType, SVGUtils::UserSpace(mMetrics, &val));
+}
+
 float SVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType,
                                             float aValue) const {
   SVGAnimatedLength val;
@@ -119,17 +127,7 @@ float SVGFilterInstance::GetPrimitiveNumber(uint8_t aCtxType,
     value = SVGUtils::UserSpace(mMetrics, &val);
   }
 
-  switch (aCtxType) {
-    case SVGContentUtils::X:
-      return value * static_cast<float>(mUserSpaceToFilterSpaceScale.xScale);
-    case SVGContentUtils::Y:
-      return value * static_cast<float>(mUserSpaceToFilterSpaceScale.yScale);
-    case SVGContentUtils::XY:
-    default:
-      return value * SVGContentUtils::ComputeNormalizedHypotenuse(
-                         mUserSpaceToFilterSpaceScale.xScale,
-                         mUserSpaceToFilterSpaceScale.yScale);
-  }
+  return UserSpaceToFilterSpace(aCtxType, value);
 }
 
 Point3D SVGFilterInstance::ConvertLocation(const Point3D& aPoint) const {
@@ -148,6 +146,21 @@ Point3D SVGFilterInstance::ConvertLocation(const Point3D& aPoint) const {
       SVGUtils::GetRelativeRect(mPrimitiveUnits, val, mTargetBBox, mMetrics);
   gfxRect r = UserSpaceToFilterSpace(feArea);
   return Point3D(r.x, r.y, GetPrimitiveNumber(SVGContentUtils::XY, aPoint.z));
+}
+
+float SVGFilterInstance::UserSpaceToFilterSpace(uint8_t aCtxType,
+                                                float aValue) const {
+  switch (aCtxType) {
+    case SVGContentUtils::X:
+      return aValue * static_cast<float>(mUserSpaceToFilterSpaceScale.xScale);
+    case SVGContentUtils::Y:
+      return aValue * static_cast<float>(mUserSpaceToFilterSpaceScale.yScale);
+    case SVGContentUtils::XY:
+    default:
+      return aValue * SVGContentUtils::ComputeNormalizedHypotenuse(
+                          mUserSpaceToFilterSpaceScale.xScale,
+                          mUserSpaceToFilterSpaceScale.yScale);
+  }
 }
 
 gfxRect SVGFilterInstance::UserSpaceToFilterSpace(

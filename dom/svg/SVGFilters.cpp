@@ -119,13 +119,20 @@ bool SVGFilterPrimitiveElement::HasValidDimensions() const {
 Size SVGFilterPrimitiveElement::GetKernelUnitLength(
     SVGFilterInstance* aInstance, SVGAnimatedNumberPair* aKernelUnitLength) {
   if (!aKernelUnitLength->IsExplicitlySet()) {
-    return Size(1, 1);
+    return Size(aInstance->GetPrimitiveUserSpaceUnitValue(SVGContentUtils::X),
+                aInstance->GetPrimitiveUserSpaceUnitValue(SVGContentUtils::Y));
   }
 
   float kernelX = aInstance->GetPrimitiveNumber(
       SVGContentUtils::X, aKernelUnitLength, SVGAnimatedNumberPair::eFirst);
+  if (kernelX <= 0.0f) {
+    kernelX = aInstance->GetPrimitiveUserSpaceUnitValue(SVGContentUtils::X);
+  }
   float kernelY = aInstance->GetPrimitiveNumber(
       SVGContentUtils::Y, aKernelUnitLength, SVGAnimatedNumberPair::eSecond);
+  if (kernelY <= 0.0f) {
+    kernelY = aInstance->GetPrimitiveUserSpaceUnitValue(SVGContentUtils::Y);
+  }
   return Size(kernelX, kernelY);
 }
 
@@ -378,12 +385,8 @@ bool SVGFELightingElement::AddLightingAttributes(
   Size kernelUnitLength = GetKernelUnitLength(
       aInstance, &mNumberPairAttributes[KERNEL_UNIT_LENGTH]);
 
-  if (kernelUnitLength.width <= 0 || kernelUnitLength.height <= 0) {
-    // According to spec, A negative or zero value is an error. See link below
-    // for details.
-    // https://www.w3.org/TR/SVG/filters.html#feSpecularLightingKernelUnitLengthAttribute
-    return false;
-  }
+  MOZ_ASSERT(kernelUnitLength.width > 0.0f && kernelUnitLength.height > 0.0f,
+             "Expecting positive kernelUnitLength values");
 
   aAttributes->mLightType =
       ComputeLightAttributes(aInstance, aAttributes->mLightValues);

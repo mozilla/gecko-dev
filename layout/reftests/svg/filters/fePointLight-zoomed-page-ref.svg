@@ -4,7 +4,7 @@
 -->
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
     <defs>
-        <filter id="illuminate-center">
+        <filter id="illuminate-center" x="0" y="0" width="1" height="1">
             <feDiffuseLighting in="SourceGraphic" result="light" lighting-color="white">
                 <fePointLight x="100" y="100" z="100"/>
             </feDiffuseLighting>
