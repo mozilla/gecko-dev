@@ -78,6 +78,13 @@ def eslint_setup(package_root, package_name, should_clobber=False):
     guide you through an interactive wizard helping you configure
     eslint for optimal use on Mozilla projects.
     """
+
+    # Always remove the eslint-plugin-mozilla sub-directory as that can
+    # sometimes conflict with the top level node_modules, see bug 1809036.
+    remove_directory(
+        os.path.join(get_eslint_module_path(), "eslint-plugin-mozilla", "node_modules")
+    )
+
     package_setup(package_root, package_name, should_clobber=should_clobber)
 
 
@@ -122,14 +129,6 @@ def package_setup(
 
         if should_clobber:
             remove_directory(os.path.join(project_root, "node_modules"))
-
-        # Always remove the eslint-plugin-mozilla sub-directory as that can
-        # sometimes conflict with the top level node_modules, see bug 1809036.
-        remove_directory(
-            os.path.join(
-                get_eslint_module_path(), "eslint-plugin-mozilla", "node_modules"
-            )
-        )
 
         npm_path, _ = find_npm_executable()
         if not npm_path:
