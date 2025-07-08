@@ -37,10 +37,6 @@ class WebCompatReporterTelemetryMiddleware :
             WebCompatReporterAction.SendReportClicked -> {
                 Webcompatreporting.send.record(NoExtras())
             }
-
-            WebCompatReporterAction.LearnMoreClicked -> {
-                Webcompatreporting.learnMore.record(NoExtras())
-            }
             else -> {}
         }
     }

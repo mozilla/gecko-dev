@@ -19,7 +19,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -1107,8 +1106,8 @@ class BrowserRobot {
 
     fun verifyWebCompatReporterViewItems(composeTestRule: ComposeTestRule, websiteURL: String) {
         Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the report broken site description is displayed")
-        composeTestRule.onNodeWithContentDescription(
-            getStringResource(R.string.webcompat_reporter_description_2, appName) + " " + getStringResource(R.string.a11y_links_available),
+        composeTestRule.onNodeWithText(
+            "Help make $appName better for everyone. Mozilla employees use the info you send to fix website problems.",
         ).assertIsDisplayed()
         Log.i(TAG, "verifyWebCompatReporterViewItems: Verified that the report broken site description is displayed")
         Log.i(TAG, "verifyWebCompatReporterViewItems: Trying to verify that the \"URL\" header is displayed")

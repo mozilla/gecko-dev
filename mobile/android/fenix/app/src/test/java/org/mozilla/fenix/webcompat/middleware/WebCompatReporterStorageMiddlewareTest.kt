@@ -127,25 +127,6 @@ class WebCompatReporterStorageMiddlewareTest {
     }
 
     @Test
-    fun `WHEN the learn more button is pressed THEN the state is saved`() {
-        val savedState = WebCompatReporterState(
-            enteredUrl = "www.mozilla.org",
-            reason = null,
-            problemDescription = "problem description",
-        )
-        val appStore = AppStore()
-        val webCompatReporterStore = createWebCompatReporterStore(
-            initialState = savedState,
-            appStore = appStore,
-        )
-
-        webCompatReporterStore.dispatch(WebCompatReporterAction.LearnMoreClicked)
-        appStore.waitUntilIdle()
-
-        assertEquals(savedState.toPersistedState(), appStore.state.webCompatState)
-    }
-
-    @Test
     fun `WHEN the cancel button is pressed THEN the state is cleared`() {
         val appStore = createAppStore(
             webCompatState = WebCompatState(

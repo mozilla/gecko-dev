@@ -37,7 +37,6 @@ import androidx.compose.ui.semantics.error
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -54,8 +53,6 @@ import mozilla.components.compose.base.textfield.TextFieldColors
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
-import org.mozilla.fenix.compose.LinkText
-import org.mozilla.fenix.compose.LinkTextState
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.BROKEN_SITE_REPORTER_CHOOSE_REASON_BUTTON
 import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.BROKEN_SITE_REPORTER_SEND_BUTTON
@@ -99,24 +96,13 @@ fun WebCompatReporter(
                 .imePadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            LinkText(
+            Text(
                 text = stringResource(
-                    id = R.string.webcompat_reporter_description_2,
+                    id = R.string.webcompat_reporter_description,
                     stringResource(R.string.app_name),
                 ),
-                linkTextStates = listOf(
-                    LinkTextState(
-                        text = stringResource(R.string.webcompat_reporter_learn_more),
-                        url = "",
-                        onClick = {
-                            store.dispatch(WebCompatReporterAction.LearnMoreClicked)
-                        },
-                    ),
-                ),
-                style = FirefoxTheme.typography.body2.copy(color = FirefoxTheme.colors.textPrimary),
-                linkTextColor = FirefoxTheme.colors.textAccent,
-                linkTextDecoration = TextDecoration.Underline,
-                textAlign = TextAlign.Start,
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.body2,
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -296,7 +282,7 @@ private class WebCompatPreviewParameterProvider : PreviewParameterProvider<WebCo
             // Multi-line description
             WebCompatReporterState(
                 enteredUrl = "www.example.com/url_parameters_that_break_the_page",
-                reason = BrokenSiteReason.Slow,
+                reason = WebCompatReporterState.BrokenSiteReason.Slow,
                 problemDescription = "The site wouldn’t load and after I tried xyz it still wouldn’t " +
                     "load and then again site wouldn’t load and after I tried xyz it still wouldn’t " +
                     "load and then again site wouldn’t load and after I tried xyz it still wouldn’t " +

@@ -60,18 +60,6 @@ class WebCompatReporterTelemetryMiddlewareTest {
         assertEquals("send", snapshot.single().name)
     }
 
-    @Test
-    fun `WHEN learn more button is clicked THEN record learn more button telemetry`() {
-        val store = createStore()
-        assertNull(Webcompatreporting.learnMore.testGetValue())
-
-        store.dispatch(WebCompatReporterAction.LearnMoreClicked)
-
-        val snapshot = Webcompatreporting.learnMore.testGetValue()!!
-        assertEquals(1, snapshot.size)
-        assertEquals("learn_more", snapshot.single().name)
-    }
-
     private fun createStore(
         webCompatReporterState: WebCompatReporterState = WebCompatReporterState(),
     ) = WebCompatReporterStore(

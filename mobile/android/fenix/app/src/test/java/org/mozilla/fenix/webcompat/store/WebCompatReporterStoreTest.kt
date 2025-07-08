@@ -182,14 +182,6 @@ class WebCompatReporterStoreTest {
     }
 
     @Test
-    fun `WHEN the learn more button is clicked THEN the state remains the same`() {
-        val expected = store.state
-
-        store.dispatch(WebCompatReporterAction.LearnMoreClicked)
-        assertEquals(expected, store.state)
-    }
-
-    @Test
     fun `WHEN the cancel button is clicked THEN the state remains the same`() {
         val expected = store.state
 
