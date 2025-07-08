@@ -4358,40 +4358,39 @@ nsresult nsFocusManager::GetNextTabbableContent(
       if (oldTopLevelScopeOwner &&
           IsOpenPopoverWithInvoker(oldTopLevelScopeOwner) &&
           currentTopLevelScopeOwner != oldTopLevelScopeOwner) {
-        if (auto* popover = Element::FromNode(oldTopLevelScopeOwner)) {
-          RefPtr<nsIContent> invokerContent =
-              popover->GetPopoverData()->GetInvoker()->AsContent();
-          RefPtr<nsIContent> rootElement = invokerContent;
-          if (auto* doc = invokerContent->GetComposedDoc()) {
-            rootElement = doc->GetRootElement();
-          }
-          if (aForward) {
-            if (nsIFrame* frame = invokerContent->GetPrimaryFrame()) {
-              int32_t tabIndex = frame->IsFocusable().mTabIndex;
-              if (tabIndex >= 0 &&
-                  (aIgnoreTabIndex || aCurrentTabIndex == tabIndex)) {
-                nsresult rv = GetNextTabbableContent(
-                    aPresShell, rootElement, nullptr, invokerContent, true,
-                    tabIndex, false, false, aNavigateByKey, true,
-                    aReachedToEndForDocumentNavigation, aResultContent);
-                if (NS_SUCCEEDED(rv) && *aResultContent) {
-                  return rv;
-                }
+        auto* popover = oldTopLevelScopeOwner->AsElement();
+        RefPtr<Element> invoker = popover->GetPopoverData()->GetInvoker();
+        MOZ_ASSERT(invoker, "IsOpenPopoverWithInvoker guarantees this");
+        RefPtr<Element> rootElement = invoker;
+        if (auto* doc = invoker->GetComposedDoc()) {
+          rootElement = doc->GetRootElement();
+        }
+        if (aForward) {
+          if (nsIFrame* frame = invoker->GetPrimaryFrame()) {
+            int32_t tabIndex = frame->IsFocusable().mTabIndex;
+            if (tabIndex >= 0 &&
+                (aIgnoreTabIndex || aCurrentTabIndex == tabIndex)) {
+              nsresult rv = GetNextTabbableContent(
+                  aPresShell, rootElement, nullptr, invoker, true, tabIndex,
+                  false, false, aNavigateByKey, true,
+                  aReachedToEndForDocumentNavigation, aResultContent);
+              if (NS_SUCCEEDED(rv) && *aResultContent) {
+                return rv;
               }
             }
-          } else if (invokerContent) {
-            nsIFrame* frame = invokerContent->GetPrimaryFrame();
-            if (frame && frame->IsFocusable()) {
-              invokerContent.forget(aResultContent);
-              return NS_OK;
-            }
-            nsresult rv = GetNextTabbableContent(
-                aPresShell, rootElement, aOriginalStartContent, invokerContent,
-                false, 0, true, false, aNavigateByKey, true,
-                aReachedToEndForDocumentNavigation, aResultContent);
-            if (NS_SUCCEEDED(rv) && *aResultContent) {
-              return rv;
-            }
+          }
+        } else if (invoker) {
+          nsIFrame* frame = invoker->GetPrimaryFrame();
+          if (frame && frame->IsFocusable()) {
+            invoker.forget(aResultContent);
+            return NS_OK;
+          }
+          nsresult rv = GetNextTabbableContent(
+              aPresShell, rootElement, aOriginalStartContent, invoker, false, 0,
+              true, false, aNavigateByKey, true,
+              aReachedToEndForDocumentNavigation, aResultContent);
+          if (NS_SUCCEEDED(rv) && *aResultContent) {
+            return rv;
           }
         }
       }
