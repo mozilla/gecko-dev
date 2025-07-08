@@ -1089,6 +1089,200 @@ class BundledSearchEnginesStorageTest {
         )
     }
 
+    @Test
+    fun `Verify search engines for aura-001 distributions in US`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "US",
+            localeLang = "en",
+            localeCountry = "US",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-b-1-ar", "bing", "ddg", "ebay", "wikipedia"),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Austria`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "AT",
+            localeLang = "de",
+            localeCountry = "AT",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf(
+                "google-b-ar",
+                "bing",
+                "ddg",
+                "ecosia",
+                "qwant",
+                "wikipedia-de",
+                "ebay-at",
+            ),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Spain`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "ES",
+            localeLang = "es",
+            localeCountry = "ES",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-b-ar", "bing", "ddg", "wikipedia-es", "ebay-es"),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Italy`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "IT",
+            localeLang = "it",
+            localeCountry = "IT",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-b-ar", "bing", "ddg", "wikipedia-it", "ebay-it"),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Germany`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "DE",
+            localeLang = "de",
+            localeCountry = "DE",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf(
+                "google-b-ar",
+                "bing",
+                "ddg",
+                "ecosia",
+                "qwant",
+                "wikipedia-de",
+                "ebay-de",
+            ),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in France`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "FR",
+            localeLang = "fr",
+            localeCountry = "FR",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf(
+                "google-b-ar",
+                "bing",
+                "ddg",
+                "qwant",
+                "wikipedia-fr",
+                "ebay-fr",
+            ),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Mexico`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "MX",
+            localeLang = "es",
+            localeCountry = "MX",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf(
+                "google-b-ar",
+                "bing",
+                "ddg",
+                "mercadolibre-mx",
+                "wikipedia-es",
+            ),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Colombia`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "CO",
+            localeLang = "es",
+            localeCountry = "CO",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-b-ar", "bing", "ddg", "wikipedia"),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in an unknown country and language`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "MEEP",
+            localeLang = "beepbeep",
+            localeCountry = "MEEP",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-b-ar", "bing", "ddg", "wikipedia"),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in Russia in russian`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "RU",
+            localeLang = "ru",
+            localeCountry = "RU",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-com-nocodes", "ddg", "wikipedia-ru"),
+            searchEngines,
+        )
+    }
+
+    @Test
+    fun `Verify search engines for aura-001 distributions in USA in russian`() = runTest {
+        val searchEngines = loadSearchEngines(
+            region = "US",
+            localeLang = "ru",
+            localeCountry = "US",
+            distribution = "aura-001",
+        )
+
+        assertEquals(
+            listOf("google-b-1-ar", "ddg", "wikipedia-ru"),
+            searchEngines,
+        )
+    }
+
     private suspend fun loadSearchEngines(
         region: String,
         localeLang: String,

@@ -6,11 +6,13 @@
     "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia"],
     "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia"],
     "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia"],
-    "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia"]
+    "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia"],
+    "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia"]
   },
   "regionOverrides": {
     "US": {
-      "google-b-m": "google-b-1-m"
+      "google-b-m": "google-b-1-m",
+      "google-b-ar": "google-b-1-ar"
     }
   },
   "locales": {
@@ -20,7 +22,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia"]
       }
     },
     "an": {
@@ -47,7 +50,8 @@
           "wikipedia-an"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-es", "wikipedia-an"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-an"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-an"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-es", "wikipedia-an"]
       }
     },
     "ar": {
@@ -56,7 +60,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ar"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ar"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ar"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ar"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ar"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ar"]
       }
     },
     "as": {
@@ -65,7 +70,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-as"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-as"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-as"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-as"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-as"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-as"]
       }
     },
     "ast": {
@@ -92,7 +98,8 @@
           "wikipedia-ast"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-es", "wikipedia-ast"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-ast"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-ast"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-es", "wikipedia-ast"]
       }
     },
     "az": {
@@ -119,7 +126,8 @@
           "wikipedia-az"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "azerdict", "wikipedia-az"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "azerdict", "wikipedia-az"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "azerdict", "wikipedia-az"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "azerdict", "wikipedia-az"]
       }
     },
     "be": {
@@ -128,7 +136,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-be"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-be"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-be"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-be"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-be"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-be"]
       },
       "BY": {
         "visibleDefaultEngines": [
@@ -140,7 +149,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-be"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-be"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
       },
       "KZ": {
         "visibleDefaultEngines": [
@@ -152,7 +162,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-be"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-be"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
       },
       "RU": {
         "visibleDefaultEngines": [
@@ -164,7 +175,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-be"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-be"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
       },
       "TR": {
         "visibleDefaultEngines": [
@@ -176,7 +188,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-be"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-be"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-be"]
       }
     },
     "bg": {
@@ -203,7 +216,8 @@
           "wikipedia-bg"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "pazaruvaj", "wikipedia-bg"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "pazaruvaj", "wikipedia-bg"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "pazaruvaj", "wikipedia-bg"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "pazaruvaj", "wikipedia-bg"]
       }
     },
     "bn": {
@@ -212,7 +226,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-bn"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-bn"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-bn"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bn"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bn"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-bn"]
       }
     },
     "bn-BD": {
@@ -221,7 +236,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-bn"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-bn"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-bn"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bn"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bn"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-bn"]
       }
     },
     "bn-IN": {
@@ -230,7 +246,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-bn"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-bn"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-bn"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bn"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bn"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-bn"]
       }
     },
     "br": {
@@ -239,7 +256,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-br"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-br"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-br"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-br"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-br"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-br"]
       }
     },
     "bs": {
@@ -248,7 +266,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-bs"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-bs"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-bs"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bs"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-bs"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-bs"]
       }
     },
     "ca": {
@@ -275,7 +294,8 @@
           "wikipedia-ca"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-es", "wikipedia-ca"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-ca"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-ca"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-es", "wikipedia-ca"]
       }
     },
     "cak": {
@@ -284,7 +304,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-es"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-es"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-es"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-es"]
       }
     },
     "cs": {
@@ -328,6 +349,14 @@
           "mapy-cz",
           "seznam-cz",
           "wikipedia-cz"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "mapy-cz",
+          "seznam-cz",
+          "wikipedia-cz"
         ]
       }
     },
@@ -361,7 +390,8 @@
           "ebay-co-uk",
           "wikipedia-cy"
         ],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-co-uk", "wikipedia-cy"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-co-uk", "wikipedia-cy"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-co-uk", "wikipedia-cy"]
       }
     },
     "da": {
@@ -370,7 +400,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-da"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-da"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-da"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-da"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-da"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-da"]
       }
     },
     "de": {
@@ -413,6 +444,15 @@
         ],
         "dt-003": [
           "google-b-dt",
+          "bing",
+          "ddg",
+          "ecosia",
+          "qwant",
+          "wikipedia-de",
+          "ebay-de"
+        ],
+        "aura-001": [
+          "google-b-ar",
           "bing",
           "ddg",
           "ecosia",
@@ -468,6 +508,15 @@
           "qwant",
           "wikipedia-de",
           "ebay-at"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "ecosia",
+          "qwant",
+          "wikipedia-de",
+          "ebay-at"
         ]
       }
     },
@@ -495,7 +544,8 @@
           "ebay-de"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-dsb", "ebay-de"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-dsb", "ebay-de"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-dsb", "ebay-de"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-dsb", "ebay-de"]
       }
     },
     "el": {
@@ -504,7 +554,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-el"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-el"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-el"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-el"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-el"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-el"]
       }
     },
     "en-AU": {
@@ -525,7 +576,8 @@
           "ebay-au"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia", "ebay-au"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia", "ebay-au"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia", "ebay-au"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia", "ebay-au"]
       }
     },
     "en-CA": {
@@ -546,7 +598,8 @@
           "ebay-ca"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia", "ebay-ca"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia", "ebay-ca"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia", "ebay-ca"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia", "ebay-ca"]
       }
     },
     "en-IE": {
@@ -585,6 +638,14 @@
         ],
         "dt-003": [
           "google-b-dt",
+          "bing",
+          "ddg",
+          "qwant",
+          "wikipedia",
+          "ebay-ie"
+        ],
+        "aura-001": [
+          "google-b-ar",
           "bing",
           "ddg",
           "qwant",
@@ -634,6 +695,14 @@
           "qwant",
           "wikipedia",
           "ebay-co-uk"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "qwant",
+          "wikipedia",
+          "ebay-co-uk"
         ]
       },
       "BY": {
@@ -659,7 +728,8 @@
           "wikipedia"
         ],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
       },
       "KZ": {
         "visibleDefaultEngines": [
@@ -684,7 +754,8 @@
           "wikipedia"
         ],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
       },
       "RU": {
         "visibleDefaultEngines": [
@@ -709,7 +780,8 @@
           "wikipedia"
         ],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
       },
       "TR": {
         "visibleDefaultEngines": [
@@ -734,7 +806,8 @@
           "wikipedia"
         ],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "qwant", "wikipedia"]
       }
     },
     "en-US": {
@@ -749,7 +822,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "ebay", "wikipedia"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "ebay", "wikipedia"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay", "wikipedia"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay", "wikipedia"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay", "wikipedia"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay", "wikipedia"]
       },
       "BY": {
         "visibleDefaultEngines": [
@@ -761,7 +835,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
       },
       "KZ": {
         "visibleDefaultEngines": [
@@ -773,7 +848,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
       },
       "RU": {
         "visibleDefaultEngines": [
@@ -785,7 +861,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
       },
       "TR": {
         "visibleDefaultEngines": [
@@ -797,7 +874,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia"]
       }
     },
     "en-ZA": {
@@ -806,7 +884,8 @@
         "vivo-001": ["google-b-vv", "ddg", "wikipedia"],
         "dt-001": ["google-b-tf", "ddg", "wikipedia"],
         "dt-002": ["google-b-1-dt", "ddg", "wikipedia"],
-        "dt-003": ["google-b-dt", "ddg", "wikipedia"]
+        "dt-003": ["google-b-dt", "ddg", "wikipedia"],
+        "aura-001": ["google-b-ar", "ddg", "wikipedia"]
       }
     },
     "eo": {
@@ -815,7 +894,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-eo"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-eo"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-eo"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-eo"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-eo"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-eo"]
       }
     },
     "es-AR": {
@@ -829,7 +909,8 @@
         "vivo-001": ["google-b-vv", "ddg", "mercadolibre-ar", "wikipedia-es"],
         "dt-001": ["google-b-tf", "ddg", "mercadolibre-ar", "wikipedia-es"],
         "dt-002": ["google-b-1-dt", "ddg", "mercadolibre-ar", "wikipedia-es"],
-        "dt-003": ["google-b-dt", "ddg", "mercadolibre-ar", "wikipedia-es"]
+        "dt-003": ["google-b-dt", "ddg", "mercadolibre-ar", "wikipedia-es"],
+        "aura-001": ["google-b-ar", "ddg", "mercadolibre-ar", "wikipedia-es"]
       }
     },
     "es-CL": {
@@ -868,6 +949,13 @@
           "ddg",
           "mercadolibre-cl",
           "wikipedia-es"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "mercadolibre-cl",
+          "wikipedia-es"
         ]
       }
     },
@@ -895,7 +983,8 @@
           "ebay-es"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-es", "ebay-es"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es", "ebay-es"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es", "ebay-es"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-es", "ebay-es"]
       }
     },
     "es-MX": {
@@ -934,6 +1023,13 @@
           "ddg",
           "mercadolibre-mx",
           "wikipedia-es"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "mercadolibre-mx",
+          "wikipedia-es"
         ]
       }
     },
@@ -943,7 +1039,8 @@
         "vivo-001": ["google-b-vv", "ddg", "wikipedia-et"],
         "dt-001": ["google-b-tf", "ddg", "wikipedia-et"],
         "dt-002": ["google-b-1-dt", "ddg", "wikipedia-et"],
-        "dt-003": ["google-b-dt", "ddg", "wikipedia-et"]
+        "dt-003": ["google-b-dt", "ddg", "wikipedia-et"],
+        "aura-001": ["google-b-ar", "ddg", "wikipedia-et"]
       }
     },
     "eu": {
@@ -970,7 +1067,8 @@
           "wikipedia-eu"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-es", "wikipedia-eu"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-eu"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-eu"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-es", "wikipedia-eu"]
       }
     },
     "fa": {
@@ -979,7 +1077,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-fa"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-fa"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-fa"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fa"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fa"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-fa"]
       }
     },
     "ff": {
@@ -988,7 +1087,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-fr"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-fr"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-fr"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fr"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fr"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-fr"]
       }
     },
     "fi": {
@@ -997,7 +1097,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-fi"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-fi"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-fi"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fi"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fi"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-fi"]
       }
     },
     "fr-BE": {
@@ -1041,6 +1142,14 @@
           "qwant",
           "wikipedia-fr",
           "ebay-befr"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "qwant",
+          "wikipedia-fr",
+          "ebay-befr"
         ]
       }
     },
@@ -1068,7 +1177,8 @@
           "ebay-ca"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-fr", "ebay-ca"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fr", "ebay-ca"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-fr", "ebay-ca"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-fr", "ebay-ca"]
       }
     },
     "fr-FR": {
@@ -1107,6 +1217,14 @@
         ],
         "dt-003": [
           "google-b-dt",
+          "bing",
+          "ddg",
+          "qwant",
+          "wikipedia-fr",
+          "ebay-fr"
+        ],
+        "aura-001": [
+          "google-b-ar",
           "bing",
           "ddg",
           "qwant",
@@ -1156,6 +1274,14 @@
           "ebay-fr",
           "qwant",
           "wikipedia-fr"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "ebay-fr",
+          "qwant",
+          "wikipedia-fr"
         ]
       }
     },
@@ -1189,7 +1315,8 @@
           "ebay-nl",
           "wikipedia-fy-NL"
         ],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-nl", "wikipedia-fy-NL"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-nl", "wikipedia-fy-NL"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-nl", "wikipedia-fy-NL"]
       }
     },
     "ga-IE": {
@@ -1203,7 +1330,8 @@
         "vivo-001": ["google-b-vv", "ddg", "ebay-ie", "wikipedia-ga-IE"],
         "dt-001": ["google-b-tf", "ddg", "ebay-ie", "wikipedia-ga-IE"],
         "dt-002": ["google-b-1-dt", "ddg", "ebay-ie", "wikipedia-ga-IE"],
-        "dt-003": ["google-b-dt", "ddg", "ebay-ie", "wikipedia-ga-IE"]
+        "dt-003": ["google-b-dt", "ddg", "ebay-ie", "wikipedia-ga-IE"],
+        "aura-001": ["google-b-ar", "ddg", "ebay-ie", "wikipedia-ga-IE"]
       }
     },
     "gd": {
@@ -1247,6 +1375,14 @@
           "ebay-co-uk",
           "faclair-beag",
           "wikipedia-gd"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "ebay-co-uk",
+          "faclair-beag",
+          "wikipedia-gd"
         ]
       }
     },
@@ -1274,7 +1410,8 @@
           "wikipedia-gl"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-es", "wikipedia-gl"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-gl"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-es", "wikipedia-gl"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-es", "wikipedia-gl"]
       }
     },
     "gn": {
@@ -1283,7 +1420,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-gn"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-gn"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-gn"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-gn"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-gn"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-gn"]
       }
     },
     "gu-IN": {
@@ -1292,7 +1430,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-gu"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-gu"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-gu"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-gu"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-gu"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-gu"]
       }
     },
     "he": {
@@ -1301,7 +1440,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-he"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-he"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-he"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-he"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-he"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-he"]
       }
     },
     "hi-IN": {
@@ -1310,7 +1450,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-hi"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-hi"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-hi"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hi"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hi"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-hi"]
       }
     },
     "hr": {
@@ -1319,7 +1460,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-hr"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-hr"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-hr"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hr"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hr"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-hr"]
       }
     },
     "hsb": {
@@ -1346,7 +1488,8 @@
           "ebay-de"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-hsb", "ebay-de"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hsb", "ebay-de"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hsb", "ebay-de"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-hsb", "ebay-de"]
       }
     },
     "hu": {
@@ -1360,7 +1503,8 @@
         "vivo-001": ["google-b-vv", "ddg", "vatera", "wikipedia-hu"],
         "dt-001": ["google-b-tf", "ddg", "vatera", "wikipedia-hu"],
         "dt-002": ["google-b-1-dt", "ddg", "vatera", "wikipedia-hu"],
-        "dt-003": ["google-b-dt", "ddg", "vatera", "wikipedia-hu"]
+        "dt-003": ["google-b-dt", "ddg", "vatera", "wikipedia-hu"],
+        "aura-001": ["google-b-ar", "ddg", "vatera", "wikipedia-hu"]
       }
     },
     "hy-AM": {
@@ -1374,7 +1518,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-hy-AM"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-hy-AM"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-hy-AM"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hy-AM"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hy-AM"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-hy-AM"]
       }
     },
     "ia": {
@@ -1383,7 +1528,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ia"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ia"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ia"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ia"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ia"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ia"]
       }
     },
     "id": {
@@ -1392,7 +1538,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-id"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-id"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-id"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-id"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-id"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-id"]
       }
     },
     "is": {
@@ -1401,7 +1548,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-is"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-is"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-is"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-is"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-is"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-is"]
       }
     },
     "it": {
@@ -1428,7 +1576,8 @@
           "ebay-it"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-it", "ebay-it"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-it", "ebay-it"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-it", "ebay-it"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-it", "ebay-it"]
       }
     },
     "ja": {
@@ -1482,6 +1631,16 @@
           "wikipedia-ja",
           "yahoo-jp",
           "yahoo-jp-auctions"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "amazon-jp",
+          "bing",
+          "ddg",
+          "rakuten",
+          "wikipedia-ja",
+          "yahoo-jp",
+          "yahoo-jp-auctions"
         ]
       }
     },
@@ -1491,7 +1650,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ka"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ka"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ka"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ka"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ka"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ka"]
       }
     },
     "kab": {
@@ -1500,7 +1660,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-kab"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-kab"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-kab"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-kab"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-kab"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-kab"]
       }
     },
     "kk": {
@@ -1509,7 +1670,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-kk"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-kk"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-kk"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-kk"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-kk"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-kk"]
       },
       "KZ": {
         "visibleDefaultEngines": [
@@ -1521,7 +1683,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-kk"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-kk"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
       },
       "BY": {
         "visibleDefaultEngines": [
@@ -1533,7 +1696,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-kk"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-kk"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
       },
       "RU": {
         "visibleDefaultEngines": [
@@ -1545,7 +1709,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-kk"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-kk"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
       },
       "TR": {
         "visibleDefaultEngines": [
@@ -1557,7 +1722,8 @@
         "vivo-001": ["google-com-nocodes", "bing-vivo", "ddg", "wikipedia-kk"],
         "dt-001": ["google-com-nocodes", "bing-dt-tele", "ddg", "wikipedia-kk"],
         "dt-002": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
-        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
+        "dt-003": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"],
+        "aura-001": ["google-com-nocodes", "bing", "ddg", "wikipedia-kk"]
       }
     },
     "km": {
@@ -1566,7 +1732,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-km"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-km"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-km"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-km"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-km"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-km"]
       }
     },
     "kn": {
@@ -1605,6 +1772,13 @@
           "ddg",
           "wikipedia-kn",
           "wiktionary-kn"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "wikipedia-kn",
+          "wiktionary-kn"
         ]
       }
     },
@@ -1614,7 +1788,8 @@
         "vivo-001": ["google-b-vv", "ddg", "daum-kr"],
         "dt-001": ["google-b-tf", "ddg", "daum-kr"],
         "dt-002": ["google-b-1-dt", "ddg", "daum-kr"],
-        "dt-003": ["google-b-dt", "ddg", "daum-kr"]
+        "dt-003": ["google-b-dt", "ddg", "daum-kr"],
+        "aura-001": ["google-b-ar", "ddg", "daum-kr"]
       }
     },
     "lij": {
@@ -1641,7 +1816,8 @@
           "ebay-it"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-lij", "ebay-it"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-lij", "ebay-it"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-lij", "ebay-it"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-lij", "ebay-it"]
       }
     },
     "lo": {
@@ -1650,7 +1826,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-lo"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-lo"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-lo"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-lo"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-lo"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-lo"]
       }
     },
     "lt": {
@@ -1659,7 +1836,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-lt"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-lt"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-lt"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-lt"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-lt"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-lt"]
       }
     },
     "ltg": {
@@ -1668,7 +1846,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "wikipedia-ltg"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "wikipedia-ltg"],
         "dt-002": ["google-b-1-dt", "bing", "wikipedia-ltg"],
-        "dt-003": ["google-b-dt", "bing", "wikipedia-ltg"]
+        "dt-003": ["google-b-dt", "bing", "wikipedia-ltg"],
+        "aura-001": ["google-b-ar", "bing", "wikipedia-ltg"]
       }
     },
     "lv": {
@@ -1682,7 +1861,8 @@
         "vivo-001": ["google-b-vv", "ddg", "salidzinilv", "wikipedia-lv"],
         "dt-001": ["google-b-tf", "ddg", "salidzinilv", "wikipedia-lv"],
         "dt-002": ["google-b-1-dt", "ddg", "salidzinilv", "wikipedia-lv"],
-        "dt-003": ["google-b-dt", "ddg", "salidzinilv", "wikipedia-lv"]
+        "dt-003": ["google-b-dt", "ddg", "salidzinilv", "wikipedia-lv"],
+        "aura-001": ["google-b-ar", "ddg", "salidzinilv", "wikipedia-lv"]
       }
     },
     "mai": {
@@ -1691,7 +1871,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-hi"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-hi"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-hi"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hi"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-hi"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-hi"]
       }
     },
     "meh": {
@@ -1700,7 +1881,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-es"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-es"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-es"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-es"]
       }
     },
     "mix": {
@@ -1709,7 +1891,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-es"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-es"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-es"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-es"]
       }
     },
     "ml": {
@@ -1718,7 +1901,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ml"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ml"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ml"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ml"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ml"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ml"]
       }
     },
     "mr": {
@@ -1727,7 +1911,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-mr"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-mr"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-mr"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-mr"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-mr"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-mr"]
       }
     },
     "ms": {
@@ -1736,7 +1921,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ms"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ms"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ms"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ms"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ms"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ms"]
       }
     },
     "my": {
@@ -1745,7 +1931,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-my"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-my"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-my"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-my"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-my"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-my"]
       }
     },
     "nb-NO": {
@@ -1784,6 +1971,13 @@
           "ddg",
           "gulesider-mobile-NO",
           "wikipedia-NO"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "gulesider-mobile-NO",
+          "wikipedia-NO"
         ]
       }
     },
@@ -1793,7 +1987,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ne"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ne"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ne"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ne"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ne"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ne"]
       }
     },
     "nl-NL": {
@@ -1820,7 +2015,8 @@
           "ebay-nl"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-nl", "ebay-nl"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-nl", "ebay-nl"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-nl", "ebay-nl"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-nl", "ebay-nl"]
       }
     },
     "nl": {
@@ -1847,7 +2043,8 @@
           "wikipedia-nl"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-nl", "wikipedia-nl"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-nl", "wikipedia-nl"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-nl", "wikipedia-nl"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-nl", "wikipedia-nl"]
       }
     },
     "nn-NO": {
@@ -1882,6 +2079,13 @@
         ],
         "dt-003": [
           "google-b-dt",
+          "bing",
+          "ddg",
+          "gulesider-mobile-NO",
+          "wikipedia-NN"
+        ],
+        "aura-001": [
+          "google-b-ar",
           "bing",
           "ddg",
           "gulesider-mobile-NO",
@@ -1925,6 +2129,13 @@
           "ddg",
           "wikipedia-oc",
           "wiktionary-oc"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "wikipedia-oc",
+          "wiktionary-oc"
         ]
       }
     },
@@ -1964,6 +2175,13 @@
           "ddg",
           "wikipedia-or",
           "wiktionary-or"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "wikipedia-or",
+          "wiktionary-or"
         ]
       }
     },
@@ -1973,7 +2191,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-pa"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-pa"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-pa"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-pa"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-pa"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-pa"]
       }
     },
     "pl": {
@@ -2000,7 +2219,8 @@
           "ebay-pl"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-pl", "ebay-pl"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-pl", "ebay-pl"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-pl", "ebay-pl"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-pl", "ebay-pl"]
       }
     },
     "pt-BR": {
@@ -2009,7 +2229,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-pt"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-pt"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-pt"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-pt"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-pt"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-pt"]
       }
     },
     "pt-PT": {
@@ -2018,7 +2239,8 @@
         "vivo-001": ["google-b-vv", "ddg", "wikipedia-pt"],
         "dt-001": ["google-b-tf", "ddg", "wikipedia-pt"],
         "dt-002": ["google-b-1-dt", "ddg", "wikipedia-pt"],
-        "dt-003": ["google-b-dt", "ddg", "wikipedia-pt"]
+        "dt-003": ["google-b-dt", "ddg", "wikipedia-pt"],
+        "aura-001": ["google-b-ar", "ddg", "wikipedia-pt"]
       }
     },
     "rm": {
@@ -2062,6 +2284,14 @@
           "ebay-ch",
           "leo_ende_de",
           "wikipedia-rm"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "ebay-ch",
+          "leo_ende_de",
+          "wikipedia-rm"
         ]
       }
     },
@@ -2071,7 +2301,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ro"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ro"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ro"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ro"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ro"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ro"]
       }
     },
     "ru": {
@@ -2080,35 +2311,40 @@
         "vivo-001": ["google-b-vv", "ddg", "wikipedia-ru"],
         "dt-001": ["google-b-tf", "ddg", "wikipedia-ru"],
         "dt-002": ["google-b-1-dt", "ddg", "wikipedia-ru"],
-        "dt-003": ["google-b-dt", "ddg", "wikipedia-ru"]
+        "dt-003": ["google-b-dt", "ddg", "wikipedia-ru"],
+        "aura-001": ["google-b-ar", "ddg", "wikipedia-ru"]
       },
       "RU": {
         "visibleDefaultEngines": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "vivo-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-002": ["google-com-nocodes", "ddg", "wikipedia-ru"],
-        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"]
+        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"],
+        "aura-001": ["google-com-nocodes", "ddg", "wikipedia-ru"]
       },
       "BY": {
         "visibleDefaultEngines": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "vivo-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-002": ["google-com-nocodes", "ddg", "wikipedia-ru"],
-        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"]
+        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"],
+        "aura-001": ["google-com-nocodes", "ddg", "wikipedia-ru"]
       },
       "KZ": {
         "visibleDefaultEngines": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "vivo-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-002": ["google-com-nocodes", "ddg", "wikipedia-ru"],
-        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"]
+        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"],
+        "aura-001": ["google-com-nocodes", "ddg", "wikipedia-ru"]
       },
       "TR": {
         "visibleDefaultEngines": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "vivo-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-001": ["google-com-nocodes", "ddg", "wikipedia-ru"],
         "dt-002": ["google-com-nocodes", "ddg", "wikipedia-ru"],
-        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"]
+        "dt-003": ["google-com-nocodes", "ddg", "wikipedia-ru"],
+        "aura-001": ["google-com-nocodes", "ddg", "wikipedia-ru"]
       }
     },
     "sk": {
@@ -2117,7 +2353,8 @@
         "vivo-001": ["google-b-vv", "ddg", "wikipedia-sk"],
         "dt-001": ["google-b-tf", "ddg", "wikipedia-sk"],
         "dt-002": ["google-b-1-dt", "ddg", "wikipedia-sk"],
-        "dt-003": ["google-b-dt", "ddg", "wikipedia-sk"]
+        "dt-003": ["google-b-dt", "ddg", "wikipedia-sk"],
+        "aura-001": ["google-b-ar", "ddg", "wikipedia-sk"]
       }
     },
     "sl": {
@@ -2144,7 +2381,14 @@
           "odpiralni",
           "wikipedia-sl"
         ],
-        "dt-003": ["google-b-dt", "ddg", "ceneje", "odpiralni", "wikipedia-sl"]
+        "dt-003": ["google-b-dt", "ddg", "ceneje", "odpiralni", "wikipedia-sl"],
+        "aura-001": [
+          "google-b-ar",
+          "ddg",
+          "ceneje",
+          "odpiralni",
+          "wikipedia-sl"
+        ]
       }
     },
     "son": {
@@ -2153,7 +2397,8 @@
         "vivo-001": ["google-b-vv", "ddg", "bing-vivo", "wikipedia-fr"],
         "dt-001": ["google-b-tf", "ddg", "bing-dt-tele", "wikipedia-fr"],
         "dt-002": ["google-b-1-dt", "ddg", "bing", "wikipedia-fr"],
-        "dt-003": ["google-b-dt", "ddg", "bing", "wikipedia-fr"]
+        "dt-003": ["google-b-dt", "ddg", "bing", "wikipedia-fr"],
+        "aura-001": ["google-b-ar", "ddg", "bing", "wikipedia-fr"]
       }
     },
     "sq": {
@@ -2162,7 +2407,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-sq"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-sq"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-sq"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-sq"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-sq"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-sq"]
       }
     },
     "sr": {
@@ -2171,7 +2417,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-sr"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-sr"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-sr"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-sr"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-sr"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-sr"]
       }
     },
     "sv-SE": {
@@ -2210,6 +2457,14 @@
         ],
         "dt-003": [
           "google-b-dt",
+          "bing",
+          "prisjakt-sv-SE",
+          "ddg",
+          "wikipedia-sv-SE",
+          "ebay-ch"
+        ],
+        "aura-001": [
+          "google-b-ar",
           "bing",
           "prisjakt-sv-SE",
           "ddg",
@@ -2254,6 +2509,13 @@
           "ddg",
           "wikipedia-ta",
           "wiktionary-ta"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "wikipedia-ta",
+          "wiktionary-ta"
         ]
       }
     },
@@ -2293,6 +2555,13 @@
           "ddg",
           "wikipedia-te",
           "wiktionary-te"
+        ],
+        "aura-001": [
+          "google-b-ar",
+          "bing",
+          "ddg",
+          "wikipedia-te",
+          "wiktionary-te"
         ]
       }
     },
@@ -2302,7 +2571,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-th"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-th"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-th"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-th"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-th"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-th"]
       }
     },
     "tl": {
@@ -2311,7 +2581,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg"],
         "dt-002": ["google-b-1-dt", "bing", "ddg"],
-        "dt-003": ["google-b-dt", "bing", "ddg"]
+        "dt-003": ["google-b-dt", "bing", "ddg"],
+        "aura-001": ["google-b-ar", "bing", "ddg"]
       }
     },
     "tr": {
@@ -2320,7 +2591,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-tr"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-tr"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-tr"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-tr"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-tr"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-tr"]
       },
       "TR": {
         "visibleDefaultEngines": [
@@ -2332,7 +2604,8 @@
         "vivo-001": ["google-com-nocodes", "ddg", "bing-vivo", "wikipedia-tr"],
         "dt-001": ["google-com-nocodes", "ddg", "bing-dt-tele", "wikipedia-tr"],
         "dt-002": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
-        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
+        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
+        "aura-001": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
       },
       "BY": {
         "visibleDefaultEngines": [
@@ -2344,7 +2617,8 @@
         "vivo-001": ["google-com-nocodes", "ddg", "bing-vivo", "wikipedia-tr"],
         "dt-001": ["google-com-nocodes", "ddg", "bing-dt-tele", "wikipedia-tr"],
         "dt-002": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
-        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
+        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
+        "aura-001": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
       },
       "KZ": {
         "visibleDefaultEngines": [
@@ -2356,7 +2630,8 @@
         "vivo-001": ["google-com-nocodes", "ddg", "bing-vivo", "wikipedia-tr"],
         "dt-001": ["google-com-nocodes", "ddg", "bing-dt-tele", "wikipedia-tr"],
         "dt-002": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
-        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
+        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
+        "aura-001": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
       },
       "RU": {
         "visibleDefaultEngines": [
@@ -2368,7 +2643,8 @@
         "vivo-001": ["google-com-nocodes", "ddg", "bing-vivo", "wikipedia-tr"],
         "dt-001": ["google-com-nocodes", "ddg", "bing-dt-tele", "wikipedia-tr"],
         "dt-002": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
-        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
+        "dt-003": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"],
+        "aura-001": ["google-com-nocodes", "ddg", "bing", "wikipedia-tr"]
       }
     },
     "trs": {
@@ -2377,7 +2653,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-es"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-es"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-es"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-es"]
       }
     },
     "uk": {
@@ -2386,7 +2663,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-uk"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-uk"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-uk"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-uk"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-uk"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-uk"]
       }
     },
     "ur": {
@@ -2395,7 +2673,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-ur"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-ur"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-ur"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ur"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-ur"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-ur"]
       }
     },
     "uz": {
@@ -2404,7 +2683,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-uz"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-uz"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-uz"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-uz"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-uz"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-uz"]
       }
     },
     "vi": {
@@ -2418,7 +2698,8 @@
         "vivo-001": ["google-b-vv", "coccoc", "ddg", "wikipedia-vi"],
         "dt-001": ["google-b-tf", "coccoc", "ddg", "wikipedia-vi"],
         "dt-002": ["google-b-1-dt", "coccoc", "ddg", "wikipedia-vi"],
-        "dt-003": ["google-b-dt", "coccoc", "ddg", "wikipedia-vi"]
+        "dt-003": ["google-b-dt", "coccoc", "ddg", "wikipedia-vi"],
+        "aura-001": ["google-b-ar", "coccoc", "ddg", "wikipedia-vi"]
       }
     },
     "wo": {
@@ -2445,7 +2726,8 @@
           "wikipedia-wo"
         ],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "ebay-fr", "wikipedia-wo"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-fr", "wikipedia-wo"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "ebay-fr", "wikipedia-wo"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "ebay-fr", "wikipedia-wo"]
       }
     },
     "xh": {
@@ -2454,7 +2736,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia"]
       }
     },
     "zam": {
@@ -2463,7 +2746,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-es"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-es"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-es"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-es"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-es"]
       }
     },
     "zh-CN": {
@@ -2490,7 +2774,8 @@
           "wikipedia-zh-CN"
         ],
         "dt-002": ["google-b-1-dt", "baidu", "bing", "ddg", "wikipedia-zh-CN"],
-        "dt-003": ["google-b-dt", "baidu", "bing", "ddg", "wikipedia-zh-CN"]
+        "dt-003": ["google-b-dt", "baidu", "bing", "ddg", "wikipedia-zh-CN"],
+        "aura-001": ["google-b-ar", "baidu", "bing", "ddg", "wikipedia-zh-CN"]
       },
       "CN": {
         "searchDefault": "百度"
@@ -2507,7 +2792,8 @@
         "vivo-001": ["google-b-vv", "bing-vivo", "ddg", "wikipedia-zh-TW"],
         "dt-001": ["google-b-tf", "bing-dt-tele", "ddg", "wikipedia-zh-TW"],
         "dt-002": ["google-b-1-dt", "bing", "ddg", "wikipedia-zh-TW"],
-        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-zh-TW"]
+        "dt-003": ["google-b-dt", "bing", "ddg", "wikipedia-zh-TW"],
+        "aura-001": ["google-b-ar", "bing", "ddg", "wikipedia-zh-TW"]
       }
     }
   }
