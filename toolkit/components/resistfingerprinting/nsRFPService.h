@@ -524,7 +524,7 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   static FingerprintingProtectionType GetFingerprintingProtectionType(
       bool aIsPrivateMode);
 
-  static Maybe<bool> HandleExeptionalRFPTargets(
+  static Maybe<bool> HandleExceptionalRFPTargets(
       RFPTarget aTarget, bool aIsPrivateMode,
       FingerprintingProtectionType aMode);
 

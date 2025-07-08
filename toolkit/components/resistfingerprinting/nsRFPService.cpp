@@ -289,7 +289,7 @@ nsRFPService::GetFingerprintingProtectionType(bool aIsPrivateMode) {
   return FingerprintingProtectionType::None;
 }
 
-Maybe<bool> nsRFPService::HandleExeptionalRFPTargets(
+Maybe<bool> nsRFPService::HandleExceptionalRFPTargets(
     RFPTarget aTarget, bool aIsPrivateMode,
     FingerprintingProtectionType aMode) {
   MOZ_ASSERT(GetFingerprintingProtectionType(aIsPrivateMode) !=
@@ -347,7 +347,7 @@ bool nsRFPService::IsRFPEnabledFor(
   }
 
   if (Maybe<bool> result =
-          HandleExeptionalRFPTargets(aTarget, aIsPrivateMode, mode)) {
+          HandleExceptionalRFPTargets(aTarget, aIsPrivateMode, mode)) {
     return *result;
   }
 
