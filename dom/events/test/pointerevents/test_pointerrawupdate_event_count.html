@@ -38,9 +38,9 @@ SimpleTest.waitForFocus(async () => {
   function stringifyPointerEvent(event) {
     return `{ screenX: ${event.screenX}, screenY: ${
       event.screenY
-    }, clientX: ${event.clientX}, clientY:${event.clientY}, buttons:${
-      event.buttons
-    } }`;
+    }, clientX: ${event.clientX}, clientY:${event.clientY}, button:${
+      event.button
+    }, buttons:${event.buttons} }`;
   }
 
   const allEvents = [];
@@ -83,6 +83,9 @@ SimpleTest.waitForFocus(async () => {
 
   for (const event of allEvents) {
     info(`${event.type}: ${stringifyPointerEvent(event)}`);
+  }
+  for (const event of coalescedPointerMoveEvents) {
+    info(`Coalesced ${event.type}: ${stringifyPointerEvent(event)}`);
   }
 
   ok(!!pointerRawUpdateEvents.length, "At least one pointerrawupdate event should be fired");

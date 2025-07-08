@@ -7619,6 +7619,15 @@ nsresult PresShell::EnsurePrecedingPointerRawUpdate(
     WidgetMouseEvent mouseRawUpdateEvent(*mouseEvent);
     mouseRawUpdateEvent.mMessage = eMouseRawUpdate;
     mouseRawUpdateEvent.mCoalescedWidgetEvents = nullptr;
+    // PointerEvent.button of `pointerrawupdate` should always be -1 if the
+    // source event is not eMouseDown nor eMouseUp.  PointerEventHandler cannot
+    // distinguish whether eMouseRawUpdate is caused by eMouseDown/eMouseUp or
+    // not.  Therefore, we need to set the proper value in the latter case here
+    // (In the former case, the copy constructor did it already).
+    if (mouseEvent->mMessage != eMouseDown &&
+        mouseEvent->mMessage != eMouseUp) {
+      mouseRawUpdateEvent.mButton = MouseButton::eNotPressed;
+    }
     nsEventStatus rawUpdateStatus = nsEventStatus_eIgnore;
     EventHandler eventHandler(*this);
     return eventHandler.HandleEvent(aWeakFrameForPresShell,

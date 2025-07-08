@@ -1604,6 +1604,11 @@ void BrowserChild::HandleMouseRawUpdateEvent(
   }
   WidgetMouseEvent mouseRawUpdateEvent(aPendingMouseEvent);
   mouseRawUpdateEvent.mMessage = eMouseRawUpdate;
+  // PointerEvent.button should always be -1 if the source event is eMouseMove.
+  // PointerEventHandler cannot distinguish whether it's caused by
+  // eMouseDown/eMouseUp or eMouseMove.  Therefore, we need to set -1
+  // (eNotPressed) here.
+  mouseRawUpdateEvent.mButton = MouseButton::eNotPressed;
   mouseRawUpdateEvent.mCoalescedWidgetEvents = nullptr;
   mouseRawUpdateEvent.convertToPointer = true;
   // Nobody checks `convertToPointerRawUpdate` of eMouseRawUpdate event.

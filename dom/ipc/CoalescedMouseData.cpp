@@ -50,6 +50,7 @@ void CoalescedMouseData::Coalesce(const WidgetMouseEvent& aEvent,
             aEvent);
 
     event->mMessage = ePointerMove;
+    event->mButton = MouseButton::eNotPressed;
     event->mPressure = aEvent.ComputeMouseButtonPressure();
     event->mFlags.mBubbles = false;
     event->mFlags.mCancelable = false;
