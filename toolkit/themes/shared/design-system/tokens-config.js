@@ -19,6 +19,7 @@ const TOKEN_SECTIONS = {
   "Focus Outline": "focus-outline",
   "Font Size": "font-size",
   "Font Weight": "font-weight",
+  Heading: "heading",
   Icon: "icon",
   "Input - Text": "input-text",
   "Input - Space": "input-space",

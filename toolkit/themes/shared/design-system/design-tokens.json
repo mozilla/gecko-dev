@@ -1079,6 +1079,24 @@
       }
     }
   },
+  "heading": {
+    "font": {
+      "size": {
+        "xlarge": {
+          "value": "{font.size.xxlarge}"
+        },
+        "large": {
+          "value": "{font.size.xlarge}"
+        },
+        "medium": {
+          "value": "{font.size.large}"
+        }
+      },
+      "weight": {
+        "value": "{font.weight.bold}"
+      }
+    }
+  },
   "icon": {
     "color": {
       "@base": {

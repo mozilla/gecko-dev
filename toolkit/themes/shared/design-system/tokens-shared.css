@@ -237,6 +237,12 @@
     --font-weight: normal;
     --font-weight-bold: 600;
 
+    /** Heading **/
+    --heading-font-size-medium: var(--font-size-large);
+    --heading-font-size-large: var(--font-size-xlarge);
+    --heading-font-size-xlarge: var(--font-size-xxlarge);
+    --heading-font-weight: var(--font-weight-bold);
+
     /** Icon **/
     --icon-color: light-dark(var(--color-gray-70), var(--color-gray-05));
     --icon-color-critical: light-dark(var(--color-red-60), var(--color-red-20));

@@ -6,6 +6,13 @@
 
 /* Global rules */
 :root {
+  /**
+   * Headings are currently 1 level higher than they should be. Eventually
+   * "Settings" will become our h1 and everything will drop down a level so our
+   * h1s become h2s, h2s become h3s, etc.
+   */
+  --heading-font-size-xlarge: var(--font-size-xlarge);
+  --heading-font-size-large: var(--font-size-large);
   user-select: text;
 }
 
@@ -69,12 +76,10 @@ groupbox[data-category] {
 }
 
 html|h1 {
-  font-size: var(--font-size-xlarge);
   margin: 0 0 var(--space-small);
 }
 
 html|h2 {
-  font-size: var(--font-size-large);
   margin: var(--space-small) 0 var(--space-xxsmall) 0;
 }
 

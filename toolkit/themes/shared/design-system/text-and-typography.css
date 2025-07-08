@@ -9,20 +9,20 @@
 
 h1,
 .heading-xlarge {
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xxlarge);
+  font-weight: var(--heading-font-weight);
+  font-size: var(--heading-font-size-xlarge);
 }
 
 h2,
 .heading-large {
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-xlarge);
+  font-weight: var(--heading-font-weight);
+  font-size: var(--heading-font-size-large);
 }
 
 h3,
 .heading-medium {
-  font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-large);
+  font-weight: var(--heading-font-weight);
+  font-size: var(--heading-font-size-medium);
 }
 
 /* Text helpers */
