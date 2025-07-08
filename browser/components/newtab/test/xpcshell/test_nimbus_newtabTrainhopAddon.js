@@ -311,12 +311,18 @@ add_task(async function test_builtin_version_upgrades() {
   await AddonTestUtils.promiseRestartManager();
   AboutNewTab.init();
   assertNewTabResourceMapping();
-
-  const addon = await asyncAssertNewTabAddon({
-    locationName: PROFILE_LOCATION_NAME,
-    version: updateAddonVersion,
+  await AboutNewTabResourceMapping.updateTrainhopAddonState();
+  // Expect the newtab xpi to have been uninstalled and the updated
+  // builtin add-on to be the newtab add-on version becoming active.
+  await asyncAssertNewTabAddon({
+    locationName: BUILTIN_LOCATION_NAME,
+    version: fakeUpdatedBuiltinVersion,
   });
-  await addon.uninstall();
+  Assert.deepEqual(
+    await AddonManager.getAllInstalls(),
+    [],
+    "Expect no pending install to be found"
+  );
 
   // Cleanup
   mockAboutNewTabUninit();

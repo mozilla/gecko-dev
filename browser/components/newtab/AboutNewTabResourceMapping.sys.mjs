@@ -315,20 +315,36 @@ export var AboutNewTabResourceMapping = {
       defaultValues: { addon_version: null, xpi_download_path: null },
     });
 
+    let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
+
     // Uninstall train-hop add-on xpi if its resources are not currently
     // being used and the client has been unenrolled from the newtabTrainhopAddon
     // Nimbus feature.
-    if (!this._addonIsXPI) {
+    if (!this._addonIsXPI && addon) {
+      let changed = false;
       if (addon_version === null && xpi_download_path === null) {
-        this.logger.info(
-          "uninstalling train-hop add-on version on Nimbus feature unenrolled"
-        );
-        await this.uninstallAddon();
+        changed ||= await this.uninstallAddon({
+          uninstallReason:
+            "uninstalling train-hop add-on version on Nimbus feature unenrolled",
+        });
         return;
       }
-    }
 
-    let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
+      if (
+        this._builtinVersion &&
+        Services.vc.compare(this._builtinVersion, addon.version) >= 0
+      ) {
+        changed ||= await this.uninstallAddon({
+          uninstallReason:
+            "uninstalling train-hop add-on version on builtin add-on with equal or higher version",
+        });
+      }
+
+      // Retrieve the new add-on wrapper if the xpi version has been uninstalled.
+      if (changed) {
+        addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
+      }
+    }
 
     // Record Nimbus feature newtabTrainhopAddon exposure event if NewTab
     // is currently using the resources from the train-hop add-on version.
@@ -389,6 +405,16 @@ export var AboutNewTabResourceMapping = {
    *   on failures or unexpected cancellations hit during the installation process.
    */
   async _installTrainhopAddon({ trainhopAddonVersion, xpiDownloadURL }) {
+    if (
+      this._builtinVersion &&
+      Services.vc.compare(this._builtinVersion, trainhopAddonVersion) >= 0
+    ) {
+      this.logger.warn(
+        `cancel xpi download on train-hop add-on version ${trainhopAddonVersion} on equal or higher builtin version ${this._builtinVersion}`
+      );
+      return;
+    }
+
     let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
     if (
       addon?.version &&
@@ -484,18 +510,28 @@ export var AboutNewTabResourceMapping = {
   },
 
   /**
-   * An external utility that should only be called in the event that we have
-   * changed the configuration of the browser to use newtab as a built-in
-   * component. This method will call into the AddonManager to uninstall the
-   * remnants of the newtab add-on, if they exist.
+   * Uninstalls the newtab add-on, if it exists and has the PERM_CAN_UNINSTALL permission,
+   * optionally logs a reason for the add-on being uninstalled.
    *
-   * @returns {Promise<undefined>}
-   *   Resolves once the add-on is uninstalled, if it was found.
+   * @param {object} params
+   * @param {string} [params.uninstallReason]
+   *   Reason for uninstalling the add-on to log along with uninstalling
+   *   the add-on.
+   *
+   * @returns {Promise<boolean>}
+   *   Resolves once the add-on is uninstalled, if it was found and had the
+   *   PERM_CAN_UNINSTALL permission, with a boolean set to true if the
+   *   add-on was found and uninstalled.
    */
-  async uninstallAddon() {
+  async uninstallAddon({ uninstallReason } = {}) {
     let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
-    if (addon) {
+    if (addon && addon.permissions & lazy.AddonManager.PERM_CAN_UNINSTALL) {
+      if (uninstallReason) {
+        this.logger.info(uninstallReason);
+      }
       await addon.uninstall();
+      return true;
     }
+    return false;
   },
 };
