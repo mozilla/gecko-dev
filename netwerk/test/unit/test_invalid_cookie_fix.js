@@ -48,15 +48,16 @@ add_task(async function test_invalid_cookie_fix() {
   // Remove the cookie file in order to create another database file.
   do_get_cookie_file(profile).remove(false);
 
-  // Create a schema 15 database.
-  let schema15db = new CookieDatabaseConnection(
+  // Create a schema 16 database.
+  let schema16db = new CookieDatabaseConnection(
     do_get_cookie_file(profile),
-    15
+    16
   );
 
   let now = Date.now();
+  let future = now + 60 * 60 * 24 * 1000 * 1000;
 
-  schema15db.insertCookie(
+  schema16db.insertCookie(
     new Cookie(
       "test1",
       "Some data",
@@ -75,7 +76,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
-  schema15db.insertCookie(
+  schema16db.insertCookie(
     new Cookie(
       "test2",
       "Some data",
@@ -94,7 +95,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
-  schema15db.insertCookie(
+  schema16db.insertCookie(
     new Cookie(
       "test3",
       "Some data",
@@ -113,7 +114,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
-  schema15db.insertCookie(
+  schema16db.insertCookie(
     new Cookie(
       "test4",
       "Some data",
@@ -132,7 +133,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
-  schema15db.insertCookie(
+  schema16db.insertCookie(
     new Cookie(
       "test5",
       "Some data",
@@ -151,8 +152,27 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
-  schema15db.close();
-  schema15db = null;
+  schema16db.insertCookie(
+    new Cookie(
+      "test6",
+      "Some data",
+      "foo.com",
+      "/",
+      future,
+      now,
+      now,
+      false,
+      false,
+      false,
+      false,
+      {},
+      Ci.nsICookie.SAMESITE_UNSET,
+      Ci.nsICookie.SCHEME_UNSET
+    )
+  );
+
+  schema16db.close();
+  schema16db = null;
 
   // Check if we have the right entries
   {
@@ -160,7 +180,7 @@ add_task(async function test_invalid_cookie_fix() {
       do_get_cookie_file(profile)
     );
     const stmt = dbConnection.createStatement(
-      "SELECT name, sameSite, isSecure, creationTime FROM moz_cookies"
+      "SELECT name, sameSite, isSecure, creationTime, expiry FROM moz_cookies ORDER BY name"
     );
 
     const results = [];
@@ -170,6 +190,7 @@ add_task(async function test_invalid_cookie_fix() {
         sameSite: stmt.getInt32(1),
         isSecure: stmt.getInt32(2),
         creationTime: stmt.getInt64(3),
+        expiry: stmt.getInt64(4),
       });
     }
 
@@ -177,32 +198,44 @@ add_task(async function test_invalid_cookie_fix() {
       {
         name: "test1",
         sameSite: Ci.nsICookie.SAMESITE_NONE,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test2",
         sameSite: Ci.nsICookie.SAMESITE_LAX,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test3",
         sameSite: Ci.nsICookie.SAMESITE_STRICT,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test4",
         sameSite: Ci.nsICookie.SAMESITE_UNSET,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test5",
         sameSite: Ci.nsICookie.SAMESITE_NONE,
-        isSecure: true,
+        isSecure: 1,
         creationTime: now,
+        expiry: now,
+      },
+      {
+        name: "test6",
+        sameSite: Ci.nsICookie.SAMESITE_UNSET,
+        isSecure: 0,
+        creationTime: now,
+        expiry: future,
       },
     ]);
 
@@ -218,7 +251,7 @@ add_task(async function test_invalid_cookie_fix() {
   await promise;
 
   // Assert inserted cookies are in the db and correctly handled by services.
-  Assert.equal(Services.cookies.countCookiesFromHost("foo.com"), 5);
+  Assert.equal(Services.cookies.countCookiesFromHost("foo.com"), 6);
 
   // Close the profile.
   await promise_close_profile();
@@ -229,7 +262,7 @@ add_task(async function test_invalid_cookie_fix() {
       do_get_cookie_file(profile)
     );
     const stmt = dbConnection.createStatement(
-      "SELECT name, sameSite, isSecure, creationTime FROM moz_cookies"
+      "SELECT name, sameSite, isSecure, creationTime, expiry FROM moz_cookies ORDER BY name"
     );
 
     const results = [];
@@ -239,41 +272,58 @@ add_task(async function test_invalid_cookie_fix() {
         sameSite: stmt.getInt32(1),
         isSecure: stmt.getInt32(2),
         creationTime: stmt.getInt64(3),
+        expiry: stmt.getInt64(4),
       });
     }
 
     Assert.deepEqual(results, [
       {
+        name: "test1",
+        sameSite: Ci.nsICookie.SAMESITE_UNSET,
+        isSecure: 0,
+        creationTime: now,
+        expiry: now,
+      },
+      {
         name: "test2",
         sameSite: Ci.nsICookie.SAMESITE_LAX,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test3",
         sameSite: Ci.nsICookie.SAMESITE_STRICT,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test4",
         sameSite: Ci.nsICookie.SAMESITE_UNSET,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: now,
       },
       {
         name: "test5",
         sameSite: Ci.nsICookie.SAMESITE_NONE,
-        isSecure: true,
+        isSecure: 1,
         creationTime: now,
+        expiry: now,
       },
       {
-        name: "test1",
+        name: "test6",
         sameSite: Ci.nsICookie.SAMESITE_UNSET,
-        isSecure: false,
+        isSecure: 0,
         creationTime: now,
+        expiry: results.find(a => a.name === "test6").expiry,
       },
     ]);
+
+    for (const r of results) {
+      Assert.less(r.expiry, future);
+    }
 
     stmt.finalize();
     dbConnection.close();

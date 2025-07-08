@@ -2422,6 +2422,22 @@ void CookiePersistentStorage::RecordValidationTelemetry() {
           break;
         }
 
+        case nsICookieValidation::eRejectedAttributeExpiryOversize: {
+          RefPtr<Cookie> newCookie =
+              Cookie::Create(cookie->ToIPC(), entry.mOriginAttributes);
+          MOZ_ASSERT(newCookie);
+
+          int64_t currentTimeInMSec = PR_Now() / PR_USEC_PER_MSEC;
+
+          newCookie->SetExpiry(CookieCommons::MaybeCapExpiry(currentTimeInMSec,
+                                                             cookie->Expiry()));
+          newCookie->SetCreationTime(cookie->CreationTime());
+
+          list.AppendElement(CookieToAdd{entry.mBaseDomain,
+                                         entry.mOriginAttributes, newCookie});
+          break;
+        }
+
         default:
           // Nothing to do here.
           break;
