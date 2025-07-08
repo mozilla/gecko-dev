@@ -70,6 +70,7 @@ import org.mozilla.fenix.utils.Settings
  * @param settings [Settings] object to get the toolbar position and other settings.
  * @param customTabSession [CustomTabSessionState] if the toolbar is shown in a custom tab.
  * @param tabStripContent Composable content for the tab strip.
+ * @param navigationBarContent Composable content for the navigation bar.
  */
 @Suppress("LongParameterList")
 class BrowserToolbarComposable(
@@ -88,6 +89,7 @@ class BrowserToolbarComposable(
     private val settings: Settings,
     private val customTabSession: CustomTabSessionState? = null,
     private val tabStripContent: @Composable () -> Unit,
+    private val navigationBarContent: (@Composable () -> Unit)?,
 ) : FenixBrowserToolbarView(
     context = activity,
     settings = settings,
@@ -140,7 +142,16 @@ class BrowserToolbarComposable(
                         BrowserToolbar(showDivider, progressBarValue, settings.shouldUseBottomToolbar)
                     }
 
-                    false -> BrowserToolbar(showDivider, progressBarValue, settings.shouldUseBottomToolbar)
+                    false -> Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight(),
+                    ) {
+                        BrowserToolbar(showDivider, progressBarValue, settings.shouldUseBottomToolbar)
+                        if (settings.toolbarPosition == BOTTOM) {
+                            navigationBarContent?.invoke()
+                        }
+                    }
                 }
             }
         }
@@ -159,7 +170,7 @@ class BrowserToolbarComposable(
 
     init {
         container.addView(layout)
-        setToolbarBehavior()
+        setToolbarBehavior(settings.toolbarPosition)
         updateDividerVisibility(true)
     }
 
@@ -212,6 +223,7 @@ class BrowserToolbarComposable(
                         clipboard = activity.components.clipboardHandler,
                         publicSuffixList = components.publicSuffixList,
                         settings = settings,
+                        bookmarksStorage = activity.components.core.bookmarksStorage,
                     )
 
                     else -> CustomTabBrowserToolbarMiddleware(

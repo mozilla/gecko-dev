@@ -108,7 +108,7 @@ class BrowserToolbarView(
                 resources.getDimension(R.dimen.browser_fragment_toolbar_elevation)
 
             toolbar.apply {
-                setToolbarBehavior()
+                setToolbarBehavior(settings.toolbarPosition)
                 setDisplayToolbarColors()
 
                 if (!isCustomTabSession) {

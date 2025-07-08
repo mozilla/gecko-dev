@@ -69,6 +69,7 @@ import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Top
 import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
 import mozilla.components.concept.engine.permission.SitePermissionsStorage
+import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
@@ -123,6 +124,8 @@ import org.mozilla.fenix.components.appstate.OrientationMode.Landscape
 import org.mozilla.fenix.components.appstate.OrientationMode.Portrait
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.ToolbarAction
+import org.mozilla.fenix.components.toolbar.DisplayActions.AddBookmarkClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.EditBookmarkClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackLongClicked
@@ -181,6 +184,7 @@ class BrowserToolbarMiddlewareTest {
     }
     private val settings: Settings = mockk(relaxed = true) {
         every { shouldUseBottomToolbar } returns true
+        every { shouldUseSimpleToolbar } returns true
     }
     private val tabId = "test"
     private val tab: TabSessionState = mockk(relaxed = true) {
@@ -190,6 +194,7 @@ class BrowserToolbarMiddlewareTest {
     private val cookieBannersStorage: CookieBannersStorage = mockk()
     private val trackingProtectionUseCases: TrackingProtectionUseCases = mockk()
     private val publicSuffixList = PublicSuffixList(testContext)
+    private val bookmarksStorage: BookmarksStorage = mockk(relaxed = true)
 
     @Test
     fun `WHEN initializing the toolbar THEN update state to display mode`() = runTestOnMain {
@@ -1936,6 +1941,47 @@ class BrowserToolbarMiddlewareTest {
         assertNotNull(action.onLongClick)
     }
 
+    @Test
+    fun `GIVEN in expanded mode WHEN THEN no browser end actions`() = runTestOnMain {
+        every { settings.shouldUseSimpleToolbar } returns false
+        Dispatchers.setMain(StandardTestDispatcher())
+        val middleware = buildMiddleware(browserStore = browserStore)
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        testScheduler.advanceUntilIdle()
+        var toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
+        assertEquals(0, toolbarBrowserActions.size)
+    }
+
+    @Test
+    fun `WHEN building EditBookmark action THEN returns Bookmark ActionButton with correct icon`() {
+        val middleware = buildMiddleware()
+        buildStore(middleware)
+
+        val result = middleware.buildAction(
+            toolbarAction = ToolbarAction.EditBookmark,
+        ) as ActionButtonRes
+
+        assertEquals(R.drawable.mozac_ic_bookmark_fill_24, result.drawableResId)
+        assertEquals(R.string.browser_menu_edit_bookmark, result.contentDescription)
+        assertEquals(EditBookmarkClicked, result.onClick)
+    }
+
+    @Test
+    fun `WHEN building Bookmark action THEN returns Bookmark ActionButton with correct icon`() {
+        val middleware = buildMiddleware()
+        buildStore(middleware)
+
+        val result = middleware.buildAction(
+            toolbarAction = ToolbarAction.Bookmark,
+        ) as ActionButtonRes
+
+        assertEquals(R.drawable.mozac_ic_bookmark_24, result.drawableResId)
+        assertEquals(R.string.browser_menu_bookmark_this_page_2, result.contentDescription)
+        assertEquals(AddBookmarkClicked, result.onClick)
+    }
+
     private fun assertEqualsTabCounterButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)
         assertEquals(expected.contentDescription, actual.contentDescription)
@@ -2097,6 +2143,7 @@ class BrowserToolbarMiddlewareTest {
         cookieBannersStorage: CookieBannersStorage = this.cookieBannersStorage,
         trackingProtectionUseCases: TrackingProtectionUseCases = this.trackingProtectionUseCases,
         sessionUseCases: SessionUseCases = SessionUseCases(browserStore),
+        bookmarksStorage: BookmarksStorage = this.bookmarksStorage,
     ) = BrowserToolbarMiddleware(
         appStore = appStore,
         browserScreenStore = browserScreenStore,
@@ -2120,6 +2167,7 @@ class BrowserToolbarMiddlewareTest {
             override val enhancementsEnabled: Boolean
                 get() = false
         },
+        bookmarksStorage = bookmarksStorage,
     )
 
     private fun buildStore(

@@ -72,7 +72,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns false
         every { settings.shouldUseFixedTopToolbar } returns false
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.setDynamicToolbarBehavior(MozacToolbarPosition.BOTTOM) }
     }
@@ -85,7 +85,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns false
         every { settings.shouldUseFixedTopToolbar } returns false
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -98,7 +98,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.setDynamicToolbarBehavior(MozacToolbarPosition.BOTTOM) }
     }
@@ -111,7 +111,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns false
         every { settings.shouldUseFixedTopToolbar } returns true
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -126,7 +126,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns false
         every { settings.shouldUseFixedTopToolbar } returns false
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.setDynamicToolbarBehavior(MozacToolbarPosition.BOTTOM) }
     }
@@ -139,7 +139,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns false
         every { settings.shouldUseFixedTopToolbar } returns false
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -152,7 +152,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns true
         every { settings.shouldUseFixedTopToolbar } returns false
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.setDynamicToolbarBehavior(MozacToolbarPosition.BOTTOM) }
     }
@@ -165,7 +165,7 @@ class BrowserHomeToolbarViewTest {
         every { toolbarViewSpy.isPwaTabOrTwaTab } returns false
         every { settings.shouldUseFixedTopToolbar } returns true
 
-        toolbarViewSpy.setToolbarBehavior(false)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, false)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -176,7 +176,7 @@ class BrowserHomeToolbarViewTest {
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
         every { settings.shouldUseFixedTopToolbar } returns true
 
-        toolbarViewSpy.setToolbarBehavior(true)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, true)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -187,7 +187,7 @@ class BrowserHomeToolbarViewTest {
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
         every { settings.isDynamicToolbarEnabled } returns false
 
-        toolbarViewSpy.setToolbarBehavior(true)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, true)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -197,7 +197,7 @@ class BrowserHomeToolbarViewTest {
         val toolbarViewSpy = spyk(toolbarView)
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
 
-        toolbarViewSpy.setToolbarBehavior(true)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, true)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }
@@ -209,7 +209,7 @@ class BrowserHomeToolbarViewTest {
         every { settings.shouldUseFixedTopToolbar } returns true
         every { settings.isDynamicToolbarEnabled } returns true
 
-        toolbarViewSpy.setToolbarBehavior(true)
+        toolbarViewSpy.setToolbarBehavior(settings.toolbarPosition, true)
 
         verify { toolbarViewSpy.expandToolbarAndMakeItFixed() }
     }

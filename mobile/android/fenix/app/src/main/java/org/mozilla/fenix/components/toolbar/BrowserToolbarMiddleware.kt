@@ -14,6 +14,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
@@ -31,6 +33,7 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.P
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.NavigationActionsUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
@@ -51,6 +54,8 @@ import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
 import mozilla.components.concept.engine.cookiehandling.CookieBannersStorage
 import mozilla.components.concept.engine.permission.SitePermissions
 import mozilla.components.concept.engine.permission.SitePermissionsStorage
+import mozilla.components.concept.engine.prompt.ShareData
+import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.session.TrackingProtectionUseCases
 import mozilla.components.lib.publicsuffixlist.PublicSuffixList
@@ -83,18 +88,23 @@ import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.NimbusComponents
 import org.mozilla.fenix.components.UseCases
+import org.mozilla.fenix.components.appstate.AppAction.BookmarkAction
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDismissed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.appstate.AppAction.UpdateSearchBeingActiveState
+import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.components.toolbar.DisplayActions.AddBookmarkClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.EditBookmarkClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackLongClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardLongClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.RefreshClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.ShareClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.StopRefreshClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
@@ -114,6 +124,7 @@ import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.TabManagementFeatureHelper
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
 import org.mozilla.fenix.utils.Settings
+import org.mozilla.fenix.utils.lastSavedFolderCache
 import mozilla.components.lib.state.Action as MVIAction
 import mozilla.components.ui.icons.R as iconsR
 
@@ -128,6 +139,9 @@ internal sealed class DisplayActions : BrowserToolbarEvent {
         val bypassCache: Boolean,
     ) : DisplayActions()
     data object StopRefreshClicked : DisplayActions()
+    data object AddBookmarkClicked : DisplayActions()
+    data object EditBookmarkClicked : DisplayActions()
+    data object ShareClicked : DisplayActions()
 }
 
 @VisibleForTesting
@@ -175,6 +189,7 @@ internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
  * @param settings [Settings] for accessing user preferences.
  * @param sessionUseCases [SessionUseCases] for interacting with the current session.
  * @param tabManagementFeatureHelper Feature flag helper for the tab management UI.
+ * @param bookmarksStorage [BookmarksStorage] to read and write bookmark data related to the current site.
  */
 @Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 class BrowserToolbarMiddleware(
@@ -191,6 +206,7 @@ class BrowserToolbarMiddleware(
     private val settings: Settings,
     private val sessionUseCases: SessionUseCases = SessionUseCases(browserStore),
     private val tabManagementFeatureHelper: TabManagementFeatureHelper = DefaultTabManagementFeatureHelper,
+    private val bookmarksStorage: BookmarksStorage,
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction> {
     @VisibleForTesting
     internal var environment: BrowserToolbarEnvironment? = null
@@ -218,6 +234,9 @@ class BrowserToolbarMiddleware(
                 updateStartBrowserActions(context.store)
                 updateCurrentPageOrigin(context.store)
                 updateEndBrowserActions(context.store)
+                environment?.viewLifecycleOwner?.lifecycleScope?.launch {
+                    updateNavigationActions(context.store)
+                }
 
                 observeProgressBarUpdates(context.store)
                 observeOrientationChanges(context.store)
@@ -225,6 +244,7 @@ class BrowserToolbarMiddleware(
                 observeAcceptingCancellingPrivateDownloads(context.store)
                 observePageNavigationStatus(context.store)
                 observePageOriginUpdates(context.store)
+                observeSelectedTabBookmarkedUpdates(context.store)
                 observeReaderModeUpdates(context.store)
                 observePageTranslationsUpdates(context.store)
                 observePageRefreshUpdates(context.store)
@@ -463,6 +483,70 @@ class BrowserToolbarMiddleware(
                 sessionUseCases.stopLoading(tabId)
             }
 
+            is AddBookmarkClicked -> {
+                val selectedTab = browserStore.state.selectedTab
+
+                selectedTab?.let {
+                    environment?.viewLifecycleOwner?.lifecycleScope?.launch(Dispatchers.IO) {
+                        val parentGuid = settings.lastSavedFolderCache.getGuid() ?: BookmarkRoot.Mobile.id
+                        val parentNode = bookmarksStorage.getBookmark(parentGuid)
+                        val guidToEdit = useCases.bookmarksUseCases.addBookmark(
+                            url = selectedTab.content.url,
+                            title = selectedTab.content.title,
+                            parentGuid = parentGuid,
+                        )
+
+                        appStore.dispatch(
+                            BookmarkAction.BookmarkAdded(
+                                guidToEdit = guidToEdit,
+                                parentNode = parentNode,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            is EditBookmarkClicked -> runWithinEnvironment {
+                val selectedTab = browserStore.state.selectedTab ?: return
+
+                environment?.viewLifecycleOwner?.lifecycleScope?.launch(Dispatchers.Main) {
+                    val guidToEdit: String? = withContext(Dispatchers.IO) {
+                      bookmarksStorage
+                        .getBookmarksWithUrl(selectedTab.content.url)
+                        .firstOrNull()
+                        ?.guid
+                    }
+
+                    guidToEdit?.let { guid ->
+                        navController.navigateSafe(
+                            R.id.browserFragment,
+                            BrowserFragmentDirections.actionGlobalBookmarkEditFragment(
+                                guidToEdit = guid,
+                                requiresSnackbarPaddingForToolbar = true,
+                            ),
+                        )
+                    }
+                }
+            }
+
+            is ShareClicked -> runWithinEnvironment {
+                val selectedTab = browserStore.state.selectedTab ?: return
+
+                navController.nav(
+                    R.id.browserFragment,
+                    BrowserFragmentDirections.actionGlobalShareFragment(
+                        sessionId = selectedTab.id,
+                        data = arrayOf(
+                            ShareData(
+                                url = selectedTab.content.url,
+                                title = selectedTab.content.title,
+                            ),
+                        ),
+                        showPage = true,
+                    ),
+                )
+            }
+
             else -> next(action)
         }
     }
@@ -603,14 +687,46 @@ class BrowserToolbarMiddleware(
         val environment = environment ?: return emptyList()
 
         return listOf(
-            ToolbarActionConfig(ToolbarAction.NewTab) { !environment.context.isTabStripEnabled() },
-            ToolbarActionConfig(ToolbarAction.TabCounter) { !environment.context.isTabStripEnabled() },
-            ToolbarActionConfig(ToolbarAction.Menu),
+            ToolbarActionConfig(ToolbarAction.NewTab) {
+                !environment.context.isTabStripEnabled() && settings.shouldUseSimpleToolbar
+            },
+            ToolbarActionConfig(ToolbarAction.TabCounter) {
+                !environment.context.isTabStripEnabled() && settings.shouldUseSimpleToolbar
+            },
+            ToolbarActionConfig(ToolbarAction.Menu) { settings.shouldUseSimpleToolbar },
         ).filter { config ->
             config.isVisible()
         }.map { config ->
             buildAction(config.action)
         }
+    }
+
+    private fun buildNavigationActions(isBookmarked: Boolean): List<Action> {
+        return listOf(
+            ToolbarActionConfig(ToolbarAction.Bookmark) { !settings.shouldUseSimpleToolbar && !isBookmarked },
+            ToolbarActionConfig(ToolbarAction.EditBookmark) { !settings.shouldUseSimpleToolbar && isBookmarked },
+            ToolbarActionConfig(ToolbarAction.Share) { !settings.shouldUseSimpleToolbar },
+            ToolbarActionConfig(ToolbarAction.NewTab) { !settings.shouldUseSimpleToolbar },
+            ToolbarActionConfig(ToolbarAction.TabCounter) { !settings.shouldUseSimpleToolbar },
+            ToolbarActionConfig(ToolbarAction.Menu) { !settings.shouldUseSimpleToolbar },
+        ).filter { config ->
+            config.isVisible()
+        }.map { config ->
+            buildAction(config.action)
+        }
+    }
+
+    private suspend fun updateNavigationActions(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        val isBookmarked =
+            browserStore.state.selectedTab?.content?.url?.let {
+                bookmarksStorage.getBookmarksWithUrl(it).isNotEmpty()
+            } == true
+
+        store.dispatch(
+            NavigationActionsUpdated(
+                buildNavigationActions(isBookmarked),
+            ),
+        )
     }
 
     private fun buildTabCounterMenu() = CombinedEventAndMenu(TabCounterLongClicked) {
@@ -675,6 +791,7 @@ class BrowserToolbarMiddleware(
             distinctUntilChangedBy { it.orientation }
             .collect {
                 updateEndBrowserActions(store)
+                updateNavigationActions(store)
             }
         }
     }
@@ -684,6 +801,7 @@ class BrowserToolbarMiddleware(
             distinctUntilChangedBy { it.tabs.size }
             .collect {
                 updateEndBrowserActions(store)
+                updateNavigationActions(store)
             }
         }
     }
@@ -693,6 +811,7 @@ class BrowserToolbarMiddleware(
             distinctUntilChangedBy { it.selectedTab?.content?.url }
             .collect {
                 updateCurrentPageOrigin(store)
+                updateNavigationActions(store)
             }
         }
     }
@@ -784,6 +903,17 @@ class BrowserToolbarMiddleware(
         }
     }
 
+    private fun observeSelectedTabBookmarkedUpdates(store: Store<BrowserToolbarState, BrowserToolbarAction>) {
+        appStore.observeWhileActive {
+            distinctUntilChangedBy {
+                it.snackbarState is SnackbarState.BookmarkAdded ||
+                        it.snackbarState is SnackbarState.BookmarkDeleted
+            }.collect { isBookmarked ->
+                updateNavigationActions(store)
+            }
+        }
+    }
+
     private inline fun <S : State, A : MVIAction> Store<S, A>.observeWhileActive(
         crossinline observe: suspend (Flow<S>.() -> Unit),
     ): Job? = environment?.viewLifecycleOwner?.run {
@@ -809,6 +939,9 @@ class BrowserToolbarMiddleware(
         Translate,
         TabCounter,
         SiteInfo,
+        Bookmark,
+        EditBookmark,
+        Share,
     }
 
     private data class ToolbarActionConfig(
@@ -955,5 +1088,27 @@ class BrowserToolbarMiddleware(
                 )
             }
         }
+
+        ToolbarAction.Bookmark -> {
+            ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_bookmark_24,
+                contentDescription = R.string.browser_menu_bookmark_this_page_2,
+                onClick = AddBookmarkClicked,
+            )
+        }
+
+        ToolbarAction.EditBookmark -> {
+            ActionButtonRes(
+                drawableResId = R.drawable.mozac_ic_bookmark_fill_24,
+                contentDescription = R.string.browser_menu_edit_bookmark,
+                onClick = EditBookmarkClicked,
+            )
+        }
+
+        ToolbarAction.Share -> ActionButtonRes(
+            drawableResId = R.drawable.mozac_ic_share_android_24,
+            contentDescription = R.string.browser_menu_share,
+            onClick = ShareClicked,
+        )
     }
 }

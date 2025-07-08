@@ -53,7 +53,7 @@
         app:iconSpaceReserved="false">
         <org.mozilla.fenix.settings.ToggleRadioButtonPreference
             android:key="@string/pref_key_toolbar_simple"
-            app:sharedPreferenceKey="pref_key_toolbar_expanded"
+            app:sharedPreferenceKey="pref_key_toolbar_simple"
             app:trueOptionTitle="@string/preference_simple_toolbar"
             app:falseOptionTitle="@string/preference_expanded_toolbar"
             app:trueOptionIconRes="@drawable/ic_toolbar_simple"

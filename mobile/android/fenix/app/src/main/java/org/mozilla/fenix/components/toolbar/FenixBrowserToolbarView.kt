@@ -95,10 +95,11 @@ abstract class FenixBrowserToolbarView(
      *  Also if the user has not explicitly set a toolbar position and has a screen reader enabled
      *  the toolbar will be placed at the top and in a fixed position.
      *
+     * @param toolbarPosition [ToolbarPosition] to set the toolbar to.
      * @param shouldDisableScroll force disable of the dynamic behavior irrespective of the intrinsic checks.
      */
-    fun setToolbarBehavior(shouldDisableScroll: Boolean = false) {
-        when (settings.toolbarPosition) {
+    fun setToolbarBehavior(toolbarPosition: ToolbarPosition, shouldDisableScroll: Boolean = false) {
+        when (toolbarPosition) {
             ToolbarPosition.BOTTOM -> {
                 if (settings.isDynamicToolbarEnabled &&
                     !settings.shouldUseFixedTopToolbar

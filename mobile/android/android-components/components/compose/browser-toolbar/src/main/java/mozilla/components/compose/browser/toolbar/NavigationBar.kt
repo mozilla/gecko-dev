@@ -5,12 +5,17 @@
 package mozilla.components.compose.browser.toolbar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
 import mozilla.components.browser.menu2.R
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
@@ -24,6 +29,7 @@ import mozilla.components.ui.icons.R as iconsR
  * Top-level UI for displaying the navigation bar.
  *
  * @param actions List of browser [Action]s to be displayed in the navigation bar,
+ * @param shouldShowDivider Whether a divider should be shown.
  * @param onInteraction Callback invoked with a [BrowserToolbarEvent] whenever the user interacts
  * with any action in the navigation bar.
  */
@@ -35,7 +41,16 @@ fun NavigationBar(
 ) {
     Box(
         modifier = Modifier
+            .height(60.dp)
             .background(color = AcornTheme.colors.layer1)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitPointerEvent() // Consume all events
+                    }
+                }
+            }
+            .semantics(mergeDescendants = true) {}
             .fillMaxWidth(),
     ) {
         if (shouldShowDivider) {
@@ -47,6 +62,10 @@ fun NavigationBar(
         ActionContainer(
             actions = actions,
             onInteraction = onInteraction,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            horizontalArrangement = Arrangement.SpaceEvenly,
         )
     }
 }

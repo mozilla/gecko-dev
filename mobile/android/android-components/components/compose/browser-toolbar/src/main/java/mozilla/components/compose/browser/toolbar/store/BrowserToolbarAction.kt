@@ -92,6 +92,13 @@ sealed class BrowserDisplayToolbarAction : BrowserToolbarAction {
      * @property config The new configuration for what progress bar to show.
      */
     data class UpdateProgressBarConfig(val config: ProgressBarConfig?) : BrowserDisplayToolbarAction()
+
+    /**
+     * Replaces the currently displayed list of navigation actions with the provided list of actions.
+     *
+     * @property actions The new list of [ToolbarAction]s.
+     */
+    data class NavigationActionsUpdated(val actions: List<ToolbarAction>) : BrowserDisplayToolbarAction()
 }
 
 /**

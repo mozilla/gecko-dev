@@ -6,11 +6,13 @@ package mozilla.components.compose.browser.toolbar
 
 import android.graphics.drawable.Drawable
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -34,15 +36,23 @@ import mozilla.components.ui.icons.R as iconsR
 /**
  * A container for displaying [Action]s.
  *
- * @param actions List of [Action]s to display in the container.
+ * @param actions List of [Action]s to display in thuuuuuuuuuuu`e container.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
+ * @param modifier Modifier to apply to the container.
+ * @param horizontalArrangement The horizontal arrangement of the layout's children.
  */
 @Composable
 fun ActionContainer(
     actions: List<Action>,
     onInteraction: (BrowserToolbarEvent) -> Unit,
+    modifier: Modifier = Modifier,
+    horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = horizontalArrangement,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         for (action in actions) {
             when (action) {
                 is ActionButtonRes -> {

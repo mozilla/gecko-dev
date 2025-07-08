@@ -63,10 +63,11 @@ enum class Mode {
  * inside of the URL bounding box.
  * These should be actions relevant to specific webpages as opposed to [browserActionsStart].
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/pageAction).
- * @param browserActionsEnd List of browser [Action]s to be displayed at the end of the toolbar,
+ * @property browserActionsEnd List of browser [Action]s to be displayed at the end of the toolbar,
  * outside of the URL bounding box.
  * These should be actions relevant to the browser as a whole.
  * See [MDN docs](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/browserAction).
+ * @property navigationActions List of [Action]s to be displayed in the navigation toolbar.
  * @property progressBarConfig [ProgressBarConfig] configuration for the progress bar.
  * If `null` a progress bar will not be displayed.
  */
@@ -81,6 +82,7 @@ data class DisplayState(
     ),
     val pageActionsEnd: List<Action> = emptyList(),
     val browserActionsEnd: List<Action> = emptyList(),
+    val navigationActions: List<Action> = emptyList(),
     val progressBarConfig: ProgressBarConfig? = null,
 ) : State
 

@@ -6,6 +6,7 @@ package mozilla.components.compose.browser.toolbar.store
 
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.NavigationActionsUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsStartUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
@@ -37,6 +38,7 @@ open class BrowserToolbarStore(
     }
 }
 
+@Suppress("LongMethod")
 private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): BrowserToolbarState {
     return when (action) {
         is BrowserToolbarAction.Init -> BrowserToolbarState(
@@ -81,6 +83,12 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
         is BrowserActionsEndUpdated -> state.copy(
             displayState = state.displayState.copy(
                 browserActionsEnd = action.actions,
+            ),
+        )
+
+        is NavigationActionsUpdated -> state.copy(
+            displayState = state.displayState.copy(
+                navigationActions = action.actions,
             ),
         )
 
