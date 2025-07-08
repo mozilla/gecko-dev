@@ -5,10 +5,18 @@
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
+export const BUILTIN_ADDON_ID = "newtab@mozilla.org";
+export const DISABLE_NEWTAB_AS_ADDON_PREF =
+  "browser.newtabpage.disableNewTabAsAddon";
+export const TRAINHOP_NIMBUS_FEATURE_ID = "newtabTrainhopAddon";
+export const TRAINHOP_XPI_BASE_URL_PREF =
+  "browser.newtabpage.trainhopAddon.xpiBaseURL";
+
 const lazy = XPCOMUtils.declareLazy({
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
   AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
   NewTabGleanUtils: "resource://newtab/lib/NewTabGleanUtils.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
 
   resProto: {
     service: "@mozilla.org/network/protocol;1?name=resource",
@@ -22,19 +30,20 @@ const lazy = XPCOMUtils.declareLazy({
     service: "@mozilla.org/network/protocol/about;1?what=newtab",
     iid: Ci.nsIAboutModule,
   },
-});
 
-export const BUILTIN_ADDON_ID = "newtab@mozilla.org";
-export const DISABLE_NEWTAB_AS_ADDON_PREF =
-  "browser.newtabpage.disableNewTabAsAddon";
+  trainhopAddonXPIBaseURL: {
+    pref: TRAINHOP_XPI_BASE_URL_PREF,
+    default: "",
+  },
+});
 
 /**
  * AboutNewTabResourceMapping is responsible for creating the mapping between
- * the built-in addon newtab code, and the chrome://newtab and resource://newtab
+ * the built-in add-on newtab code, and the chrome://newtab and resource://newtab
  * URI prefixes (which are also used by the component mode for newtab, and acts
  * as a compatibility layer).
  *
- * When the built-in addon newtab is being read in from an XPI, the
+ * When the built-in add-on newtab is being read in from an XPI, the
  * AboutNewTabResourceMapping is also responsible for doing dynamic Fluent
  * and Glean ping/metric registration.
  */
@@ -44,7 +53,7 @@ export var AboutNewTabResourceMapping = {
   newTabAsAddonDisabled: false,
 
   _rootURISpec: null,
-  _addonId: null,
+  _addonVersion: null,
   _addonListener: null,
 
   /**
@@ -77,6 +86,7 @@ export var AboutNewTabResourceMapping = {
       DISABLE_NEWTAB_AS_ADDON_PREF,
       false
     );
+    this.inSafeMode = Services.appinfo.inSafeMode;
     this.registerNewTabResources();
     this.addAddonListener();
 
@@ -84,9 +94,15 @@ export var AboutNewTabResourceMapping = {
     this.logger.debug("Initialized");
   },
 
+  /**
+   * Adds an add-on listener to detect postponed installations of the newtab add-on
+   * and invalidate the AboutHomeStartupCache. This method is a no-op when the
+   * emergency fallback `browser.newtabpage.disableNewTabAsAddon` about:config pref
+   * is set to true.
+   */
   addAddonListener() {
     if (!this._addonListener && !this.newTabAsAddonDisabled) {
-      // The newtab addon has a background.js script which defers updating until
+      // The newtab add-on has a background.js script which defers updating until
       // the next restart. We still, however, want to blow away the about:home
       // startup cache when we notice this postponed install, to avoid loading
       // a cache created with another version of newtab.
@@ -104,31 +120,44 @@ export var AboutNewTabResourceMapping = {
     }
   },
 
+  /**
+   * Gets the preferred mapping for newtab resources. This method tries to retrieve
+   * the rootURI from the WebExtensionPolicy instance of the newtab add-on, or falling
+   * back to the URI of the newtab resources bundled in the Desktop omni jar if not found.
+   * The newtab resources bundled in the Desktop omni jar are instead always preferred
+   * while running in safe mode or if the emergency fallback about:config pref
+   * (`browser.newtabpage.disableNewTabAsAddon`) is set to true.
+   *
+   * @returns {{version: ?string, rootURI: nsIURI}}
+   *   Returns the preferred newtab root URI for resource://newtab and chrome://newtab,
+   *   along with add-on version if using the newtab add-on root URI, or null
+   *   when the newtab add-on root URI was not selected as the preferred one.
+   */
   getPreferredMapping() {
-    let policy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
+    const { inSafeMode, newTabAsAddonDisabled } = this;
+    const policy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
     // Retrieve the mapping url (but fallback to the known url for the
     // newtab resources bundled in the Desktop omni jar if that fails).
-    let { id, version, rootURI } = policy?.extension ?? {};
-    if (!rootURI || Services.appinfo.inSafeMode || this.newTabAsAddonDisabled) {
-      id = null;
+    let { version, rootURI } = policy?.extension ?? {};
+    if (!rootURI || inSafeMode || newTabAsAddonDisabled) {
       const builtinAddonsURI = lazy.resProto.getSubstitution("builtin-addons");
       rootURI = Services.io.newURI("newtab/", null, builtinAddonsURI);
       version = null;
     }
-    return { id, version, rootURI };
+    return { version, rootURI };
   },
 
   /**
    * Registers the resource://newtab and chrome://newtab resources, and also
-   * kicks off dynamic Fluent and Glean registration if the addon is installed
+   * kicks off dynamic Fluent and Glean registration if the add-on is installed
    * via an XPI.
    */
   registerNewTabResources() {
     const RES_PATH = "newtab";
     try {
-      const { id, version, rootURI } = this.getPreferredMapping();
+      const { version, rootURI } = this.getPreferredMapping();
       this._rootURISpec = rootURI.spec;
-      this._addonId = id;
+      this._addonVersion = version;
       const isXPI = rootURI.spec.endsWith(".xpi!/");
       this.logger.log(
         this.newTabAsAddonDisabled || !version
@@ -166,7 +195,7 @@ export var AboutNewTabResourceMapping = {
    * Registers Fluent strings contained within the XPI.
    *
    * @param {nsIURI} rootURI
-   *   The rootURI for the newtab addon.
+   *   The rootURI for the newtab add-on.
    * @returns {Promise<undefined>}
    *   Resolves once the Fluent strings have been registered, or even if a
    *   failure to register them has occurred (which will log the error).
@@ -195,7 +224,7 @@ export var AboutNewTabResourceMapping = {
 
   /**
    * Registers any dynamic Glean metrics that have been included with the XPI
-   * version of the addon.
+   * version of the add-on.
    */
   registerMetricsFromJson() {
     // The metrics we need to process were placed in webext-glue/metrics/runtime-metrics-<version>.json
@@ -207,13 +236,136 @@ export var AboutNewTabResourceMapping = {
   },
 
   /**
+   * Downloads and installs the newtab train-hop add-on version based on Nimbus feature configuration,
+   * or record the Nimbus feature exposure event if the newtab train-hop add-on version is already in use.
+   *
+   * @returns {Promise<void>}
+   *   Resolves when the train-hop add-on installation is completed or not needed,
+   *   or rejects on failures or unexpected cancellations hit during the installation
+   *   process.
+   */
+  async installTrainhopAddon() {
+    if (this.inSafeMode || !lazy.trainhopAddonXPIBaseURL) {
+      this.logger.debug(
+        this.inSafeMode
+          ? `train-hop add-on download disabled while running in SafeMode`
+          : `train-hop add-on download disabled on empty download base URL`
+      );
+      return;
+    }
+    const nimbusFeature = lazy.NimbusFeatures[TRAINHOP_NIMBUS_FEATURE_ID];
+    await nimbusFeature.ready();
+    const { addon_version, xpi_download_path } = nimbusFeature.getAllVariables({
+      defaultValues: { addon_version: null, xpi_download_path: null },
+    });
+    if (!xpi_download_path) {
+      this.logger.warn(
+        `train-hop failure: missing mandatory xpi_download_path`
+      );
+      return;
+    }
+    if (!addon_version) {
+      this.logger.warn(`train-hop failure: missing mandatory addon_version`);
+      return;
+    }
+    let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);
+    if (addon?.version === addon_version) {
+      if (this._addonVersion === addon.version) {
+        this.logger.debug(
+          `train-hop add-on version ${addon_version} already in use`
+        );
+        // Record exposure event for the train hop feature if the train-hop add-on version is
+        // already in use.
+        const isXPI = this._rootURISpec.endsWith(".xpi!/");
+        if (isXPI) {
+          nimbusFeature.recordExposureEvent({ once: true });
+        }
+      } else {
+        this.logger.warn(
+          `train-hop add-on version ${addon_version} already installed but not in use`
+        );
+      }
+      return;
+    } else if (
+      addon?.version &&
+      Services.vc.compare(addon.version, addon_version) > 0
+    ) {
+      this.logger.warn(
+        `cancel xpi download on train-hop add-on version ${addon_version} lower than installed version ${addon.version}`
+      );
+      return;
+    }
+    // Download and install train-hop add-on from the url received through Nimbus.
+    const xpiDownloadURL = `${lazy.trainhopAddonXPIBaseURL}${xpi_download_path}`;
+    this.logger.log(
+      `downloading train-hop add-on version ${addon_version} from ${xpiDownloadURL}`
+    );
+    try {
+      let install = await lazy.AddonManager.getInstallForURL(xpiDownloadURL, {
+        telemetryInfo: { source: "nimbus:newtabTrainhopAddon" },
+      });
+      const deferred = Promise.withResolvers();
+      install.addListener({
+        onDownloadEnded() {
+          if (
+            install.addon.id !== BUILTIN_ADDON_ID ||
+            install.addon.version !== addon_version
+          ) {
+            deferred.reject(
+              new Error(
+                `train-hop add-on install cancelled on mismatching add-on version` +
+                  `(actual ${install.addon.version}, expected ${addon_version})`
+              )
+            );
+            install.cancel();
+          }
+        },
+        onInstallPostponed() {
+          deferred.resolve();
+        },
+        onDownloadCancelled() {
+          deferred.reject(
+            new Error(
+              `Unexpected download cancelled while downloading xpi from ${xpiDownloadURL}`
+            )
+          );
+        },
+        onDownloadFailed() {
+          deferred.reject(
+            new Error(`Failed to download xpi from ${xpiDownloadURL}`)
+          );
+        },
+        onInstallCancelled() {
+          deferred.reject(
+            new Error(
+              `Unexpected install cancelled while installing xpi from ${xpiDownloadURL}`
+            )
+          );
+        },
+        onInstallFailed() {
+          deferred.reject(
+            new Error(`Failed to install xpi from ${xpiDownloadURL}`)
+          );
+        },
+      });
+      install.install();
+      await deferred.promise;
+      this.logger.debug(
+        `train-hop add-on ${addon_version} downloaded and pending install on next startup`
+      );
+    } catch (e) {
+      this.logger.error(`train-hop add-on install failure: ${e}`);
+    }
+  },
+
+  /**
    * An external utility that should only be called in the event that we have
    * changed the configuration of the browser to use newtab as a built-in
    * component. This method will call into the AddonManager to uninstall the
-   * remnants of the newtab addon, if they exist.
+   * remnants of the newtab add-on, if they exist.
    *
    * @returns {Promise<undefined>}
-   *   Resolves once the addon is uninstalled, if it was found.
+   *   Resolves once the add-on is uninstalled, if it was found.
    */
   async uninstallAddon() {
     let addon = await lazy.AddonManager.getAddonByID(BUILTIN_ADDON_ID);

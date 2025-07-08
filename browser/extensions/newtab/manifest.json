@@ -11,6 +11,8 @@
     }
   },
 
+  "hidden": true,
+
   "background": {
     "scripts": ["webext-glue/background.js"]
   }

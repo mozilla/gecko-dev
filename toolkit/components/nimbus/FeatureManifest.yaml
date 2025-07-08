@@ -1464,6 +1464,23 @@ newtabTrainhop:
       type: json
       description: The experiment configuration.
 
+newtabTrainhopAddon:
+  description: Enable download updated newtab resources packaged as an xpi
+  owner: mconley@mozilla.com
+  hasExposure: true
+  exposureDescription: |
+    Exposure is sent when the trainhop addon version is in use (starting from the browser startup
+    right after it has been downloaded and installed).
+  variables:
+    xpi_download_path:
+      type: string
+      description: |
+        Provide the path (relative to the base URL set in the `browser.newtabpage.trainhopAddon.xpiBaseURL`
+        about:config pref) from which the xpi should be downloaded.
+    addon_version:
+      type: string
+      description: Expected addon version (install the xpi is cancelled if it mismatches the one set here).
+
 newtabMerinoOhttp:
   description: Sending request to merino over OHTTP in newtab
   owner: nbarrett@mozilla.com

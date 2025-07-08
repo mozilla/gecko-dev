@@ -59,11 +59,11 @@ const IS_MAIN_PROCESS =
 
 const RS_COLLECTION_OPTIONS = {
   [EXPERIMENTS_COLLECTION]: {
-    disallowedFeatureIds: ["prefFlips"],
+    disallowedFeatureIds: ["prefFlips", "newtabTrainhopAddon"],
   },
 
   [SECURE_EXPERIMENTS_COLLECTION]: {
-    allowedFeatureIds: ["prefFlips"],
+    allowedFeatureIds: ["prefFlips", "newtabTrainhopAddon"],
   },
 };
 

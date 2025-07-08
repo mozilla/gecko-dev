@@ -3,6 +3,8 @@
 
 "use strict";
 
+/* exported assertNewTabResourceMapping */
+
 /**
  * This head.js file is shared between the browser/extensions/newtab xpcshell
  * tests as well as browser/components/newtab xpcshell tests.
@@ -80,3 +82,36 @@ add_setup(async function head_initialize() {
   }
   AboutNewTab.init();
 });
+
+/**
+ * Asserts that New Tab resource and chrome URI have been
+ * mapped to the expected rootURI.
+
+ * @param {string} [expectedRootURISpec]
+ *   A optional root URI spec to derive the expected resource://newtab
+ *   and chrome://newtab resource mapping to expect to have been registered.
+ *   Defaults to the built-in newtab add-on root URI.
+ */
+function assertNewTabResourceMapping(expectedRootURISpec = null) {
+  const resProto = Cc[
+    "@mozilla.org/network/protocol;1?name=resource"
+  ].getService(Ci.nsIResProtocolHandler);
+  const chromeRegistry = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(
+    Ci.nsIChromeRegistry
+  );
+  const expectedSpec =
+    expectedRootURISpec ??
+    `${resProto.getSubstitution("builtin-addons").spec}newtab/`;
+  Assert.equal(
+    resProto.getSubstitution("newtab")?.spec,
+    expectedSpec,
+    "Got the expected resource://newtab/ substitution"
+  );
+  Assert.equal(
+    chromeRegistry.convertChromeURL(
+      Services.io.newURI("chrome://newtab/content/css/")
+    )?.spec,
+    `${expectedSpec}data/css/`,
+    "Got the expected chrome://newtab/content substitution"
+  );
+}
