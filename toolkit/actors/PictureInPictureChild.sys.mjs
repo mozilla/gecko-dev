@@ -389,21 +389,6 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       return;
     }
 
-    this.toggleEnabled =
-      Services.prefs.getBoolPref(TOGGLE_ENABLED_PREF) &&
-      Services.prefs.getBoolPref(PIP_ENABLED_PREF);
-
-    if (this.toggleEnabled) {
-      // We have enabled the Picture-in-Picture toggle, so we need to make
-      // sure we register all of the videos that might already be on the page.
-      this.contentWindow.requestIdleCallback(() => {
-        let videos = this.document.querySelectorAll("video");
-        for (let video of videos) {
-          this.registerVideo(video);
-        }
-      });
-    }
-
     switch (data) {
       case TOGGLE_FIRST_SEEN_PREF:
         const firstSeenSeconds = Services.prefs.getIntPref(
@@ -542,7 +527,6 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       }
       case "UAWidgetSetupOrChange": {
         if (
-          this.toggleEnabled &&
           this.contentWindow.HTMLVideoElement.isInstance(event.target) &&
           event.target.ownerDocument == this.document
         ) {

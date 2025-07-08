@@ -7,6 +7,8 @@ const MIN_DURATION_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.min-video-secs";
 const ALWAYS_SHOW_PREF =
   "media.videocontrols.picture-in-picture.video-toggle.always-show";
+const VIDEO_TOGGLE_ENABLED_PREF =
+  "media.videocontrols.picture-in-picture.video-toggle.enabled";
 
 add_setup(async () => {
   const PIP_ON_TAB_SWITCH_ENABLED_PREF =
@@ -65,6 +67,50 @@ add_task(async function autopip_and_focus() {
 
   is(Services.focus.activeWindow, win1, "First window is still focused");
   blurAborter.abort();
+
+  // Switch back to the video tab and check if the PiP window closes
+  let pipClosed = BrowserTestUtils.domWindowClosed(pipWin);
+  await BrowserTestUtils.switchTab(win1.gBrowser, secondTab);
+  ok(await pipClosed, "PiP window automatically closed.");
+
+  await BrowserTestUtils.closeWindow(win1);
+});
+
+/**
+ * Tests that the PiP window is automatically opened when switching
+ * between tabs, regardless of the toggle button's visibility.
+ */
+add_task(async function autopip_video_toggle_disabled() {
+  await SpecialPowers.pushPrefEnv({
+    set: [[VIDEO_TOGGLE_ENABLED_PREF, false]],
+  });
+
+  // Open a new window and save a handle for the first tab
+  let win1 = await BrowserTestUtils.openNewBrowserWindow();
+  let firstTab = win1.gBrowser.selectedTab;
+
+  // Open a new tab containing a video
+  let pipTab = await BrowserTestUtils.openNewForegroundTab(
+    win1.gBrowser,
+    TEST_PAGE
+  );
+  let browser = pipTab.linkedBrowser;
+  let secondTab = win1.gBrowser.selectedTab;
+
+  // Ensure the video is playing
+  let videoID = "with-controls";
+  await ensureVideosReady(browser);
+  await SpecialPowers.spawn(browser, [videoID], async videoID => {
+    await content.document.getElementById(videoID).play();
+  });
+
+  // We will check if the PiP window will automatically open on tab switch
+  let domWindowOpened = BrowserTestUtils.domWindowOpenedAndLoaded(null);
+
+  // Switch from the video tab to the first tab and check if the PiP window opened
+  await BrowserTestUtils.switchTab(win1.gBrowser, firstTab);
+  let pipWin = await domWindowOpened;
+  ok(pipWin, "PiP window automatically opened.");
 
   // Switch back to the video tab and check if the PiP window closes
   let pipClosed = BrowserTestUtils.domWindowClosed(pipWin);
