@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      const canvas = document.createElement("canvas")
+      document.documentElement.appendChild(canvas)
+      const context = canvas.getContext("2d")
+      context.filter = "sepia()"
+      context.scale(-128, 4503599627370496)
+      context.fillRect(1000, 255, 53.611338553781046, 256)
+    })
+  </script>
+</head>
+</html>
