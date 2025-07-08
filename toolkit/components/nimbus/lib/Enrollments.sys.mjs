@@ -67,6 +67,7 @@ export class NimbusEnrollments {
 
   /**
    * Our shutdown blocker that will
+   *
    * @type {(function(): void) | null}
    */
   #shutdownBlocker;
@@ -134,7 +135,10 @@ export class NimbusEnrollments {
 
     // Don't overwrite a pending entry that has a recipe with one that has none
     // or we will try to do the wrong query (UPDATE instead of INSERT).
-    if (!this.#pending.has(slug)) {
+    //
+    // We explicitly check for the presence of the value, not the key, in case
+    // this is a re-enrollment following an unenrollment.
+    if (!this.#pending.get(slug)) {
       this.#pending.set(slug, recipe);
       this.#flushSoon();
     }
@@ -273,6 +277,7 @@ export class NimbusEnrollments {
 
   /**
    * Insert or update an enrollment.
+   *
    * @param {OpenedConnection} conn The connection to the database.
    * @param {object} enrollment The enrollment.
    * @param {object | null} recipe The recipe for the enrollment. Only non-null

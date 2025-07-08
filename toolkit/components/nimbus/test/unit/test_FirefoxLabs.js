@@ -311,3 +311,56 @@ add_task(async function test_unenroll() {
   manager.unenroll("rollout");
   await cleanup();
 });
+
+add_task(async function test_reenroll_quickly() {
+  const { cleanup } = await setupTest({
+    experiments: [
+      NimbusTestUtils.factories.recipe.withFeatureConfig(
+        "optin",
+        { featureId: "nimbus-qa-2" },
+        {
+          isRollout: true,
+          isFirefoxLabsOptIn: true,
+          firefoxLabsTitle: "title",
+          firefoxLabsDescription: "description",
+          firefoxLabsDescriptionLinks: null,
+          firefoxLabsGroup: "group",
+          requiresRestart: false,
+        }
+      ),
+    ],
+  });
+
+  const labs = await FirefoxLabs.create();
+
+  Assert.equal(
+    await NimbusTestUtils.queryEnrollment("optin"),
+    null,
+    "Enrollment does not exist"
+  );
+
+  info("Enrolling in optin");
+  await labs.enroll("optin", "control");
+  await NimbusTestUtils.flushStore();
+
+  {
+    const enrollment = await NimbusTestUtils.queryEnrollment("optin");
+    Assert.ok(enrollment, "Enrollment exists in database");
+    Assert.ok(enrollment.active, "Enrollment is active");
+  }
+
+  info("Unenrolling and re-enrolling");
+  labs.unenroll("optin");
+  await labs.enroll("optin", "control");
+  await NimbusTestUtils.flushStore();
+
+  {
+    const enrollment = await NimbusTestUtils.queryEnrollment("optin");
+    Assert.ok(enrollment, "Enrollment exists in database");
+    Assert.ok(enrollment.active, "Enrollment is active");
+  }
+
+  labs.unenroll("optin");
+
+  await cleanup();
+});
