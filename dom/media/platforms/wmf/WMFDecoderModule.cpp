@@ -86,7 +86,7 @@ static bool IsRemoteAcceleratedCompositor(
 }
 
 /* static */
-void WMFDecoderModule::Init(Config aConfig) {
+void WMFDecoderModule::Init() {
   // TODO : add an assertion to prevent this from running on main thread.
   if (XRE_IsContentProcess()) {
     // If we're in the content process and the UseGPUDecoder pref is set, it
@@ -96,14 +96,6 @@ void WMFDecoderModule::Init(Config aConfig) {
   } else if (XRE_IsGPUProcess()) {
     // Always allow DXVA in the GPU process.
     sDXVAEnabled = true;
-    if (aConfig == Config::ForceEnableHEVC) {
-      WmfDecoderModuleMarkerAndLog(
-          "ReportHardwareSupport",
-          "Enable HEVC for reporting hardware support telemetry");
-      sForceEnableHEVC = true;
-    } else {
-      sForceEnableHEVC = false;
-    }
   } else if (XRE_IsRDDProcess()) {
     // Hardware accelerated decoding is explicitly only done in the GPU process
     // to avoid copying textures whenever possible. Previously, detecting
@@ -260,7 +252,7 @@ HRESULT WMFDecoderModule::CreateMFTDecoder(const WMFStreamType& aType,
                               MFVideoFormat_NV12);
 #endif
     case WMFStreamType::HEVC:
-      if (!WMFDecoderModule::IsHEVCSupported() || !sDXVAEnabled) {
+      if (!StaticPrefs::media_hevc_enabled() || !sDXVAEnabled) {
         return E_FAIL;
       }
       return aDecoder->Create(MFT_CATEGORY_VIDEO_DECODER, MFVideoFormat_HEVC,
@@ -304,7 +296,7 @@ bool WMFDecoderModule::CanCreateMFTDecoder(const WMFStreamType& aType) {
       break;
 #endif
     case WMFStreamType::HEVC:
-      if (!WMFDecoderModule::IsHEVCSupported()) {
+      if (!StaticPrefs::media_hevc_enabled()) {
         return false;
       }
       break;
@@ -497,14 +489,6 @@ media::DecodeSupportSet WMFDecoderModule::SupportsMimeType(
        !supports.isEmpty() ? "supports" : "rejects", aMimeType.BeginReading()));
   return supports;
 }
-
-/* static */
-bool WMFDecoderModule::IsHEVCSupported() {
-  return sForceEnableHEVC || StaticPrefs::media_hevc_enabled();
-}
-
-/* static */
-void WMFDecoderModule::DisableForceEnableHEVC() { sForceEnableHEVC = false; }
 
 }  // namespace mozilla
 
