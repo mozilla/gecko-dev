@@ -737,19 +737,16 @@ void DocAccessible::HandleScroll(nsINode* aTarget) {
   });
 
   // If timer callback is still pending, push it 100ms into the future.
-  // When scrolling ends and we don't fire this callback anymore, the
+  // When scrolling ends and we don't fire HandleScroll anymore, the
   // timer callback will fire and dispatch an EVENT_SCROLLING_END.
-  if (mScrollWatchTimer) {
-    mScrollWatchTimer->SetDelay(kScrollEventInterval);
-  } else {
-    NS_NewTimerWithFuncCallback(getter_AddRefs(mScrollWatchTimer),
-                                ScrollTimerCallback, this, kScrollEventInterval,
-                                nsITimer::TYPE_ONE_SHOT,
-                                "a11y::DocAccessible::ScrollPositionDidChange");
-    if (mScrollWatchTimer) {
-      NS_ADDREF_THIS();  // Kung fu death grip
-    }
+  if (!mScrollWatchTimer) {
+    // Can only fail on OOM and in that case we'd crash.
+    mScrollWatchTimer = NS_NewTimer();
+    NS_ADDREF_THIS();  // Kung fu death grip
   }
+  mScrollWatchTimer->InitWithNamedFuncCallback(
+      ScrollTimerCallback, this, kScrollEventInterval, nsITimer::TYPE_ONE_SHOT,
+      "a11y::DocAccessible::ScrollPositionDidChange");
 }
 
 std::pair<nsPoint, nsRect> DocAccessible::ComputeScrollData(
