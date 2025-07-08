@@ -99,9 +99,28 @@ enum RejectFunctionSlots {
   RejectFunctionSlot_ResolveFunction,
 };
 
+// The promise combinator builtins such as Promise.all and Promise.allSettled
+// allocate one or two functions for each array element. These functions store
+// some state in extended slots.
 enum PromiseCombinatorElementFunctionSlots {
-  PromiseCombinatorElementFunctionSlot_Data = 0,
-  PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc,
+  // This slot stores either:
+  //
+  // - The [[Index]] slot (the array index) as Int32Value.
+  //
+  // - For the onRejected functions for Promise.allSettled, a pointer to the
+  //   corresponding onFulfilled function stored as ObjectValue. In this case
+  //   the slots on that function must be used instead because the
+  //   [[AlreadyCalled]] flag must be shared by these two functions.
+  PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc = 0,
+
+  // This slot stores a pointer to the PromiseCombinatorDataHolder JS object.
+  // It's also used to represent the [[AlreadyCalled]] flag: we set this slot to
+  // UndefinedValue when [[AlreadyCalled]] is set to true in the spec.
+  //
+  // The onRejected functions for Promise.allSettled have a NullValue stored in
+  // this slot. In this case the slot shouldn't be used because the
+  // [[AlreadyCalled]] state must be shared by the two functions.
+  PromiseCombinatorElementFunctionSlot_Data
 };
 
 enum ReactionJobSlots {
@@ -4047,16 +4066,20 @@ static JSFunction* NewPromiseCombinatorElementFunction(
     return nullptr;
   }
 
-  fn->setExtendedSlot(PromiseCombinatorElementFunctionSlot_Data,
-                      ObjectValue(*dataHolder));
+  // See the PromiseCombinatorElementFunctionSlots comment for an explanation of
+  // how these two slots are used.
   if (maybeResolveFunc.isObject()) {
     fn->setExtendedSlot(
         PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc,
         maybeResolveFunc);
+    fn->setExtendedSlot(PromiseCombinatorElementFunctionSlot_Data,
+                        NullValue());
   } else {
     fn->setExtendedSlot(
         PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc,
         Int32Value(index));
+    fn->setExtendedSlot(PromiseCombinatorElementFunctionSlot_Data,
+                        ObjectValue(*dataHolder));
   }
   return fn;
 }
@@ -4095,14 +4118,6 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
   // Step 1. Let F be the active function object.
   JSFunction* fn = &args.callee().as<JSFunction>();
 
-  constexpr size_t indexOrResolveFuncSlot =
-      PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc;
-  if (fn->getExtendedSlot(indexOrResolveFuncSlot).isObject()) {
-    Value slotVal = fn->getExtendedSlot(indexOrResolveFuncSlot);
-    fn = &slotVal.toObject().as<JSFunction>();
-  }
-  MOZ_RELEASE_ASSERT(fn->getExtendedSlot(indexOrResolveFuncSlot).isInt32());
-
   // Promise.{all,any} functions
   // Step 2. If F.[[AlreadyCalled]] is true, return undefined.
   // Promise.allSettled functions
@@ -4112,6 +4127,20 @@ static bool PromiseCombinatorElementFunctionAlreadyCalled(
   // We use the existence of the data holder as a signal for whether the Promise
   // combinator element function was already called. Upon resolution, it's reset
   // to `undefined`.
+  //
+  // For Promise.allSettled, the [[AlreadyCalled]] state must be shared by the
+  // two functions, so we always use the resolve function's state.
+
+  constexpr size_t indexOrResolveFuncSlot =
+      PromiseCombinatorElementFunctionSlot_ElementIndexOrResolveFunc;
+  if (fn->getExtendedSlot(indexOrResolveFuncSlot).isObject()) {
+    // This is a reject function for Promise.allSettled. Get the corresponding
+    // resolve function.
+    Value slotVal = fn->getExtendedSlot(indexOrResolveFuncSlot);
+    fn = &slotVal.toObject().as<JSFunction>();
+  }
+  MOZ_RELEASE_ASSERT(fn->getExtendedSlot(indexOrResolveFuncSlot).isInt32());
+
   const Value& dataVal =
       fn->getExtendedSlot(PromiseCombinatorElementFunctionSlot_Data);
   if (dataVal.isUndefined()) {
@@ -4492,19 +4521,6 @@ static bool PromiseAllSettledElementFunction(JSContext* cx, unsigned argc,
   Rooted<PromiseCombinatorElements> values(cx);
   if (!GetPromiseCombinatorElements(cx, data, &values)) {
     return false;
-  }
-
-  // Step 2. Let alreadyCalled be F.[[AlreadyCalled]].
-  // Step 3. If alreadyCalled.[[Value]] is true, return undefined.
-  //
-  // The already-called check above only handles the case when |this| function
-  // is called repeatedly, so we still need to check if the other pair of this
-  // resolving function was already called:
-  // We use the element value as a signal for whether the Promise was already
-  // fulfilled. Upon resolution, it's set to the result object created below.
-  if (!values.unwrappedArray()->getDenseElement(index).isUndefined()) {
-    args.rval().setUndefined();
-    return true;
   }
 
   // Step 9. Let obj be OrdinaryObjectCreate(%Object.prototype%).
