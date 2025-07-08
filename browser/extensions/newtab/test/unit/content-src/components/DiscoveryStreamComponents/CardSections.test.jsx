@@ -400,6 +400,7 @@ describe("<CardSections />", () => {
         },
       },
       Messages: {
+        isVisible: true,
         messageData: fakeMessageData,
       },
     };

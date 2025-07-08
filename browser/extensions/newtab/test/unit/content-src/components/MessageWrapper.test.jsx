@@ -38,7 +38,7 @@ describe("MessageWrapper Component", () => {
     let state = {
       ...INITIAL_STATE,
       Messages: {
-        isHidden: false,
+        isVisible: true,
         messageData: { id: "test-message-id" },
       },
     };
@@ -66,13 +66,13 @@ describe("MessageWrapper Component", () => {
     assert.ok(wrapper.find(".message-wrapper").exists());
   });
 
-  it("should not render if `Messages.isHidden` is true and hiddenOverride is false", () => {
+  it("should not render if `Messages.isVisible` is false and hiddenOverride is false", () => {
     wrapper = mount(
       <WrapWithProvider
         state={{
           ...INITIAL_STATE,
           Messages: {
-            isHidden: true,
+            isVisible: false,
             messageData: { id: "test-message-id" },
           },
         }}
@@ -102,7 +102,7 @@ describe("MessageWrapper Component", () => {
     observerInstance.callback([
       { isIntersecting: true, target: observedElement },
     ]);
-    // Expect dispatch to have been called once
-    assert.calledOnce(dispatch);
+    // Expect dispatch to have been called twice
+    assert.calledTwice(dispatch);
   });
 });
