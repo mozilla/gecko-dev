@@ -52,6 +52,9 @@ sealed class CustomReviewPromptAction : Action {
 
     /** Dispatched when the leave feedback button is clicked. */
     data object LeaveFeedbackButtonClicked : CustomReviewPromptAction()
+
+    /** Dispatched when the custom review prompt is shown to the user. */
+    data object Displayed : CustomReviewPromptAction()
 }
 
 internal fun reduceCustomReviewPromptActions(
@@ -63,4 +66,5 @@ internal fun reduceCustomReviewPromptActions(
     CustomReviewPromptAction.DismissRequested -> state
     CustomReviewPromptAction.RateButtonClicked -> state
     CustomReviewPromptAction.LeaveFeedbackButtonClicked -> state
+    CustomReviewPromptAction.Displayed -> state
 }
