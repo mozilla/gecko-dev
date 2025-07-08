@@ -640,6 +640,69 @@ class MOZ_STACK_CLASS HTMLEditor::AutoInsertParagraphHandler final {
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateElementResult, nsresult>
   InsertBRElement(HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToBreak,
                   const Element& aEditingHost);
+
+  /**
+   * Return true if we should insert a line break instead of a paragraph.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT bool ShouldInsertLineBreakInstead(
+      HTMLEditor& aHTMLEditor, const Element* aEditableBlockElement,
+      const EditorDOMPoint& aCandidatePointToSplit,
+      ParagraphSeparator aDefaultParagraphSeparator,
+      const Element& aEditingHost);
+
+  /**
+   * Make sure that aMaybeBlockElement is visible with putting a <br> element if
+   * and only if it's an empty block element.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertBRElementIfEmptyBlockElement(
+      HTMLEditor& aHTMLEditor, Element& aMaybeBlockElement);
+
+  /**
+   * Split aMailCiteElement at aPointToSplit.  This deletes all inclusive
+   * ancestors of aPointToSplit in aMailCiteElement too.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<SplitNodeResult, nsresult>
+  SplitMailCiteElement(HTMLEditor& aHTMLEditor,
+                       const EditorDOMPoint& aPointToSplit,
+                       Element& aMailCiteElement);
+
+  /**
+   * aMailCiteElement may be a <span> element which is styled as block.  If it's
+   * followed by a block boundary, it requires a padding <br> element when it's
+   * serialized.  This method may insert a <br> element if it's required.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
+  MaybeInsertPaddingBRElementToInlineMailCiteElement(
+      HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToInsertBRElement,
+      Element& aMailCiteElement);
+
+  /**
+   * Return the deepest inline container element which is the first leaf or the
+   * first leaf container of aBlockElement.
+   */
+  [[nodiscard]] static Element* GetDeepestFirstChildInlineContainerElement(
+      Element& aBlockElement);
+
+  /**
+   * Collapse `Selection` to aCandidatePointToPutCaret or into
+   * aBlockElementShouldHaveCaret.  If aBlockElementShouldHaveCaret is specified
+   * and aCandidatePointToPutCaret is outside it, this ignores
+   * aCandidatePointToPutCaret and collapse `Selection` into
+   * aBlockElementShouldHaveCaret.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT static nsresult
+  CollapseSelectionToPointOrIntoBlockWhichShouldHaveCaret(
+      HTMLEditor& aHTMLEditor, const EditorDOMPoint& aCandidatePointToPutCaret,
+      const Element* aBlockElementShouldHaveCaret,
+      const SuggestCaretOptions& aOptions);
+
+  /**
+   * Return a better point to split the paragraph to avoid to keep a typing in a
+   * link in the new paragraph.
+   */
+  [[nodiscard]] static EditorDOMPoint GetBetterSplitPointToAvoidToContinueLink(
+      HTMLEditor& aHTMLEditor, const EditorDOMPoint& aCandidatePointToSplit,
+      const Element& aElementToSplit);
 };
 
 /**
