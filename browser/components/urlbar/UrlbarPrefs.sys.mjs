@@ -107,10 +107,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // disable event.
   ["events.disableSuggest.maxSecondsFromLastSearch", 300],
 
-  // If a page is interacted with for less than these seconds, before navigating
-  // away via browser chrome, then send a bounce event.
-  ["events.bounce.maxSecondsFromLastSearch", 10],
-
   // Whether we expand the font size when when the urlbar is
   // focused.
   ["experimental.expandTextOnFocus", false],
