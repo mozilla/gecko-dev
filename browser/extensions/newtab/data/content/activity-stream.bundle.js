@@ -9154,8 +9154,11 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       imageClassName,
       selectedColor
     } = this.calculateStyle();
-    let addButtonl10n = {
+    const addButtonLabell10n = {
       "data-l10n-id": "newtab-topsites-add-shortcut-label"
+    };
+    const addButtonTitlel10n = {
+      "data-l10n-id": "newtab-topsites-add-shortcut-title"
     };
     let draggableProps = {};
     if (isDraggable) {
@@ -9223,7 +9226,7 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       ref: this.props.setRef
     }, draggableProps), /*#__PURE__*/external_React_default().createElement("div", {
       className: "top-site-inner"
-    }, /*#__PURE__*/external_React_default().createElement("a", {
+    }, /*#__PURE__*/external_React_default().createElement("a", TopSite_extends({
       className: "top-site-button",
       href: link.searchTopSite ? undefined : link.url,
       tabIndex: this.props.tabIndex,
@@ -9233,7 +9236,9 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       "data-is-sponsored-link": !!link.sponsored_tile_id,
       title: title,
       onFocus: this.props.onFocus
-    }, shortcutsRefresh && link.isPinned && /*#__PURE__*/external_React_default().createElement("div", {
+    }, isAddButton && {
+      ...addButtonTitlel10n
+    }), shortcutsRefresh && link.isPinned && /*#__PURE__*/external_React_default().createElement("div", {
       className: "icon icon-pin-small"
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "tile",
@@ -9259,7 +9264,7 @@ class TopSiteLink extends (external_React_default()).PureComponent {
       className: "title-label",
       dir: "auto"
     }, isAddButton && {
-      ...addButtonl10n
+      ...addButtonLabell10n
     }), !shortcutsRefresh && link.isPinned && /*#__PURE__*/external_React_default().createElement("div", {
       className: "icon icon-pin-small"
     }), shortcutsRefresh && link.searchTopSite && /*#__PURE__*/external_React_default().createElement("div", {
@@ -9482,7 +9487,7 @@ TopSite.defaultProps = {
   link: {},
   onActivate() {}
 };
-class TopSitePlaceholder extends (external_React_default()).PureComponent {
+class TopSiteAddButton extends (external_React_default()).PureComponent {
   constructor(props) {
     super(props);
     this.onEditButtonClick = this.onEditButtonClick.bind(this);
@@ -9496,20 +9501,21 @@ class TopSitePlaceholder extends (external_React_default()).PureComponent {
     });
   }
   render() {
-    let addButtonProps = {};
-    if (this.props.isAddButton) {
-      addButtonProps = {
-        title: "newtab-topsites-add-shortcut-label",
-        onClick: this.onEditButtonClick
-      };
-    }
-    return /*#__PURE__*/external_React_default().createElement(TopSiteLink, TopSite_extends({}, this.props, this.props.isAddButton ? {
-      ...addButtonProps
-    } : {}, {
-      className: `placeholder ${this.props.className || ""} ${this.props.isAddButton ? "add-button" : ""}`,
+    return /*#__PURE__*/external_React_default().createElement(TopSiteLink, TopSite_extends({}, this.props, {
+      isAddButton: true,
+      className: `add-button ${this.props.className || ""}`,
+      onClick: this.onEditButtonClick,
       setPref: this.props.setPref,
       isDraggable: false,
       tabIndex: this.props.tabIndex
+    }));
+  }
+}
+class TopSitePlaceholder extends (external_React_default()).PureComponent {
+  render() {
+    return /*#__PURE__*/external_React_default().createElement(TopSiteLink, TopSite_extends({}, this.props, {
+      className: `placeholder ${this.props.className || ""}`,
+      isDraggable: false
     }));
   }
 }
@@ -9737,19 +9743,20 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       let topSiteLink;
       // Use a placeholder if the link is empty or it's rendering a sponsored
       // tile for the about:home startup cache.
-      if (!link || props.App.isForStartupCache.TopSites && isSponsored(link) || topSites[i]?.isAddButton) {
+      if (!link || props.App.isForStartupCache.TopSites && isSponsored(link)) {
         if (link) {
-          topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps, {
-            isAddButton: topSites[i] && topSites[i].isAddButton,
-            setRef: i === this.state.focusedIndex ? el => {
-              this.focusedRef = el;
-            } : () => {},
-            tabIndex: i === this.state.focusedIndex ? 0 : -1,
-            onFocus: () => {
-              this.onTopsiteFocus(i);
-            }
-          }));
+          topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps));
         }
+      } else if (topSites[i]?.isAddButton) {
+        topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSiteAddButton, TopSite_extends({}, slotProps, commonProps, {
+          setRef: i === this.state.focusedIndex ? el => {
+            this.focusedRef = el;
+          } : () => {},
+          tabIndex: i === this.state.focusedIndex ? 0 : -1,
+          onFocus: () => {
+            this.onTopsiteFocus(i);
+          }
+        }));
       } else {
         topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSite, TopSite_extends({
           link: link,

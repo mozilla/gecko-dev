@@ -10,6 +10,7 @@ import {
   TopSiteLink,
   _TopSiteList as TopSiteList,
   TopSitePlaceholder,
+  TopSiteAddButton,
 } from "content-src/components/TopSites/TopSite";
 import {
   INTERSECTION_RATIO,
@@ -1489,7 +1490,7 @@ describe("<TopSiteList>", () => {
       TOP_SITES_DEFAULT_ROWS * TOP_SITES_MAX_SITES_PER_ROW
     );
   });
-  it("should add a single placeholder is there is availible space in the row", () => {
+  it("should add a add topsite button if there is availible space in the row", () => {
     const rows = [{ url: "https://foo.com" }, { url: "https://bar.com" }];
     const availibleRows = 1;
     const wrapper = shallow(
@@ -1502,7 +1503,7 @@ describe("<TopSiteList>", () => {
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
     assert.lengthOf(
-      wrapper.find(TopSitePlaceholder),
+      wrapper.find(TopSiteAddButton),
       availibleRows >= wrapper.find(TopSite).length ? 0 : 1,
       "placeholders"
     );
@@ -1524,21 +1525,7 @@ describe("<TopSiteList>", () => {
       />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
-    assert.lengthOf(wrapper.find(TopSitePlaceholder), 4, "placeholders");
-  });
-  it("should fill any holes in TopSites with placeholders", () => {
-    const rows = [{ url: "https://foo.com" }];
-    rows[3] = { url: "https://bar.com" };
-    const wrapper = shallow(
-      <TopSiteList
-        {...DEFAULT_PROPS}
-        TopSites={{ rows }}
-        TopSitesRows={1}
-        App={APP}
-      />
-    );
-    assert.lengthOf(wrapper.find(TopSite), 2, "topSites");
-    assert.lengthOf(wrapper.find(TopSitePlaceholder), 1, "placeholders");
+    assert.lengthOf(wrapper.find(TopSitePlaceholder), 3, "placeholders");
   });
   it("should update state onDragStart and clear it onDragEnd", () => {
     const wrapper = shallow(<TopSiteList {...DEFAULT_PROPS} App={{ APP }} />);
@@ -1816,11 +1803,11 @@ describe("<TopSiteList>", () => {
   });
 });
 
-describe("TopSitePlaceholder", () => {
+describe("TopSiteAddButton", () => {
   it("should dispatch a TOP_SITES_EDIT action when the addbutton is clicked", () => {
     const dispatch = sinon.spy();
     const wrapper = shallow(
-      <TopSitePlaceholder dispatch={dispatch} index={7} isAddButton={true} />
+      <TopSiteAddButton dispatch={dispatch} index={7} isAddButton={true} />
     );
 
     wrapper.find(".add-button").first().simulate("click");

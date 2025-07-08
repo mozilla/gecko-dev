@@ -978,10 +978,12 @@ main section {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   cursor: default;
 }
-.top-site-outer.placeholder.add-button .tile {
+.top-site-outer.add-button .tile {
   background-color: var(--button-background-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  cursor: default;
 }
-.top-site-outer.placeholder.add-button .tile .icon-wrapper {
+.top-site-outer.add-button .tile .icon-wrapper {
   background-image: url("chrome://global/skin/icons/plus-20.svg");
   background-size: cover;
   background-repeat: no-repeat;
@@ -1043,13 +1045,13 @@ main section {
 .shortcuts-refresh .top-site-outer .top-site-button:focus + div .context-menu-button {
   opacity: 1;
 }
+.shortcuts-refresh .top-site-outer .icon-wrapper {
+  width: 40px;
+  height: 40px;
+}
 .shortcuts-refresh .top-site-outer .tile {
   background: var(--newtab-background-card);
   border-radius: var(--border-radius-large);
-}
-.shortcuts-refresh .top-site-outer .tile .icon-wrapper {
-  width: 40px;
-  height: 40px;
 }
 .shortcuts-refresh .top-site-outer .tile .top-site-icon {
   background-color: transparent;
