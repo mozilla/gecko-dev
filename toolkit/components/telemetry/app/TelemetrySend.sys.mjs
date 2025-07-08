@@ -1408,9 +1408,7 @@ export var TelemetrySendImpl = {
       // Too late to send now. Reject so we pend the ping to send it next time.
       this._log.trace("_doPing - Too late to send ping " + ping.id);
       Glean.telemetry.sendFailureType.eTooLate.add(1);
-      Services.telemetry
-        .getKeyedHistogramById("TELEMETRY_SEND_FAILURE_TYPE_PER_PING")
-        .add(ping.type, "eTooLate");
+      Glean.telemetry.sendFailureTypePerPing.get(ping.type, "eTooLate").add(1);
       return Promise.reject();
     }
 
@@ -1500,9 +1498,7 @@ export var TelemetrySendImpl = {
       lazy.TelemetryHealthPing.recordSendFailure(failure);
 
       Glean.telemetry.sendFailureType[failure].add(1);
-      Services.telemetry
-        .getKeyedHistogramById("TELEMETRY_SEND_FAILURE_TYPE_PER_PING")
-        .add(ping.type, failure);
+      Glean.telemetry.sendFailureTypePerPing.get(ping.type, failure).add(1);
 
       this._log.error(
         "_doPing - error making request to " + url + ": " + failure

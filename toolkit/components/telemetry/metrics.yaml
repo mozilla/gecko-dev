@@ -610,6 +610,40 @@ telemetry:
     expires: never
     telemetry_mirror: h#TELEMETRY_SEND_FAILURE_TYPE
 
+  send_failure_type_per_ping:
+    type: dual_labeled_counter
+    description: >
+      Counts of the different ways sending a Telemetry ping can fail per ping
+      type.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram TELEMETRY_SEND_FAILURE_TYPE_PER_PING.
+    dual_labels:
+      key:
+        description: Ping type.
+      category:
+        labels:
+          - eOK
+          - eRequest
+          - eUnreachable
+          - eChannelOpen
+          - eRedirect
+          - abort
+          - timeout
+          - eTooLate
+          - eTerminated
+        description: Labels of the keyed categorical legacy telemetry histogram
+          TELEMETRY_SEND_FAILURE_TYPE_PER_PING.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1438896
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1438896
+    notification_emails:
+      - telemetry-client-dev@mozilla.com
+      - chutten@mozilla.com
+    expires: never
+    telemetry_mirror: TELEMETRY_SEND_FAILURE_TYPE_PER_PING
+
   stringify:
     type: timing_distribution
     description: >
