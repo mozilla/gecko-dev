@@ -43,25 +43,18 @@ static LazyLogModule sScreenLog("WidgetScreen");
 
 using GdkMonitor = struct _GdkMonitor;
 
+GdkWindow* ScreenHelperGTK::sRootWindow = nullptr;
+StaticRefPtr<ScreenGetterGtk> ScreenHelperGTK::gLastScreenGetter;
+int ScreenHelperGTK::gLastSerial = 0;
+
 class ScreenGetterGtk final {
  public:
-  ScreenGetterGtk() = default;
+  NS_INLINE_DECL_REFCOUNTING(ScreenGetterGtk)
+
+  explicit ScreenGetterGtk(int aSerial);
+
+ protected:
   ~ScreenGetterGtk();
-
-  void Init();
-
-#ifdef MOZ_X11
-  Atom NetWorkareaAtom() { return mNetWorkareaAtom; }
-#endif
-
-  // For internal use from signal callback functions
-  void RefreshScreens();
-
- private:
-  GdkWindow* mRootWindow = nullptr;
-#ifdef MOZ_X11
-  Atom mNetWorkareaAtom = 0;
-#endif
 };
 
 static GdkMonitor* GdkDisplayGetMonitor(GdkDisplay* aDisplay, int aMonitorNum) {
@@ -365,86 +358,7 @@ RefPtr<Screen> ScreenHelperGTK::GetScreenForWindow(nsWindow* aWindow) {
   return nullptr;
 }
 
-static StaticAutoPtr<ScreenGetterGtk> gScreenGetter;
-
-static void monitors_changed(GdkScreen* aScreen, gpointer aClosure) {
-  LOG_SCREEN("Received monitors-changed event");
-  auto* self = static_cast<ScreenGetterGtk*>(aClosure);
-  self->RefreshScreens();
-}
-
-static void screen_resolution_changed(GdkScreen* aScreen, GParamSpec* aPspec,
-                                      ScreenGetterGtk* self) {
-  self->RefreshScreens();
-}
-
-static GdkFilterReturn root_window_event_filter(GdkXEvent* aGdkXEvent,
-                                                GdkEvent* aGdkEvent,
-                                                gpointer aClosure) {
-#ifdef MOZ_X11
-  ScreenGetterGtk* self = static_cast<ScreenGetterGtk*>(aClosure);
-  XEvent* xevent = static_cast<XEvent*>(aGdkXEvent);
-
-  switch (xevent->type) {
-    case PropertyNotify: {
-      XPropertyEvent* propertyEvent = &xevent->xproperty;
-      if (propertyEvent->atom == self->NetWorkareaAtom()) {
-        LOG_SCREEN("Work area size changed");
-        self->RefreshScreens();
-      }
-    } break;
-    default:
-      break;
-  }
-#endif
-
-  return GDK_FILTER_CONTINUE;
-}
-
-void ScreenGetterGtk::Init() {
-  LOG_SCREEN("ScreenGetterGtk created");
-  GdkScreen* defaultScreen = gdk_screen_get_default();
-  if (!defaultScreen) {
-    // Sometimes we don't initial X (e.g., xpcshell)
-    MOZ_LOG(sScreenLog, LogLevel::Debug,
-            ("defaultScreen is nullptr, running headless"));
-    return;
-  }
-  mRootWindow = gdk_get_default_root_window();
-  MOZ_ASSERT(mRootWindow);
-
-  g_object_ref(mRootWindow);
-
-  // GDK_PROPERTY_CHANGE_MASK ==> PropertyChangeMask, for PropertyNotify
-  gdk_window_set_events(mRootWindow,
-                        GdkEventMask(gdk_window_get_events(mRootWindow) |
-                                     GDK_PROPERTY_CHANGE_MASK));
-
-  g_signal_connect(defaultScreen, "monitors-changed",
-                   G_CALLBACK(monitors_changed), this);
-  // Use _after to ensure this callback is run after gfxPlatformGtk.cpp's
-  // handler.
-  g_signal_connect_after(defaultScreen, "notify::resolution",
-                         G_CALLBACK(screen_resolution_changed), this);
-#ifdef MOZ_X11
-  gdk_window_add_filter(mRootWindow, root_window_event_filter, this);
-  if (GdkIsX11Display()) {
-    mNetWorkareaAtom = XInternAtom(GDK_WINDOW_XDISPLAY(mRootWindow),
-                                   "_NET_WORKAREA", X11False);
-  }
-#endif
-  RefreshScreens();
-}
-
-ScreenGetterGtk::~ScreenGetterGtk() {
-  if (mRootWindow) {
-    g_signal_handlers_disconnect_by_data(gdk_screen_get_default(), this);
-
-    gdk_window_remove_filter(mRootWindow, root_window_event_filter, this);
-    g_object_unref(mRootWindow);
-    mRootWindow = nullptr;
-  }
-}
+ScreenGetterGtk::~ScreenGetterGtk() {}
 
 static uint32_t GetGTKPixelDepth() {
   GdkVisual* visual = gdk_screen_get_system_visual(gdk_screen_get_default());
@@ -533,8 +447,7 @@ static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
       defaultCssScale, dpi, Screen::IsPseudoDisplay::No, Screen::IsHDR(isHDR));
 }
 
-void ScreenGetterGtk::RefreshScreens() {
-  LOG_SCREEN("ScreenGetterGtk::RefreshScreens()");
+ScreenGetterGtk::ScreenGetterGtk(int aSerial) {
   AutoTArray<RefPtr<Screen>, 4> screenList;
 
   GdkScreen* defaultScreen = gdk_screen_get_default();
@@ -548,6 +461,13 @@ void ScreenGetterGtk::RefreshScreens() {
   ScreenManager::Refresh(std::move(screenList));
 }
 
+void ScreenHelperGTK::RequestRefreshScreens() {
+  LOG_SCREEN("ScreenHelperGTK::RequestRefreshScreens");
+
+  gLastSerial++;
+  gLastScreenGetter = new ScreenGetterGtk(gLastSerial);
+}
+
 gint ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum) {
   MOZ_ASSERT(NS_IsMainThread());
   GdkScreen* screen = gdk_screen_get_default();
@@ -556,15 +476,84 @@ gint ScreenHelperGTK::GetGTKMonitorScaleFactor(gint aMonitorNum) {
              : 1;
 }
 
+static void monitors_changed(GdkScreen* aScreen, gpointer unused) {
+  LOG_SCREEN("Received monitors-changed event");
+  ScreenHelperGTK::RequestRefreshScreens();
+}
+
+static void screen_resolution_changed(GdkScreen* aScreen, GParamSpec* aPspec,
+                                      gpointer unused) {
+  LOG_SCREEN("Received resolution-changed event");
+  ScreenHelperGTK::RequestRefreshScreens();
+}
+
+static GdkFilterReturn root_window_event_filter(GdkXEvent* aGdkXEvent,
+                                                GdkEvent* aGdkEvent,
+                                                gpointer aClosure) {
+#ifdef MOZ_X11
+  static Atom netWorkareaAtom =
+      XInternAtom(GDK_WINDOW_XDISPLAY(gdk_get_default_root_window()),
+                  "_NET_WORKAREA", X11False);
+  XEvent* xevent = static_cast<XEvent*>(aGdkXEvent);
+
+  switch (xevent->type) {
+    case PropertyNotify: {
+      XPropertyEvent* propertyEvent = &xevent->xproperty;
+      if (propertyEvent->atom == netWorkareaAtom) {
+        LOG_SCREEN("X11 Work area size changed");
+        ScreenHelperGTK::RequestRefreshScreens();
+      }
+    } break;
+    default:
+      break;
+  }
+#endif
+
+  return GDK_FILTER_CONTINUE;
+}
+
 ScreenHelperGTK::ScreenHelperGTK() {
-  gScreenGetter = new ScreenGetterGtk();
-  gScreenGetter->Init();
+  LOG_SCREEN("ScreenHelperGTK created");
+  GdkScreen* defaultScreen = gdk_screen_get_default();
+  if (!defaultScreen) {
+    // Sometimes we don't initial X (e.g., xpcshell)
+    MOZ_LOG(sScreenLog, LogLevel::Debug,
+            ("defaultScreen is nullptr, running headless"));
+    return;
+  }
+  sRootWindow = gdk_get_default_root_window();
+  MOZ_ASSERT(sRootWindow);
+  g_object_ref(sRootWindow);
+
+  // GDK_PROPERTY_CHANGE_MASK ==> PropertyChangeMask, for PropertyNotify
+  gdk_window_set_events(sRootWindow,
+                        GdkEventMask(gdk_window_get_events(sRootWindow) |
+                                     GDK_PROPERTY_CHANGE_MASK));
+
+  g_signal_connect(defaultScreen, "monitors-changed",
+                   G_CALLBACK(monitors_changed), this);
+  // Use _after to ensure this callback is run after gfxPlatformGtk.cpp's
+  // handler.
+  g_signal_connect_after(defaultScreen, "notify::resolution",
+                         G_CALLBACK(screen_resolution_changed), this);
+#ifdef MOZ_X11
+  gdk_window_add_filter(sRootWindow, root_window_event_filter, this);
+#endif
+  RequestRefreshScreens();
 }
 
 int ScreenHelperGTK::GetMonitorCount() {
   return gdk_screen_get_n_monitors(gdk_screen_get_default());
 }
 
-ScreenHelperGTK::~ScreenHelperGTK() { gScreenGetter = nullptr; }
+ScreenHelperGTK::~ScreenHelperGTK() {
+  if (sRootWindow) {
+    g_signal_handlers_disconnect_by_data(gdk_screen_get_default(), this);
+    gdk_window_remove_filter(sRootWindow, root_window_event_filter, this);
+    g_object_unref(sRootWindow);
+    sRootWindow = nullptr;
+  }
+  gLastScreenGetter = nullptr;
+}
 
 }  // namespace mozilla::widget
