@@ -158,7 +158,10 @@ async function requestStorageAccessAndExpectSuccess() {
   await new Promise((resolve, reject) => {
     const db = window.indexedDB.open("rSATest", 1);
     db.onupgradeneeded = resolve;
-    db.success = resolve;
+    db.onsuccess = () => {
+      db.result.close();
+      resolve();
+    };
     db.onerror = reject;
   });
 
@@ -181,6 +184,7 @@ async function requestStorageAccessAndExpectSuccess() {
     };
     req.onsuccess = () => {
       ok(true, "iDB was not cleared");
+      req.result.close();
       resolve();
     };
   });
@@ -201,7 +205,10 @@ async function requestStorageAccessAndExpectFailure() {
   await new Promise((resolve, reject) => {
     const db = window.indexedDB.open("rSATest", 1);
     db.onupgradeneeded = resolve;
-    db.success = resolve;
+    db.onsuccess = () => {
+      db.result.close();
+      resolve();
+    };
     db.onerror = reject;
   });
 
@@ -224,6 +231,7 @@ async function requestStorageAccessAndExpectFailure() {
     };
     req.onsuccess = () => {
       ok(true, "iDB was not cleared");
+      req.result.close();
       resolve();
     };
   });
