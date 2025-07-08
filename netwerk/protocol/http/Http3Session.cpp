@@ -282,6 +282,7 @@ void Http3Session::Shutdown() {
     mTimer->Cancel();
   }
   mTimer = nullptr;
+  mTimerCallback = nullptr;
 
   bool isEchRetry = mError == mozilla::psm::GetXPCOMFromNSSError(
                                   SSL_ERROR_ECH_RETRY_WITH_ECH);
@@ -1013,8 +1014,6 @@ nsresult Http3Session::ProcessOutput(nsIUDPSocket* socket) {
 // properly and close the connection.
 nsresult Http3Session::ProcessOutputAndEvents(nsIUDPSocket* socket) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-  // ProcessOutput could fire another timer. Need to unset the flag before that.
-  mTimerActive = false;
 
   MOZ_ASSERT(mTimerShouldTrigger);
 
@@ -1036,6 +1035,25 @@ nsresult Http3Session::ProcessOutputAndEvents(nsIUDPSocket* socket) {
   return NS_OK;
 }
 
+NS_IMPL_ISUPPORTS(Http3Session::OnQuicTimeout, nsITimerCallback, nsINamed)
+
+Http3Session::OnQuicTimeout::OnQuicTimeout(HttpConnectionUDP* aConnection)
+    : mConnection(aConnection) {
+  MOZ_ASSERT(mConnection);
+}
+
+NS_IMETHODIMP
+Http3Session::OnQuicTimeout::Notify(nsITimer* timer) {
+  mConnection->OnQuicTimeoutExpired();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+Http3Session::OnQuicTimeout::GetName(nsACString& aName) {
+  aName.AssignLiteral("net::HttpConnectionUDP::OnQuicTimeout");
+  return NS_OK;
+}
+
 void Http3Session::SetupTimer(uint64_t aTimeout) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   // UINT64_MAX indicated a no-op from neqo, which only happens when a
@@ -1051,27 +1069,21 @@ void Http3Session::SetupTimer(uint64_t aTimeout) {
   mTimerShouldTrigger =
       TimeStamp::Now() + TimeDuration::FromMilliseconds(aTimeout);
 
-  if (mTimerActive && mTimer) {
-    LOG(
-        ("  -- Previous timer has not fired. Update the delay instead of "
-         "re-initializing the timer"));
-    mTimer->SetDelay(aTimeout);
-    return;
+  if (!mTimerCallback) {
+    // We can keep the same callback object for all our lifetime.
+    mTimerCallback = MakeRefPtr<OnQuicTimeout>(mUdpConn);
   }
 
-  nsresult rv = NS_NewTimerWithCallback(
-      getter_AddRefs(mTimer),
-      [conn = RefPtr{mUdpConn}](nsITimer*) { conn->OnQuicTimeoutExpired(); },
-      aTimeout, nsITimer::TYPE_ONE_SHOT,
-      "net::HttpConnectionUDP::OnQuicTimeout");
-
-  mTimerActive = true;
-
-  if (NS_FAILED(rv)) {
-    NS_DispatchToCurrentThread(
-        NewRunnableMethod("net::HttpConnectionUDP::OnQuicTimeoutExpired",
-                          mUdpConn, &HttpConnectionUDP::OnQuicTimeoutExpired));
+  if (!mTimer) {
+    // This can only fail on OOM and we'd crash.
+    mTimer = NS_NewTimer();
   }
+
+  DebugOnly<nsresult> rv = mTimer->InitWithCallback(mTimerCallback, aTimeout,
+                                                    nsITimer::TYPE_ONE_SHOT);
+  // There is no meaningful error handling we can do here. But an error here
+  // should only be possible if the timer thread did already shut down.
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 }
 
 bool Http3Session::AddStream(nsAHttpTransaction* aHttpTransaction,
@@ -1742,6 +1754,7 @@ void Http3Session::Close(nsresult aReason) {
       mTimer->Cancel();
     }
     mTimer = nullptr;
+    mTimerCallback = nullptr;
     mConnection = nullptr;
     mUdpConn = nullptr;
     mState = CLOSED;
