@@ -208,6 +208,11 @@
     height: 24px;
     /* Matches the libadwaita transition */
     transition: background-color 0.2s ease;
+
+    @media (-moz-gtk-theme-family: adwaita) or (-moz-gtk-theme-family: yaru) {
+      /* On Adwaita / Yaru, the titlebar buttons have a background by default */
+      background-color: color-mix(in srgb, currentColor 10%, transparent);
+    }
   }
 
   &:hover > .toolbarbutton-icon {

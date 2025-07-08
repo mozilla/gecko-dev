@@ -2144,10 +2144,11 @@ void nsLookAndFeel::PerThemeData::Init() {
   mName = GetGtkTheme();
 
   mFamily = [&] {
-    if (mName.EqualsLiteral("Adwaita") || mName.EqualsLiteral("Adwaita-dark")) {
+    if (StringBeginsWith(mName, "Adw"_ns)) {
+      // This catches "Adwaita", "Adwaita-dark", and "Adw-gtk3" too.
       return ThemeFamily::Adwaita;
     }
-    if (mName.EqualsLiteral("Breeze") || mName.EqualsLiteral("Breeze-Dark")) {
+    if (StringBeginsWith(mName, "Breeze"_ns)) {
       return ThemeFamily::Breeze;
     }
     if (StringBeginsWith(mName, "Yaru"_ns)) {
