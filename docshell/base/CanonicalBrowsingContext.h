@@ -169,8 +169,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   void SessionHistoryCommit(uint64_t aLoadId, const nsID& aChangeID,
                             uint32_t aLoadType, bool aCloneEntryChildren,
-                            bool aChannelExpired, uint32_t aCacheKey,
-                            nsIPrincipal* aPartitionedPrincipal);
+                            bool aChannelExpired, uint32_t aCacheKey);
 
   // Calls the session history listeners' OnHistoryReload, storing the result in
   // aCanReload. If aCanReload is set to true and we have an active or a loading

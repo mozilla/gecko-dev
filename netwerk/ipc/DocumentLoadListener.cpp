@@ -675,8 +675,7 @@ static Result<SessionHistoryEntry*, const char*> ValidateHistoryLoad(
                    aLoadState->PrincipalToInherit())) {
     return Err("PrincipalToInherit");
   }
-  if (snapshot->GetPartitionedPrincipalToInherit() &&
-      !principalEq(snapshot->GetPartitionedPrincipalToInherit(),
+  if (!principalEq(snapshot->GetPartitionedPrincipalToInherit(),
                    aLoadState->PartitionedPrincipalToInherit())) {
     return Err("PartitionedPrincipalToInherit");
   }
