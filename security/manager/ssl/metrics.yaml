@@ -485,6 +485,35 @@ security:
     expires: never
     telemetry_mirror: CONTENT_SIGNATURE_VERIFICATION_STATUS
 
+  content_signature_verification_errors:
+    type: dual_labeled_counter
+    description: >
+      Result of the content signature verification keyed by application
+      (certificate fingerprint).
+    dual_labels:
+      key:
+        description: application (certificate fingerprint).
+      category:
+        labels:
+          - invalid
+          - otherError
+          - expiredCert
+          - certNotValidYet
+          - buildCertChainFailed
+          - eeCertForWrongHost
+          - extractKeyError
+          - vfyContextError
+        description: Possible signature verification errors.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1435713
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1435713
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1862062
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+
   ntlm_module_used:
     type: custom_distribution
     description: >
