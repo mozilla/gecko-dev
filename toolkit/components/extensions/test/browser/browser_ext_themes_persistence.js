@@ -28,9 +28,8 @@ add_task(async function test_multiple_windows() {
   let computedStyle = window.getComputedStyle(toolbox);
 
   Assert.ok(docEl.hasAttribute("lwtheme"), "LWT attribute should be set");
-  Assert.equal(
-    docEl.getAttribute("lwtheme-brighttext"),
-    "true",
+  Assert.ok(
+    docEl.hasAttribute("lwtheme-brighttext"),
     "LWT text color attribute should be set"
   );
   Assert.ok(
@@ -45,9 +44,8 @@ add_task(async function test_multiple_windows() {
   computedStyle = window.getComputedStyle(toolbox);
 
   Assert.ok(docEl.hasAttribute("lwtheme"), "LWT attribute should be set");
-  Assert.equal(
-    docEl.getAttribute("lwtheme-brighttext"),
-    "true",
+  Assert.ok(
+    docEl.hasAttribute("lwtheme-brighttext"),
     "LWT text color attribute should be set"
   );
   Assert.ok(

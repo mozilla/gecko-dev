@@ -598,11 +598,10 @@ function _hasDarkFrame(doc, theme, colors, hasTheme) {
  * @param {boolean} hasTheme
  */
 function _setDarkModeAttributes(doc, root, theme, colors, hasTheme) {
-  if (_hasDarkFrame(doc, theme, colors, hasTheme)) {
-    root.setAttribute("lwtheme-brighttext", "true");
-  } else {
-    root.removeAttribute("lwtheme-brighttext");
-  }
+  root.toggleAttribute(
+    "lwtheme-brighttext",
+    _hasDarkFrame(doc, theme, colors, hasTheme)
+  );
 
   if (hasTheme) {
     root.setAttribute(

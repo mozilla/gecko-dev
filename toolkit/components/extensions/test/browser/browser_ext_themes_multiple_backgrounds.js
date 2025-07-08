@@ -33,9 +33,8 @@ add_task(async function test_support_backgrounds_position() {
   let toolbox = document.querySelector("#navigator-toolbox");
 
   Assert.ok(docEl.hasAttribute("lwtheme"), "LWT attribute should be set");
-  Assert.equal(
-    docEl.getAttribute("lwtheme-brighttext"),
-    "true",
+  Assert.ok(
+    docEl.hasAttribute("lwtheme-brighttext"),
     "LWT text color attribute should be set"
   );
 
@@ -106,9 +105,8 @@ add_task(async function test_support_backgrounds_repeat() {
   let toolbox = document.querySelector("#navigator-toolbox");
 
   Assert.ok(docEl.hasAttribute("lwtheme"), "LWT attribute should be set");
-  Assert.equal(
-    docEl.getAttribute("lwtheme-brighttext"),
-    "true",
+  Assert.ok(
+    docEl.hasAttribute("lwtheme-brighttext"),
     "LWT text color attribute should be set"
   );
 
@@ -169,9 +167,8 @@ add_task(async function test_additional_images_check() {
   let toolbox = document.querySelector("#navigator-toolbox");
 
   Assert.ok(docEl.hasAttribute("lwtheme"), "LWT attribute should be set");
-  Assert.equal(
-    docEl.getAttribute("lwtheme-brighttext"),
-    "true",
+  Assert.ok(
+    docEl.hasAttribute("lwtheme-brighttext"),
     "LWT text color attribute should be set"
   );
 

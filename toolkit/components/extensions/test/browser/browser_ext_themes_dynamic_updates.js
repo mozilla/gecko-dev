@@ -28,9 +28,8 @@ function validateTheme(backgroundImage, accentColor, textColor, isLWT) {
 
   if (isLWT) {
     Assert.ok(docEl.hasAttribute("lwtheme"), "LWT attribute should be set");
-    Assert.equal(
-      docEl.getAttribute("lwtheme-brighttext"),
-      "true",
+    Assert.ok(
+      docEl.hasAttribute("lwtheme-brighttext"),
       "LWT text color attribute should be set"
     );
   }

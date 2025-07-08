@@ -30,9 +30,8 @@ add_task(async function test_support_theme_frame() {
     "LWT image attribute should be set"
   );
 
-  Assert.equal(
-    docEl.getAttribute("lwtheme-brighttext"),
-    null,
+  Assert.ok(
+    !docEl.hasAttribute("lwtheme-brighttext"),
     "LWT text color attribute should not be set"
   );
 

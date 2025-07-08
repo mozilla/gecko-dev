@@ -51,8 +51,8 @@ async function testWindowColorScheme({ win, expectDark, expectLWTAttributes }) {
   if (expectLWTAttributes) {
     ok(docEl.hasAttribute("lwtheme"), "Window should have LWT attribute.");
     is(
-      docEl.getAttribute("lwtheme-brighttext"),
-      expectDark ? "true" : null,
+      docEl.hasAttribute("lwtheme-brighttext"),
+      expectDark,
       "LWT text color attribute should be set."
     );
   } else {
