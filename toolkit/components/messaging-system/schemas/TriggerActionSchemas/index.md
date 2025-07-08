@@ -108,7 +108,7 @@ visitsCount >= 3
 ### `newSavedLogin`
 
 Happens every time the user saves or updates a login via the login capture doorhanger.
-Provides a `type` to diferentiate between the two events that can be used in targeting.
+Provides a `type` to differentiate between the two events that can be used in targeting.
 
 Does not filter by host or patterns.
 
