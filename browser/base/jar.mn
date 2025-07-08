@@ -62,7 +62,6 @@ browser.jar:
         content/browser/browser-customtitlebar.js           (content/browser-customtitlebar.js)
         content/browser/browser-toolbarKeyNav.js            (content/browser-toolbarKeyNav.js)
         content/browser/browser-thumbnails.js               (content/browser-thumbnails.js)
-        content/browser/browser-trustPanel.js               (content/browser-trustPanel.js)
         content/browser/browser-unified-extensions.js       (content/browser-unified-extensions.js)
         content/browser/browser-graphics-utils.js           (content/browser-graphics-utils.js)
         content/browser/browser-webrtc.js                   (content/browser-webrtc.js)

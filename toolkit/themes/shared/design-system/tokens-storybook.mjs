@@ -642,7 +642,6 @@ export const storybookTables = {
   ],
   margin: [{ value: "var(--space-small)", name: "--checkbox-margin-inline" }],
   color: [
-    { value: "#f0f0f4", name: "--color-gray-20" },
     { value: "#bac2ca", name: "--color-gray-30" },
     { value: "#bfbfc9", name: "--color-gray-50" },
     { value: "#8f8f9d", name: "--color-gray-60" },
@@ -1315,7 +1314,6 @@ export const variableLookupTable = {
   },
   "checkbox-margin-inline": "var(--space-small)",
   "checkbox-size": "var(--size-item-small)",
-  "color-gray-20": "#f0f0f4",
   "color-gray-30": "#bac2ca",
   "color-gray-50": "#bfbfc9",
   "color-gray-60": "#8f8f9d",

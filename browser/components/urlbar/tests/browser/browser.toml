@@ -696,8 +696,6 @@ https_first_disabled = true
 
 ["browser_top_sites_switchtab.js"]
 
-["browser_trust_panel.js"]
-
 ["browser_typed_value.js"]
 
 ["browser_unitConversion.js"]
