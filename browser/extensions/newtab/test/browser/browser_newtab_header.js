@@ -52,29 +52,5 @@ test_newtab({
       pocketHeader && !pocketHeader.style.visibility,
       "Pocket header should be visible"
     );
-
-    // Highlights (Recent activity) section.
-    await ContentTaskUtils.waitForCondition(
-      () =>
-        content.document.querySelector("section[data-section-id='highlights']"),
-      "Wait for the highlights section to load"
-    );
-    let highlightsSection = content.document.querySelector(
-      "section[data-section-id='topstories']"
-    );
-    let isHighlightsSectionCollapsed =
-      highlightsSection.className.includes("collapsed");
-    ok(
-      !isHighlightsSectionCollapsed,
-      "Highlights section should not be collapsed on load"
-    );
-
-    let highlightsHeader = content.document.querySelector(
-      "section[data-section-id='highlights'] .section-title"
-    );
-    ok(
-      highlightsHeader && !highlightsHeader.style.visibility,
-      "Highlights header should be visible"
-    );
   },
 });
