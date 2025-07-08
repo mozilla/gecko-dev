@@ -318,35 +318,6 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
 #undef ERROR_EVENT
 #undef FORWARDED_EVENT
 #undef EVENT
-  mozilla::dom::Element* GetOffsetParent() {
-    mozilla::CSSIntRect rcFrame;
-    return GetOffsetRect(rcFrame);
-  }
-  int32_t OffsetTop() {
-    mozilla::CSSIntRect rcFrame;
-    GetOffsetRect(rcFrame);
-
-    return rcFrame.y;
-  }
-  int32_t OffsetLeft() {
-    mozilla::CSSIntRect rcFrame;
-    GetOffsetRect(rcFrame);
-
-    return rcFrame.x;
-  }
-  int32_t OffsetWidth() {
-    mozilla::CSSIntRect rcFrame;
-    GetOffsetRect(rcFrame);
-
-    return rcFrame.Width();
-  }
-  int32_t OffsetHeight() {
-    mozilla::CSSIntRect rcFrame;
-    GetOffsetRect(rcFrame);
-
-    return rcFrame.Height();
-  }
-
   // These methods are already implemented in nsIContent but we want something
   // faster for HTMLElements ignoring the namespace checking.
   // This is safe because we already know that we are in the HTML namespace.
@@ -962,14 +933,6 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    * node.
    */
   virtual already_AddRefed<mozilla::EditorBase> GetAssociatedEditor();
-
-  /**
-   * Get the frame's offset information for offsetTop/Left/Width/Height.
-   * Returns the parent the offset is relative to.
-   * @note This method flushes pending notifications (FlushType::Layout).
-   * @param aRect the offset information [OUT]
-   */
-  mozilla::dom::Element* GetOffsetRect(mozilla::CSSIntRect& aRect);
 
   /**
    * Ensures all editors associated with a subtree are synced, for purposes of

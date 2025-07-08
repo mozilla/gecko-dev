@@ -1613,6 +1613,38 @@ class Element : public FragmentOrElement {
 
   MOZ_CAN_RUN_SCRIPT double CurrentCSSZoom();
 
+  Element* GetOffsetParent() {
+    CSSIntRect rcFrame;
+    return GetOffsetRect(rcFrame);
+  }
+  int32_t OffsetTop() {
+    CSSIntRect rcFrame;
+    GetOffsetRect(rcFrame);
+    return rcFrame.y;
+  }
+  int32_t OffsetLeft() {
+    CSSIntRect rcFrame;
+    GetOffsetRect(rcFrame);
+    return rcFrame.x;
+  }
+  int32_t OffsetWidth() {
+    CSSIntRect rcFrame;
+    GetOffsetRect(rcFrame);
+    return rcFrame.Width();
+  }
+  int32_t OffsetHeight() {
+    CSSIntRect rcFrame;
+    GetOffsetRect(rcFrame);
+    return rcFrame.Height();
+  }
+  /**
+   * Get the frame's offset information for offsetTop/Left/Width/Height.
+   * Returns the parent the offset is relative to.
+   * @note This method flushes pending notifications (FlushType::Layout).
+   * @param aRect the offset information [OUT]
+   */
+  Element* GetOffsetRect(CSSIntRect& aRect);
+
   // This function will return the block size of first line box, no matter if
   // the box is 'block' or 'inline'. The return unit is pixel. If the element
   // can't get a primary frame, we will return be zero.
