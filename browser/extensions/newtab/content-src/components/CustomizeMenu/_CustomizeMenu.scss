@@ -41,13 +41,21 @@
   min-width: var(--button-collapsed-width);
   transition: all 0.5s ease-in-out;
 
-  // Contrast fix for users who have wallpapers set
-  &:not(:hover, :active) {
-    @include wallpaper-contrast-fix;
+  .lightWallpaper &,
+  .darkWallpaper & {
+    background-color: var(--newtab-weather-background-color);
+
+    @media (prefers-contrast) {
+      background-color: var(--background-color-box);
+    }
   }
 
   &:hover {
     background-color: var(--newtab-element-hover-color);
+  }
+
+  &:focus {
+    background-color: var(--newtab-element-active-color);
   }
 
   &:active {

@@ -2072,14 +2072,19 @@ main section {
   min-width: var(--button-collapsed-width);
   transition: all 0.5s ease-in-out;
 }
-.lightWallpaper .personalize-button:not(:hover, :active) {
-  color-scheme: light;
+.lightWallpaper .personalize-button, .darkWallpaper .personalize-button {
+  background-color: var(--newtab-weather-background-color);
 }
-.darkWallpaper .personalize-button:not(:hover, :active) {
-  color-scheme: dark;
+@media (prefers-contrast) {
+  .lightWallpaper .personalize-button, .darkWallpaper .personalize-button {
+    background-color: var(--background-color-box);
+  }
 }
 .personalize-button:hover {
   background-color: var(--newtab-element-hover-color);
+}
+.personalize-button:focus {
+  background-color: var(--newtab-element-active-color);
 }
 .personalize-button:active {
   background-color: var(--newtab-element-active-color);
