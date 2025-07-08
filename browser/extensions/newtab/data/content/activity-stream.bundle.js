@@ -645,9 +645,6 @@ const PREF_CONTEXTUAL_CONTENT_FEEDS = "discoverystream.contextualContent.feeds";
 const PREF_SECTIONS_ENABLED = "discoverystream.sections.enabled";
 const PREF_SPOC_PLACEMENTS = "discoverystream.placements.spocs";
 const PREF_SPOC_COUNTS = "discoverystream.placements.spocs.counts";
-const PREF_CONTEXTUAL_ADS_ENABLED = "discoverystream.sections.contextualAds.enabled";
-const PREF_CONTEXTUAL_BANNER_PLACEMENTS = "discoverystream.placements.contextualBanners";
-const PREF_CONTEXTUAL_BANNER_COUNTS = "discoverystream.placements.contextualBanners.counts";
 const Row = props => /*#__PURE__*/external_React_default().createElement("tr", _extends({
   className: "message-item"
 }, props), props.children);
@@ -891,22 +888,6 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
     // Update prefs with new values
     this.props.dispatch(actionCreators.SetPref(PREF_SPOC_PLACEMENTS, placements));
     this.props.dispatch(actionCreators.SetPref(PREF_SPOC_COUNTS, counts));
-
-    // If contextual ads, sections, and one of the banners are enabled
-    // update the contextualBanner prefs to include the banner value and count
-    // Else, clear the prefs
-    if (PREF_CONTEXTUAL_ADS_ENABLED && PREF_SECTIONS_ENABLED) {
-      if (PREF_AD_SIZE_BILLBOARD && placements.includes("newtab_billboard")) {
-        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_PLACEMENTS, "newtab_billboard"));
-        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_COUNTS, "1"));
-      } else if (PREF_AD_SIZE_LEADERBOARD && placements.includes("newtab_leaderboard")) {
-        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_PLACEMENTS, "newtab_leaderboard"));
-        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_COUNTS, "1"));
-      } else {
-        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_PLACEMENTS, ""));
-        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_COUNTS, ""));
-      }
-    }
   }
   handleSectionsToggle(e) {
     const {
