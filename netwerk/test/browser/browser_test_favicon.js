@@ -11,7 +11,10 @@ add_task(async function () {
   const pageUrl =
     "http://example.com/browser/netwerk/test/browser/file_favicon.html";
   await SpecialPowers.pushPrefEnv({
-    set: [["network.cookie.cookieBehavior", 1]],
+    set: [
+      ["network.cookie.cookieBehavior", 1],
+      ["dom.security.https_first", false],
+    ],
   });
 
   let promise = TestUtils.topicObserved("cookie-rejected", subject => {

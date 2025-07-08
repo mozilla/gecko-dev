@@ -1,7 +1,13 @@
 "use strict";
 
-Services.prefs.setBoolPref("dom.manifest.enabled", true);
-Services.prefs.setBoolPref("dom.security.https_first", false);
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["dom.manifest.enabled", true],
+      ["dom.security.https_first", false],
+    ],
+  });
+});
 
 const { ManifestObtainer } = ChromeUtils.importESModule(
   "resource://gre/modules/ManifestObtainer.sys.mjs"

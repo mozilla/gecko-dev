@@ -39,6 +39,12 @@ function generateHash(aString, hashAlg) {
 
 const MANIFESTS_DIR = PathUtils.join(PathUtils.profileDir, "manifests");
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.security.https_first", false]],
+  });
+});
+
 add_task(async function () {
   const tabOptions = { gBrowser, url: makeTestURL() };
 
