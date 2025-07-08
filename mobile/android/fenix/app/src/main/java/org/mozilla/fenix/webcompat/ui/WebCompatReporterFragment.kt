@@ -22,6 +22,7 @@ import org.mozilla.fenix.compose.ComposeFragment
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
+import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_SUMO_URL
 import org.mozilla.fenix.webcompat.di.WebCompatReporterMiddlewareProvider
 import org.mozilla.fenix.webcompat.store.WebCompatReporterAction
 import org.mozilla.fenix.webcompat.store.WebCompatReporterState
@@ -71,6 +72,13 @@ class WebCompatReporterFragment : ComposeFragment() {
                         is WebCompatReporterAction.SendMoreInfoSubmitted -> {
                             (activity as HomeActivity).openToBrowserAndLoad(
                                 searchTermOrURL = "$WEB_COMPAT_REPORTER_URL${webCompatReporterStore.state.enteredUrl}",
+                                newTab = true,
+                                from = BrowserDirection.FromWebCompatReporterFragment,
+                            )
+                        }
+                        is WebCompatReporterAction.LearnMoreClicked -> {
+                            (activity as HomeActivity).openToBrowserAndLoad(
+                                searchTermOrURL = WEB_COMPAT_REPORTER_SUMO_URL,
                                 newTab = true,
                                 from = BrowserDirection.FromWebCompatReporterFragment,
                             )

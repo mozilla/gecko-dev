@@ -1549,7 +1549,11 @@
     <!-- The title of the Web Compat Reporter feature. This is displayed in the top app bar. -->
     <string name="webcompat_reporter_screen_title">Report broken site</string>
     <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
-    <string name="webcompat_reporter_description">Help make %1$s better for everyone. Mozilla employees use the info you send to fix website problems.</string>
+    <string name="webcompat_reporter_description" moz:removedIn="142" tools:ignore="UnusedResources">Help make %1$s better for everyone. Mozilla employees use the info you send to fix website problems.</string>
+    <!-- The description of the Web Compat Reporter feature, which has a "learn more" button text for navigating to a SUMO link to learn more about reporting a broken site. %1$s is the name of the app (for example "Firefox"). -->
+    <string name="webcompat_reporter_description_2">Your report helps us understand and fix issues in %1$s to make it better for everyone. Learn more</string>
+    <!-- The button text for navigating to the SUMO link to learn more about reporting a broken site. -->
+    <string name="webcompat_reporter_learn_more">Learn more</string>
     <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
     <string name="webcompat_reporter_label_url">URL</string>
     <!-- The error message of the URL text field when an invalid URL has been entered. -->

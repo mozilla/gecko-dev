@@ -13695,6 +13695,21 @@ webcompatreporting:
       - twisniewski@mozilla.com
       - webcompat-reporting-tool-telemetry@mozilla.com
     expires: never
+  learn_more:
+    type: event
+    description: |
+      The user will be redirected to a SUMO article (https://support.mozilla.org/km/kb/report-breakage-due-blocking) to learn more about reporting a broken site.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1970705
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D255555
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - twisniewski@mozilla.com
+      - android-probes@mozilla.com
+      - webcompat-reporting-tool-telemetry@mozilla.com
+    expires: never
 
 home.content.article:
   impression:
