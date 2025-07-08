@@ -709,9 +709,9 @@ def default_wasm_jspi(
         return
 
     if simulator:
-        return simulator[0] == "arm64" or simulator[0] == "arm"
+        return simulator[0] in ("arm64", "arm", "riscv64")
 
-    if target.cpu in ("x86_64", "x86", "aarch64", "arm", "loongarch64"):
+    if target.cpu in ("x86_64", "x86", "aarch64", "arm", "loongarch64", "riscv64"):
         return True
 
 
@@ -736,14 +736,14 @@ def wasm_jspi(value, jit_enabled, simulator, no_experimental, target):
     if not jit_enabled:
         die("--enable-wasm-jspi requires --enable-jit")
 
-    if simulator and not (simulator[0] == "arm64" or simulator[0] == "arm"):
-        die("--enable-wasm-jspi is only supported for arm64/arm simulators")
+    if simulator and simulator[0] not in ("arm64", "arm", "riscv64"):
+        die("--enable-wasm-jspi is only supported for arm64/arm/riscv64 simulators")
 
-    if target.cpu in ("x86_64", "x86", "aarch64", "arm", "loongarch64"):
+    if target.cpu in ("x86_64", "x86", "aarch64", "arm", "loongarch64", "riscv64"):
         return True
 
     die(
-        "--enable-wasm-jspi only possible when targeting the x86_64/x86/arm64/arm/loongarch64 jits"
+        "--enable-wasm-jspi only possible when targeting the x86_64/x86/arm64/arm/loongarch64/riscv64 jits"
     )
 
 
