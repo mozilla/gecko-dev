@@ -10598,6 +10598,13 @@
   value: false
   mirror: always
 
+# Whether we always hide the scrollbars, to avoid them affecting the visual
+# metrics of some performance tests.
+- name: layout.testing.scrollbars.always-hidden
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Throttled frame rate, in frames per second.
 - name: layout.throttled_frame_rate
   type: uint32_t

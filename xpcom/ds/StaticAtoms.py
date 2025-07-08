@@ -2445,9 +2445,10 @@ STATIC_ATOMS = [
     # Media query prefs for UA sheets.
     Atom("mathml_legacy_mathvariant_attribute_disabled", "mathml.legacy_mathvariant_attribute.disabled"),
     Atom("layout_css_always_underline_links", "layout.css.always_underline_links"),
+    Atom("layout_css_android_pip_enabled", "layout.css.android-pip.enabled"),
     Atom("layout_css_cached_scrollbar_styles_enabled", "layout.css.cached-scrollbar-styles.enabled"),
     Atom("layout_css_h1_in_section_ua_styles_enabled", "layout.css.h1-in-section-ua-styles.enabled"),
-    Atom("layout_css_android_pip_enabled", "layout.css.android-pip.enabled"),
+    Atom("layout_testing_scrollbars_always_hidden", "layout.testing.scrollbars.always-hidden"),
     # Contextual Identity / Containers
     Atom("usercontextid", "usercontextid"),
     Atom("geckoViewSessionContextId", "geckoViewSessionContextId"),

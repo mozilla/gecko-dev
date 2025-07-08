@@ -227,3 +227,10 @@ scrollcorner {
     display: none;
   }
 }
+
+/* stylelint-disable-next-line media-query-no-invalid */
+@media -moz-pref("layout.testing.scrollbars.always-hidden") {
+  scrollbar {
+    opacity: 0 !important;
+  }
+}
