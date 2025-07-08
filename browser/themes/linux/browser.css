@@ -163,6 +163,11 @@
 .titlebar-buttonbox {
   z-index: 1;
   align-items: stretch;
+  --max-titlebar-button-position: max(
+    env(-moz-gtk-csd-maximize-button-position),
+    env(-moz-gtk-csd-minimize-button-position),
+    env(-moz-gtk-csd-close-button-position)
+  );
 }
 
 @media (-moz-gtk-csd-reversed-placement) {
@@ -177,6 +182,12 @@
   align-items: center;
   padding: 0;
   padding-inline: calc(env(-moz-gtk-csd-titlebar-button-spacing) / 2);
+  /* We want double the end spacing for the last button */
+  padding-inline-end: max(
+    env(-moz-gtk-csd-titlebar-button-spacing) / 2,
+    env(-moz-gtk-csd-titlebar-button-spacing) * (var(--titlebar-button-position) - var(--max-titlebar-button-position) + 1)
+  );
+  order: var(--titlebar-button-position);
   /* In GTK applications, you can drag the window by titlebar buttons */
   -moz-window-dragging: drag;
 
@@ -207,29 +218,25 @@
   }
 }
 
+.titlebar-restore,
 .titlebar-max {
-  order: env(-moz-gtk-csd-maximize-button-position);
+  --titlebar-button-position: env(-moz-gtk-csd-maximize-button-position);
+
   > .toolbarbutton-icon {
     background-image: -moz-symbolic-icon(window-maximize-symbolic);
   }
-}
 
-.titlebar-restore {
-  order: env(-moz-gtk-csd-maximize-button-position);
-  > .toolbarbutton-icon {
-    background-image: -moz-symbolic-icon(window-restore-symbolic);
-  }
-}
-
-@media not (-moz-gtk-csd-maximize-button) {
-  .titlebar-restore,
-  .titlebar-max {
+  @media not (-moz-gtk-csd-maximize-button) {
     display: none;
   }
 }
 
+.titlebar-restore > .toolbarbutton-icon {
+  background-image: -moz-symbolic-icon(window-restore-symbolic);
+}
+
 .titlebar-close {
-  order: env(-moz-gtk-csd-close-button-position);
+  --titlebar-button-position: env(-moz-gtk-csd-close-button-position);
 
   > .toolbarbutton-icon {
     background-image: -moz-symbolic-icon(window-close-symbolic);
@@ -241,7 +248,7 @@
 }
 
 .titlebar-min {
-  order: env(-moz-gtk-csd-minimize-button-position);
+  --titlebar-button-position: env(-moz-gtk-csd-minimize-button-position);
 
   > .toolbarbutton-icon {
     background-image: -moz-symbolic-icon(window-minimize-symbolic);
