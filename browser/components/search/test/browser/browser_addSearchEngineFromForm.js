@@ -71,31 +71,7 @@ const URL_WINDOWS1252 =
   "https://example.org/browser/browser/components/search/test/browser/test_windows1252.html";
 
 async function addEngine(browser, selector, name, alias) {
-  let contextMenu = document.getElementById("contentAreaContextMenu");
-  let addEngineItem = document.getElementById("context-add-engine");
-
-  let contextMenuPromise = BrowserTestUtils.waitForEvent(
-    contextMenu,
-    "popupshown"
-  );
-  info("Opening context menu.");
-  await BrowserTestUtils.synthesizeMouseAtCenter(
-    selector,
-    { type: "contextmenu", button: 2 },
-    browser
-  );
-  await contextMenuPromise;
-  let dialogLoaded = TestUtils.topicObserved("subdialog-loaded");
-  info("Clicking add engine.");
-  contextMenu.activateItem(addEngineItem);
-  let [dialogWin] = await dialogLoaded;
-  await window.gDialogBox.dialog._dialogReady;
-  info("Dialog opened.");
-  Assert.equal(
-    dialogWin.document.getElementById("titleContainer").style.display,
-    "",
-    "Adjustable title is displayed."
-  );
+  let dialogWin = await openAddEngineDialog(browser, selector);
 
   fillTextField("engineName", name, dialogWin);
   fillTextField("engineAlias", alias, dialogWin);
@@ -105,7 +81,7 @@ async function addEngine(browser, selector, name, alias) {
   await TestUtils.waitForCondition(
     () => gURLBar.searchMode?.engineName == name
   );
-  Assert.ok(true, "Went into search mode.");
+  Assert.ok(true, "Went into search mode");
 
   await UrlbarTestUtils.exitSearchMode(window);
   return Services.search.getEngineByName(name);
@@ -177,6 +153,31 @@ function postDataToString(postData) {
     .replace("searchTerms", "%s");
 }
 
+async function openAddEngineDialog(browser, selector) {
+  let contextMenu = document.getElementById("contentAreaContextMenu");
+  let addEngineItem = document.getElementById("context-add-engine");
+
+  let contextMenuPromise = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popupshown"
+  );
+  info("Opening context menu.");
+  await BrowserTestUtils.synthesizeMouseAtCenter(
+    selector,
+    { type: "contextmenu", button: 2 },
+    browser
+  );
+  await contextMenuPromise;
+  let dialogLoaded = TestUtils.topicObserved("subdialog-loaded");
+  info("Clicking add engine.");
+  contextMenu.activateItem(addEngineItem);
+  let [dialogWin] = await dialogLoaded;
+  await BrowserTestUtils.waitForEvent(dialogWin, "load");
+  await window.gDialogBox.dialog._dialogReady;
+  info("Dialog opened.");
+  return dialogWin;
+}
+
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.update2.engineAliasRefresh", true]],
@@ -191,11 +192,11 @@ add_task(async function testAddingEngines() {
     await navigateToCharset(args.charset);
     await SpecialPowers.spawn(browser, [args], createForm);
     let engine = await addEngine(browser, "#mainInput", "My Engine", "alias");
-    Assert.ok(!!engine, "Engine was installed.");
+    Assert.ok(!!engine, "Engine was installed");
     Assert.equal(
       engine.id,
       (await Services.search.getEngineByAlias("alias"))?.id,
-      "Engine has correct alias."
+      "Engine has correct alias"
     );
 
     Assert.equal(engine.wrappedJSObject.queryCharset, args.charset);
@@ -208,12 +209,51 @@ add_task(async function testAddingEngines() {
     Assert.equal(
       SearchTestUtils.getPostDataString(submission),
       args.expectedPost,
-      "Submission post data is correct."
+      "Submission post data is correct"
     );
 
     await Services.search.removeEngine(engine);
   }
 
+  // Let the dialog fully close. Otherwise, the tab cannot be closed properly.
+  await TestUtils.waitForCondition(
+    () => !document.documentElement.hasAttribute("window-modal-open")
+  );
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+});
+
+add_task(async function testDialog() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  let browser = tab.linkedBrowser;
+
+  await navigateToCharset(TESTS[0].charset);
+  await SpecialPowers.spawn(browser, [TESTS[0]], createForm);
+  let dialogWin = await openAddEngineDialog(browser, "#mainInput");
+
+  // Test if title is displayed.
+  Assert.equal(
+    dialogWin.document.getElementById("titleContainer").style.display,
+    "",
+    "Adjustable title is displayed"
+  );
+
+  // Test if context menu works for inputs.
+  await EventUtils.synthesizeMouseAtCenter(
+    dialogWin.document.getElementById("engineName"),
+    { type: "contextmenu", button: 2 },
+    dialogWin
+  );
+  let contextMenu = dialogWin.document.getElementById("textbox-contextmenu");
+  Assert.ok(contextMenu, "Context menu is created");
+  if (contextMenu.state == "showing") {
+    await BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
+  }
+  Assert.equal(contextMenu.state, "open", "Context menu is shown");
+  contextMenu.hidePopup();
+  Assert.equal(contextMenu.state, "closed", "Context menu was closed");
+
+  info("Closing dialog.");
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, dialogWin);
   // Let the dialog fully close. Otherwise, the tab cannot be closed properly.
   await TestUtils.waitForCondition(
     () => !document.documentElement.hasAttribute("window-modal-open")
