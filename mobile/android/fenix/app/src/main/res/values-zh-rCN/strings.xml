@@ -1250,11 +1250,14 @@
   <string name="preferences_crashes_learn_more">详细了解崩溃报告</string>
   <!-- Title Headers for data collection settings screen -->
   <string name="crash_reports_data_category">崩溃报告</string>
+  <string name="usage_data_category">使用统计</string>
   <string name="studies_data_category">研究</string>
   <string name="technical_data_category">技术数据</string>
   <string name="crash_reporting_description">我们可借助崩溃报告来诊断和修复浏览器的问题。报告中可能包含个人或敏感数据。</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">广告系列效果衡量</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
-  <string name="preferences_marketing_data_2">活动衡量数据</string>
+  <string name="preferences_marketing_data_2">广告系列效果衡量数据</string>
   <!--
     Preference description for marketing data collection.
     Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
@@ -1293,9 +1296,9 @@
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">底部</string>
   <!-- Preference for using simple toolbar -->
-  <string name="preference_simple_toolbar">简单</string>
+  <string name="preference_simple_toolbar">简洁</string>
   <!-- Preference for using expanded toolbar -->
-  <string name="preference_expanded_toolbar">展开</string>
+  <string name="preference_expanded_toolbar">丰富</string>
   <!--
     Theme Preferences
 
@@ -2663,7 +2666,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">清除主机名</string>
   <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
-  <string name="login_detail_menu_button_content_description">登录详细信息菜单</string>
+  <string name="login_detail_menu_button_content_description">登录信息菜单</string>
   <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
   <string name="login_details_navigate_back_button_content_description">后退</string>
   <!-- Edit text for the login detail menu edit button -->

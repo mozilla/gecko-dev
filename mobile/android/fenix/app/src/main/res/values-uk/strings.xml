@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s стирає вашу історію пошуку та перегляду для приватних вкладок, коли ви закриваєте їх чи виходите з програми. Це не робить вас анонімними для вебсайтів чи вашого провайдера, але дозволяє приховати вашу діяльність в інтернеті від будь-кого іншого, хто використовує цей пристрій.</string>
   <string name="private_browsing_common_myths">Поширені міфи про приватний перегляд</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Сеанс приватного перегляду</string>
   <!--
     True Private Browsing Mode
 
@@ -859,6 +861,8 @@
   <string name="preferences_category_account">Обліковий запис</string>
   <!-- Preference for changing where the AddressBar is positioned -->
   <string name="preferences_toolbar_2">Розташування панелі адреси</string>
+  <!-- Preference for changing toolbar layout -->
+  <string name="preferences_toolbar_layout">Макет панелі інструментів</string>
   <!-- Preference for changing default theme to dark or light mode -->
   <string name="preferences_theme">Тема</string>
   <!-- Preference for customizing the home screen -->
@@ -941,6 +945,14 @@
   <string name="preferences_open_links_in_apps_never">Ніколи</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Зовнішній менеджер завантажень</string>
+  <!-- Preference title for choosing an app to handle downloads -->
+  <string name="preferences_choose_app_for_downloads">Керування завантаженнями за допомогою іншої програми</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">Видалити з %s і з пристрою</string>
+  <!-- Summary for the setting to automatically clean up downloaded files -->
+  <string name="preferences_downloads_settings_clean_up_files_summary">Вилучення файлів з менеджера завантажень також вилучає їх з вашого пристрою</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Завантаження</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Увімкнути журнали Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -1106,6 +1118,12 @@
   <string name="alternative_app_icon_option_momo">Момо</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">Створено @heyheymomodraws</string>
+  <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
+  <string name="alternative_app_icon_group_solid_colors">Суцільні кольори</string>
+  <!-- Title for the "Gradients" group of alternative app icon variants in the icon picker screen. This group contains icons with gradient backgrounds inspired by natural light conditions. -->
+  <string name="alternative_app_icon_group_gradients">Градієнти</string>
+  <!-- Title for the "Other" group of alternative app icon variants in the icon picker screen. This group includes retro, pixel art, themed, and artist-created icons. -->
+  <string name="alternative_app_icon_group_other">Інше</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1214,6 +1232,8 @@
   <string name="exceptions_empty_message_learn_more_link">Докладніше</string>
   <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Надсилати технічні й аналітичні дані</string>
+  <!-- Preference switch for usage and technical learn more link in new compose -->
+  <string name="preference_usage_data_learn_more_2">Докладніше про технічні дані</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more" tools:ignore="UnusedResources" moz:removedIn="141">Докладніше</string>
   <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
@@ -1226,6 +1246,16 @@
   <string name="preferences_automatically_send_crashes_title">Автоматично надсилати звіти про збої</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">Це допомагає нам діагностувати й усувати проблеми з браузером. Звіти можуть містити особисті або конфіденційні дані.</string>
+  <!-- Text for sumo link to learn more about crash reports in data collection screen -->
+  <string name="preferences_crashes_learn_more">Докладніше про звіти про збої</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Звіти про збої</string>
+  <string name="usage_data_category">Дані про використання</string>
+  <string name="studies_data_category">Дослідження</string>
+  <string name="technical_data_category">Технічні дані</string>
+  <string name="crash_reporting_description">Звіти про збої дозволяють нам діагностувати й усувати проблеми з браузером. Вони можуть містити особисті або конфіденційні дані.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Вимірювання кампанії</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Дані вимірювання кампанії</string>
   <!--
@@ -1265,6 +1295,10 @@
   <string name="preference_top_toolbar">Вгорі</string>
   <!-- Preference for using bottom toolbar -->
   <string name="preference_bottom_toolbar">Внизу</string>
+  <!-- Preference for using simple toolbar -->
+  <string name="preference_simple_toolbar">Проста</string>
+  <!-- Preference for using expanded toolbar -->
+  <string name="preference_expanded_toolbar">Розширена</string>
   <!--
     Theme Preferences
 
@@ -1639,11 +1673,21 @@
   -->
   <string name="download_item_in_progress_description_pending">%1$s / %2$s • очікується</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • невідомий час</string>
+  <!--
     Description of a paused download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
   -->
   <string name="download_item_paused_description">%1$s / %2$s • призупинено</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • призупинено</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">призупинено</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1748,12 +1792,20 @@
   <string name="tab_crash_restore">Відновити вкладку</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s довелося перезапустити</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">У вас є ненадісланий звіт про збій, який наразі досліджується. Надіславши його, ви допоможете нам покращити %1$s. Закривши це сповіщення, звіт буде проігноровано.</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">У вас є ненадіслані звіти про збої (%1$d), які наразі досліджуються. Надіславши їх, ви допоможете нам покращити %2$s. Закривши це сповіщення, звіти буде проігноровано.</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">Автоматично надсилати звіти про збої</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
   <string name="unsubmitted_crash_dialog_negative_button">Закрити</string>
+  <!-- Unsubmitted crash dialog negative button to never be asked for the submission -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_never_button">Більше не показувати</string>
   <!-- Unsubmitted crash dialog positive button to submit crash report -->
   <string name="unsubmitted_crash_dialog_positive_button">Надіслати звіт про збій</string>
+  <!-- Unsubmitted crash dialog button to open a web page with more details on the feature and privacy policy -->
+  <string name="unsubmitted_crash_requested_by_devs_learn_more">Докладніше</string>
   <!--
     Bookmarks
 
@@ -2613,6 +2665,22 @@
   <string name="saved_login_clear_username">Стерти ім’я користувача</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Стерти вузол</string>
+  <!-- Content description, used by tools like screenreaders, for the 3 dots button that shows commands related to the currently displayed login (edit, delete). -->
+  <string name="login_detail_menu_button_content_description">Меню подробиць запису входу</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">Перейти назад</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">Редагувати</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">Видалити</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Перейти назад</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Зберегти новий пароль</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Перейти назад</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Редагувати запис входу</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Відкрити сайт у браузері</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->

@@ -216,6 +216,10 @@
   <string name="browser_menu_extensions_banner_learn_more" moz:removedIn="141" tools:ignore="UnusedResources">Gouzout hiroc\'h</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Merañ an askouezhioù</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Muioc’h</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Nebeutoc’h</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Askouezhioù erbedet</string>
   <!--
@@ -377,6 +381,8 @@
   <string name="browser_menu_translated_to" moz:removedIn="141" tools:ignore="UnusedResources">Troet e %1$s</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print" moz:removedIn="141" tools:ignore="UnusedResources">Moullañ…</string>
+  <!-- Browser menu label for the print feature -->
+  <string name="browser_menu_print_2">Moullañ</string>
   <!--
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
@@ -610,6 +616,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Merdeiñ buan ha diogel</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Asantiñ ha kenderc’hel</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Kenderc’hel</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">En ur genderc\'hel e asantit d\'ar %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -892,6 +900,8 @@
   <string name="preferences_open_links_in_apps_never">Morse</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">Ardoer pellgargañ diavaez</string>
+  <!-- Preference for downloads -->
+  <string name="preferences_downloads">Pellgargadurioù</string>
   <!-- Preference for enabling gecko engine logs -->
   <string name="preferences_enable_gecko_logs">Gweredekaat kerzhlevr Gecko</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -920,6 +930,10 @@
   <string name="addons_permissions_allow_for_all_sites_subtitle">M’ho p’eus fiziañs en askouezh-mañ e c’hallit reiñ an aotre dezhañ war an holl lec’hiennoù.</string>
   <!-- The text shown when an extension does not require permissions -->
   <string name="addons_does_not_require_permissions">An askouezh-mañ na c’houlenn aotre ebet.</string>
+  <!-- The title of the required permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_required_permissions">Aotreoù rekis:</string>
+  <!-- The title of the optional permissions section from addon's permissions screen. -->
+  <string name="addons_permissions_heading_optional_permissions">Aotreoù diret:</string>
   <!--
     Add-on Preferences
 
@@ -993,14 +1007,50 @@
   <string name="wallpapers_onboarding_dialog_body_text">Dibabit ur skeudenn drekleur a blij deoc’h.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Dizoleiñ skeudennoù drekleur all</string>
+  <!--
+    Icon picker
+
+    Title for the "Default" alternative app icon variant in the icon picker screen.
+  -->
+  <string name="alternative_app_icon_option_default">Dre ziouer</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">Sklaer</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">Teñval</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">Ruz</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">Gwer</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">Glas</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">Mouk</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">Mouk teñval</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">Sav-heol</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">Kuzh-heol</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">Serr-noz</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">Hanternoz</string>
   <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
   <string name="alternative_app_icon_option_gradient_northern_lights">Gouloù-noz</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">Mod-kozh 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Mod-kozh 2017</string>
   <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
   <string name="alternative_app_icon_option_pixelated">Pikselaet</string>
   <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
   <string name="alternative_app_icon_option_minimal">Bihanañ</string>
   <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
   <string name="alternative_app_icon_option_pride">Lorc’h</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Krouet gant @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1391,6 +1441,8 @@
   <string name="history_older">Koshocʼh</string>
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Roll istor ebet amañ</string>
+  <!-- Title for the dialog that prompts the user to choose an app for downloading a file. -->
+  <string name="download_app_dialog_title">Pellgargañ ar restr gant:</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">“%1$s” dilamet</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1410,6 +1462,16 @@
   <string name="download_multi_select_title">%1$d diuzet</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">Dilemel</string>
+  <!--
+    Content description for the search bar clear text button on the downloads screen
+
+    Content description for pause action button on the downloads screen
+  -->
+  <string name="download_pause_action">Ehan</string>
+  <!-- Content description for resume action button on the downloads screen -->
+  <string name="download_resume_action">Kenderc’hel</string>
+  <!-- Content description for retry download action button on the downloads screen -->
+  <string name="download_retry_action">Klask en-dro</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">Rannañ an URL</string>
   <!-- Text for the button to share the download file -->
@@ -1434,6 +1496,8 @@
   <string name="download_time_period_last_7_days">Ar 7 deiz diwezhañ</string>
   <!-- Text for the header that groups the downloads the past 30 days -->
   <string name="download_time_period_last_30_days">An 30 deiz diwezhañ</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">O prientiñ ar pellgargadur…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1442,10 +1506,29 @@
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s a chom</string>
   <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • a-benn %3$s.</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the estimated download time remaining is still being calculated.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • o c’hortoz</string>
+  <!--
     Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
     %1$s is the current file size that has been downloaded.
   -->
   <string name="download_item_in_progress_description_unknown_total_size">%1$s • amzer dianav</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • ehanet</string>
   <!--
     Description of a paused download item, displayed in the downloads list when the total download size is unknown.
     %1$s is the current file size that has been downloaded.
@@ -1457,6 +1540,8 @@
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">o jediñ</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Pellgargañ c\'hwitet</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Munudoù</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found">Disoc’h ebet kavet</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
@@ -1469,6 +1554,8 @@
   <string name="download_content_type_filter_all">Pep tra</string>
   <!-- Text for the filter button to show only images in the downloads list -->
   <string name="download_content_type_filter_image">Skeudennoù</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">Teulioù</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">All</string>
   <!--
@@ -1571,6 +1658,8 @@
   <string name="bookmark_menu_copy_button">Eilañ</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Rannañ</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Diuzañ pep tra</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Digeriñ en un ivinell nevez</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1651,6 +1740,8 @@
   <string name="bookmark_empty_list_title">N’eus tamm sined ebet c’hoazh</string>
   <!-- Description for the bookmark list empty state when you're not signed into sync. -->
   <string name="bookmark_empty_list_guest_description">Enrollit al lec’hiennoù a feur ma verdeit. Kennaskit da dapout sinedoù eus trevnadoù goubredet all.</string>
+  <!-- Text for the button to navigate to sync authentication -->
+  <string name="bookmark_empty_list_guest_cta">Kennaskañ evit goubredañ</string>
   <!-- Description for the add new folder button when selecting a folder. -->
   <string name="bookmark_select_folder_new_folder_button_title">Teuliad nevez</string>
   <!--
@@ -2196,8 +2287,14 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">Arlun gwellvezioù an nemedennoù evit ar gwarez kreñvaet a-enep an heuliañ</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Gouzout hiroc’h</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Nemedennoù</string>
   <!-- Content description for the "Info" button -->
   <string name="preference_doh_info_description">Titouroù</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Ouzhpennañ ul lec’hienn</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">Gwarez dre ziouer</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
@@ -3221,6 +3318,16 @@
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Hizivadur erbedet</string>
   <!-- TextField Design System Component -->
 
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">Gourc’hemennoù!</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">Ar pep retañ eus %1$s</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">Personelait ho %1$s</string>
   <!--
     ===== Setup checklist feature: Accessibility =====
 
@@ -3229,6 +3336,8 @@
   <string name="a11y_completed_task_description">Trevell klokaet</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">Ikon trevell</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Dibrennañ</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Ket, trugarez</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->

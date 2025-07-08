@@ -90,6 +90,8 @@
   <string name="mozac_feature_addons_permissions_required_data_collection_description_2">Vývojář říká, že toto rozšíření shromažďuje: %1$s</string>
   <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
   <string name="mozac_feature_addons_permissions_none_required_data_collection_description">Vývojář uvádí, že toto rozšíření nevyžaduje sběr dat.</string>
+  <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">Vývojář říká, že toto rozšíření shromažďuje: %1$s</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Rozšířit nástroje pro vývojáře a získat přístup k vašim datům v otevřených panelech</string>
   <!-- Description for text button that expands the list of domain permissions -->
@@ -196,6 +198,8 @@
   <string name="mozac_feature_addons_permissions_dialog_title_2">Přidat %1$s</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title" moz:removedIn="142" tools:ignore="UnusedResources">Doplněk %1$s požaduje dodatečná oprávnění.</string>
+  <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_dialog_title">Doplněk %1$s požaduje dodatečná nastavení</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">Doplněk požaduje následující oprávnění:</string>
   <!-- Heading for the permissions section in the add-on install dialog. -->
@@ -206,6 +210,8 @@
   <string name="mozac_feature_addons_permissions_dialog_heading_optional_settings">Volitelná nastavení:</string>
   <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_optional_permissions_dialog_subtitle" moz:removedIn="142" tools:ignore="UnusedResources">Chce:</string>
+  <!-- Heading for the permissions section in the optional permissions request dialog. -->
+  <string name="mozac_feature_addons_permissions_dialog_heading_optional_permissions">Nová oprávnění:</string>
   <!-- This is a button to add (install) an add-on . -->
   <string name="mozac_feature_addons_permissions_dialog_add">Přidat</string>
   <!-- This is a button to allow the optional permissions requested by an add-on . -->

@@ -1232,6 +1232,14 @@
   <string name="preferences_automatically_send_crashes_title">Құлау хабарламаларын автоматты түрде жіберу</string>
   <!-- Preference switch description for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_description">Бұл бізге браузердегі ақауларды диагностикалауға және түзетуге мүмкіндік береді. Есептемелер жеке немесе сезімтал деректерді қамтуы мүмкін.</string>
+  <!-- Title Headers for data collection settings screen -->
+  <string name="crash_reports_data_category">Құлау туралы хабарлар</string>
+  <string name="usage_data_category">Қолдану деректері</string>
+  <string name="studies_data_category">Зерттеулер</string>
+  <string name="technical_data_category">Техникалық ақпарат</string>
+  <string name="crash_reporting_description">Құлау есептемелері браузердегі ақауларды диагностикалауға және түзетуге мүмкіндік береді. Есептемелер жеке немесе сезімтал деректерді қамтуы мүмкін.</string>
+  <!-- Section title for campaign measurement in data collections screen -->
+  <string name="preferences_marketing_data_title">Науқанды өлшеу</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Науқанды өлшеу деректері</string>
   <!--
@@ -2637,6 +2645,20 @@
   <string name="saved_login_clear_username">Пайдаланушы атын тазарту</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Хост атауын өшіру</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the login detail view. -->
+  <string name="login_details_navigate_back_button_content_description">Артқа өту</string>
+  <!-- Edit text for the login detail menu edit button -->
+  <string name="login_detail_menu_edit_button">Түзету</string>
+  <!-- Delete text for the login detail menu delete button -->
+  <string name="login_detail_menu_delete_button">Өшіру</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the add login view. -->
+  <string name="add_login_navigate_back_button_content_description">Артқа өту</string>
+  <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
+  <string name="add_login_save_new_login_button_content_description">Жаңа логинді сақтау</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Артқа өту</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Логинді түзету</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Сайтты браузерде ашу</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
