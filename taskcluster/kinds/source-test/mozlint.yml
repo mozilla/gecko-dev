@@ -270,6 +270,35 @@ lintpref:
             - 'mobile/android/locales/en-US/mobile-l10n.js'
             - 'tools/lint/lintpref.yml'
 
+node-licenses:
+    description: Lint for node licenses issues
+    treeherder:
+        symbol: misc(node-licenses)
+    run:
+        using: run-task
+        cwd: '{checkout}'
+        use-caches: [checkout, pip, uv, npm]
+        command: >
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
+            ln -s ../tools/lint/eslint/eslint-plugin-mozilla node_modules &&
+            ln -s ../tools/lint/eslint/eslint-plugin-spidermonkey-js node_modules &&
+            cp -r $MOZ_FETCHES_DIR/eslint-plugin-mozilla/node_modules tools/lint/eslint/eslint-plugin-mozilla/node_modules &&
+            ./mach lint -v -l node-licenses -f treeherder -f json:/builds/worker/mozlint.json .
+    when:
+        files-changed:
+            - 'tools/lint/node-licenses.yml'
+            - 'tools/lint/node-licenses/**.py'
+            # When we cover most package.json files, then we should enable this
+            # generally, for now cover just what we need.
+            # - '**/package.json'
+            - package.json
+            - tools/lint/eslint/eslint-plugin-mozilla/package.json
+    fetches:
+        toolchain:
+            - linux64-node
+            - node-modules
+            - eslint-plugin-mozilla
+
 node-package-names:
     description: Lint for node package name issues
     treeherder:

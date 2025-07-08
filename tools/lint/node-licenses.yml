@@ -1,0 +1,42 @@
+---
+node-licenses:
+    description: Node Licenses Check
+    include:
+        # When adding to this list, don't forget to update the 'files-changed'
+        # list for node-licenses in taskcluster/kinds/source-test/mozlint.yml
+        - package.json
+        - tools/lint/eslint/eslint-plugin-mozilla/package.json
+    exclude: []
+    extensions:
+        - json
+    accepted-test-licenses:
+        # Do not add to this list without checking the Licensing Runbook or
+        # with the Licensing team.
+        #
+        # Note, some of the OR/AND options have brackets around them because
+        # that's how they are specified in some of the packages.
+        - MIT
+        - MIT-0
+        - Apache-2.0
+        - Apache-2.0 AND MIT
+        - BlueOak-1.0.0
+        - BSD-2-Clause
+        - BSD-3-Clause
+        - ISC
+        - MPL-2.0
+        - Unlicense
+        - CC0-1.0
+        - (MIT OR CC0-1.0)
+        - CC-BY-3.0
+        - (MIT AND CC-BY-3.0)
+        - 0BSD
+        - Zlib
+        - Public Domain
+    known-packages:
+        # Acceptable exceptions on a per-package basis.
+        argparse: Python-2.0  # bug 1777245
+    support-files:
+        - 'tools/lint/node-licenses/**'
+    type: external
+    payload: node-licenses:lint
+    setup: node-licenses:setup

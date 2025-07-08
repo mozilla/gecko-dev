@@ -1,0 +1,6 @@
+{
+  "description": "bad import",
+  "devDependencies": {
+    "@mozilla/unknown-license": "0.0.1"
+  }
+}

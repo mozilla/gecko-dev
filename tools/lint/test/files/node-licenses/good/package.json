@@ -1,0 +1,6 @@
+{
+  "description": "good import",
+  "devDependencies": {
+    "@mozilla/known-license": "0.0.1"
+  }
+}

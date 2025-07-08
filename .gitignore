@@ -83,7 +83,7 @@ build/reports/
 /gecko.log
 
 # Ignore all node_modules directories except for ones under third_party
-node_modules/
+/node_modules/
 devtools/**/node_modules/
 tools/browsertime/node_modules/
 tools/lint/eslint/eslint-plugin-mozilla/node_modules/

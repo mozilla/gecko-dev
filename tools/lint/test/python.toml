@@ -33,6 +33,8 @@ skip-if = ["os == 'win'"]
 
 ["test_manifest_toml.py"]
 
+["test_node_licenses.py"]
+
 ["test_node_package_names.py"]
 
 ["test_perfdocs.py"]

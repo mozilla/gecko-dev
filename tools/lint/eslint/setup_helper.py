@@ -88,8 +88,9 @@ def eslint_setup(package_root, package_name, should_clobber=False):
     package_setup(package_root, package_name, should_clobber=should_clobber)
 
 
-def remove_directory(path):
-    print("Clobbering %s..." % path)
+def remove_directory(path, skip_logging=False):
+    if not skip_logging:
+        print("Clobbering %s..." % path)
     if sys.platform.startswith("win") and have_winrm():
         process = subprocess.Popen(["winrm", "-rf", path])
         process.wait()
@@ -103,6 +104,7 @@ def package_setup(
     should_update=False,
     should_clobber=False,
     no_optional=False,
+    skip_logging=False,
 ):
     """Ensure `package_name` at `package_root` is installed.
 
@@ -128,7 +130,7 @@ def package_setup(
         os.chdir(project_root)
 
         if should_clobber:
-            remove_directory(os.path.join(project_root, "node_modules"))
+            remove_directory(os.path.join(project_root, "node_modules"), skip_logging)
 
         npm_path, _ = find_npm_executable()
         if not npm_path:
@@ -166,7 +168,10 @@ def package_setup(
         if node_dir not in path:
             path = [node_dir] + path
 
-        print('Installing %s for mach using "%s"...' % (package_name, " ".join(cmd)))
+        if not skip_logging:
+            print(
+                'Installing %s for mach using "%s"...' % (package_name, " ".join(cmd))
+            )
         result = call_process(
             package_name, cmd, append_env={"PATH": os.pathsep.join(path)}
         )
@@ -178,8 +183,9 @@ def package_setup(
             get_project_root(), "node_modules", ".bin", package_name
         )
 
-        print("\n%s installed successfully!" % package_name)
-        print("\nNOTE: Your local %s binary is at %s\n" % (package_name, bin_path))
+        if not skip_logging:
+            print("\n%s installed successfully!" % package_name)
+            print("\nNOTE: Your local %s binary is at %s\n" % (package_name, bin_path))
 
     finally:
         set_project_root(orig_project_root)
