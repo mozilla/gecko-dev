@@ -1272,8 +1272,7 @@ void WaylandSurface::SetParentLocked(const WaylandSurfaceLock& aProofOfLock,
 void WaylandSurface::ImageDescriptionFailed(
     void* aData, struct wp_image_description_v1* aImageDescription,
     uint32_t aCause, const char* aMsg) {
-  RefPtr waylandSurface =
-      already_AddRefed(reinterpret_cast<WaylandSurface*>(aData));
+  RefPtr waylandSurface = dont_AddRef(static_cast<WaylandSurface*>(aData));
   WaylandSurfaceLock lock(waylandSurface);
   waylandSurface->mHDRSet = false;
   LOGS("[%p] WaylandSurface::ImageDescriptionFailed()",

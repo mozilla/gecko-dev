@@ -42,27 +42,11 @@ static LazyLogModule sScreenLog("WidgetScreen");
 #endif /* MOZ_LOGGING */
 
 using GdkMonitor = struct _GdkMonitor;
+class WaylandMonitor;
 
 GdkWindow* ScreenHelperGTK::sRootWindow = nullptr;
 StaticRefPtr<ScreenGetterGtk> ScreenHelperGTK::gLastScreenGetter;
 int ScreenHelperGTK::gLastSerial = 0;
-
-class ScreenGetterGtk final {
- public:
-  NS_INLINE_DECL_REFCOUNTING(ScreenGetterGtk)
-
-  explicit ScreenGetterGtk(int aSerial);
-  void AddScreen(RefPtr<Screen> aScreen);
-  bool AddScreenHDRAsync(unsigned int aMonitor);
-
- protected:
-  ~ScreenGetterGtk() = default;
-
- private:
-  AutoTArray<RefPtr<Screen>, 4> mScreenList;
-  int mSerial = 0;
-  unsigned int mMonitorNum = 0;
-};
 
 static GdkMonitor* GdkDisplayGetMonitor(GdkDisplay* aDisplay,
                                         unsigned int aMonitor) {
@@ -158,49 +142,63 @@ static already_AddRefed<Screen> MakeScreenGtk(unsigned int aMonitor,
 #ifdef MOZ_WAYLAND
 class WaylandMonitor {
  public:
+  NS_INLINE_DECL_REFCOUNTING(WaylandMonitor)
+
   WaylandMonitor(ScreenGetterGtk* aScreenGetter, unsigned int aMonitor,
-                 wp_color_management_output_v1* aOutput,
-                 wp_image_description_v1* aDescription)
-      : mScreenGetter(aScreenGetter),
-        mMonitor(aMonitor),
-        mOutput(aOutput),
-        mDescription(aDescription) {
-    LOG_SCREEN("WaylandMonitor()[%p] monitor %d", this, mMonitor);
-  }
-  ~WaylandMonitor() {
-    LOG_SCREEN("~WaylandMonitor()[%p]", this);
-    MozClearPointer(mDescription, wp_image_description_v1_destroy);
-    MozClearPointer(mOutput, wp_color_management_output_v1_destroy);
-    mScreenGetter = nullptr;
-  }
+                 wl_output* aWlOutput);
 
   unsigned int GetMonitor() const { return mMonitor; }
 
-  void SetHDR(bool aIsHDR) {
-    LOG_SCREEN("WaylandMonitor()[%p]: monitor num [%d] HDR %d", this, mMonitor,
-               aIsHDR);
-    mIsHDR = aIsHDR;
-  }
+  void SetHDR(bool aIsHDR) { mIsHDR = aIsHDR; }
 
-  void Done() {
-    LOG_SCREEN("WaylandMonitor()[%p] Done", this);
-    mScreenGetter->AddScreen(MakeScreenGtk(mMonitor, mIsHDR));
-  }
+  void ImageDescriptionReady();
+  void ImageDescriptionDone();
+
+  void Finish();
 
  private:
+  ~WaylandMonitor();
+
   RefPtr<ScreenGetterGtk> mScreenGetter;
   unsigned int mMonitor = 0;
+
   wp_color_management_output_v1* mOutput = nullptr;
   wp_image_description_v1* mDescription = nullptr;
+
   bool mIsHDR = false;
 };
+#endif
 
+class ScreenGetterGtk final {
+ public:
+  NS_INLINE_DECL_REFCOUNTING(ScreenGetterGtk)
+
+  explicit ScreenGetterGtk(int aSerial);
+  void AddScreen(RefPtr<Screen> aScreen);
+  bool AddScreenHDRAsync(unsigned int aMonitor);
+  void Finish();
+
+ protected:
+  ~ScreenGetterGtk();
+
+ private:
+  AutoTArray<RefPtr<Screen>, 4> mScreenList;
+#ifdef MOZ_WAYLAND
+  AutoTArray<RefPtr<WaylandMonitor>, 4> mWaylandMonitors;
+#endif
+  int mSerial = 0;
+  unsigned int mMonitorNum = 0;
+};
+
+#ifdef MOZ_WAYLAND
 void image_description_info_done(
     void* data,
     struct wp_image_description_info_v1* wp_image_description_info_v1) {
-  auto* info = static_cast<WaylandMonitor*>(data);
-  info->Done();
-  delete info;
+  // Done is the latest event, unref WaylandMonitor
+  RefPtr monitor = dont_AddRef(static_cast<WaylandMonitor*>(data));
+  LOG_SCREEN("WaylandMonitor() [%p] image_description_info_done monitor %d",
+             (void*)monitor, monitor->GetMonitor());
+  monitor->ImageDescriptionDone();
 }
 
 /**
@@ -302,10 +300,13 @@ void image_description_info_luminances(
     void* data,
     struct wp_image_description_info_v1* wp_image_description_info_v1,
     uint32_t min_lum, uint32_t max_lum, uint32_t reference_lum) {
-  auto* info = static_cast<WaylandMonitor*>(data);
-  LOG_SCREEN("Monitor num [%d] Luminance min %d max %d reference %d",
-             info->GetMonitor(), min_lum, max_lum, reference_lum);
-  info->SetHDR(max_lum > reference_lum);
+  // Although WaylandMonitor is RefPtr here we don't want to unref it
+  // we'll do that at image_description_info_done.
+  auto* monitor = static_cast<WaylandMonitor*>(data);
+  LOG_SCREEN(
+      "WaylandMonitor() [%p] num [%d] Luminance min %d max %d reference %d",
+      monitor, monitor->GetMonitor(), min_lum, max_lum, reference_lum);
+  monitor->SetHDR(max_lum > reference_lum);
 }
 /**
  * target primaries as chromaticity coordinates
@@ -402,13 +403,106 @@ static const struct wp_image_description_info_v1_listener
                                     image_description_info_target_max_cll,
                                     image_description_info_target_max_fall};
 
+void WaylandMonitor::ImageDescriptionDone() {
+  LOG_SCREEN("WaylandMonitor()[%p] ImageDescriptionDone", this);
+  mScreenGetter->AddScreen(MakeScreenGtk(mMonitor, mIsHDR));
+}
+
+void WaylandMonitor::ImageDescriptionReady() {
+  LOG_SCREEN("WaylandMonitor() [%p] ImageDescriptionReady monitor %d", this,
+             GetMonitor());
+
+  // Ref WaylandMonitor to stay here until image_description_info_done
+  // callback.
+  AddRef();
+  wp_image_description_info_v1_add_listener(
+      wp_image_description_v1_get_information(mDescription),
+      &image_description_info_listener, this);
+}
+
+void image_description_failed(void* aData,
+                              struct wp_image_description_v1* aImageDescription,
+                              uint32_t aCause, const char* aMsg) {
+  LOG_SCREEN("imageDescriptionFailed [%p]", aData);
+  RefPtr waylandMonitor = dont_AddRef(static_cast<WaylandMonitor*>(aData));
+  waylandMonitor->ImageDescriptionDone();
+}
+
+void image_description_ready(void* aData,
+                             struct wp_image_description_v1* aImageDescription,
+                             uint32_t aIdentity) {
+  RefPtr waylandMonitor = dont_AddRef(static_cast<WaylandMonitor*>(aData));
+  waylandMonitor->ImageDescriptionReady();
+}
+
+WaylandMonitor::WaylandMonitor(ScreenGetterGtk* aScreenGetter,
+                               unsigned int aMonitor, wl_output* aWlOutput)
+    : mScreenGetter(aScreenGetter), mMonitor(aMonitor) {
+  MOZ_COUNT_CTOR(WaylandMonitor);
+
+  LOG_SCREEN("WaylandMonitor()[%p] monitor %d", this, mMonitor);
+
+  mOutput = wp_color_manager_v1_get_output(
+      WaylandDisplayGet()->GetColorManager(), aWlOutput);
+
+  static const struct wp_color_management_output_v1_listener listener{
+      [](void* data,
+         struct wp_color_management_output_v1* wp_color_management_output_v1) {
+#  if MOZ_LOGGING
+        auto* monitor = static_cast<WaylandMonitor*>(data);
+        LOG_SCREEN("WaylandMonitor() [%p] image_description_changed %d",
+                   monitor, monitor->GetMonitor());
+#  endif
+        ScreenHelperGTK::RequestRefreshScreens();
+      }};
+  wp_color_management_output_v1_add_listener(mOutput, &listener, this);
+
+  // AddRef this to keep it live until callback
+  AddRef();
+  mDescription = wp_color_management_output_v1_get_image_description(mOutput);
+
+  static const struct wp_image_description_v1_listener
+      monitor_image_description_listener{image_description_failed,
+                                         image_description_ready};
+  wp_image_description_v1_add_listener(
+      mDescription, &monitor_image_description_listener, this);
+}
+
+void WaylandMonitor::Finish() {
+  LOG_SCREEN("WaylandMonitor::Finish() [%p]", this);
+
+  MozClearPointer(mOutput, wp_color_management_output_v1_destroy);
+
+  // We need to wait with WaylandMonitor
+  AddRef();
+  static const struct wl_callback_listener listener{
+      [](void* aData, struct wl_callback* callback, uint32_t time) {
+        RefPtr monitor = dont_AddRef(static_cast<WaylandMonitor*>(aData));
+        LOG_SCREEN("WaylandMonitor::FinishCallback() [%p] ", aData);
+      }};
+  wl_callback_add_listener(wl_display_sync(WaylandDisplayGetWLDisplay()),
+                           &listener, this);
+
+  MozClearPointer(mDescription, wp_image_description_v1_destroy);
+  mScreenGetter = nullptr;
+}
+
+WaylandMonitor::~WaylandMonitor() {
+  LOG_SCREEN("WaylandMonitor::~WaylandMonitor() [%p]", this);
+  MOZ_COUNT_DTOR(WaylandMonitor);
+  MOZ_DIAGNOSTIC_ASSERT(!mScreenGetter);
+  MOZ_DIAGNOSTIC_ASSERT(!mDescription);
+  MOZ_DIAGNOSTIC_ASSERT(!mOutput);
+}
+
 bool ScreenGetterGtk::AddScreenHDRAsync(unsigned int aMonitor) {
   MOZ_DIAGNOSTIC_ASSERT(WaylandDisplayGet()->GetColorManager());
   GdkMonitor* monitor =
       GdkDisplayGetMonitor(gdk_display_get_default(), aMonitor);
   if (!monitor) {
-    LOG_SCREEN("ScreenGetterGtk::AddScreenHDRAsync() failed to get monitor %d",
-               aMonitor);
+    LOG_SCREEN(
+        "ScreenGetterGtk::AddScreenHDRAsync() [%p] failed to get monitor %d",
+        this, aMonitor);
     return false;
   }
   static auto s_gdk_wayland_monitor_get_wl_output =
@@ -426,16 +520,17 @@ bool ScreenGetterGtk::AddScreenHDRAsync(unsigned int aMonitor) {
     return false;
   }
 
-  LOG_SCREEN("ScreenGetterGtk::AddScreenHDR() monitor %d", aMonitor);
-  auto* output = wp_color_manager_v1_get_output(
-      WaylandDisplayGet()->GetColorManager(), wlOutput);
-  auto* description =
-      wp_color_management_output_v1_get_image_description(output);
-  auto descriptionInfo = wp_image_description_v1_get_information(description);
-  wp_image_description_info_v1_add_listener(
-      descriptionInfo, &image_description_info_listener,
-      new WaylandMonitor(this, aMonitor, output, description));
+  LOG_SCREEN("ScreenGetterGtk::AddScreenHDR() [%p] monitor %d", this, aMonitor);
+  mWaylandMonitors.AppendElement(new WaylandMonitor(this, aMonitor, wlOutput));
   return true;
+}
+
+void ScreenGetterGtk::Finish() {
+  LOG_SCREEN("ScreenGetterGtk::Finish() [%p]", this);
+  for (auto& monitor : mWaylandMonitors) {
+    monitor->Finish();
+    monitor = nullptr;
+  }
 }
 #endif
 
@@ -484,14 +579,15 @@ void ScreenGetterGtk::AddScreen(RefPtr<Screen> aScreen) {
     if (mSerial != ScreenHelperGTK::GetLastSerial()) {
       MOZ_DIAGNOSTIC_ASSERT(mSerial <= ScreenHelperGTK::GetLastSerial());
       LOG_SCREEN(
-          "ScreenGetterGtk::AddScreen(): rejected, old wrong serial %d latest "
+          "ScreenGetterGtk::AddScreen() [%p]: rejected, old wrong serial %d "
+          "latest "
           "%d",
-          mSerial, ScreenHelperGTK::GetLastSerial());
+          this, mSerial, ScreenHelperGTK::GetLastSerial());
       return;
     }
 
-    LOG_SCREEN("ScreenGetterGtk::AddScreen(): Set screens, serial %d ",
-               mSerial);
+    LOG_SCREEN("ScreenGetterGtk::AddScreen() [%p]: Set screens, serial %d ",
+               this, mSerial);
     ScreenManager::Refresh(std::move(mScreenList));
   }
 }
@@ -499,7 +595,8 @@ void ScreenGetterGtk::AddScreen(RefPtr<Screen> aScreen) {
 ScreenGetterGtk::ScreenGetterGtk(int aSerial)
     : mSerial(aSerial),
       mMonitorNum(gdk_screen_get_n_monitors(gdk_screen_get_default())) {
-  LOG_SCREEN("ScreenGetterGtk(): monitor num %d", mMonitorNum);
+  LOG_SCREEN("ScreenGetterGtk()::ScreenGetterGtk() [%p] monitor num %d", this,
+             mMonitorNum);
 #ifdef MOZ_WAYLAND
   LOG_SCREEN("HDR Protocol %s",
              GdkIsWaylandDisplay() && WaylandDisplayGet()->IsHDREnabled()
@@ -519,10 +616,18 @@ ScreenGetterGtk::ScreenGetterGtk(int aSerial)
   }
 }
 
+ScreenGetterGtk::~ScreenGetterGtk() {
+  LOG_SCREEN("ScreenGetterGtk::~ScreenGetterGtk() [%p]", this);
+}
+
 void ScreenHelperGTK::RequestRefreshScreens() {
   LOG_SCREEN("ScreenHelperGTK::RequestRefreshScreens");
 
   gLastSerial++;
+
+  if (gLastScreenGetter) {
+    gLastScreenGetter->Finish();
+  }
   gLastScreenGetter = new ScreenGetterGtk(gLastSerial);
 }
 

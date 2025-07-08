@@ -8,13 +8,14 @@
 #define mozilla_widget_gtk_ScreenHelperGTK_h
 
 #include "mozilla/widget/ScreenManager.h"
-
 #include "gdk/gdk.h"
+#ifdef MOZ_WAYLAND
+#  include "nsWaylandDisplay.h"
+#endif
 
 class nsWindow;
 
 namespace mozilla::widget {
-
 class ScreenGetterGtk;
 
 class ScreenHelperGTK final : public ScreenManager::Helper {
