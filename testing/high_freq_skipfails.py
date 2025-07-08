@@ -5,12 +5,12 @@
 import datetime
 import logging
 import os
-import re
 import sys
 from pathlib import Path
-from typing import Literal, Optional, TypedDict
+from typing import Optional, TypedDict
 
 import requests
+from intermittent_failures import IntermittentFailuresFetcher
 from mozci.util.taskcluster import get_task
 from mozinfo.platforminfo import PlatformInfo
 from skipfails import Skipfails
@@ -26,11 +26,6 @@ class FailureByBug(TypedDict):
     tree: str
 
 
-class BugzillaSummary(TypedDict):
-    summary: str
-    id: int
-
-
 class BugSuggestion(TypedDict):
     path_end: Optional[str]
 
@@ -42,11 +37,6 @@ class TestInfoAllTestsItem(TypedDict):
 
 class TestInfoAllTests(TypedDict):
     tests: dict[str, list[TestInfoAllTestsItem]]
-
-
-class BugzillaFailure(TypedDict):
-    bug_id: int
-    bug_count: int
 
 
 class HighFreqSkipfails:
@@ -63,6 +53,10 @@ class HighFreqSkipfails:
 
         self.failures = failures
         self.days = days
+
+        self.fetcher = IntermittentFailuresFetcher(
+            days=days, threshold=failures, verbose=False
+        )
 
         self.start_date = datetime.datetime.now()
         self.start_date = self.start_date - datetime.timedelta(days=self.days)
@@ -89,7 +83,7 @@ class HighFreqSkipfails:
         self.info(
             f"Fetching bugs with failure count above {self.failures} in the last {self.days} days..."
         )
-        bug_list = self.get_bugs_to_inspect()
+        bug_list = self.fetcher.get_single_tracking_bugs_with_paths()
         if len(bug_list) == 0:
             self.info(
                 f"Could not find bugs wih at least {self.failures} failures in the last {self.days}"
@@ -166,65 +160,9 @@ class HighFreqSkipfails:
                     break
         return manifest
 
-    def get_bugs_to_inspect(self) -> list[tuple[int, str]]:
-        """
-        Returns the id of bugs with the required amount of failures in the specified time range.
-        Only bugs marked as `single tracking bugs` are taken into account.
-        """
-        bug_list = self.keep_bugs_above_threshold(self.get_bugzilla_failures())
-        if len(bug_list) > 0:
-            bugs_with_path = self.keep_single_tracking_bugs_with_path(
-                self.get_bugzilla_summaries(bug_list)
-            )
-            return bugs_with_path
-        return []
-
-    def keep_bugs_above_threshold(
-        self, failure_list: list[BugzillaFailure]
-    ) -> list[int]:
-        filtered_failure_list: list[int] = []
-        if failure_list is not None:
-            filtered_failure_list = [
-                item["bug_id"]
-                for item in failure_list
-                if item["bug_count"] >= self.failures
-            ]
-        return filtered_failure_list
-
-    def keep_single_tracking_bugs_with_path(
-        self, summaries: list[BugzillaSummary]
-    ) -> list[tuple[int, str]]:
-        valid_bug_list: list[tuple[int, str]] = []
-        for summary in summaries:
-            if "single tracking bug" in summary["summary"]:
-                # Find the tests's relative path in the summary
-                # If there is not one, ignore the bug
-                match = re.findall(
-                    r" ([^\s]+\/?\.[a-z0-9-A-Z]+) \|", summary["summary"]
-                )
-                if len(match) > 0:
-                    valid_bug_list.append((summary["id"], match[0]))
-        return valid_bug_list
-
     #################
     #   API Calls   #
     #################
-
-    def get_bugzilla_summaries(self, bug_id_list: list[int]) -> list[BugzillaSummary]:
-        url = f"https://bugzilla.mozilla.org/rest/bug?include_fields=summary,id&id={','.join([str(id) for id in bug_id_list])}"
-        response = requests.get(url, headers={"User-agent": USER_AGENT})
-        json_response: dict[Literal["bugs"], list[BugzillaSummary]] = response.json()
-        return json_response["bugs"]
-
-    def get_bugzilla_failures(self, branch="trunk") -> list[BugzillaFailure]:
-        url = f"https://treeherder.mozilla.org/api/failures/?startday={self.start_date.date()}&endday={self.end_date.date()}&tree={branch}&failurehash=all"
-        response = requests.get(url, headers={"User-agent": USER_AGENT})
-        # Some items may be missing the bug_id. Skip those
-        return [
-            item
-            for item in response.json()
-            if "bug_id" in item and isinstance(item["bug_id"], int)
-        ]
 
     def get_failures_by_bug(self, bug: int, branch="trunk") -> list[FailureByBug]:
         url = f"https://treeherder.mozilla.org/api/failuresbybug/?startday={self.start_date.date()}&endday={self.end_date.date()}&tree={branch}&bug={bug}"
