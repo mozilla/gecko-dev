@@ -438,6 +438,51 @@ security:
     expires: never
     telemetry_mirror: HTTPS_ONLY_MODE_UPGRADE_TIME_MS
 
+  https_only_mode_upgrade_type:
+    type: dual_labeled_counter
+    description: >
+      What content type did we upgrade, and did it load successfully?
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTPS_ONLY_MODE_UPGRADE_TYPE.
+    dual_labels:
+      key:
+        labels:
+          - "unknown"
+          - "audio"
+          - "video"
+          - "script"
+          - "object"
+          - "document"
+          - "subdocument"
+          - "xmlhttprequest"
+          - "image"
+          - "dtd"
+          - "font"
+          - "fetch"
+          - "websocket"
+          - "stylesheet"
+          - "cspreport"
+          - "webmanifest"
+          - "ping"
+          - "xslt"
+          - "proxied-webrtc"
+        description: External content policy type.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675533
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1675533
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+      - julianwels@mozilla.com
+    expires: never
+    telemetry_mirror: HTTPS_ONLY_MODE_UPGRADE_TYPE
+
   referrer_policy_count:
     type: custom_distribution
     description: >
