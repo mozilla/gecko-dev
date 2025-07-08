@@ -13,6 +13,8 @@ export const TRAINHOP_XPI_BASE_URL_PREF =
   "browser.newtabpage.trainhopAddon.xpiBaseURL";
 export const TRAINHOP_XPI_VERSION_PREF =
   "browser.newtabpage.trainhopAddon.version";
+export const TRAINHOP_SCHEDULED_UPDATE_STATE_PREF =
+  "browser.newtabpage.trainhopAddon.scheduledUpdateState.timeout";
 
 const lazy = XPCOMUtils.declareLazy({
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
@@ -20,6 +22,7 @@ const lazy = XPCOMUtils.declareLazy({
   AboutHomeStartupCache: "resource:///modules/AboutHomeStartupCache.sys.mjs",
   NewTabGleanUtils: "resource://newtab/lib/NewTabGleanUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  requestIdleCallback: "resource://gre/modules/Timer.sys.mjs",
 
   resProto: {
     service: "@mozilla.org/network/protocol;1?name=resource",
@@ -34,6 +37,14 @@ const lazy = XPCOMUtils.declareLazy({
     iid: Ci.nsIAboutModule,
   },
 
+  // NOTE: this timeout is used to customize the scheduled call
+  // to updateTrainhopAddonState. It is ignored if not set to a
+  // positive numeric value, and it is meant to be set for testing,
+  // debugging or QA verification.
+  trainhopAddonScheduledUpdateTimeout: {
+    pref: TRAINHOP_SCHEDULED_UPDATE_STATE_PREF,
+    default: -1,
+  },
   trainhopAddonXPIBaseURL: {
     pref: TRAINHOP_XPI_BASE_URL_PREF,
     default: "",
@@ -295,6 +306,14 @@ export var AboutNewTabResourceMapping = {
     lazy.NewTabGleanUtils.registerMetricsAndPings(metricsPath);
   },
 
+  scheduleUpdateTrainhopAddonState() {
+    const options =
+      lazy.trainhopAddonScheduledUpdateTimeout > 0
+        ? { timeout: lazy.trainhopAddonScheduledUpdateTimeout }
+        : {};
+    lazy.requestIdleCallback(() => this.updateTrainhopAddonState(), options);
+  },
+
   /**
    * Updates the state of the train-hop add-on based on the Nimbus feature variables.
    *
@@ -384,6 +403,11 @@ export var AboutNewTabResourceMapping = {
       this.logger.debug(
         "train-hop add-on download disabled on empty download base URL"
       );
+      return;
+    }
+
+    if (addon_version == null && xpi_download_path == null) {
+      this.logger.debug("train-hop cancelled: client not enrolled");
       return;
     }
 

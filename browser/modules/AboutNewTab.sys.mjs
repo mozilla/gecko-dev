@@ -165,6 +165,7 @@ export const AboutNewTab = {
       ].getService(Ci.nsIAboutModule).wrappedJSObject;
 
       await redirector.promiseBuiltInAddonInitialized;
+      lazy.AboutNewTabResourceMapping.scheduleUpdateTrainhopAddonState();
     } else {
       // We may have had the built-in addon installed in the past. Since the
       // flag is false, let's go ahead and remove it. We don't need to await on
