@@ -70,10 +70,9 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
     /**
      * Set the current tray item to the clamped [position].
      *
-     * @param position The position on the tray to focus.
-     * @param smoothScroll If true, animate the scrolling from the current tab to [position].
+     * @param page The page on the tab tray to focus.
      */
-    fun handleTrayScrollingToPosition(position: Int, smoothScroll: Boolean)
+    fun handleTabPageClicked(page: Page)
 
     /**
      * Navigate from TabsTray to Browser.
@@ -274,9 +273,7 @@ class DefaultTabsTrayController(
         sendNewTabEvent(isPrivate)
     }
 
-    override fun handleTrayScrollingToPosition(position: Int, smoothScroll: Boolean) {
-        val page = Page.positionToPage(position)
-
+    override fun handleTabPageClicked(page: Page) {
         if (page != tabsTrayStore.state.selectedPage) {
             when (page) {
                 Page.NormalTabs -> TabsTray.normalModeTapped.record(NoExtras())

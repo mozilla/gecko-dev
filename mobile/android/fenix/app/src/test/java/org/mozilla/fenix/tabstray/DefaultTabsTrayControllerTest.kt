@@ -318,25 +318,12 @@ class DefaultTabsTrayControllerTest {
     }
 
     @Test
-    fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=true THEN it emits an action for the tray page of that tab position`() {
-        val pagePosition = 33
+    fun `WHEN handleTabTrayPageClicked is called THEN it emits an action for the tray page of that tab position`() {
+        val page = Page.SyncedTabs
+        every { trayStore.state.selectedPage } returns Page.NormalTabs
 
-        every { trayStore.state.selectedPage } returns Page.positionToPage(pagePosition)
-
-        createController().handleTrayScrollingToPosition(position = pagePosition, smoothScroll = true)
-
-        verify { trayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(position = pagePosition))) }
-    }
-
-    @Test
-    fun `WHEN handleTrayScrollingToPosition is called with smoothScroll=false THEN it emits an action for the tray page of that tab position`() {
-        val pagePosition = 44
-
-        every { trayStore.state.selectedPage } returns Page.positionToPage(pagePosition)
-
-        createController().handleTrayScrollingToPosition(position = pagePosition, smoothScroll = true)
-
-        verify { trayStore.dispatch(TabsTrayAction.PageSelected(Page.positionToPage(position = pagePosition))) }
+        createController().handleTabPageClicked(page)
+        verify { trayStore.dispatch(TabsTrayAction.PageSelected(page)) }
     }
 
     @Test
@@ -1361,7 +1348,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNull(TabsTray.normalModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(position = Page.NormalTabs.ordinal, smoothScroll = false)
+        createController().handleTabPageClicked(Page.NormalTabs)
 
         assertNotNull(TabsTray.normalModeTapped.testGetValue())
     }
@@ -1372,7 +1359,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNull(TabsTray.normalModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(position = Page.NormalTabs.ordinal, smoothScroll = false)
+        createController().handleTabPageClicked(Page.NormalTabs)
 
         assertNull(TabsTray.normalModeTapped.testGetValue())
     }
@@ -1383,7 +1370,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNull(TabsTray.privateModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(position = Page.PrivateTabs.ordinal, smoothScroll = false)
+        createController().handleTabPageClicked(Page.PrivateTabs)
 
         assertNotNull(TabsTray.privateModeTapped.testGetValue())
     }
@@ -1394,7 +1381,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNull(TabsTray.privateModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(position = Page.PrivateTabs.ordinal, smoothScroll = false)
+        createController().handleTabPageClicked(Page.PrivateTabs)
 
         assertNull(TabsTray.privateModeTapped.testGetValue())
     }
@@ -1405,7 +1392,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNull(TabsTray.syncedModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(position = Page.SyncedTabs.ordinal, smoothScroll = false)
+        createController().handleTabPageClicked(Page.SyncedTabs)
 
         assertNotNull(TabsTray.syncedModeTapped.testGetValue())
     }
@@ -1416,7 +1403,7 @@ class DefaultTabsTrayControllerTest {
 
         assertNull(TabsTray.syncedModeTapped.testGetValue())
 
-        createController().handleTrayScrollingToPosition(position = Page.SyncedTabs.ordinal, smoothScroll = false)
+        createController().handleTabPageClicked(Page.SyncedTabs)
 
         assertNull(TabsTray.syncedModeTapped.testGetValue())
     }

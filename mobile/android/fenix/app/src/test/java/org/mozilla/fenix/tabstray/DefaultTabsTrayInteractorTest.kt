@@ -18,13 +18,6 @@ class DefaultTabsTrayInteractorTest {
     private val interactor = DefaultTabsTrayInteractor(controller)
 
     @Test
-    fun `WHEN user selects a new tray page THEN the Interactor delegates to the controller`() {
-        interactor.onTrayPositionSelected(14, true)
-
-        verifySequence { controller.handleTrayScrollingToPosition(14, true) }
-    }
-
-    @Test
     fun `WHEN user selects a new browser tab THEN the Interactor delegates to the controller`() {
         val tab: TabSessionState = mockk()
         interactor.onTabSelected(tab, null)

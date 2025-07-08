@@ -834,12 +834,12 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                 onVerified = ::openPrivateTabsPage,
             )
         } else {
-            tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
+            tabsTrayInteractor.onTabPageClicked(page)
         }
     }
 
     private fun openPrivateTabsPage() {
-        tabsTrayInteractor.onTrayPositionSelected(Page.PrivateTabs.ordinal, false)
+        tabsTrayInteractor.onTabPageClicked(Page.PrivateTabs)
     }
 
     /**

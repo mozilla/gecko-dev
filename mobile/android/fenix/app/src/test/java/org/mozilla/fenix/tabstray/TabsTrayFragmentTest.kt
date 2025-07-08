@@ -154,7 +154,7 @@ class TabsTrayFragmentTest {
             isBiometricsPromptCalled = true
         }
         val testInteractor = buildTestInteractor(
-            onTrayPositionSelected = {
+            onTabPageClicked = {
                 isTabsTrayInteractorCalled = true
             },
         )
@@ -178,7 +178,7 @@ class TabsTrayFragmentTest {
             isBiometricsPromptCalled = true
         }
         val testInteractor = buildTestInteractor(
-            onTrayPositionSelected = {
+            onTabPageClicked = {
                 isTabsTrayInteractorCalled = true
             },
         )
@@ -202,7 +202,7 @@ class TabsTrayFragmentTest {
             isBiometricsPromptCalled = true
         }
         val testInteractor = buildTestInteractor(
-            onTrayPositionSelected = {
+            onTabPageClicked = {
                 isTabsTrayInteractorCalled = true
             },
         )
@@ -226,7 +226,7 @@ class TabsTrayFragmentTest {
             isBiometricsPromptCalled = true
         }
         val testInteractor = buildTestInteractor(
-            onTrayPositionSelected = {
+            onTabPageClicked = {
                 isTabsTrayInteractorCalled = true
             },
         )
@@ -310,10 +310,10 @@ private fun buildTestBiometricUtils(
 }
 
 private fun buildTestInteractor(
-    onTrayPositionSelected: () -> Unit,
+    onTabPageClicked: () -> Unit,
 ) = object : TabsTrayInteractor {
-    override fun onTrayPositionSelected(position: Int, smoothScroll: Boolean) {
-        onTrayPositionSelected()
+    override fun onTabPageClicked(page: Page) {
+        onTabPageClicked()
     }
 
     // no-op

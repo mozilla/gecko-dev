@@ -20,12 +20,11 @@ interface TabsTrayInteractor :
     TabsTrayFabInteractor {
 
     /**
-     * Invoked when a page in the tabs tray is selected.
+     * Invoked when a page in the tabs tray is clicked.
      *
-     * @param position The position on the tray to focus.
-     * @param smoothScroll If true, animate the scrolling from the current tab to [position].
+     * @param page The page on the tab tray to focus.
      */
-    fun onTrayPositionSelected(position: Int, smoothScroll: Boolean)
+    fun onTabPageClicked(page: Page)
 
     /**
      * Invoked when the user confirmed tab removal that would lead to cancelled private downloads.
@@ -110,8 +109,8 @@ class DefaultTabsTrayInteractor(
     private val controller: TabsTrayController,
 ) : TabsTrayInteractor {
 
-    override fun onTrayPositionSelected(position: Int, smoothScroll: Boolean) {
-        controller.handleTrayScrollingToPosition(position, smoothScroll)
+    override fun onTabPageClicked(page: Page) {
+        controller.handleTabPageClicked(page)
     }
 
     override fun onDeletePrivateTabWarningAccepted(tabId: String, source: String?) {
