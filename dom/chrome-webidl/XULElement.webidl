@@ -6,8 +6,7 @@
 
 interface XULControllers;
 
-[ChromeOnly,
- Exposed=Window]
+[ChromeOnly, Exposed=Window]
 interface XULElement : Element {
   [HTMLConstructor] constructor();
 
@@ -35,12 +34,12 @@ interface XULElement : Element {
   [SetterThrows]
   attribute DOMString src;
 
-  [Throws, ChromeOnly]
-  readonly attribute XULControllers             controllers;
+  [Throws]
+  readonly attribute XULControllers controllers;
 
   [NeedsCallerType]
-  undefined                      click();
-  undefined                      doCommand();
+  undefined click();
+  undefined doCommand();
 
   // Returns true if this is a menu-type element that has a menu
   // frame associated with it.
