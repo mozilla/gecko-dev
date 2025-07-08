@@ -51,7 +51,7 @@ updatebot:
       - type: vendoring
         enabled: true
         frequency: every
-    fuzzy-query: "'test-components | 'test-apk"
+    try-preset: firefox-android
 
 vendoring:
   url: https://github.com/mozilla/application-services
