@@ -85,3 +85,77 @@ bfcache:
       - sefeng@mozilla.com
     expires: never
     telemetry_mirror: h#BFCACHE_PAGE_RESTORED
+
+page:
+  load_error:
+    type: dual_labeled_counter
+    description: >
+      Page load errors. Match values with type of error in
+      nsDocShellTelemetryUtils.cpp
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram PAGE_LOAD_ERROR.
+    dual_labels:
+      key:
+        description: Is the error for a subframe or a top level document?
+          PAGE_LOAD_ERROR.
+        labels:
+          - top
+          - frame
+      category:
+        labels:
+          - UNKNOWN_PROTOCOL
+          - FILE_NOT_FOUND
+          - FILE_ACCESS_DENIED
+          - UNKNOWN_HOST
+          - CONNECTION_REFUSED
+          - PROXY_BAD_GATEWAY
+          - NET_INTERRUPT
+          - NET_TIMEOUT
+          - P_GATEWAY_TIMEOUT
+          - CSP_FRAME_ANCEST
+          - CSP_FORM_ACTION
+          - CSP_NAVIGATE_TO
+          - XFO_VIOLATION
+          - PHISHING_URI
+          - MALWARE_URI
+          - UNWANTED_URI
+          - HARMFUL_URI
+          - CONTENT_CRASHED
+          - FRAME_CRASHED
+          - BUILDID_MISMATCH
+          - NET_RESET
+          - MALFORMED_URI
+          - REDIRECT_LOOP
+          - UNKNOWN_SOCKET
+          - DOCUMENT_N_CACHED
+          - OFFLINE
+          - DOC_PRINTMODE
+          - PORT_ACCESS
+          - UNKNOWN_PROXY_HOST
+          - PROXY_CONNECTION
+          - PROXY_FORBIDDEN
+          - P_NOT_IMPLEMENTED
+          - PROXY_AUTH
+          - PROXY_TOO_MANY
+          - CONTENT_ENCODING
+          - REMOTE_XUL
+          - UNSAFE_CONTENT
+          - CORRUPTED_CONTENT
+          - INTERCEPTION_FAIL
+          - INADEQUATE_SEC
+          - BLOCKED_BY_POLICY
+          - HTTP2_SENT_GOAWAY
+          - HTTP3_PROTOCOL
+          - BINDING_FAILED
+          - otherError
+        description: Labels of the keyed categorical legacy telemetry histogram
+          PAGE_LOAD_ERROR.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636962
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1636962
+    notification_emails:
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: PAGE_LOAD_ERROR
