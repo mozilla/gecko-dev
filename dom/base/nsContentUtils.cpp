@@ -84,6 +84,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventQueue.h"
 #include "mozilla/EventStateManager.h"
+#include "mozilla/extensions/WebExtensionPolicy.h"
 #include "mozilla/FlushType.h"
 #include "mozilla/FOGIPC.h"
 #include "mozilla/HTMLEditor.h"
@@ -2908,7 +2909,7 @@ bool nsContentUtils::ShouldResistFingerprinting_dangerous(
   }
 
   // Web extension principals are also excluded
-  if (NS_IsMainThread() && BasePrincipal::Cast(aPrincipal)->AddonPolicy()) {
+  if (BasePrincipal::Cast(aPrincipal)->AddonPolicyCore()) {
     MOZ_LOG(nsContentUtils::ResistFingerprintingLog(), LogLevel::Debug,
             ("Inside ShouldResistFingerprinting(nsIPrincipal*)"
              " and AddonPolicy said false"));
