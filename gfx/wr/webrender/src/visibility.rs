@@ -169,6 +169,21 @@ pub fn update_prim_visibility(
                 raster_config.surface_index,
             );
 
+            if let Some(parent_surface_index) = parent_surface_index {
+                let parent_culling_rect = frame_state
+                    .surfaces[parent_surface_index.0]
+                    .culling_rect;
+
+                let surface = &mut frame_state
+                    .surfaces[raster_config.surface_index.0 as usize];
+
+                surface.update_culling_rect(
+                    parent_culling_rect,
+                    &raster_config.composite_mode,
+                    frame_context,
+                );
+            }
+
             let surface_local_rect = frame_state.surfaces[raster_config.surface_index.0]
                 .unclipped_local_rect
                 .cast_unit();
