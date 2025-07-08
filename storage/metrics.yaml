@@ -1,0 +1,76 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: SQLite and Embedded Database Bindings'
+
+sqlite_store:
+  open:
+    type: dual_labeled_counter
+    description: >
+      The result of attempting to open a sqlite file.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram SQLITE_STORE_OPEN.
+    dual_labels:
+      key:
+        description: No static keys unfortunately.
+      category:
+        labels:
+          - success
+          - failure
+          - access
+          - diskio
+          - corrupt
+          - busy
+          - misuse
+          - diskspace
+        description: Labels of the keyed categorical legacy telemetry histogram
+          SQLITE_STORE_OPEN.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1635489
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1635489
+    notification_emails:
+      - dtownsend@mozilla.com
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: SQLITE_STORE_OPEN
+
+  query:
+    type: dual_labeled_counter
+    description: >
+      The result of attempting to query a sqlite file.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram SQLITE_STORE_QUERY.
+    dual_labels:
+      key:
+        description: No static keys unfortunately.
+      category:
+        labels:
+          - success
+          - failure
+          - access
+          - diskio
+          - corrupt
+          - busy
+          - misuse
+          - diskspace
+        description: Labels of the keyed categorical legacy telemetry histogram
+          SQLITE_STORE_QUERY.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1635489
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1635489
+    notification_emails:
+      - dtownsend@mozilla.com
+      - mbonardo@mozilla.com
+    expires: never
+    telemetry_mirror: SQLITE_STORE_QUERY

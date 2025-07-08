@@ -13,6 +13,7 @@
 #include "nsIXPConnect.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/CheckedInt.h"
+#include "mozilla/glean/StorageMetrics.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/CondVar.h"
@@ -81,9 +82,6 @@ mozilla::LazyLogModule gStorageLog("mozStorage");
 namespace mozilla::storage {
 
 using mozilla::dom::quota::QuotaObject;
-using mozilla::Telemetry::AccumulateCategoricalKeyed;
-using mozilla::Telemetry::LABELS_SQLITE_STORE_OPEN;
-using mozilla::Telemetry::LABELS_SQLITE_STORE_QUERY;
 
 namespace {
 
@@ -949,32 +947,28 @@ void Connection::RecordOpenStatus(nsresult rv) {
   }
 
   if (NS_SUCCEEDED(rv)) {
-    AccumulateCategoricalKeyed(histogramKey, LABELS_SQLITE_STORE_OPEN::success);
+    mozilla::glean::sqlite_store::open.Get(histogramKey, "success"_ns).Add();
     return;
   }
 
   switch (rv) {
     case NS_ERROR_FILE_CORRUPTED:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_OPEN::corrupt);
+      mozilla::glean::sqlite_store::open.Get(histogramKey, "corrupt"_ns).Add();
       break;
     case NS_ERROR_STORAGE_IOERR:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_OPEN::diskio);
+      mozilla::glean::sqlite_store::open.Get(histogramKey, "diskio"_ns).Add();
       break;
     case NS_ERROR_FILE_ACCESS_DENIED:
     case NS_ERROR_FILE_IS_LOCKED:
     case NS_ERROR_FILE_READ_ONLY:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_OPEN::access);
+      mozilla::glean::sqlite_store::open.Get(histogramKey, "access"_ns).Add();
       break;
     case NS_ERROR_FILE_NO_DEVICE_SPACE:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_OPEN::diskspace);
+      mozilla::glean::sqlite_store::open.Get(histogramKey, "diskspace"_ns)
+          .Add();
       break;
     default:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_OPEN::failure);
+      mozilla::glean::sqlite_store::open.Get(histogramKey, "failure"_ns).Add();
   }
 }
 
@@ -994,44 +988,38 @@ void Connection::RecordQueryStatus(int srv) {
     // they aren't indicating a failure.
     case SQLITE_ABORT:
     case SQLITE_INTERRUPT:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::success);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "success"_ns).Add();
       break;
     case SQLITE_CORRUPT:
     case SQLITE_NOTADB:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::corrupt);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "corrupt"_ns).Add();
       break;
     case SQLITE_PERM:
     case SQLITE_CANTOPEN:
     case SQLITE_LOCKED:
     case SQLITE_READONLY:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::access);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "access"_ns).Add();
       break;
     case SQLITE_IOERR:
     case SQLITE_NOLFS:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::diskio);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "diskio"_ns).Add();
       break;
     case SQLITE_FULL:
     case SQLITE_TOOBIG:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::diskspace);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "diskspace"_ns)
+          .Add();
       break;
     case SQLITE_CONSTRAINT:
     case SQLITE_RANGE:
     case SQLITE_MISMATCH:
     case SQLITE_MISUSE:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::misuse);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "misuse"_ns).Add();
       break;
     case SQLITE_BUSY:
-      AccumulateCategoricalKeyed(histogramKey, LABELS_SQLITE_STORE_QUERY::busy);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "busy"_ns).Add();
       break;
     default:
-      AccumulateCategoricalKeyed(histogramKey,
-                                 LABELS_SQLITE_STORE_QUERY::failure);
+      mozilla::glean::sqlite_store::query.Get(histogramKey, "failure"_ns).Add();
   }
 }
 
