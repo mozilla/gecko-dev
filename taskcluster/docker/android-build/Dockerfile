@@ -20,6 +20,8 @@ RUN apt-get update && \
       gnupg \
       jq \
       less \
+      libnss3 \
+      libpulse0 \
       openssh-client \
       procps \
       python3-dev \
