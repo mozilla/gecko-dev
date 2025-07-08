@@ -39,7 +39,7 @@
     <SeekBar
         android:id="@+id/seekbar"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/accessibility_min_height"
         android:paddingStart="@dimen/top_bar_alignment_margin_start"
         android:paddingEnd="80dp"
         app:layout_constraintBottom_toBottomOf="@+id/seekbar_value"
