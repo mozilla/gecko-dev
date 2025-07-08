@@ -2573,7 +2573,7 @@ nsWindow::WaylandPopupGetPositionFromLayout() {
     const bool slideVertical =
         (position >= POPUPPOSITION_STARTBEFORE &&
          position <= POPUPPOSITION_ENDAFTER) ||
-        popupFrame->GetFlipType() == FlipType::Slide ||
+        !anchored || popupFrame->GetFlipType() == FlipType::Slide ||
         (rectAnchor == GDK_GRAVITY_CENTER && menuAnchor == GDK_GRAVITY_CENTER);
     return GDK_ANCHOR_FLIP | GDK_ANCHOR_SLIDE_X |
            (slideVertical ? GDK_ANCHOR_SLIDE_Y : 0) | GDK_ANCHOR_RESIZE;
