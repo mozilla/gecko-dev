@@ -188,10 +188,14 @@ export var AboutNewTabResourceMapping = {
     //   resources bundled in the Desktop omni jar)
     // - the builtin add-on version is equal or greater than the train-hop add-on
     //   version (and so the application has been updated and the old train-hop
-    //   add-on is obsolete and can be uninstalled).
+    //   add-on is obsolete and can be uninstalled)
+    // - the train-hop add-on xpi is not system-signed (as specifically required for
+    //   newtab xpi being installed in the `extensions` profile subdirectory by
+    //   the custom install logic provided by the _installTrainhopAddon method).
     const shouldUninstallXPI = isXPI
       ? lazy.trainhopAddonXPIVersion === "" ||
-        Services.vc.compare(this._builtinVersion, version) >= 0
+        Services.vc.compare(this._builtinVersion, version) >= 0 ||
+        (lazy.AddonSettings.REQUIRE_SIGNING && !policy.isPrivileged)
       : false;
 
     if (!rootURI || inSafeMode || newTabAsAddonDisabled || shouldUninstallXPI) {
@@ -338,6 +342,15 @@ export var AboutNewTabResourceMapping = {
         changed ||= await this.uninstallAddon({
           uninstallReason:
             "uninstalling train-hop add-on version on builtin add-on with equal or higher version",
+        });
+      }
+
+      if (
+        lazy.AddonSettings.REQUIRE_SIGNING &&
+        addon.signedState !== lazy.AddonManager.SIGNEDSTATE_SYSTEM
+      ) {
+        changed ||= await this.uninstallAddon({
+          uninstallReason: `uninstall train-hop add-on xpi on unexpected signedState ${addon.signedState} (expected ${lazy.AddonManager.SIGNEDSTATE_SYSTEM})`,
         });
       }
 

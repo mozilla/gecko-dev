@@ -448,3 +448,74 @@ add_task(async function test_builtin_version_upgrades() {
     });
   }
 });
+
+add_task(async function test_nonsystem_xpi_uninstalled() {
+  // Sanity check (verifies builtin add-on resources have been mapped).
+  assertNewTabResourceMapping();
+
+  const updateAddonVersion = `${BUILTIN_ADDON_VERSION}.123`;
+  const { nimbusFeatureCleanup } = await setupNimbusTrainhopAddon({
+    updateAddonVersion,
+  });
+  assertTrainhopAddonVersionPref(updateAddonVersion);
+  await AboutNewTabResourceMapping.updateTrainhopAddonState();
+
+  info("Simulated restart after train-hop add-on version install pending");
+  mockAboutNewTabUninit();
+  await AddonTestUtils.promiseRestartManager();
+  AboutNewTab.init();
+
+  await asyncAssertNewTabAddon({
+    locationName: PROFILE_LOCATION_NAME,
+    version: updateAddonVersion,
+  });
+
+  // Install non-system signed newtab XPI (Expected to be installed
+  // right away because the fake train-hop add-on version doesn't
+  // have an onUpdateAvailable listener).
+  const xpiVersion = `${BUILTIN_ADDON_VERSION}.456`;
+  let extension = await ExtensionTestUtils.loadExtension({
+    useAddonManager: "permanent",
+    manifest: {
+      version: xpiVersion,
+      browser_specific_settings: {
+        gecko: { id: BUILTIN_ADDON_ID },
+      },
+    },
+  });
+  const oldUsePrivilegedSignatures = AddonTestUtils.usePrivilegedSignatures;
+  AddonTestUtils.usePrivilegedSignatures = false;
+  await extension.startup();
+  AddonTestUtils.usePrivilegedSignatures = oldUsePrivilegedSignatures;
+
+  let addon = await asyncAssertNewTabAddon({
+    locationName: PROFILE_LOCATION_NAME,
+    version: xpiVersion,
+  });
+  Assert.deepEqual(
+    addon.signedState,
+    AddonManager.SIGNEDSTATE_SIGNED,
+    "Got the expected signedState for the installed XPI version"
+  );
+
+  mockAboutNewTabUninit();
+  await AddonTestUtils.promiseRestartManager();
+  AboutNewTab.init();
+  assertNewTabResourceMapping();
+  await AboutNewTabResourceMapping.updateTrainhopAddonState();
+  // Expect the newtab xpi to have been uninstalled and the updated
+  // builtin add-on to be the newtab add-on version becoming active.
+  await asyncAssertNewTabAddon({
+    locationName: BUILTIN_LOCATION_NAME,
+    version: BUILTIN_ADDON_VERSION,
+  });
+  // Along with uninstalling the non-system signed xpi we expect the
+  // call to updateTrainhopAddonState to be installing the original
+  // train-hop add-on version again.
+  const { pendingInstall } = await asyncAssertNimbusTrainhopAddonStaged({
+    updateAddonVersion,
+  });
+  await cancelPendingInstall(pendingInstall);
+
+  await nimbusFeatureCleanup();
+});
