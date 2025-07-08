@@ -61,6 +61,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 const DOMWINDOW_OPENED_TOPIC = "domwindowopened";
+const RECENT_BROWSER_INTERACTION_EXPIRY_TIME_MS = 60000;
 
 /**
  * Returns a monotonically increasing timestamp, that is critical to distinguish
@@ -169,6 +170,14 @@ class _Interactions {
    * Whether the component has been initialized.
    */
   #initialized = false;
+
+  /**
+   * Maps a browser to its interactions which are less than
+   * RECENT_BROWSER_INTERACTION_EXPIRY_TIME_MS old.
+   *
+   * @type {WeakMap<browser, InteractionInfo>}
+   */
+  #recentInteractions = new WeakMap();
 
   /**
    * Initializes, sets up actors and observers.
@@ -293,6 +302,13 @@ class _Interactions {
     if (docInfo.isActive && browser.ownerGlobal == this.#activeWindow) {
       this._pageViewStartTime = Cu.now();
     }
+
+    this.#recentInteractions.set(browser, [
+      ...(this.#recentInteractions.get(browser) ?? []),
+      interaction,
+    ]);
+
+    this.#pruneOldRecentInteractions(browser);
   }
 
   /**
@@ -339,6 +355,48 @@ class _Interactions {
       this._pageViewStartTime,
       this.store
     );
+  }
+
+  /**
+   * Fetches recent interactions for a browser
+   *
+   * @param {Browser} browser
+   *   The browser object that we are fetching recent interactions for.
+   */
+  async getRecentInteractionsForBrowser(browser) {
+    // We need to force update the active interaction's total view time
+    // to get an accurate reading.
+    this.#updateInteraction();
+    await _Interactions.interactionUpdatePromise;
+    return this.#recentInteractions.get(browser);
+  }
+
+  /**
+   * Removes stale interactions from #recentInteractions that were updated
+   * more than RECENT_BROWSER_INTERACTION_EXPIRY_TIME_MS ago.
+   *
+   * @param {Browser} browser
+   *  The browser object that we are pruning stale recent interactions for.
+   */
+  #pruneOldRecentInteractions(browser) {
+    const now = Date.now();
+
+    const interactions = this.#recentInteractions.get(browser);
+    if (!interactions) {
+      return;
+    }
+
+    const interactionstoTrack = interactions.filter(
+      interaction =>
+        now - interaction.updated_at <=
+        RECENT_BROWSER_INTERACTION_EXPIRY_TIME_MS
+    );
+
+    if (interactionstoTrack.length) {
+      this.#recentInteractions.set(browser, interactionstoTrack);
+    } else {
+      this.#recentInteractions.delete(browser);
+    }
   }
 
   /**

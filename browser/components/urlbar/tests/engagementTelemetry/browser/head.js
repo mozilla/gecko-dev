@@ -67,6 +67,10 @@ function assertDisableTelemetry(expectedExtraList) {
   assertGleanTelemetry("disable", expectedExtraList);
 }
 
+function assertBounceTelemetry(expectedExtraList) {
+  assertGleanTelemetry("bounce", expectedExtraList);
+}
+
 function assertGleanTelemetry(telemetryName, expectedExtraList) {
   const camelName = telemetryName.replaceAll(/_(.)/g, (match, p1) =>
     p1.toUpperCase()

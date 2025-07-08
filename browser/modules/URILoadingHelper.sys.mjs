@@ -620,6 +620,18 @@ export const URILoadingHelper = {
       }
     }
 
+    // Potentially trigger a URL bar telemetry bounce event when navigating
+    // away from a page using the browser chrome.
+    // We avoid triggering for URL bar initiated loads since this gets called
+    // right after a result is picked and the bounce event tracking is started.
+    // We instead check for potential URL bar initiated bounce events directly
+    // in gURLBar.controller.engagementEvent.startTrackingBounceEvent().
+    if (!params.initiatedByURLBar && targetBrowser) {
+      w.gURLBar.controller.engagementEvent.handleBounceEventTrigger(
+        targetBrowser
+      );
+    }
+
     if (
       !params.avoidBrowserFocus &&
       !focusUrlBar &&

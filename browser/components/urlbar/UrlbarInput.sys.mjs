@@ -277,6 +277,8 @@ export class UrlbarInput {
     this.window.addEventListener("unload", this);
 
     this.window.gBrowser.tabContainer.addEventListener("TabSelect", this);
+    this.window.gBrowser.tabContainer.addEventListener("TabClose", this);
+
     this.window.gBrowser.addTabsProgressListener(this);
 
     this.window.addEventListener("customizationstarting", this);
@@ -663,14 +665,23 @@ export class UrlbarInput {
    *   The URI of the location that is being loaded.
    */
   onLocationChange(browser, webProgress, request, location) {
+    if (!webProgress.isTopLevel) {
+      return;
+    }
+
     if (
-      webProgress.isTopLevel &&
       browser != this.window.gBrowser.selectedBrowser &&
       !this.window.isBlankPageURL(location.spec)
     ) {
       // If the page is loaded on background tab, make Unified Search Button
       // unavailable when back to the tab.
       this.getBrowserState(browser).isUnifiedSearchButtonAvailable = false;
+    }
+
+    // Using browser navigation buttons should potentially trigger a bounce
+    // telemetry event.
+    if (webProgress.loadType & Ci.nsIDocShell.LOAD_CMD_HISTORY) {
+      this.controller.engagementEvent.handleBounceEventTrigger(browser);
     }
   }
 
@@ -1448,6 +1459,14 @@ export class UrlbarInput {
         lazy.UrlbarUtils.addToInputHistory(url, input).catch(console.error);
       }
     }
+
+    this.controller.engagementEvent.startTrackingBounceEvent(browser, event, {
+      result,
+      element,
+      searchString: this._lastSearchString,
+      selType: this.controller.engagementEvent.typeFromElement(result, element),
+      searchSource: this.getSearchSource(event),
+    });
 
     this.controller.engagementEvent.record(event, {
       result,
@@ -3386,6 +3405,9 @@ export class UrlbarInput {
     // Notify about the start of navigation.
     this._notifyStartNavigation(resultDetails);
 
+    // Specifies that the URL load was initiated by the URL bar.
+    params.initiatedByURLBar = true;
+
     try {
       this.window.openTrustedLinkIn(url, openUILinkWhere, params);
     } catch (ex) {
@@ -4740,6 +4762,12 @@ export class UrlbarInput {
     this._untrimOnFocusAfterKeydown = false;
     this._gotTabSelect = true;
     this._afterTabSelectAndFocusChange();
+  }
+
+  _on_TabClose(event) {
+    this.controller.engagementEvent.handleBounceEventTrigger(
+      event.target.linkedBrowser
+    );
   }
 
   _on_beforeinput(event) {

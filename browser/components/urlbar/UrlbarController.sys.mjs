@@ -9,6 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   getPlacesSemanticHistoryManager:
     "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs",
+  Interactions: "moz-src:///browser/components/places/Interactions.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
@@ -1002,6 +1003,7 @@ class TelemetryEvent {
       searchMode,
       selIndex,
       selType,
+      viewTime = 0,
     }
   ) {
     const browserWindow = this._controller.browserWindow;
@@ -1119,6 +1121,30 @@ class TelemetryEvent {
         selected_result,
         results,
         feature: "suggest",
+      };
+    } else if (method === "bounce") {
+      let selected_result = lazy.UrlbarUtils.searchEngagementTelemetryType(
+        currentResults[selIndex],
+        selType
+      );
+      eventInfo = {
+        sap,
+        interaction,
+        search_mode,
+        search_engine_default_id,
+        n_chars: numChars,
+        n_words: numWords,
+        n_results: numResults,
+        selected_result,
+        selected_position: selIndex + 1,
+        provider,
+        engagement_type:
+          selType === "help" || selType === "dismiss" ? selType : action,
+        results,
+        view_time: viewTime,
+        threshold: lazy.UrlbarPrefs.get(
+          "events.bounce.maxSecondsFromLastSearch"
+        ),
       };
     } else {
       console.error(`Unknown telemetry event method: ${method}`);
@@ -1549,7 +1575,7 @@ class TelemetryEvent {
    * Start tracking a potential disable suggest event after user has seen a
    * suggest result.
    *
-   * @param {event} [event] A DOM event.
+   * @param {event} event A DOM event.
    * @param {object} details An object describing interaction details.
    */
   startTrackingDisableSuggest(event, details) {
@@ -1629,5 +1655,135 @@ class TelemetryEvent {
 
   getCurrentTime() {
     return Cu.now();
+  }
+
+  /**
+   * Start tracking a potential bounce event after the user has engaged
+   * with a URL bar result.
+   *
+   * @param {Browser} browser The browser object.
+   * @param {event} event A DOM event.
+   * @param {object} details An object describing interaction details.
+   */
+  async startTrackingBounceEvent(browser, event, details) {
+    let state = this._controller.input.getBrowserState(browser);
+    let startEventInfo = this._startEventInfo;
+
+    // If we are already tracking a bounce, then another engagement
+    // could possibly lead to a bounce.
+    if (state.bounceEventTracking) {
+      await this.handleBounceEventTrigger(browser);
+    }
+
+    state.bounceEventTracking = {
+      startTime: Date.now(),
+      pickEvent: event,
+      resultDetails: details,
+      startEventInfo,
+    };
+  }
+
+  /**
+   * Handle a bounce event trigger.
+   * These include closing the tab/window and navigating away via
+   * browser chrome (this includes clicking on history or bookmark entries,
+   * and engaging with the URL bar).
+   *
+   * @param {Browser} browser The browser object.
+   */
+  async handleBounceEventTrigger(browser) {
+    let state = this._controller.input.getBrowserState(browser);
+    if (state.bounceEventTracking) {
+      const interactions =
+        (await lazy.Interactions.getRecentInteractionsForBrowser(browser)) ??
+        [];
+
+      // handleBounceEventTrigger() can run concurrently, so we bail out
+      // if a prior async invocation has already cleared bounceEventTracking.
+      if (!state.bounceEventTracking) {
+        return;
+      }
+
+      let totalViewTime = 0;
+      for (let interaction of interactions) {
+        if (interaction.created_at >= state.bounceEventTracking.startTime) {
+          totalViewTime += interaction.totalViewTime || 0;
+        }
+      }
+
+      // If the total view time when the user navigates away after a
+      // URL bar interaction is less than the threshold of
+      // events.bounce.maxSecondsFromLastSearch, we record a bounce event.
+      // If totalViewTime is 0, that means the page didn't load yet, so
+      // we wouldn't record a bounce event.
+      if (
+        totalViewTime != 0 &&
+        totalViewTime <
+          lazy.UrlbarPrefs.get("events.bounce.maxSecondsFromLastSearch") * 1000
+      ) {
+        this.recordBounceEvent(browser, totalViewTime);
+      }
+
+      state.bounceEventTracking = null;
+    }
+  }
+
+  /**
+   * Record a bounce event
+   *
+   * @param {Browser} browser The browser object.
+   * @param {number} viewTime
+   *  The time spent on a tab after a URL bar engagement before
+   *  navigating away via browser chrome or closing the tab.
+   */
+  recordBounceEvent(browser, viewTime) {
+    let state = this._controller.input.getBrowserState(browser);
+    let event = state.bounceEventTracking.pickEvent;
+    let details = state.bounceEventTracking.resultDetails;
+
+    let startEventInfo = state.bounceEventTracking.startEventInfo;
+
+    if (!startEventInfo) {
+      return;
+    }
+
+    if (
+      !event &&
+      startEventInfo.interactionType != "pasted" &&
+      startEventInfo.interactionType != "dropped"
+    ) {
+      // If no event is passed, we must be executing either paste&go or drop&go.
+      throw new Error("Event must be defined, unless input was pasted/dropped");
+    }
+    if (!details) {
+      throw new Error("Invalid event details: " + details);
+    }
+
+    let action = this.#getActionFromEvent(
+      event,
+      details,
+      startEventInfo.interactionType
+    );
+    let method = "bounce";
+
+    let { numChars, numWords, searchWords } = this._parseSearchString(
+      details.searchString
+    );
+
+    details.provider = details.result?.providerName;
+    details.selIndex = details.result?.rowIndex ?? -1;
+
+    this._recordSearchEngagementTelemetry(method, startEventInfo, {
+      action,
+      numChars,
+      numWords,
+      searchWords,
+      provider: details.provider,
+      searchSource: details.searchSource,
+      searchMode: details.searchMode,
+      selIndex: details.selIndex,
+      selType: details.selType,
+      viewTime: viewTime / 1000,
+    });
   }
 }

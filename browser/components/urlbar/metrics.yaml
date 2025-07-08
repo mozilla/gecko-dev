@@ -187,6 +187,123 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
 
+  bounce:
+    type: event
+    description: Recorded when the user leaves a page loaded by picking an address bar result and they spent less than 10s on it.
+    extra_keys:
+      sap:
+        description: >
+          `sap` is the meaning of `search access point`. It records where the
+          user started the search action from. The possible values are: `urlbar`
+          , `handoff`, `urlbar_newtab` and `urlbar_addonpage`.
+        type: string
+      interaction:
+        description: >
+          How the user started the search action. The possible values are:
+          `typed`, `pasted`, `topsite_search` (clicked on a topsite search
+          shortcut), `topsites` (selected a topsite result with empty search
+          string), `returned` (The user abandoned a search, then returned to it)
+          , `restarted` (The user abandoned a search, then returned to it,
+          cleared it and typed a completely different string), `refined` (The
+          user abandoned a search, then returned to it, and partially modified
+          the string), `persisted_search_terms` (The user returned to a previous
+          successful search that persisted terms in the urlbar),
+          `persisted_search_terms_restarted` (The user returned to a previous
+          successful search that persisted terms in the urlbar, then cleared it
+          and typed a completely different string) and
+          `persisted_search_terms_refined` (The user returned to a previous
+          successful search that persisted terms in the urlbar, and partially
+          modified the string).
+        type: string
+      search_mode:
+        description: >
+          If the urlbar is in search mode, thus restricting results to a
+          specific search engine or local source, this is set to the search mode
+          source. The possible sources are: `actions`, `bookmarks`, `history`,
+          `search_engine`, and `tabs`. If search mode is active but the source
+          did not fall into any of these categories, this will be `unknown`. If
+          search mode is not active, this will be an empty string.
+        type: string
+      search_engine_default_id:
+        description: >
+          The telemetry id of the search engine.
+          Reflects `search.engine.default.engine_id`.
+        type: string
+      n_chars:
+        description: >
+          The length of string used for the search. It includes whitespaces.
+        type: quantity
+      n_words:
+        description: >
+          The length of words used for the search. The words are made by
+          splitting the search string by whitespaces, thus this doesn’t support
+          CJK languages. For performance reasons a maximum of 255 characters are
+          considered when splitting.
+        type: quantity
+      n_results:
+        description: >
+          The number of results shown to the user. If this is high the results
+          list below may be truncated due to technical limitations. Also note in
+          that case not all the results may be physically visible due to the
+          screen size limitation.
+        type: quantity
+      selected_result:
+        description: >
+          The type of the result the user selected. This is to be set as the
+          selected_result value of the last engagement event.
+        type: string
+      selected_position:
+        description: >
+          The 1-based index of the result the user selected. If user searched
+          without selection, 0 will be recorded.
+        type: quantity
+      provider:
+        description: >
+          The name of the `UrlbarProvider` that provided the selected result.
+          The possible values are: `AboutPages`, `AliasEngines`, `Autofill`,
+          `BookmarkKeywords`, `calculator`, `UrlbarProviderContextualSearch`,
+          `HeuristicFallback`, `HistoryUrlHeuristic`, `InputHistory`,
+          `UrlbarProviderInterventions`, `Omnibox`, `OpenTabs`, `Places`,
+          `PrivateSearch`, `quickactions`, `UrlbarProviderQuickSuggest`,
+          `RemoteTabs`, `SearchSuggestions`, `UrlbarProviderSearchTips`,
+          `TabToSearch`, `TokenAliasEngines`, `UrlbarProviderTopSites`,
+          `UnitConversion` and `UnifiedComplete`.
+          If engagement_type is `drop_go` or `paste_go`, this will be null
+          because no results are shown. And also, if selected_result is
+          `experimental_addon`, it means that the user selected a result
+          from an add-on using the urlbar experimental API. In this case,
+          this will be the provider name specified by the add-on.
+        type: string
+      engagement_type:
+        description: >
+          Records how the user selected the result. The possible values are the same
+          as those defined for the engagement event engagement_type property.
+        type: string
+      results:
+        description: >
+          Comma separated list of result types in the order they were shown to
+          the user. The `unknown` type should not occur and indicates a bug. The
+          types are one of the values defined for the engagement event results property.
+        type: string
+      view_time:
+        description: >
+          The number of seconds the user spent on the page.
+        type: quantity
+      threshold:
+        description: >
+          The view time threshold for bounce detection, in seconds.
+        type: quantity
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1959741
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1959741
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    expires: never
+
+
   disable:
     type: event
     description: >
