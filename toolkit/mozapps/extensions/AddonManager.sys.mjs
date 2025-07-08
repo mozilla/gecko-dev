@@ -3081,6 +3081,19 @@ var AddonManagerInternal = {
     return this.getAddonsByTypes(null);
   },
 
+  getBuiltinAddonVersion(addonId) {
+    if (!gStarted) {
+      throw Components.Exception(
+        "AddonManager is not initialized",
+        Cr.NS_ERROR_NOT_INITIALIZED
+      );
+    }
+
+    return this._getProviderByName("XPIProvider").getBuiltinAddonVersion(
+      addonId
+    );
+  },
+
   shouldShowBlocklistAttention() {
     if (!gStarted) {
       throw Components.Exception(
@@ -4346,6 +4359,28 @@ export var AddonManager = {
 
   getAllAddons() {
     return AddonManagerInternal.getAllAddons();
+  },
+
+  /**
+   * Gets the version of the auto-install built-in add-on
+   * with the given addonID (if a built-in with that add-on
+   * id exists).
+   *
+   * NOTE:
+   * - This method is limited to built-in add-ons
+   *   auto-installed in the "app-builtin-addons" location
+   *   based on the list bundled in Firefox Desktop builds as
+   *   "chrome://browser/content/built_in_addons.json".
+   * - This method will throws an exception if called before
+   *   the AddonManager and the XPIProvider has been started.
+   *
+   * @param  {string} addonId
+   *   Addon id of the built-in add-on to get a version for.
+   * @return {string|void}
+   *   Returns the built-in add-on version if one is found.
+   */
+  getBuiltinAddonVersion(addonId) {
+    return AddonManagerInternal.getBuiltinAddonVersion(addonId);
   },
 
   getInstallsByTypes(aTypes) {

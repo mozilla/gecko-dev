@@ -62,6 +62,7 @@ export var AboutNewTabResourceMapping = {
   _addonIsXPI: null,
   _addonVersion: null,
   _addonListener: null,
+  _builtinVersion: null,
 
   /**
    * This should be called early on in the lifetime of the browser, before any
@@ -94,6 +95,7 @@ export var AboutNewTabResourceMapping = {
       false
     );
     this.inSafeMode = Services.appinfo.inSafeMode;
+    this.getBuiltinAddonVersion();
     this.registerNewTabResources();
     this.addAddonListener();
 
@@ -128,6 +130,26 @@ export var AboutNewTabResourceMapping = {
   },
 
   /**
+   * Retrieves the version of the built-in newtab add-on from AddonManager.
+   * If AddonManager.getBuiltinAddonVersion hits an unexpected exception (e.g.
+   * if the method is unexpectedly called before AddonManager and XPIProvider
+   * are being started), it sets the _builtinVersion property to null and logs
+   * a warning message.
+   */
+  getBuiltinAddonVersion() {
+    try {
+      this._builtinVersion =
+        lazy.AddonManager.getBuiltinAddonVersion(BUILTIN_ADDON_ID);
+    } catch (e) {
+      this._builtinVersion = null;
+      this.logger.warn(
+        "Unexpected failure on retrieving builtin addon version",
+        e
+      );
+    }
+  },
+
+  /**
    * Gets the preferred mapping for newtab resources. This method tries to retrieve
    * the rootURI from the WebExtensionPolicy instance of the newtab add-on, or falling
    * back to the URI of the newtab resources bundled in the Desktop omni jar if not found.
@@ -147,11 +169,30 @@ export var AboutNewTabResourceMapping = {
     // newtab resources bundled in the Desktop omni jar if that fails).
     let { version, rootURI } = policy?.extension ?? {};
     let isXPI = rootURI?.spec.endsWith(".xpi!/");
-    // If the train-hop add-on version set in the pref is empty, then the client
-    // has been unenrolled in the previous browsing session and so we fallback to
-    // the resources bundled in the omni jar (and then uninstall the train-hop
-    // add-on xpi later in the current application session from updateTrainhopAddonState).
-    let shouldUninstallXPI = isXPI && !lazy.trainhopAddonXPIVersion;
+
+    // If we failed to retrieve the builtin add-on version, avoid mapping
+    // XPI resources as an additional safety measure, because later it
+    // wouldn't be possible to check if the builtin version is more recent
+    // than the train-hop add-on version that may be already installed.
+    if (isXPI && this._builtinVersion === null) {
+      rootURI = null;
+      isXPI = false;
+    }
+
+    // Do not use XPI resources to prepare to uninstall the train-hop add-on xpi
+    // later in the current application session from updateTrainhopAddonState, if:
+    //
+    // - the train-hop add-on version set in the pref is empty (the client has been
+    //   unenrolled in the previous browsing session and so we fallback to the
+    //   resources bundled in the Desktop omni jar)
+    // - the builtin add-on version is equal or greater than the train-hop add-on
+    //   version (and so the application has been updated and the old train-hop
+    //   add-on is obsolete and can be uninstalled).
+    const shouldUninstallXPI = isXPI
+      ? lazy.trainhopAddonXPIVersion === "" ||
+        Services.vc.compare(this._builtinVersion, version) >= 0
+      : false;
+
     if (!rootURI || inSafeMode || newTabAsAddonDisabled || shouldUninstallXPI) {
       const builtinAddonsURI = lazy.resProto.getSubstitution("builtin-addons");
       rootURI = Services.io.newURI("newtab/", null, builtinAddonsURI);

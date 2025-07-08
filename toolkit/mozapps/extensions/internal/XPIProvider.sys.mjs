@@ -3533,6 +3533,14 @@ export var XPIProvider = {
     return { addons: result, fullData: false };
   },
 
+  getBuiltinAddonVersion(addonId) {
+    if (!this.builtInAddons) {
+      throw new Error("XPIProvider has not been started yet");
+    }
+    const found = SystemBuiltInLocation.readAddons().get(addonId);
+    return found?.builtin.addon_version;
+  },
+
   shouldShowBlocklistAttention() {
     return XPIExports.XPIDatabase.shouldShowBlocklistAttention();
   },

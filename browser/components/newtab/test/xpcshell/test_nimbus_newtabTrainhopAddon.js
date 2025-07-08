@@ -192,19 +192,10 @@ add_task(async function test_trainhop_addon_after_browser_restart() {
   // Verify that we are still using the New Tab resources from the builtin add-on.
   assertNewTabResourceMapping();
 
-  // Mock browser restart scenario.
-  const aboutNewTabUninit = async () => {
-    AboutNewTab.uninit();
-    AboutNewTabResourceMapping.initialized = false;
-    AboutNewTabResourceMapping._rootURISpec = null;
-    AboutNewTabResourceMapping._addonVersion = null;
-    AboutNewTabResourceMapping._addonListener = null;
-  };
-
   info(
     "Simulated browser restart while train-hop add-on is pending installation"
   );
-  await aboutNewTabUninit();
+  mockAboutNewTabUninit();
   await AddonTestUtils.promiseRestartManager();
   AboutNewTab.init();
 
@@ -253,7 +244,7 @@ add_task(async function test_trainhop_addon_after_browser_restart() {
   info(
     "Simulated browser restart while newtabTrainhopAddon nimbus feature is unenrolled"
   );
-  await aboutNewTabUninit();
+  mockAboutNewTabUninit();
   await AddonTestUtils.promiseRestartManager();
   AboutNewTab.init();
 
@@ -264,9 +255,148 @@ add_task(async function test_trainhop_addon_after_browser_restart() {
     locationName: BUILTIN_LOCATION_NAME,
     version: BUILTIN_ADDON_VERSION,
   });
+});
 
-  // Test case cleanup.
-  await aboutNewTabUninit();
+add_task(async function test_builtin_version_upgrades() {
+  // Sanity check (verifies built-in addon resources have been mapped).
+  assertNewTabResourceMapping();
+  await asyncAssertNewTabAddon({
+    locationName: BUILTIN_LOCATION_NAME,
+    version: BUILTIN_ADDON_VERSION,
+  });
+  assertTrainhopAddonVersionPref("");
+
+  const updateAddonVersion = `${BUILTIN_ADDON_VERSION}.123`;
+
+  const { nimbusFeatureCleanup } = await setupNimbusTrainhopAddon({
+    updateAddonVersion,
+  });
+  assertTrainhopAddonVersionPref(updateAddonVersion);
+
+  await AboutNewTabResourceMapping.updateTrainhopAddonState();
+  await asyncAssertNimbusTrainhopAddonStaged({
+    updateAddonVersion,
+  });
+  // Verify that we are still using the New Tab resources from the builtin add-on.
+  assertNewTabResourceMapping();
+
+  info(
+    "Simulated browser restart while train-hop add-on is pending installation"
+  );
+  mockAboutNewTabUninit();
+  await AddonTestUtils.promiseRestartManager();
   AboutNewTab.init();
+
+  await asyncAssertNewTabAddon({
+    locationName: PROFILE_LOCATION_NAME,
+    version: updateAddonVersion,
+  });
+  const trainhopAddonPolicy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
+  Assert.equal(
+    trainhopAddonPolicy?.extension?.version,
+    updateAddonVersion,
+    "Got newtab WebExtensionPolicy instance for the train-hop add-on version"
+  );
+  assertNewTabResourceMapping(trainhopAddonPolicy.extension.rootURI.spec);
+
+  info(
+    "Simulated browser restart with a builtin add-on version higher than the train-hop add-on version"
+  );
+  // Mock a builtin version with an add-on version higher than the train-hop add-on version.
+  const fakeUpdatedBuiltinVersion = "9999.0";
+  const restoreBuiltinAddonsSubstitution =
+    await overrideBuiltinAddonsSubstitution(fakeUpdatedBuiltinVersion);
+
+  mockAboutNewTabUninit();
+  await AddonTestUtils.promiseRestartManager();
+  AboutNewTab.init();
+  assertNewTabResourceMapping();
+
+  const addon = await asyncAssertNewTabAddon({
+    locationName: PROFILE_LOCATION_NAME,
+    version: updateAddonVersion,
+  });
+  await addon.uninstall();
+
+  // Cleanup
+  mockAboutNewTabUninit();
+  await restoreBuiltinAddonsSubstitution();
+  await AddonTestUtils.promiseRestartManager();
+  AboutNewTab.init();
+  assertNewTabResourceMapping();
+  await asyncAssertNewTabAddon({
+    locationName: BUILTIN_LOCATION_NAME,
+    version: BUILTIN_ADDON_VERSION,
+  });
   await nimbusFeatureCleanup();
+
+  async function overrideBuiltinAddonsSubstitution(updatedBuiltinVersion) {
+    const { ExtensionTestCommon } = ChromeUtils.importESModule(
+      "resource://testing-common/ExtensionTestCommon.sys.mjs"
+    );
+    const fakeBuiltinAddonsDir = AddonTestUtils.tempDir.clone();
+    fakeBuiltinAddonsDir.append("builtin-addons-override");
+    const addonDir = fakeBuiltinAddonsDir.clone();
+    addonDir.append("newtab");
+    await AddonTestUtils.promiseWriteFilesToDir(
+      addonDir.path,
+      ExtensionTestCommon.generateFiles({
+        manifest: {
+          version: updatedBuiltinVersion,
+          browser_specific_settings: {
+            gecko: { id: BUILTIN_ADDON_ID },
+          },
+        },
+      })
+    );
+    const resProto = Cc[
+      "@mozilla.org/network/protocol;1?name=resource"
+    ].getService(Ci.nsIResProtocolHandler);
+    let defaultBuiltinAddonsSubstitution =
+      resProto.getSubstitution("builtin-addons");
+    resProto.setSubstitutionWithFlags(
+      "builtin-addons",
+      Services.io.newFileURI(fakeBuiltinAddonsDir),
+      Ci.nsISubstitutingProtocolHandler.ALLOW_CONTENT_ACCESS
+    );
+
+    // Verify we mocked an updated newtab builtin manifest as expected.
+    const mockedManifest = await fetch(
+      "resource://builtin-addons/newtab/manifest.json"
+    ).then(r => r.json());
+    Assert.equal(
+      mockedManifest.version,
+      fakeUpdatedBuiltinVersion,
+      "Got the expected manifest version in the mocked builtin add-on manifest"
+    );
+
+    // Update built_in_addons.json accordingly.
+    await overrideBuiltinsNewTabVersion(updatedBuiltinVersion);
+
+    return async () => {
+      await overrideBuiltinsNewTabVersion(BUILTIN_ADDON_VERSION);
+      resProto.setSubstitutionWithFlags(
+        "builtin-addons",
+        defaultBuiltinAddonsSubstitution,
+        Ci.nsISubstitutingProtocolHandler.ALLOW_CONTENT_ACCESS
+      );
+      fakeBuiltinAddonsDir.remove(true);
+    };
+  }
+
+  async function overrideBuiltinsNewTabVersion(addon_version) {
+    // Override newtab builtin version in built_in_addons.json metadata.
+    const builtinsConfig = await fetch(
+      "chrome://browser/content/built_in_addons.json"
+    ).then(res => res.json());
+    await AddonTestUtils.overrideBuiltIns({
+      system: [],
+      builtins: builtinsConfig.builtins
+        .filter(entry => entry.addon_id === BUILTIN_ADDON_ID)
+        .map(entry => {
+          entry.addon_version = addon_version;
+          return entry;
+        }),
+    });
+  }
 });

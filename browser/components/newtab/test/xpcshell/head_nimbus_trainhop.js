@@ -14,7 +14,7 @@
 /* exported assertNewTabResourceMapping, assertTrainhopAddonNimbusExposure,
  *          assertTrainhopAddonVersionPref,
  *          asyncAssertNewTabAddon, asyncAssertNimbusTrainhopAddonStaged,
- *          cancelPendingInstall, server,
+ *          cancelPendingInstall, mockAboutNewTabUninit, server,
  *          BUILTIN_ADDON_ID, BUILTIN_ADDON_VERSION,
  *          BUILTIN_LOCATION_NAME, PROFILE_LOCATION_NAME,
  *          TRAINHOP_NIMBUS_FEATURE_ID */
@@ -258,4 +258,13 @@ async function cancelPendingInstall(pendingInstall) {
   });
   pendingInstall.cancel();
   await cancelDeferred.promise;
+}
+
+// Mock browser restart scenario.
+function mockAboutNewTabUninit() {
+  AboutNewTab.uninit();
+  AboutNewTabResourceMapping.initialized = false;
+  AboutNewTabResourceMapping._rootURISpec = null;
+  AboutNewTabResourceMapping._addonVersion = null;
+  AboutNewTabResourceMapping._addonListener = null;
 }
