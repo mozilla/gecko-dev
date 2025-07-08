@@ -54,27 +54,45 @@ class SaturateOp {
 
   // Compound operators
 
+#if defined(__has_builtin)
+#  if __has_builtin(__builtin_add_overflow)
+#    define MOZ_ADD_OVERFLOW __builtin_add_overflow
+#  endif
+#  if __has_builtin(__builtin_sub_overflow)
+#    define MOZ_SUB_OVERFLOW __builtin_sub_overflow
+#  endif
+#endif
+
   const T& operator+=(const T& aRhs) const {
-    const T min = std::numeric_limits<T>::min();
-    const T max = std::numeric_limits<T>::max();
+    constexpr T min = std::numeric_limits<T>::min();
+    constexpr T max = std::numeric_limits<T>::max();
+#ifdef MOZ_ADD_OVERFLOW
+    if (MOZ_ADD_OVERFLOW(mValue, aRhs, &mValue))
+      return mValue = (aRhs > 0 ? max : min);
+#else
 
     if (aRhs > static_cast<T>(0)) {
       mValue = (max - aRhs) < mValue ? max : mValue + aRhs;
     } else {
       mValue = (min - aRhs) > mValue ? min : mValue + aRhs;
     }
+#endif
     return mValue;
   }
 
   const T& operator-=(const T& aRhs) const {
-    const T min = std::numeric_limits<T>::min();
-    const T max = std::numeric_limits<T>::max();
-
+    constexpr T min = std::numeric_limits<T>::min();
+    constexpr T max = std::numeric_limits<T>::max();
+#ifdef MOZ_SUB_OVERFLOW
+    if (MOZ_SUB_OVERFLOW(mValue, aRhs, &mValue))
+      return mValue = (aRhs > 0 ? min : max);
+#else
     if (aRhs > static_cast<T>(0)) {
       mValue = (min + aRhs) > mValue ? min : mValue - aRhs;
     } else {
       mValue = (max + aRhs) < mValue ? max : mValue - aRhs;
     }
+#endif
     return mValue;
   }
 
