@@ -141,24 +141,26 @@ class ImageAnalzer:
         self.height = self.video.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.device.shell(f"am force-stop {self.package_name}")
 
-    def get_image(self, frame_position):
+    def get_image(self, frame_position, cropped=True):
         self.video.set(cv2.CAP_PROP_POS_FRAMES, frame_position)
         ret, frame = self.video.read()
         if not ret:
             raise Exception("Frame not read")
         # We crop out the top 100 pixels in each image as when we have --bug-report in the
         # screen-recording command it displays a timestamp which interferes with the image comparisons
-        return frame[100 : int(self.height), 0 : int(self.width)]
+        if cropped:
+            return frame[100 : int(self.height), 0 : int(self.width)]
+        return frame
 
     def error(self, img1, img2):
         h = img1.shape[0]
         w = img1.shape[1]
-        diff = cv2.subtract(img1, img2)
+        diff = cv2.absdiff(img1, img2)
         err = np.sum(diff**2)
         mse = err / (float(h * w))
         return mse
 
-    def get_page_loaded_time(self):
+    def get_page_loaded_time(self, iteration):
         """
         Returns the index of the frame where the main image on the shopify demo page is displayed
         for the first time.
@@ -179,6 +181,11 @@ class ImageAnalzer:
                 hi = mid
             else:
                 lo = mid + 1
+        save_image_location = pathlib.Path(
+            os.environ["TESTING_DIR"],
+            f"vid{iteration}_{self.browser}_startup_done_frame_{lo}.jpg",
+        )
+        cv2.imwrite(save_image_location, self.get_image(lo, cropped=False))
         return lo
 
     def get_time_from_frame_num(self, frame_num):
@@ -254,7 +261,7 @@ if __name__ == "__main__":
     for iteration in range(ITERATIONS):
         ImageObject.app_setup()
         ImageObject.get_video(iteration)
-        nav_done_frame = ImageObject.get_page_loaded_time()
+        nav_done_frame = ImageObject.get_page_loaded_time(iteration)
         start_video_timestamp += [ImageObject.get_time_from_frame_num(nav_done_frame)]
     print(
         'perfMetrics: {"values": '
