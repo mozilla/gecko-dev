@@ -57,6 +57,7 @@ add_task(async function test_invalid_cookie_fix() {
   let now = Date.now();
   let future = now + 60 * 60 * 24 * 1000 * 1000;
 
+  // CookieValidation.result => eRejectedNoneRequiresSecure
   schema16db.insertCookie(
     new Cookie(
       "test1",
@@ -76,6 +77,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
+  // CookieValidation.result => eOK
   schema16db.insertCookie(
     new Cookie(
       "test2",
@@ -95,6 +97,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
+  // CookieValidation.result => eOK
   schema16db.insertCookie(
     new Cookie(
       "test3",
@@ -114,6 +117,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
+  // CookieValidation.result => eOK
   schema16db.insertCookie(
     new Cookie(
       "test4",
@@ -133,6 +137,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
+  // CookieValidation.result => eRejectedNoneRequiresSecure
   schema16db.insertCookie(
     new Cookie(
       "test5",
@@ -152,6 +157,7 @@ add_task(async function test_invalid_cookie_fix() {
     )
   );
 
+  // CookieValidation.result => eRejectedAttributeExpiryOversize
   schema16db.insertCookie(
     new Cookie(
       "test6",
@@ -159,6 +165,66 @@ add_task(async function test_invalid_cookie_fix() {
       "foo.com",
       "/",
       future,
+      now,
+      now,
+      false,
+      false,
+      false,
+      false,
+      {},
+      Ci.nsICookie.SAMESITE_UNSET,
+      Ci.nsICookie.SCHEME_UNSET
+    )
+  );
+
+  // CookieValidation.result => eRejectedEmptyNameAndValue
+  schema16db.insertCookie(
+    new Cookie(
+      "",
+      "",
+      "foo.com",
+      "/",
+      now,
+      now,
+      now,
+      false,
+      false,
+      false,
+      false,
+      {},
+      Ci.nsICookie.SAMESITE_UNSET,
+      Ci.nsICookie.SCHEME_UNSET
+    )
+  );
+
+  // CookieValidation.result => eRejectedInvalidCharName
+  schema16db.insertCookie(
+    new Cookie(
+      " test8",
+      "",
+      "foo.com",
+      "/",
+      now,
+      now,
+      now,
+      false,
+      false,
+      false,
+      false,
+      {},
+      Ci.nsICookie.SAMESITE_UNSET,
+      Ci.nsICookie.SCHEME_UNSET
+    )
+  );
+
+  // CookieValidation.result => eRejectedInvalidCharValue
+  schema16db.insertCookie(
+    new Cookie(
+      "test9",
+      " test9",
+      "foo.com",
+      "/",
+      now,
       now,
       now,
       false,
@@ -195,6 +261,20 @@ add_task(async function test_invalid_cookie_fix() {
     }
 
     Assert.deepEqual(results, [
+      {
+        name: "",
+        sameSite: Ci.nsICookie.SAMESITE_UNSET,
+        isSecure: 0,
+        creationTime: now,
+        expiry: now,
+      },
+      {
+        name: " test8",
+        sameSite: Ci.nsICookie.SAMESITE_UNSET,
+        isSecure: 0,
+        creationTime: now,
+        expiry: now,
+      },
       {
         name: "test1",
         sameSite: Ci.nsICookie.SAMESITE_NONE,
@@ -236,6 +316,13 @@ add_task(async function test_invalid_cookie_fix() {
         isSecure: 0,
         creationTime: now,
         expiry: future,
+      },
+      {
+        name: "test9",
+        sameSite: Ci.nsICookie.SAMESITE_UNSET,
+        isSecure: 0,
+        creationTime: now,
+        expiry: now,
       },
     ]);
 
