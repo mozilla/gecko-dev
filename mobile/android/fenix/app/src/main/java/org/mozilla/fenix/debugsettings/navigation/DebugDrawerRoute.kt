@@ -11,6 +11,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.storage.CreditCardsAddressesStorage
 import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.debugsettings.addons.ui.AddonsDebugToolsScreen
 import org.mozilla.fenix.debugsettings.addresses.AddressesDebugLocalesRepository
 import org.mozilla.fenix.debugsettings.addresses.AddressesTools
 import org.mozilla.fenix.debugsettings.cfrs.CfrToolsState
@@ -59,6 +60,10 @@ enum class DebugDrawerRoute(val route: String, @param:StringRes val title: Int) 
         route = "region_debug_tools",
         title = R.string.debug_drawer_region_tools_title,
     ),
+    AddonsDebugTools(
+        route = "addons_debug_tools",
+        title = R.string.debug_drawer_addons_tools_title,
+    ),
     ;
 
     companion object {
@@ -74,7 +79,7 @@ enum class DebugDrawerRoute(val route: String, @param:StringRes val title: Int) 
          * @param creditCardsAddressesStorage used to access addresses for [AddressesTools].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
          */
-        @Suppress("LongParameterList")
+        @Suppress("LongParameterList", "LongMethod")
         fun generateDebugDrawerDestinations(
             debugDrawerStore: DebugDrawerStore,
             browserStore: BrowserStore,
@@ -151,6 +156,15 @@ enum class DebugDrawerRoute(val route: String, @param:StringRes val title: Int) 
                             RegionTools(
                                 browserStore = browserStore,
                             )
+                        }
+                    }
+
+                    AddonsDebugTools -> {
+                        onClick = {
+                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.AddonsDebugTools)
+                        }
+                        content = {
+                            AddonsDebugToolsScreen()
                         }
                     }
                 }

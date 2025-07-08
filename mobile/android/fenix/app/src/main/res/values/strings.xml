@@ -3325,6 +3325,12 @@
     <!-- The title of the button for overriding home region permanently. -->
     <string name="debug_drawer_override_home_region_permanently">Override home region permanently</string>
 
+    <!-- Add-ons debug tools -->
+    <!-- The description of the Add-ons Tools in the Debug Drawer -->
+    <string name="debug_drawer_addons_tools_title">Add-ons Tools</string>
+    <!-- The title of the button used to check for add-on updates. -->
+    <string name="addons_debug_tools_check_for_updates_button">Check for updates</string>
+
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->

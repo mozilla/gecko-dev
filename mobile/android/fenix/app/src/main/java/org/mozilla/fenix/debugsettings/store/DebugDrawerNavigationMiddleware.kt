@@ -47,6 +47,8 @@ class DebugDrawerNavigationMiddleware(
                     navController.navigate(route = DebugDrawerRoute.GleanDebugTools.route)
                 is DebugDrawerAction.NavigateTo.RegionDebugTools ->
                     navController.navigate(route = DebugDrawerRoute.RegionDebugTools.route)
+                is DebugDrawerAction.NavigateTo.AddonsDebugTools ->
+                    navController.navigate(route = DebugDrawerRoute.AddonsDebugTools.route)
                 is DebugDrawerAction.OnBackPressed -> navController.popBackStack()
                 is DebugDrawerAction.DrawerOpened, DebugDrawerAction.DrawerClosed -> Unit // no-op
             }

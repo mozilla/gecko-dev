@@ -67,6 +67,11 @@ sealed class DebugDrawerAction : Action {
          * [NavigateTo] action fired when the debug drawer needs to navigate to [RegionScreen].
          */
         object RegionDebugTools : NavigateTo()
+
+        /**
+         * [NavigateTo] action fired when the debug drawer needs to navigate to [AddonsDebugToolsScreen].
+         */
+        object AddonsDebugTools : NavigateTo()
     }
 
     /**

@@ -83,6 +83,13 @@ class DebugDrawerNavigationMiddlewareTest {
     }
 
     @Test
+    fun `WHEN the add-ons tools screen is the next destination THEN the add-ons tools screen is navigated to`() {
+        store.dispatch(DebugDrawerAction.NavigateTo.AddonsDebugTools).joinBlocking()
+
+        verify { navController.navigate(DebugDrawerRoute.AddonsDebugTools.route) }
+    }
+
+    @Test
     fun `WHEN the back button is pressed THEN the drawer should go back one screen`() {
         store.dispatch(DebugDrawerAction.OnBackPressed).joinBlocking()
 
