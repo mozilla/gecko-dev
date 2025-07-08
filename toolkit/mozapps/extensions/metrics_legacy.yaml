@@ -82,7 +82,7 @@ addons_manager:
         type: string
       source:
         description: >
-          The source that originally triggered the add-on installation, one of "about:addons", "about:debugging", "about:preferences", "amo", "browser-import", "disco", "distribution", "extension", "enterprise-policy", "file-url", "geckoview-app", "gmp-plugin", "internal", "plugin", "rtamo", "siteperm-addon-provider" "sync", "system-addon", "temporary-addon", "unknown". For events with method set to "sideload", the source value is derived from the XPIProvider location name (e.g. possible values are "app-builtin", "app-global", "app-profile", "app-system-addons", "app-system-defaults", "app-system-local", "app-system-profile", "app-system-share", "app-system-user", "winreg-app-user", "winreg-app-gobal")
+          The source that originally triggered the add-on installation, one of "about:addons", "about:debugging", "about:preferences", "amo", "browser-import", "disco", "distribution", "extension", "enterprise-policy", "file-url", "geckoview-app", "gmp-plugin", "internal", "plugin", "rtamo", "siteperm-addon-provider" "sync", "system-addon", "temporary-addon", "unknown", "about:editprofile", "about:newprofile", "nimbus-newtabTrainhopAddon". For events with method set to "sideload", the source value is derived from the XPIProvider location name (e.g. possible values are "app-builtin", "app-global", "app-profile", "app-system-addons", "app-system-defaults", "app-system-local", "app-system-profile", "app-system-share", "app-system-user", "winreg-app-user", "winreg-app-gobal")
         type: string
       method:
         description: >

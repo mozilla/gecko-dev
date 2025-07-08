@@ -490,7 +490,7 @@ export var AboutNewTabResourceMapping = {
       let newInstall = await lazy.AddonManager.getInstallForURL(
         xpiDownloadURL,
         {
-          telemetryInfo: { source: "nimbus:newtabTrainhopAddon" },
+          telemetryInfo: { source: "nimbus-newtabTrainhopAddon" },
         }
       );
       const deferred = Promise.withResolvers();
