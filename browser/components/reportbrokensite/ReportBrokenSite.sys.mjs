@@ -722,9 +722,6 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
     gPrefs.globalPrivacyControlEnabled.set(
       prefs["privacy.globalprivacycontrol.enabled"]
     );
-    gPrefs.h1InSectionUseragentStylesEnabled.set(
-      prefs["layout.css.h1-in-section-ua-styles.enabled"]
-    );
     gPrefs.installtriggerEnabled.set(
       prefs["extensions.InstallTrigger.enabled"]
     );

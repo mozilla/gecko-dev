@@ -234,54 +234,6 @@ h6 {
   }
 }
 
-/* stylelint-disable-next-line media-query-no-invalid */
-@media -moz-pref("layout.css.h1-in-section-ua-styles.enabled") {
-  /* prettier-ignore */
-  :is(article, aside, nav, section)
-  h1 {
-    margin-block: 0.83em;
-    font-size: 1.5em;
-  }
-
-  /* prettier-ignore */
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  h1 {
-    margin-block: 1.00em;
-    font-size: 1.17em;
-  }
-
-  /* prettier-ignore */
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  h1 {
-    margin-block: 1.33em;
-    font-size: 1em;
-  }
-
-  /* prettier-ignore */
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  h1 {
-    margin-block: 1.67em;
-    font-size: 0.83em;
-  }
-
-  /* prettier-ignore */
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  :is(article, aside, nav, section)
-  h1 {
-    margin-block: 2.33em;
-    font-size: 0.67em;
-  }
-}
-
 listing {
   display: block;
   font-family: -moz-fixed;

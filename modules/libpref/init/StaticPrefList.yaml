@@ -10349,12 +10349,6 @@
   mirror: always
   rust: true
 
-# UA styles for h1 in article/aside/nav/section. See bug 1883896.
-- name: layout.css.h1-in-section-ua-styles.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # CSS for android picture-in-picture. See bug 1940052.
 - name: layout.css.android-pip.enabled
   type: RelaxedAtomicBool

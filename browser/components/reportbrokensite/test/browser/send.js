@@ -163,10 +163,6 @@ async function getExpectedWebCompatInfo(tab, snapshot, fullAppData = false) {
         "privacy.globalprivacycontrol.enabled",
         false
       ),
-      h1InSectionUseragentStylesEnabled: Services.prefs.getBoolPref(
-        "layout.css.h1-in-section-ua-styles.enabled",
-        false
-      ),
       installtriggerEnabled: Services.prefs.getBoolPref(
         "extensions.InstallTrigger.enabled",
         false

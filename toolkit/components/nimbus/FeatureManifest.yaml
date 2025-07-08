@@ -4892,18 +4892,6 @@ contextual-password-manager:
         pref: browser.contextual-password-manager.enabled
       description: If true, we will allow user to add the contextual password manager feature to the sidebar.
 
-h1-in-section-styles:
-  description: "H1 in section user agent styles"
-  owner: zcorpan@mozilla.com
-  hasExposure: false
-  variables:
-    enabled:
-      type: boolean
-      description: Whether to enable H1 in section UA styles, see https://github.com/whatwg/html/issues/7867.
-      setPref:
-        branch: user
-        pref: layout.css.h1-in-section-ua-styles.enabled
-
 windowsUIAutomation:
   description: Support for the Windows UI Automation API
   owner: jteh@mozilla.com

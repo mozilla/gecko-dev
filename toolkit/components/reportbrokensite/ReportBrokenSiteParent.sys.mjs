@@ -205,7 +205,6 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
       "gfx.webrender.software",
       "browser.opaqueResponseBlocking",
       "extensions.InstallTrigger.enabled",
-      "layout.css.h1-in-section-ua-styles.enabled",
       "privacy.resistFingerprinting",
       "privacy.globalprivacycontrol.enabled",
       "network.cookie.cookieBehavior.optInPartitioning",

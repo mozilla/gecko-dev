@@ -69,8 +69,6 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     forcedAcceleratedLayers: "layers.acceleration.force-enabled",
     globalPrivacyControlEnabled: "privacy.globalprivacycontrol.enabled",
     installtriggerEnabled: "extensions.InstallTrigger.enabled",
-    h1InSectionUseragentStylesEnabled:
-      "layout.css.h1-in-section-ua-styles.enabled",
     opaqueResponseBlocking: "browser.opaqueResponseBlocking",
     resistFingerprintingEnabled: "privacy.resistFingerprinting",
     softwareWebrender: "gfx.webrender.software",

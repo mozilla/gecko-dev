@@ -6234,7 +6234,6 @@ interface GleanImpl {
     cookieBehavior: GleanQuantity;
     forcedAcceleratedLayers: GleanBoolean;
     globalPrivacyControlEnabled: GleanBoolean;
-    h1InSectionUseragentStylesEnabled: GleanBoolean;
     installtriggerEnabled: GleanBoolean;
     opaqueResponseBlocking: GleanBoolean;
     resistFingerprintingEnabled: GleanBoolean;

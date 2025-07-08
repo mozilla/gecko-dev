@@ -13537,22 +13537,6 @@ broken_site_report.browser_info.prefs:
       - webcompat-reporting-tool-telemetry@mozilla.com
     send_in_pings:
       - broken-site-report
-  h1_in_section_useragent_styles_enabled:
-    type: boolean
-    expires: never
-    data_sensitivity:
-      - interaction
-    description: >
-      Value of `layout.css.h1-in-section-ua-styles.enabled`
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1952996
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1852340#c16
-    notification_emails:
-      - twisniewski@mozilla.com
-      - webcompat-reporting-tool-telemetry@mozilla.com
-    send_in_pings:
-      - broken-site-report
   resist_fingerprinting_enabled:
     type: boolean
     expires: never

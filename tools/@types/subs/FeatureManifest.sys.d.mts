@@ -5358,21 +5358,6 @@ export const FeatureManifest: {
             };
         };
     };
-    "h1-in-section-styles": {
-        description: string;
-        owner: string;
-        hasExposure: boolean;
-        variables: {
-            enabled: {
-                type: string;
-                description: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-        };
-    };
     windowsUIAutomation: {
         description: string;
         owner: string;
