@@ -344,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Ana menüye dön</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Ana menüyü kapat</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Ana menüyü kapat</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Yardım</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Yalnızca birkaç saniye sürer. İstediğiniz zaman değiştirebilirsiniz.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Kapat</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Kapat</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1243,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">Bu sayede Mozilla aktif kullanıcı sayısını tahmin edebilir.</string>
   <string name="preferences_daily_usage_ping_learn_more">Günlük kullanım ping’i hakkında daha fazla bilgi al</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Çökme raporlarını otomatik olarak gönder</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Çökme raporlarını otomatik olarak gönder</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Bu sayede tarayıcıyla ilgili sorunları tanılayıp düzeltebiliriz. Raporlar kişisel veya hassas veriler içerebilir.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Bu sayede tarayıcıyla ilgili sorunları tanılayıp düzeltebiliriz. Raporlar kişisel veya hassas veriler içerebilir.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Çökme raporları hakkında bilgi alın</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1266,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Pazarlama verileri ile ilgili daha fazla bilgi alın</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Çökme raporları hakkında bilgi alın</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Çökme raporları hakkında bilgi alın</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Araştırmalar</string>
   <!-- Summary for studies preferences -->
@@ -2974,11 +2974,7 @@
   <string name="synced_tabs_expand_group">Eşitlenmiş sekme grubunu genişlet</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Eşitlenmiş sekme grubunu daralt</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Kısayol sınırına ulaştınız</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Yeni bir kısayol eklemek için kısayollardan birini kaldırın. Siteye dokunup basılı tutun ve kaldır’ı seçin.</string>
@@ -3370,9 +3366,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Güvenli</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Güvenli</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Güvenli değil</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Güvenli değil</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Bu sitede dikkatli olun</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3436,7 +3432,7 @@
   <string name="connection_security_panel_not_secure">Bağlantı güvenli değil</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Doğrulayan: %s</string>
   <!--

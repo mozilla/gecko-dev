@@ -318,7 +318,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Амениу хада ахь ахынҳәра</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Амениу хада адаҟьа арктәуп</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Амениу хада адаҟьа арктәуп</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar extensions menu. -->
   <string name="browser_extensions_menu_handlebar_content_description">Анарҭбаарақәа рмениу адаҟьа арктәуп</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar save menu. -->
@@ -2296,11 +2296,7 @@
   <string name="synced_tabs_expand_group">Ирҭбаатәуп асинхронизациа зызу абларҭақәа ргәыԥ</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Асинхронизациа зызу абларҭақәа ргәыԥ еидҵатәуп</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Аҿацә аҳәаа наӡеит</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Аҿацә ацҵаразы, даҽа ҿацәк аԥыхтәуп. Еиқәыӷәӷәаны иаанкылатәуп асаит аҵакы, нас иақәыӷәӷәа Аԥыхра.</string>

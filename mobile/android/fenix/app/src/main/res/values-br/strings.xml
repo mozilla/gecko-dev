@@ -330,7 +330,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Distreiñ d\'al lañser pennañ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Serriñ panell al lañser pennañ</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Serriñ panell al lañser pennañ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Skoazell</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -1163,7 +1163,7 @@
   <string name="technical_data_category">Roadennoù teknikel</string>
   <string name="crash_reporting_description">Gant an danevelloù sac’hañ e c’hallomp kempenn ar c’hudennoù er merdeer. An danevelloù a c’hall kaout roadennoù personel pe kizidik eno.</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Gouzout hiroc\'h a-zivout an danevelloù sac\'hañ</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Gouzout hiroc\'h a-zivout an danevelloù sac\'hañ</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Studioù</string>
   <!-- Summary for studies preferences -->
@@ -2720,11 +2720,7 @@
   <string name="synced_tabs_expand_group">Kreskiñ ar strollad ivinelloù goubredet</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Krennañ ar strollad ivinelloù goubredet</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Bevenn berradenn tizhet</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Evit ouzhpennañ ur verradenn nevez, dilamit unan all. Stokit ha dalc’hit al lec’hienn ha dibabit dilemel.</string>
@@ -3084,9 +3080,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Diogel</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Diogel</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Diziogel</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Diziogel</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Taolit evezh war al lec’hienn-mañ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3125,7 +3121,7 @@
   <string name="connection_security_panel_not_secure">N’eo ket diarvar ar c’hennask</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Gwiriet gant %s</string>
   <!--

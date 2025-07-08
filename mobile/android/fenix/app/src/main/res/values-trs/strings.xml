@@ -1732,11 +1732,7 @@
   <string name="synced_tabs_expand_group">Nāgi’hiaj yāchìj nej yi’nïn’ rakïj ñanj huā nūguan’àan</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Gāchrī huì nej yi’nïn’ rakïj ñanj huā nūguan’àan</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Ngà gachra riña āksêso dīrêkto</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Da’ nūtà’t a’ngô atâjo, da’huît nādurê’t ‘ngòj. Gūru’man ra’a riña sitio nī gūru’man ra’a riña tāj nādurê’t.</string>

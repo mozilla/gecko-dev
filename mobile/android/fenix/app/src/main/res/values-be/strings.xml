@@ -345,7 +345,7 @@
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">Выйсці з %1$s</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Адхіліць</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Адхіліць</string>
   <!--
     Extensions management fragment
 
@@ -974,9 +974,9 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Даведацца больш</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Аўтаматычна адпраўляць справаздачы аб збоях</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Аўтаматычна адпраўляць справаздачы аб збоях</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Падрабязней пра справаздачы аб збоях</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Падрабязней пра справаздачы аб збоях</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Даследаванні</string>
   <!-- Summary for studies preferences -->
@@ -2364,11 +2364,7 @@
   <string name="synced_tabs_expand_group">Разгарнуць групу сінхранізаваных картак</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Згарнуць групу сінхранізаваных картак</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Дасягнуты ліміт цэтлікаў</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Каб дадаць новы цэтлік, выдаліце якісь іншы. Націсніце на сайт і ўтрымлівайце, пасля абярыце \"Выдаліць\".</string>

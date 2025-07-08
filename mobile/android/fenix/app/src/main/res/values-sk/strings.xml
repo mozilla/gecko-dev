@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Späť do hlavnej ponuky</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Zavrieť zoznam hlavnej ponuky</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Zavrieť zoznam hlavnej ponuky</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Pomocník</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Trvá to pár sekúnd. Zmeniť môžete kedykoľvek.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Zavrieť</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Zavrieť</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1241,9 +1241,9 @@
   <string name="preferences_daily_usage_ping_description">Toto pomáha spoločnosti Mozilla odhadnúť počet aktívnych používateľov.</string>
   <string name="preferences_daily_usage_ping_learn_more">Ďalšie informácie o pingu denného používania</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automaticky odosielať správy o zlyhaní</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Automaticky odosielať správy o zlyhaní</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Toto nám umožňuje diagnostikovať a opraviť problémy s prehliadačom. Hlásenia môžu obsahovať osobné alebo citlivé údaje.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Toto nám umožňuje diagnostikovať a opraviť problémy s prehliadačom. Hlásenia môžu obsahovať osobné alebo citlivé údaje.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Ďalšie informácie o správach o zlyhaní</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1264,7 +1264,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Ďalšie informácie o marketingových údajoch</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Ďalšie informácie o správach o zlyhaní</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Ďalšie informácie o správach o zlyhaní</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Štúdie</string>
   <!-- Summary for studies preferences -->
@@ -2968,11 +2968,7 @@
   <string name="synced_tabs_expand_group">Rozbaliť skupinu synchronizovaných kariet</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Zbaliť skupinu synchronizovaných kariet</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Bol dosiahnutý limit počtu skratiek</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Ak chcete pridať novú skratku, musíte jednu odstrániť. Podržte na nej prst a vyberte možnosť Odstrániť.</string>
@@ -3364,9 +3360,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Zabezpečená</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Zabezpečená</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Nezabezpečená</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Nezabezpečená</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Buďte opatrní na tejto stránke</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3430,7 +3426,7 @@
   <string name="connection_security_panel_not_secure">Pripojenie nie je zabezpečené</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Overil ho %s</string>
   <!--

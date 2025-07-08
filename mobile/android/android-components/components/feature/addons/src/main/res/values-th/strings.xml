@@ -84,6 +84,14 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">อนุญาตให้สคริปต์บุคคลที่สามที่ไม่ได้ยืนยันเข้าถึงข้อมูลของคุณ</string>
   <!-- The text shown when an extension requests the userScripts permission, near the usual description of the userScripts permission -->
   <string name="mozac_feature_addons_permissions_user_scripts_extra_warning">สคริปต์ที่ไม่ได้ยืนยันสามารถก่อให้เกิดความเสี่ยงด้านความปลอดภัยและความเป็นส่วนตัวได้ ให้เรียกใช้สคริปต์จากส่วนขยายหรือแหล่งที่มาที่คุณเชื่อถือเท่านั้น</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description" moz:removedIn="141" tools:ignore="UnusedResources">ผู้พัฒนาระบุว่าส่วนขยายนี้รวบรวม: %1$s</string>
+  <!-- The sentence used when the extension has data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_required_data_collection_description_2">ผู้พัฒนาระบุว่าส่วนขยายนี้รวบรวม: %1$s</string>
+  <!-- The sentence used when the developer of an extension has explicitly stated that they do not collect any data collection. -->
+  <string name="mozac_feature_addons_permissions_none_required_data_collection_description">ผู้พัฒนาระบุว่าส่วนขยายนี้ไม่ต้องการการรวบรวมข้อมูล</string>
+  <!-- The sentence used when the extension requests new data collection permissions. %1$s is a formatted list of permissions. -->
+  <string name="mozac_feature_addons_permissions_data_collection_optional_description">ผู้พัฒนาระบุว่าส่วนขยายต้องการรวบรวม: %1$s</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">ขยายเครื่องมือนักพัฒนาเพื่อเข้าถึงข้อมูลของคุณในแท็บที่เปิดอยู่</string>
   <!-- Description for text button that expands the list of domain permissions -->
@@ -190,6 +198,10 @@
   <string name="mozac_feature_addons_permissions_dialog_title_2">เพิ่ม %1$s</string>
   <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
   <string name="mozac_feature_addons_optional_permissions_dialog_title" moz:removedIn="142" tools:ignore="UnusedResources">%1$s ขอสิทธิอนุญาตเพิ่มเติม</string>
+  <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_dialog_title">%1$s ขอการตั้งค่าเพิ่มเติม</string>
+  <!-- This is the title of a dialog that asks the users to grant optional data collection permissions only. %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_optional_permissions_with_data_collection_only_dialog_title">%1$s ขอการรวบรวมข้อมูลเพิ่มเติม</string>
   <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
   <string name="mozac_feature_addons_permissions_dialog_subtitle" moz:removedIn="141" tools:ignore="UnusedResources">ส่วนขยายต้องการสิทธิอนุญาตจากคุณเพื่อ:</string>
   <!-- Heading for the permissions section in the add-on install dialog. -->

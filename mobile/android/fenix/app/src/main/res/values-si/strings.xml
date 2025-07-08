@@ -297,7 +297,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ප්‍රධාන වට්ටෝරුවට ආපසු</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">ප්‍රධාන වට්ටෝරු පත්‍රය වසන්න</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">ප්‍රධාන වට්ටෝරු පත්‍රය වසන්න</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">උදව්</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -2257,11 +2257,7 @@
   <string name="synced_tabs_expand_group">සමමුහූර්ත පටිති සමූහය විහිදන්න</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">සමමුහූර්ත පටිති සමූහය හකුළන්න</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">කෙටිමං සීමාවට ළඟා විය</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">නව කෙටිමඟක් යෙදීමට, එකක් ඉවත් කරන්න. අඩවිය ඔබාගෙන ඉවත් කරන්න තෝරන්න.</string>

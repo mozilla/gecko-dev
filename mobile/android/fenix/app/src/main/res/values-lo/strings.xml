@@ -332,7 +332,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ກັບໄປທີ່ເມນູຫຼັກ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">ປິດແຜ່ນເມນູຫຼັກ</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">ປິດແຜ່ນເມນູຫຼັກ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">ຊ່ວຍເຫລືອ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -1124,9 +1124,9 @@
   <string name="preferences_daily_usage_ping_description">ນີ້ຊ່ວຍໃຫ້ Mozilla ຄາດຄະເນຜູ້ໃຊ້ງານທີ່ມີການເຄື່ອນໄຫວ.</string>
   <string name="preferences_daily_usage_ping_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບການໃຊ້ ping ປະຈໍາວັນ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">ສົ່ງລາຍງານການຂັດຂ້ອງໂດຍອັດຕະໂນມັດ</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">ນີ້ຈະຊ່ວຍໃຫ້ພວກເຮົາວິນິດໄສ ແລະ ແກ້ໄຂບັນຫາກັບຕົວທ່ອງເວັບ. ບົດລາຍງານອາດຈະປະກອບມີຂໍ້ມູນສ່ວນຕົວ ຫຼື ຂໍ້ມູນທີ່ລະອຽດອ່ອນ.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">ນີ້ຈະຊ່ວຍໃຫ້ພວກເຮົາວິນິດໄສ ແລະ ແກ້ໄຂບັນຫາກັບຕົວທ່ອງເວັບ. ບົດລາຍງານອາດຈະປະກອບມີຂໍ້ມູນສ່ວນຕົວ ຫຼື ຂໍ້ມູນທີ່ລະອຽດອ່ອນ.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">ຂໍ້ມູນການວັດແທກແຄມເປນ</string>
   <!--
@@ -1137,7 +1137,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບຂໍ້ມູນການຕະຫຼາດ</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">ສຶກສາເພີ່ມເຕີມກ່ຽວກັບລາຍງານການຂັດຂ້ອງ</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">ການສຶກສາ</string>
   <!-- Summary for studies preferences -->
@@ -2644,11 +2644,7 @@
   <string name="synced_tabs_expand_group">ຂະຫຍາຍກຸ່ມແຖບທີ່ຊິ້ງແລ້ວ</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">ຫຍໍ້ກຸ່ມແຖບທີ່ຊິ້ງແລ້ວ</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">ຮອດຂີດຈຳກັດທາງລັດແລ້ວ</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">ເພື່ອເພີ່ມທາງລັດໃໝ່, ເອົາອັນໃດອັນໜຶ່ງອອກ. ແຕະໃສ່ເວັບໄຊທ໌ຄ້າງໄວ້ ແລະເລືອກເອົາອອກ.</string>

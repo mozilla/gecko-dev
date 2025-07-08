@@ -344,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Povratak na glavni meni</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Zatvorite glavni meni</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Zatvorite glavni meni</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Pomoć</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Traje samo nekoliko sekundi. Promijenite bilo kada.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Odbaci</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Odbaci</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1243,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">Ovo pomaže Mozili da procijeni aktivne korisnike.</string>
   <string name="preferences_daily_usage_ping_learn_more">Saznajte više o svakodnevnoj upotrebi pinga</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automatski šalji izvještaje o padu</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Automatski šalji izvještaje o padu</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Ovo nam pomaže da dijagnosticiramo i riješimo probleme s preglednikom. Izvještaji mogu uključivati lične ili osjetljive podatke.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Ovo nam pomaže da dijagnosticiramo i riješimo probleme s preglednikom. Izvještaji mogu uključivati lične ili osjetljive podatke.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Saznajte više o izvještajima o padu</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1266,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Saznajte više o marketinškim podacima</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Saznajte više o izvještajima o padu</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Saznajte više o izvještajima o padu</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Studije</string>
   <!-- Summary for studies preferences -->
@@ -2974,11 +2974,7 @@
   <string name="synced_tabs_expand_group">Proširi grupu sinhronizovanih tabova</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Sažmi grupu sinhroniziranih tabova</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Dostignuto je ograničenje prečice</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Da dodate novu prečicu, uklonite jednu. Dodirnite i držite stranicu i odaberite ukloni.</string>
@@ -3370,9 +3366,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Sigurno</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Sigurno</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Nije sigurno</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Nije sigurno</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Budite oprezni na ovoj stranici</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3436,7 +3432,7 @@
   <string name="connection_security_panel_not_secure">Veza nije sigurna</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Verifikovao %s</string>
   <!--

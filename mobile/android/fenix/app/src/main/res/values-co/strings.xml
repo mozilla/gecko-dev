@@ -332,7 +332,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Ritornu à u listinu principale</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Chjode u pannellu di u listinu principale</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Chjode u pannellu di u listinu principale</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Aiutu</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -1124,9 +1124,9 @@
   <string name="preferences_daily_usage_ping_description">Què aiuta à Mozilla à prezzà u numeru d’utilizatori attivi.</string>
   <string name="preferences_daily_usage_ping_learn_more">Sapene di più nant’à u Ping d’aghjovu oghjincu</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Mandà autumaticamente i raporti d’accidente</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Mandà autumaticamente i raporti d’accidente</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Què ci aiuta à diagnosticà è currege i prublemi cù u navigatore. I raporti ponu cuntene dati persunali o sensibile.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Què ci aiuta à diagnosticà è currege i prublemi cù u navigatore. I raporti ponu cuntene dati persunali o sensibile.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Dati di misura di e campagne</string>
   <!--
@@ -1137,7 +1137,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Sapene di più nant’à i dati cummerciali</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Sapene di più nant’à i raporti d’accidente</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Sapene di più nant’à i raporti d’accidente</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Studii</string>
   <!-- Summary for studies preferences -->
@@ -2750,11 +2750,7 @@
   <string name="synced_tabs_expand_group">Spiegà u gruppu d’unghjette sincrunizate</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Ripiegà u gruppu d’unghjette sincrunizate</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Numeru massimu d’accurtatoghji toccu</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Per aghjunghje un novu accurtatoghju, ci vole à cacciane un’altru. Effettuate una longa incalcata nant’à u situ è selezziunate Caccià</string>
@@ -3144,9 +3140,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Sicuru</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Sicuru</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Nonsicuru</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Nonsicuru</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Fate casu nant’à stu situ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3210,7 +3206,7 @@
   <string name="connection_security_panel_not_secure">Cunnessione micca assicurata</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Verificatu da %s</string>
   <!--

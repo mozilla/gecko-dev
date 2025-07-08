@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">പ്രധാന കുറിപ്പടിക്കട്ടയിലേക്കു് മടങ്ങുക</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">പ്രധാന കുറിപ്പടി താളു് അടയ്ക്കുക</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">പ്രധാന കുറിപ്പടി താളു് അടയ്ക്കുക</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">തുണ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">ഞൊടികൾ മാത്രമെടുക്കും. എപ്പോഴെങ്കിലും മാറ്റാം.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">കളയുക</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">കളയുക</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1171,7 +1171,7 @@
   <string name="preferences_daily_usage_ping_title">പ്രതിദിന ഉപയോഗ പിംഗ്</string>
   <string name="preferences_daily_usage_ping_description">സജീവ ഉപയോക്താക്കളുടെ കണക്കെടുക്കാൻ ഇതു് മോസ്സില്ലയെ സഹായിക്കുന്നു.</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">തകർച്ച വിവരങ്ങൾ തന്നെതാന്നെ അയയ്ക്കുക</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">തകർച്ചവിവരങ്ങളെക്കുറിച്ചു കൂടുതലറിയുക</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1183,7 +1183,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">വില്പനദത്തയെ കുറിച്ചു് കൂടുതൽ അറിയുക</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">തകർച്ചവിവരങ്ങളെ കുറിച്ചു് അറിയുക</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">തകർച്ചവിവരങ്ങളെ കുറിച്ചു് അറിയുക</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">പഠനങ്ങൾ</string>
   <!-- Summary for studies preferences -->
@@ -2840,11 +2840,7 @@
   <string name="synced_tabs_expand_group">സമന്വയിപ്പിച്ച ടാബുക്കൂട്ടം വലുതാക്കുക</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">സമന്വയിപ്പിച്ച ടാബുക്കൂട്ടം ചുരുക്കുക</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">കുറുക്കുവഴി പരിധി എത്തി</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">ഒരു പുതിയ കുറുക്കുവഴി ചേർക്കാൻ മറ്റു് ഒരെണ്ണം മാറ്റുക. സൈറ്റിനു് അമർത്തിപ്പിടിക്കുക, പിന്നെ മാറ്റുക എന്നു് സാധ്യത തിരഞ്ഞെടുക്കൂ.</string>
@@ -3215,9 +3211,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">സുരക്ഷിതം</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">സുരക്ഷിതം</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">സുരക്ഷിതമല്ല</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">സുരക്ഷിതമല്ല</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">ഈ വെബ്സ്ഥാനത്തിൽ ശ്രദ്ധത്തോളം ഇരിക്കുക</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3276,7 +3272,7 @@
   <string name="connection_security_panel_not_secure">സമ്പൎക്കം സുരക്ഷിതമല്ല</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">ഉറപ്പാക്കിയതു്: %s</string>
   <!--

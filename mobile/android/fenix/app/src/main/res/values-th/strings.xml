@@ -320,6 +320,8 @@
   <string name="browser_menu_sign_in_caption" moz:removedIn="141" tools:ignore="UnusedResources">ซิงค์รหัสผ่าน แท็บ และอื่นๆ</string>
   <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
   <string name="browser_menu_sign_in_caption_2" moz:removedIn="141" tools:ignore="UnusedResources">ซิงค์ที่คั่นหน้า รหัสผ่าน แท็บและอื่น ๆ</string>
+  <!-- Browser menu caption label for the "Sign in" browser menu item described in `browser_menu_sign_in` -->
+  <string name="browser_menu_sign_in_caption_3">ซิงค์รหัสผ่าน ที่คั่นหน้า และอื่นๆ</string>
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">ลงชื่อเข้าอีกครั้งเพื่อซิงค์</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
@@ -342,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">กลับสู่เมนูหลัก</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">ปิดแผ่นเมนูหลัก</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">ปิดแผ่นเมนูหลัก</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">ช่วยเหลือ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -410,10 +412,15 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="browser_menu_delete_browsing_data_on_quit">ออกจาก %1$s</string>
+  <!--
+    Content description for a banner within the menu which prompt the user to make this app their default browser.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_default_banner_title">เลือก %1$s เป็นค่าเริ่มต้น</string>
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">ง่ายและรวดเร็ว แก้ไขได้ทุกเมื่อ</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">ยกเลิก</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">ยกเลิก</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -940,6 +947,8 @@
   <string name="preferences_external_download_manager" tools:ignore="UnusedResources" moz:removedIn="141">ตัวจัดการการดาวน์โหลดภายนอก</string>
   <!-- Preference title for choosing an app to handle downloads -->
   <string name="preferences_choose_app_for_downloads">จัดการการดาวน์โหลดด้วยแอปอื่น</string>
+  <!-- Title for the setting to automatically clean up downloaded files. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_downloads_settings_clean_up_files_title">ลบออกจาก %s และอุปกรณ์</string>
   <!-- Summary for the setting to automatically clean up downloaded files -->
   <string name="preferences_downloads_settings_clean_up_files_summary">การลบไฟล์ออกจากตัวจัดการดาวน์โหลดจะลบไฟล์เหล่านั้นออกจากอุปกรณ์ของคุณด้วย</string>
   <!-- Preference for downloads -->
@@ -1234,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">ตัวเลือกนี้ช่วยให้ Mozilla ประเมินจำนวนผู้ใช้ที่มีความเคลื่อนไหวได้</string>
   <string name="preferences_daily_usage_ping_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับพิงการใช้งานรายวัน</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">ข้อมูลนี้ช่วยให้เราสามารถวินิจฉัยและแก้ไขปัญหาเกี่ยวกับเบราว์เซอร์ได้ รายงานอาจรวมถึงข้อมูลส่วนตัวหรือข้อมูลละเอียดอ่อน</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">ข้อมูลนี้ช่วยให้เราสามารถวินิจฉัยและแก้ไขปัญหาเกี่ยวกับเบราว์เซอร์ได้ รายงานอาจรวมถึงข้อมูลส่วนตัวหรือข้อมูลละเอียดอ่อน</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับรายงานข้อขัดข้อง</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1257,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับข้อมูลการตลาด</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">เรียนรู้เพิ่มเติมเกี่ยวกับรายงานข้อขัดข้อง</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">เรียนรู้เพิ่มเติมเกี่ยวกับรายงานข้อขัดข้อง</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">การศึกษา</string>
   <!-- Summary for studies preferences -->
@@ -1650,6 +1659,35 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • เหลือ %3$s</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • เหลืออีก %3$s</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the estimated download time remaining is still being calculated.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • รอค้างอยู่</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the total download size is unknown. This results in the estimated download time remaining to be unknown also.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_in_progress_description_unknown_total_size">%1$s • ไม่ทราบเวลาคงเหลือ</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • หยุดชั่วคราว</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list when the total download size is unknown.
+    %1$s is the current file size that has been downloaded.
+  -->
+  <string name="download_item_paused_description_unknown_total_size">%1$s • หยุดชั่วคราว</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ถูกหยุดชั่วคราว</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2932,11 +2970,7 @@
   <string name="synced_tabs_expand_group">ขยายกลุ่มของแท็บที่ซิงค์</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">ยุบกลุ่มของแท็บที่ซิงค์</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">ถึงขีดจำกัดของทางลัดแล้ว</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">การเพิ่มทางลัดต้องลบอันเก่าออก แตะค้างที่ไซต์และเลือกลบ</string>
@@ -3328,9 +3362,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">ปลอดภัย</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">ปลอดภัย</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">ไม่ปลอดภัย</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">ไม่ปลอดภัย</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">โปรดระวังในไซต์นี้</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3394,7 +3428,7 @@
   <string name="connection_security_panel_not_secure">การเชื่อมต่อไม่ปลอดภัย</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">ยืนยันโดย %s</string>
   <!--
