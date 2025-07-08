@@ -29,7 +29,7 @@ const PREF_TEST_NOTIFICATIONS =
 let loggingEnabled = false;
 
 // Variables imported from library.
-let BindToObject, RequestBackoffV4;
+let RequestBackoffV4;
 
 // Log only if browser.safebrowsing.debug is true
 function log(...stuff) {
@@ -460,9 +460,9 @@ class PROT_ListManager {
       return false;
     }
     // Grab the current state of the tables from the database
-    this.dbService_.getTables(
-      BindToObject(this.#makeUpdateRequest, this, updateUrl)
-    );
+    this.dbService_.getTables(tableData => {
+      this.#makeUpdateRequest(updateUrl, tableData);
+    });
     return true;
   }
 
@@ -632,9 +632,10 @@ class PROT_ListManager {
         requestPayload,
         isPostRequest,
         updateUrl,
-        BindToObject(this.#updateSuccess, this, tableList, updateUrl),
-        BindToObject(this.#updateError, this, tableList, updateUrl),
-        BindToObject(this.#downloadError, this, tableList, updateUrl)
+        waitForUpdateSec =>
+          this.#updateSuccess(tableList, updateUrl, waitForUpdateSec),
+        result => this.#updateError(tableList, updateUrl, result),
+        status => this.#downloadError(tableList, updateUrl, status)
       )
     ) {
       // Our alarm gets reset in one of the 3 callbacks.
@@ -828,7 +829,6 @@ function Init() {
   // Pull the library in.
   var jslib =
     Cc["@mozilla.org/url-classifier/jslib;1"].getService().wrappedJSObject;
-  BindToObject = jslib.BindToObject;
   RequestBackoffV4 = jslib.RequestBackoffV4;
 
   initialized = true;

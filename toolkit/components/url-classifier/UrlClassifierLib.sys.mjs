@@ -9,52 +9,6 @@
 const PREF_DISABLE_TEST_BACKOFF =
   "browser.safebrowsing.provider.test.disableBackoff";
 
-/**
- * Partially applies a function to a particular "this object" and zero or
- * more arguments. The result is a new function with some arguments of the first
- * function pre-filled and the value of |this| "pre-specified".
- *
- * Remaining arguments specified at call-time are appended to the pre-
- * specified ones.
- *
- * Usage:
- * var barMethBound = BindToObject(myFunction, myObj, "arg1", "arg2");
- * barMethBound("arg3", "arg4");
- *
- * @param fn {string} Reference to the function to be bound
- *
- * @param self {object} Specifies the object which |this| should point to
- * when the function is run. If the value is null or undefined, it will default
- * to the global object.
- *
- * @returns {function} A partially-applied form of the speficied function.
- */
-export function BindToObject(fn, self) {
-  var boundargs = fn.boundArgs_ || [];
-  boundargs = boundargs.concat(
-    Array.prototype.slice.call(arguments, 2, arguments.length)
-  );
-
-  if (fn.boundSelf_) {
-    self = fn.boundSelf_;
-  }
-  if (fn.boundFn_) {
-    fn = fn.boundFn_;
-  }
-
-  var newfn = function () {
-    // Combine the static args and the new args into one big array
-    var args = boundargs.concat(Array.prototype.slice.call(arguments));
-    return fn.apply(self, args);
-  };
-
-  newfn.boundArgs_ = boundargs;
-  newfn.boundSelf_ = self;
-  newfn.boundFn_ = fn;
-
-  return newfn;
-}
-
 // This implements logic for stopping requests if the server starts to return
 // too many errors.  If we get MAX_ERRORS errors in ERROR_PERIOD minutes, we
 // back off for TIMEOUT_INCREMENT minutes.  If we get another error
@@ -219,7 +173,6 @@ export function UrlClassifierLib() {
   this.wrappedJSObject = {
     RequestBackoff,
     RequestBackoffV4,
-    BindToObject,
   };
 }
 
