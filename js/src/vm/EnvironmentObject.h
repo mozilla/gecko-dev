@@ -1250,30 +1250,64 @@ class MOZ_RAII EnvironmentIter {
   AbstractFramePtr maybeInitialFrame() const { return frame_; }
 };
 
-// The key in MissingEnvironmentMap. For live frames, maps live frames to
-// their synthesized environments. For completely optimized-out environments,
-// maps the Scope to their synthesized environments. The env we synthesize for
-// Scopes are read-only, and we never use their parent links, so they don't
-// need to be distinct.
+// The key in MissingEnvironmentMap.
 //
-// That is, completely optimized out environments can't be distinguished by
-// frame. Note that even if the frame corresponding to the Scope is live on
-// the stack, it is unsound to synthesize an environment from that live
-// frame. In other words, the provenance of the environment chain is from
-// allocated closures (i.e., allocation sites) and is irrecoverable from
-// simple stack inspection (i.e., call sites).
+//   * For live frames, maps live frames to their synthesized environments.
+//   * For completely optimized-out environments, maps the Scope to their
+//     synthesized environments.
+//
+// The env we synthesize for Scopes are read-only, but the parent links can be
+// used when accessing closed-over bindings held by the enclosing environments.
+// Thus these environments need to be distinct for multiple execution for the
+// same scope.  Otherwise looking up the MissingEnvironmentMap can yield
+// the environment for previous execution, which holds different values in the
+// variables.
+//
+// Completely optimized out environments lack the frame, and they can't be
+// distinguished by the frame pointers. Note that even if the frame
+// corresponding to the Scope is live on the stack, it is unsound to synthesize
+// environment from that live frame.
+//
+// If the frame is missing, the nearestEnvId_ field is used for distinguishing
+// the missing environments across multiple executions.
+// The nearestEnvId_ field holds the ID of environment object that encloses this
+// environment.
+//
+// The goal of distinguishing the environments is to avoid mixing up the
+// variables in these enclosing environments, thus using these environment
+// object pointers should be sufficient.
+// For example, if there's no enclosing local environment which has an
+// environment object, nearestEnvId_ will point to the global environment
+// object, and all executions for the same scope will alias, but there's no need
+// to distinguish between them.
+class DebugEnvironments;
+
 class MissingEnvironmentKey {
   friend class LiveEnvironmentVal;
 
+  // The corresponding frame for the environment.
+  // This can be null for function etc.
   AbstractFramePtr frame_;
+
+  // The corresponding scope for the environment.
+  // This is shared betwen all executions.
   Scope* scope_;
 
+  // The ID of the nearest enclosing environment object's DebugEnvironmentProxy
+  // if any.  Used only if frame_ is null, to distinguish between multiple
+  // execution on the same scope.
+  uint64_t nearestEnvId_;
+
  public:
-  explicit MissingEnvironmentKey(const EnvironmentIter& ei)
-      : frame_(ei.maybeInitialFrame()), scope_(ei.maybeScope()) {}
+  MissingEnvironmentKey()
+      : frame_(NullFramePtr()), scope_(nullptr), nearestEnvId_(0) {}
 
   MissingEnvironmentKey(AbstractFramePtr frame, Scope* scope)
-      : frame_(frame), scope_(scope) {}
+      : frame_(frame), scope_(scope), nearestEnvId_(0) {
+    MOZ_ASSERT(frame);
+  }
+
+  bool initFromEnvironmentIter(JSContext* cx, const EnvironmentIter& ei);
 
   AbstractFramePtr frame() const { return frame_; }
   Scope* scope() const { return scope_; }
@@ -1286,7 +1320,8 @@ class MissingEnvironmentKey {
   static HashNumber hash(MissingEnvironmentKey sk);
   static bool match(MissingEnvironmentKey sk1, MissingEnvironmentKey sk2);
   bool operator!=(const MissingEnvironmentKey& other) const {
-    return frame_ != other.frame_ || scope_ != other.scope_;
+    return frame_ != other.frame_ || nearestEnvId_ != other.nearestEnvId_ ||
+           scope_ != other.scope_;
   }
   static void rekey(MissingEnvironmentKey& k,
                     const MissingEnvironmentKey& newKey) {
@@ -1301,12 +1336,16 @@ class LiveEnvironmentVal {
 
   AbstractFramePtr frame_;
   HeapPtr<Scope*> scope_;
+  // See LiveEnvironmentVal::staticAsserts.
+  uint64_t padding_ = 0;
 
   static void staticAsserts();
 
  public:
   explicit LiveEnvironmentVal(const EnvironmentIter& ei)
-      : frame_(ei.initialFrame()), scope_(ei.maybeScope()) {}
+      : frame_(ei.initialFrame()), scope_(ei.maybeScope()) {
+    (void)padding_;
+  }
 
   AbstractFramePtr frame() const { return frame_; }
 
@@ -1484,8 +1523,9 @@ class DebugEnvironments {
   static bool addDebugEnvironment(JSContext* cx, Handle<EnvironmentObject*> env,
                                   Handle<DebugEnvironmentProxy*> debugEnv);
 
-  static DebugEnvironmentProxy* hasDebugEnvironment(JSContext* cx,
-                                                    const EnvironmentIter& ei);
+  static bool getExistingDebugEnvironment(JSContext* cx,
+                                          const EnvironmentIter& ei,
+                                          DebugEnvironmentProxy** out);
   static bool addDebugEnvironment(JSContext* cx, const EnvironmentIter& ei,
                                   Handle<DebugEnvironmentProxy*> debugEnv);
 
