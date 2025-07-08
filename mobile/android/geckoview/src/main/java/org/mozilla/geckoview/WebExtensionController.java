@@ -1314,24 +1314,12 @@ public class WebExtensionController {
   }
 
   private void updatePrompt(final GeckoBundle message, final EventCallback callback) {
-    final GeckoBundle currentBundle = message.getBundle("currentlyInstalled");
-    final GeckoBundle updatedBundle = message.getBundle("updatedExtension");
+    final WebExtension currentExtension =
+        new WebExtension(mDelegateControllerProvider, message.getBundle("currentlyInstalled"));
+    final WebExtension updatedExtension =
+        new WebExtension(mDelegateControllerProvider, message.getBundle("updatedExtension"));
     final String[] newPermissions = message.getStringArray("newPermissions");
     final String[] newOrigins = message.getStringArray("newOrigins");
-    if (currentBundle == null || updatedBundle == null) {
-      if (BuildConfig.DEBUG_BUILD) {
-        throw new RuntimeException("Missing bundle");
-      }
-
-      Log.e(LOGTAG, "Missing bundle");
-      return;
-    }
-
-    final WebExtension currentExtension =
-        new WebExtension(mDelegateControllerProvider, currentBundle);
-
-    final WebExtension updatedExtension =
-        new WebExtension(mDelegateControllerProvider, updatedBundle);
 
     if (mPromptDelegate == null) {
       Log.e(

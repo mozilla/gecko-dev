@@ -544,6 +544,7 @@ class ExtensionPromptObserver {
   constructor() {
     Services.obs.addObserver(this, "webextension-permission-prompt");
     Services.obs.addObserver(this, "webextension-optional-permission-prompt");
+    Services.obs.addObserver(this, "webextension-update-permission-prompt");
   }
 
   async permissionPromptRequest(aInstall, aAddon, aInfo) {
@@ -603,6 +604,31 @@ class ExtensionPromptObserver {
     resolve(response.allow);
   }
 
+  async updatePermissionPrompt({
+    addon,
+    existingAddon,
+    permissions,
+    resolve,
+    reject,
+  }) {
+    const response = await lazy.EventDispatcher.instance.sendRequestForResult({
+      type: "GeckoView:WebExtension:UpdatePrompt",
+      currentlyInstalled: await exportExtension(
+        existingAddon,
+        /* aSourceURI */ null
+      ),
+      updatedExtension: await exportExtension(addon, /* aSourceURI */ null),
+      newPermissions: await filterPromptPermissions(permissions.permissions),
+      newOrigins: permissions.origins,
+    });
+
+    if (response.allow) {
+      resolve();
+    } else {
+      reject();
+    }
+  }
+
   observe(aSubject, aTopic) {
     debug`observe ${aTopic}`;
 
@@ -616,6 +642,10 @@ class ExtensionPromptObserver {
       case "webextension-optional-permission-prompt": {
         const { id, permissions, resolve } = aSubject.wrappedJSObject;
         this.optionalPermissionPrompt(id, permissions, resolve);
+        break;
+      }
+      case "webextension-update-permission-prompt": {
+        this.updatePermissionPrompt(aSubject.wrappedJSObject);
         break;
       }
     }
@@ -895,48 +925,6 @@ class MobileWindowTracker extends EventEmitter {
 
 export var mobileWindowTracker = new MobileWindowTracker();
 
-async function updatePromptHandler(aInfo) {
-  const oldPerms = aInfo.existingAddon.userPermissions;
-  if (!oldPerms) {
-    // Updating from a legacy add-on, let it proceed
-    return;
-  }
-
-  const newPerms = aInfo.addon.userPermissions;
-
-  const difference = lazy.Extension.comparePermissions(oldPerms, newPerms);
-
-  // We only care about permissions that we can prompt the user for
-  const newPermissions = await filterPromptPermissions(difference.permissions);
-  const { origins: newOrigins } = difference;
-
-  // If there are no new permissions, just proceed
-  if (!newOrigins.length && !newPermissions.length) {
-    return;
-  }
-
-  const currentlyInstalled = await exportExtension(
-    aInfo.existingAddon,
-    /* aSourceURI */ null
-  );
-  const updatedExtension = await exportExtension(
-    aInfo.addon,
-    /* aSourceURI */ null
-  );
-
-  const response = await lazy.EventDispatcher.instance.sendRequestForResult({
-    type: "GeckoView:WebExtension:UpdatePrompt",
-    currentlyInstalled,
-    updatedExtension,
-    newPermissions,
-    newOrigins,
-  });
-
-  if (!response.allow) {
-    throw new Error("Extension update rejected.");
-  }
-}
-
 export var GeckoViewWebExtension = {
   observe(aSubject, aTopic) {
     debug`observe ${aTopic}`;
@@ -1117,8 +1105,9 @@ export var GeckoViewWebExtension = {
   checkForUpdate(aAddon) {
     return new Promise(resolve => {
       const listener = {
-        onUpdateAvailable(aAddon, install) {
-          install.promptHandler = updatePromptHandler;
+        onUpdateAvailable(_aAddon, install) {
+          install.promptHandler = aInfo =>
+            lazy.AddonManager.updatePromptHandler(aInfo);
           resolve(install);
         },
         onNoUpdateAvailable() {

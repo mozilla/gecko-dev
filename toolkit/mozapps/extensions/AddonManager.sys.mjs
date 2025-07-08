@@ -1263,6 +1263,7 @@ var AddonManagerInternal = {
       let subject = {
         wrappedJSObject: {
           addon: info.addon,
+          existingAddon: info.existingAddon,
           permissions: difference,
           resolve,
           reject,
