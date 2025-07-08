@@ -8,7 +8,6 @@
 
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/glean/NetwerkProtocolHttpMetrics.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 #include "nsSocketTransportService2.h"
 
@@ -24,9 +23,8 @@ static constexpr nsLiteralCString gKeyName[] = {
 };
 #undef DEFINE_CATEGORY
 
-#define DEFINE_CATEGORY(_name, _idx) \
-  Telemetry::LABELS_HTTP_TRAFFIC_ANALYSIS_3::Y##_idx##_##_name,
-static const Telemetry::LABELS_HTTP_TRAFFIC_ANALYSIS_3 gTelemetryLabel[] = {
+#define DEFINE_CATEGORY(_name, _idx) "Y##_idx##_##_name"_ns,
+static const nsLiteralCString gTelemetryLabel[] = {
 #include "HttpTrafficAnalyzer.inc"
 };
 #undef DEFINE_CATEGORY
@@ -187,8 +185,9 @@ void HttpTrafficAnalyzer::IncrementHttpTransaction(
   LOG(("HttpTrafficAnalyzer::IncrementHttpTransaction [%s] [this=%p]\n",
        gKeyName[aCategory].get(), this));
 
-  Telemetry::AccumulateCategoricalKeyed("Transaction"_ns,
-                                        gTelemetryLabel[aCategory]);
+  glean::http::traffic_analysis
+      .Get("Transaction"_ns, gTelemetryLabel[aCategory])
+      .Add();
 }
 
 void HttpTrafficAnalyzer::IncrementHttpConnection(
@@ -200,8 +199,8 @@ void HttpTrafficAnalyzer::IncrementHttpConnection(
   LOG(("HttpTrafficAnalyzer::IncrementHttpConnection [%s] [this=%p]\n",
        gKeyName[aCategory].get(), this));
 
-  Telemetry::AccumulateCategoricalKeyed("Connection"_ns,
-                                        gTelemetryLabel[aCategory]);
+  glean::http::traffic_analysis.Get("Connection"_ns, gTelemetryLabel[aCategory])
+      .Add();
 }
 
 void HttpTrafficAnalyzer::IncrementHttpConnection(

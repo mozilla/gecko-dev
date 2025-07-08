@@ -1790,6 +1790,36 @@ networking:
     description: >
       Upgrading display content Channel Disposition (key: disabled_wont)
 
+  http_channel_disposition_upgrade:
+    type: dual_labeled_counter
+    description: >
+      Upgrading display content Channel Disposition
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram HTTP_CHANNEL_DISPOSITION_UPGRADE.
+    dual_labels:
+      key:
+        description: No static keys unfortunately.
+      category:
+        labels:
+          - cancel
+          - disk
+          - netOk
+          - netEarlyFail
+          - netLateFail
+        description: Labels of the keyed categorical legacy telemetry histogram
+          HTTP_CHANNEL_DISPOSITION_UPGRADE.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1440701
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1440701
+    notification_emails:
+      - necko@mozilla.com
+      - seceng-telemetry@mozilla.com
+      - jkt@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CHANNEL_DISPOSITION_UPGRADE
+
   http_channel_onstart_status:
     type: labeled_counter
     description: >
@@ -1806,6 +1836,33 @@ networking:
     labels:
       - successful
       - fail
+
+  http3_channel_onstart_success:
+    type: dual_labeled_counter
+    description: >
+      Successfully started HTTP channels when HTTP3 is used
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram HTTP3_CHANNEL_ONSTART_SUCCESS.
+    dual_labels:
+      key:
+        labels:
+          - "http3"
+          - "no_http3"
+        description: Whether http3 was used.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1677987
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1677987
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP3_CHANNEL_ONSTART_SUCCESS
 
   http_channel_page_open_to_first_sent:
     type: timing_distribution

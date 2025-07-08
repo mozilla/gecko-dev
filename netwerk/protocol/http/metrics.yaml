@@ -1383,7 +1383,6 @@ networking:
       - https://bugzil.la/1706842
     notification_emails:
       - arthur@mozilla.com
-      - tanvi@mozilla.com
       - tihuang@mozilla.com
     expires: never
     telemetry_mirror: NETWORKING_DATA_TRANSFERRED_V3_KB
@@ -2893,6 +2892,118 @@ http:
       - kershaw@mozilla.com
     expires: never
     telemetry_mirror: h#ECHCONFIG_SUCCESS_RATE
+
+  cache_disposition:
+    type: dual_labeled_counter
+    description: >
+      HTTP Cache v2 hit/miss stats keyed by content type.
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram HTTP_CACHE_DISPOSITION_3.
+    dual_labels:
+      key:
+        description: Keys of the keyed categorical legacy telemetry histogram
+          HTTP_CACHE_DISPOSITION_3.
+        labels:
+          - ALL
+          - UNKNOWN
+          - OTHER
+          - JAVASCRIPT
+          - IMAGE
+          - MEDIA
+          - STYLESHEET
+          - WASM
+      category:
+        labels:
+          - Unresolved
+          - Hit
+          - HitViaReval
+          - MissedViaReval
+          - Missed
+          - Unknown
+        description: Labels of the keyed categorical legacy telemetry histogram
+          HTTP_CACHE_DISPOSITION_3.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1611185
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1611185
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_CACHE_DISPOSITION_3
+
+  traffic_analysis:
+    type: dual_labeled_counter
+    description: >
+      Numbers of HTTP transactions and connections by type. There are some
+      categories separated by labels based on 5 parameters: 1. normal browsing
+      or private browsing 2. system principal or not 3. first party or third
+      party 4. class of service (Leader/Background/Others) 5. tracking
+      classification (Basic/Content/FingerprintingContent).
+
+      This metric was generated to correspond to the Legacy Telemetry
+      categorical histogram HTTP_TRAFFIC_ANALYSIS_3.
+    dual_labels:
+      key:
+        description: Keys of the keyed categorical legacy telemetry histogram
+          HTTP_TRAFFIC_ANALYSIS_3.
+        labels:
+          - Connection
+          - Transaction
+      category:
+        labels:
+          - Y0_N1Sys
+          - Y1_N1
+          - Y2_N3Oth
+          - Y3_N3BasicLead
+          - Y4_N3BasicBg
+          - Y5_N3BasicOth
+          - Y6_N3ContentLead
+          - Y7_N3ContentBg
+          - Y8_N3ContentOth
+          - Y9_N3FpLead
+          - Y10_N3FpBg
+          - Y11_N3FpOth
+          - Y12_P1Sys
+          - Y13_P1
+          - Y14_P3Oth
+          - Y15_P3BasicLead
+          - Y16_P3BasicBg
+          - Y17_P3BasicOth
+          - Y18_P3ContentLead
+          - Y19_P3ContentBg
+          - Y20_P3ContentOth
+          - Y21_P3FpLead
+          - Y22_P3FpBg
+          - Y23_P3FpOth
+        description: Labels of the keyed categorical legacy telemetry histogram
+          HTTP_TRAFFIC_ANALYSIS_3.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1533363
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1546796
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1546906
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1550756
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1572666
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590124
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1621800
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668604
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1706842
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1533363
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1546796
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1546906
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1550756
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1572666
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590124
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1621800
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1668604
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1706842
+    notification_emails:
+      - arthur@mozilla.com
+      - tanvi@mozilla.com
+      - tihuang@mozilla.com
+    expires: never
+    telemetry_mirror: HTTP_TRAFFIC_ANALYSIS_3
 
 http3:
   ech_outcome:
