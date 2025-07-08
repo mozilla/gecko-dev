@@ -125,11 +125,23 @@ function getUpdateInstall(addon) {
 }
 
 function isManualUpdate(install) {
+  const isExistingHidden = install.existingAddon?.hidden;
+  // NOTE: some of the existing test cases are mocking an AddonInstall
+  // instance without an `install.addon` property set
+  // (e.g. browser_html_pending_updates.js).
+  const isNewHidden = install.addon?.hidden;
+  // Not a manual update installation if both the existing and old
+  // addon are hidden (which also ensures we are going to hide pending
+  // installations for hidden add-ons from both the category button
+  // badge counter and from the available updates view when the new
+  // addon is also hidden).
+  if (isExistingHidden && isNewHidden) {
+    return false;
+  }
   let isManual =
     install.existingAddon &&
     !AddonManager.shouldAutoUpdate(install.existingAddon);
-  let isExtension =
-    install.existingAddon && install.existingAddon.type == "extension";
+  let isExtension = install.existingAddon?.type == "extension";
   return (
     (isManual && isInState(install, "available")) ||
     (isExtension && isInState(install, "postponed"))
