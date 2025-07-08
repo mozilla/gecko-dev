@@ -66,7 +66,11 @@ class ReviewPromptMiddleware(
             lastPrompt == 0L || lastPrompt <= approximatelyFourMonthsAgo
 
         if (hasOpenedAtLeastFiveTimes && hasNotBeenPromptedLastFourMonths) {
-            context.dispatch(ShowPlayStorePrompt)
+            if (settings.isTelemetryEnabled) {
+                context.dispatch(ShowCustomReviewPrompt)
+            } else {
+                context.dispatch(ShowPlayStorePrompt)
+            }
         } else {
             context.dispatch(DoNotShowReviewPrompt)
         }

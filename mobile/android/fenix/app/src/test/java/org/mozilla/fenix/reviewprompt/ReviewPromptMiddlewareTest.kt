@@ -23,6 +23,7 @@ class ReviewPromptMiddlewareTest {
         numberOfAppLaunches = 5
         isDefaultBrowser = true
         lastReviewPromptTimeInMillis = 0L
+        isTelemetryEnabled = false
     }
 
     val store = AppStore(
@@ -132,6 +133,18 @@ class ReviewPromptMiddlewareTest {
     @Test
     fun `WHEN show Play Store prompt THEN does nothing`() {
         assertNoOp(ReviewPromptAction.ShowPlayStorePrompt)
+    }
+
+    @Test
+    fun `GIVEN telemetry enabled AND other criteria satisfied WHEN check requested THEN sets eligible for Custom prompt`() {
+        settings.isTelemetryEnabled = true
+
+        store.dispatch(ReviewPromptAction.CheckIfEligibleForReviewPrompt).joinBlocking()
+
+        assertEquals(
+            AppState(reviewPrompt = ReviewPromptState.Eligible(Type.Custom)),
+            store.state,
+        )
     }
 
     private fun assertNoOp(action: ReviewPromptAction) {
