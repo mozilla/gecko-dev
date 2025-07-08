@@ -58,6 +58,8 @@ UNIFIED_SOURCES += [
     "HTMLEditorDeleteHandler.cpp",
     "HTMLEditorDocumentCommands.cpp",
     "HTMLEditorEventListener.cpp",
+    "HTMLEditorInsertLineBreakHandler.cpp",
+    "HTMLEditorInsertParagraphHandler.cpp",
     "HTMLEditorObjectResizer.cpp",
     "HTMLEditorState.cpp",
     "HTMLEditSubActionHandler.cpp",

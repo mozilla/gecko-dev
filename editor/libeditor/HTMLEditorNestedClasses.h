@@ -524,6 +524,152 @@ class MOZ_STACK_CLASS HTMLEditor::AutoListElementCreator final {
   const nsAutoString mBulletType;
 };
 
+/**
+ * Handle "insertParagraph" command.
+ */
+class MOZ_STACK_CLASS HTMLEditor::AutoInsertParagraphHandler final {
+ public:
+  explicit AutoInsertParagraphHandler() = default;
+  AutoInsertParagraphHandler(const AutoInsertParagraphHandler&) = delete;
+  AutoInsertParagraphHandler(AutoInsertParagraphHandler&&) = delete;
+
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<EditActionResult, nsresult> Run(
+      HTMLEditor& aHTMLEditor, const Element& aEditingHost);
+
+ private:
+  /**
+   * SplitParagraphWithTransaction() splits the parent block, aParentDivOrP, at
+   * aStartOfRightNode.
+   *
+   * @param aParentDivOrP       The parent block to be split.  This must be <p>
+   *                            or <div> element.
+   * @param aStartOfRightNode   The point to be start of right node after
+   *                            split.  This must be descendant of
+   *                            aParentDivOrP.
+   * @param aMayBecomeVisibleBRElement
+   *                            Next <br> element of the split point if there
+   *                            is.  Otherwise, nullptr. If this is not nullptr,
+   *                            the <br> element may be removed if it becomes
+   *                            visible.
+   * @param aEditingHost        The editing host.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<SplitNodeResult, nsresult>
+  SplitParagraphWithTransaction(HTMLEditor& aHTMLEditor, Element& aParentDivOrP,
+                                const EditorDOMPoint& aStartOfRightNode,
+                                dom::HTMLBRElement* aMayBecomeVisibleBRElement,
+                                const Element& aEditingHost);
+
+  /**
+   * Do the right thing for Enter key press or 'insertParagraph' command in
+   * aParentDivOrP.  aParentDivOrP will be split **around**
+   * aCandidatePointToSplit.  If this thinks that it should be handled to insert
+   * a <br> instead, this returns "not handled".
+   *
+   * @param aParentDivOrP   The parent block.  This must be <p> or <div>
+   *                        element.
+   * @param aCandidatePointToSplit
+   *                        The point where the caller want to split
+   *                        aParentDivOrP.  However, in some cases, this is not
+   *                        used as-is.  E.g., this method avoids to create new
+   *                        empty <a href> in the right paragraph.  So this may
+   *                        be adjusted to proper position around it.
+   * @param aEditingHost    The editing host.
+   * @return                If the caller should default to inserting <br>
+   *                        element, returns "not handled".
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<SplitNodeResult, nsresult>
+  HandleInParagraph(HTMLEditor& aHTMLEditor, Element& aParentDivOrP,
+                    const EditorDOMPoint& aCandidatePointToSplit,
+                    const Element& aEditingHost);
+
+  /**
+   * Handle insertParagraph command (i.e., handling Enter key press) in a
+   * heading element.  This splits aHeadingElement element at aPointToSplit.
+   * Then, if right heading element is empty, it'll be removed and new paragraph
+   * is created (its type is decided with default paragraph separator).
+   *
+   * @param aHeadingElement     The heading element to be split.
+   * @param aPointToSplit       The point to split aHeadingElement.
+   * @return                    New paragraph element, meaning right heading
+   *                            element if aHeadingElement is split, or newly
+   *                            created or existing paragraph element.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertParagraphResult, nsresult>
+  HandleInHeadingElement(HTMLEditor& aHTMLEditor, Element& aHeadingElement,
+                         const EditorDOMPoint& aPointToSplit);
+
+  /**
+   * Handle insertParagraph command (i.e., handling Enter key press) in a list
+   * item element.
+   *
+   * @param aListItemElement    The list item which has the following point.
+   * @param aPointToSplit       The point to split aListItemElement.
+   * @param aEditingHost        The editing host.
+   * @return                    New paragraph element, meaning right list item
+   *                            element if aListItemElement is split, or newly
+   *                            created paragraph element.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<InsertParagraphResult, nsresult>
+  HandleInListItemElement(HTMLEditor& aHTMLEditor, Element& aListItemElement,
+                          const EditorDOMPoint& aPointToSplit,
+                          const Element& aEditingHost);
+
+  /**
+   * Split aMailCiteElement at aPointToSplit.
+   *
+   * @param aMailCiteElement    The mail-cite element which should be split.
+   * @param aPointToSplit       The point to split.
+   * @return                    Candidate caret position where is at inserted
+   *                            <br> element into the split point.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CaretPoint, nsresult>
+  HandleInMailCiteElement(HTMLEditor& aHTMLEditor, Element& aMailCiteElement,
+                          const EditorDOMPoint& aPointToSplit);
+
+  /**
+   * Insert a <br> element into aPointToBreak.
+   * This may split container elements at the point and/or may move following
+   * <br> element to immediately after the new <br> element if necessary.
+   *
+   * @param aPointToBreak       The point where new <br> element will be
+   *                            inserted before.
+   * @param aEditingHost        Current active editing host.
+   * @return                    If succeeded, returns new <br> element and
+   *                            candidate caret point.
+   */
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<CreateElementResult, nsresult>
+  InsertBRElement(HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToBreak,
+                  const Element& aEditingHost);
+};
+
+/**
+ * Handle "insertLineBreak" command.
+ */
+class MOZ_STACK_CLASS HTMLEditor::AutoInsertLineBreakHandler final {
+ public:
+  explicit AutoInsertLineBreakHandler() = default;
+  AutoInsertLineBreakHandler(const AutoInsertLineBreakHandler&) = delete;
+  AutoInsertLineBreakHandler(AutoInsertLineBreakHandler&&) = delete;
+
+  [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult Run(HTMLEditor& aHTMLEditor,
+                                                const Element& aEditingHost);
+
+ private:
+  /**
+   * Insert a linefeed character into aPointToBreak.
+   *
+   * @param aPointToBreak       The point where new linefeed character will be
+   *                            inserted before.
+   * @param aEditingHost        Current active editing host.
+   * @return                    A suggest point to put caret.
+   */
+  [[nodiscard]] static MOZ_CAN_RUN_SCRIPT Result<EditorDOMPoint, nsresult>
+  InsertLinefeed(HTMLEditor& aHTMLEditor, const EditorDOMPoint& aPointToBreak,
+                 const Element& aEditingHost);
+
+  friend class AutoInsertParagraphHandler;
+};
+
 /******************************************************************************
  * NormalizedStringToInsertText stores normalized insertion string with
  * normalized surrounding white-spaces if the insertion point is surrounded by
