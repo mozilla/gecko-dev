@@ -3630,4 +3630,265 @@ describe("DiscoveryStreamFeed", () => {
       );
     });
   });
+
+  describe("#getContextualAdsPlacements", () => {
+    let prefs;
+
+    beforeEach(() => {
+      prefs = {
+        "discoverystream.placements.contextualSpocs":
+          "newtab_stories_1, newtab_stories_2, newtab_stories_3",
+        "discoverystream.placements.contextualSpocs.counts": "1, 1, 1",
+        "discoverystream.placements.contextualBanners": "",
+        "discoverystream.placements.contextualBanners.counts": "",
+        "newtabAdSize.leaderboard": false,
+        "newtabAdSize.billboard": false,
+        "newtabAdSize.leaderboard.position": 3,
+        "newtabAdSize.billboard.position": 3,
+      };
+    });
+
+    it("should only return SPOC placements", async () => {
+      feed.store.getState = () => ({
+        Prefs: {
+          values: prefs,
+        },
+        DiscoveryStream: {
+          feeds: {
+            data: {
+              "https://merino.services.mozilla.com/api/v1/curated-recommendations":
+                {
+                  data: {
+                    sections: [
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["386"] },
+                        receivedRank: 0,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["52"] },
+                        receivedRank: 1,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["464"] },
+                        receivedRank: 1,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                    ],
+                  },
+                },
+            },
+          },
+        },
+      });
+
+      const placements = feed.getContextualAdsPlacements();
+
+      assert.deepEqual(placements, [
+        {
+          placement: "newtab_stories_1",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["386"],
+          },
+        },
+        {
+          placement: "newtab_stories_2",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["52"],
+          },
+        },
+        {
+          placement: "newtab_stories_3",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["464"],
+          },
+        },
+      ]);
+    });
+
+    it("should return SPOC placements AND banner placements when leaderboard is enabled", async () => {
+      // Updating the prefs object keys to have the banner values ready for the test
+      prefs["discoverystream.placements.contextualBanners"] =
+        "newtab_leaderboard";
+      prefs["discoverystream.placements.contextualBanners.counts"] = "1";
+      prefs["newtabAdSize.leaderboard"] = true;
+      prefs["newtabAdSize.leaderboard.position"] = 2;
+
+      feed.store.getState = () => ({
+        Prefs: {
+          values: prefs,
+        },
+        DiscoveryStream: {
+          feeds: {
+            data: {
+              "https://merino.services.mozilla.com/api/v1/curated-recommendations":
+                {
+                  data: {
+                    sections: [
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["386"] },
+                        receivedRank: 0,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["52"] },
+                        receivedRank: 1,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["464"] },
+                        receivedRank: 1,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                    ],
+                  },
+                },
+            },
+          },
+        },
+      });
+
+      const placements = feed.getContextualAdsPlacements();
+
+      assert.deepEqual(placements, [
+        {
+          placement: "newtab_stories_1",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["386"],
+          },
+        },
+        {
+          placement: "newtab_stories_2",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["52"],
+          },
+        },
+        {
+          placement: "newtab_stories_3",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["464"],
+          },
+        },
+        {
+          placement: "newtab_leaderboard",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["386"],
+          },
+        },
+      ]);
+    });
+
+    it("should return SPOC placements AND banner placements when billboard is enabled", async () => {
+      // Updating the prefs object keys to have the banner values ready for the test
+      prefs["discoverystream.placements.contextualBanners"] =
+        "newtab_billboard";
+      prefs["discoverystream.placements.contextualBanners.counts"] = "1";
+      prefs["newtabAdSize.billboard"] = true;
+      prefs["newtabAdSize.billboard.position"] = 2;
+
+      feed.store.getState = () => ({
+        Prefs: {
+          values: prefs,
+        },
+        DiscoveryStream: {
+          feeds: {
+            data: {
+              "https://merino.services.mozilla.com/api/v1/curated-recommendations":
+                {
+                  data: {
+                    sections: [
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["386"] },
+                        receivedRank: 0,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["52"] },
+                        receivedRank: 1,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                      {
+                        iab: { taxonomy: "IAB-3.0", categories: ["464"] },
+                        receivedRank: 1,
+                        layout: {
+                          responsiveLayouts: [{ tiles: [{ hasAd: true }] }],
+                        },
+                      },
+                    ],
+                  },
+                },
+            },
+          },
+        },
+      });
+
+      const placements = feed.getContextualAdsPlacements();
+
+      assert.deepEqual(placements, [
+        {
+          placement: "newtab_stories_1",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["386"],
+          },
+        },
+        {
+          placement: "newtab_stories_2",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["52"],
+          },
+        },
+        {
+          placement: "newtab_stories_3",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["464"],
+          },
+        },
+        {
+          placement: "newtab_billboard",
+          count: 1,
+          content: {
+            taxonomy: "IAB-3.0",
+            categories: ["386"],
+          },
+        },
+      ]);
+    });
+  });
 });

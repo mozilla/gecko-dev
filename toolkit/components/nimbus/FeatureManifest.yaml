@@ -1404,6 +1404,18 @@ newTabSectionsExperiment:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.placements.contextualSpocs.counts
       description: CSV string of spoc placement counts on newtab Pocket grid. The count tells the ad server how many ads to return for this position and placement.
+    contextualBannerPlacements:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners
+      description: CSV string of the banner placement ids on newtab Pocket grid. This placement id tells us which banner is visible when contexual ads are on.
+    contextualBannerCounts:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.contextualBanners.counts
+      description: CSV string of AdBanner placement counts on newtab Pocket grid. The count tells the ad server how many banners to return for this position and placement.
 
 newtabPrivatePing:
   description: The newtab-content ping, sent through OHTTP
@@ -1860,7 +1872,6 @@ pocketNewtab:
       setPref:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.region-thumbs-config
-      description: Display thumbs up and down buttons on recommended stories
     localeThumbsUpDownConfig:
       description: A comma-separated list of locales that get thumbs up and down buttons by default.
       type: string

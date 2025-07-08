@@ -741,6 +741,22 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.placements.contextualBanners",
+    {
+      title:
+        "CSV string of the banner placement ids on newtab Pocket grid. This placement id tells us which banner is visible when contexual ads are on",
+      value: "",
+    },
+  ],
+  [
+    "discoverystream.placements.contextualBanners.counts",
+    {
+      title:
+        "CSV string of AdBanner placement counts on newtab Pocket grid. The count tells the ad server how many banners to return for this position and placement.",
+      value: "",
+    },
+  ],
+  [
     "discoverystream.placements.spocs",
     {
       title:
