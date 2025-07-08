@@ -54,6 +54,7 @@ class WebCompatReporterStorageMiddleware(
             }
             WebCompatReporterAction.BackPressed,
             WebCompatReporterAction.SendMoreInfoClicked,
+            WebCompatReporterAction.LearnMoreClicked,
             -> appStore.dispatch(
                 WebCompatAction.WebCompatStateUpdated(
                     newState = store.state.toPersistedState(),
