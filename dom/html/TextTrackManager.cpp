@@ -672,7 +672,8 @@ void TextTrackManager::TimeMarchesOn() {
   for (uint32_t idx = 0; idx < mTextTracks->Length(); ++idx) {
     TextTrack* track = (*mTextTracks)[idx];
     if (track) {
-      track->GetCurrentCuesAndOtherCues(&currentCues, &otherCues, interval);
+      track->GetOverlappingCurrentAndOtherCues(&currentCues, &otherCues,
+                                               interval);
     }
   }
 
