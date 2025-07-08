@@ -646,10 +646,11 @@ void TextTrackManager::TimeMarchesOn() {
     return;
   }
 
-  // Step 1, 2, 3.
+  // Step 1, 2, 3, 4
   using CueBuckets = TextTrack::CueBuckets;
   CueBuckets currentCues;
   CueBuckets otherCues;
+  CueBuckets missedCues;
   auto currentPlaybackTime =
       media::TimeUnit::FromSeconds(mMediaElement->CurrentTime());
   bool hasNormalPlayback = !mHasSeeked;
@@ -673,19 +674,10 @@ void TextTrackManager::TimeMarchesOn() {
   for (uint32_t idx = 0; idx < mTextTracks->Length(); ++idx) {
     TextTrack* track = (*mTextTracks)[idx];
     if (track) {
-      track->GetOverlappingCurrentAndOtherCues(&currentCues, &otherCues,
-                                               interval);
-    }
-  }
-
-  // Step 4.
-  CueBuckets missedCues;
-  if (hasNormalPlayback) {
-    for (auto& cue : otherCues.AllCues()) {
-      if (cue->StartTime() >= mLastTimeMarchesOnCalled.ToSeconds() &&
-          cue->EndTime() <= currentPlaybackTime.ToSeconds()) {
-        missedCues.AddCue(cue);
-      }
+      track->GetOverlappingCurrentOtherAndMissCues(
+          &currentCues, &otherCues, &missedCues, interval,
+          hasNormalPlayback ? Some(mLastTimeMarchesOnCalled.ToSeconds())
+                            : Nothing());
     }
   }
 

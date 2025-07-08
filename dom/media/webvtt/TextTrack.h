@@ -136,14 +136,17 @@ class TextTrack final : public DOMEventTargetHelper {
         false};
   };
 
-  // Use this function to get `current cues` and `other cues` which are
-  // overlapping with the given interval.
+  // Use this function to get `current cues`, `other cues` and `miss cues`
+  // which are overlapping with the given interval.
   // The `current cues` have start time are less than or equal to the current
   // playback position and whose end times are greater than the current playback
   // position. the `other cues` are not in the current cues.
-  void GetOverlappingCurrentAndOtherCues(
-      CueBuckets* aCurrentCues, CueBuckets* aOtherCues,
-      const media::TimeInterval& aInterval) const;
+  // `aLastTime` is the last time defined in the time marches on step3, it will
+  // only exists when miss cues calculation is needed.
+  void GetOverlappingCurrentOtherAndMissCues(
+      CueBuckets* aCurrentCues, CueBuckets* aOtherCues, CueBuckets* aMissCues,
+      const media::TimeInterval& aInterval,
+      const Maybe<double>& aLastTime) const;
 
   void ClearAllCues();
 

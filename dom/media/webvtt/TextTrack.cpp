@@ -277,9 +277,10 @@ void TextTrack::NotifyCueActiveStateChanged(TextTrackCue* aCue) {
   }
 }
 
-void TextTrack::GetOverlappingCurrentAndOtherCues(
-    CueBuckets* aCurrentCues, CueBuckets* aOtherCues,
-    const media::TimeInterval& aInterval) const {
+void TextTrack::GetOverlappingCurrentOtherAndMissCues(
+    CueBuckets* aCurrentCues, CueBuckets* aOtherCues, CueBuckets* aMissCues,
+    const media::TimeInterval& aInterval,
+    const Maybe<double>& aLastTime) const {
   const HTMLMediaElement* mediaElement = GetMediaElement();
   if (!mediaElement || Mode() == TextTrackMode::Disabled ||
       mCueList->IsEmpty()) {
@@ -326,15 +327,19 @@ void TextTrack::GetOverlappingCurrentAndOtherCues(
       aCurrentCues->AddCue(cue);
     } else {
       // As the spec doesn't have a restriction for the negative duration, it
-      // does happen sometime if user sets it explicitly. It would be treated as
-      // a `missing cue` later in the `TimeMarchesOn` but it won't be displayed.
+      // does happen sometime if user sets it explicitly. It will be treated as
+      // a `missing cue` (a subset of the `other cues`) and it won't be
+      // displayed.
       if (cueEnd < cueStart) {
         // Add cue into `otherCue` only when its start time is contained by the
         // current time interval.
         if (aInterval.Contains(media::TimeUnit::FromSeconds(cueStart))) {
-          WEBVTT_LOG("[Negative duration] Add cue %p [%f:%f] to other cue list",
-                     cue, cueStart, cueEnd);
+          WEBVTT_LOG(
+              "[Negative duration] Add cue %p [%f:%f] to other cues and "
+              "missing cues list",
+              cue, cueStart, cueEnd);
           aOtherCues->AddCue(cue);
+          aMissCues->AddCue(cue);
         }
         continue;
       }
@@ -346,6 +351,11 @@ void TextTrack::GetOverlappingCurrentAndOtherCues(
       }
       WEBVTT_LOG("Add cue %p [%f:%f] to other cue list", cue, cueStart, cueEnd);
       aOtherCues->AddCue(cue);
+      if (aLastTime && cueStart >= *aLastTime && cueEnd <= playbackTime) {
+        WEBVTT_LOG("Add cue %p [%f:%f] to missing cues list", cue, cueStart,
+                   cueEnd);
+        aMissCues->AddCue(cue);
+      }
     }
   }
 }
