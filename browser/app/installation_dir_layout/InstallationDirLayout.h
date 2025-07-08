@@ -6,6 +6,6 @@
 
 enum class InstallationDirLayoutType { Unknown, Single, Versioned };
 
-InstallationDirLayoutType GetInstallationDirLayoutType();
+extern "C" InstallationDirLayoutType GetInstallationDirLayoutType();
 
 #endif  // INSTALL_DIR_LAYOUT_H
