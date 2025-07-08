@@ -43,19 +43,28 @@ export class AboutNewTabParent extends JSWindowActorParent {
   async receiveMessage(message) {
     switch (message.name) {
       case "AboutNewTabVisible":
-        await lazy.ASRouter.waitForInitialized;
-        lazy.ASRouter.sendTriggerMessage({
-          browser: this.browsingContext.top.embedderElement,
-          // triggerId and triggerContext
-          id: "defaultBrowserCheck",
-          context: { source: "newtab" },
-        });
-        lazy.ASRouter.sendTriggerMessage({
-          browser: this.browsingContext.top.embedderElement,
-          id: "newtabMessageCheck",
-        });
+        {
+          const browsingContext = this.browsingContext;
+          // for all of the await's within this switch
+          // check if the Parent actor is still active
+          // helps avoid test failures
+          await lazy.ASRouter.waitForInitialized;
+          if (!browsingContext.isDiscarded) {
+            await lazy.ASRouter.sendTriggerMessage({
+              browser: browsingContext.top.embedderElement,
+              // triggerId and triggerContext
+              id: "defaultBrowserCheck",
+              context: { source: "newtab" },
+            });
+          }
+          if (!browsingContext.isDiscarded) {
+            await lazy.ASRouter.sendTriggerMessage({
+              browser: browsingContext.top.embedderElement,
+              id: "newtabMessageCheck",
+            });
+          }
+        }
         break;
-
       case "Init": {
         let browsingContext = this.browsingContext;
         let browser = browsingContext.top.embedderElement;
