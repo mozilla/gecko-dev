@@ -361,7 +361,7 @@ web-platform-tests-webgpu-long:
             - --tag=webgpu-long
             - --skip-implementation-status=backlog
             - --skip-implementation-status=not-implementing
-            - --timeout-multiplier=10.0
+            - --timeout-multiplier=5.0
 
 web-platform-tests-webgpu-backlog:
     description: "Web platform WebGPU test run (backlog)"
@@ -428,7 +428,7 @@ web-platform-tests-webgpu-backlog-long:
             - --skip-implementation-status=implementing
             - --skip-implementation-status=not-implementing
             - --backlog
-            - --timeout-multiplier=10.0
+            - --timeout-multiplier=5.0
 
 web-platform-tests-canvas:
     description: "Web platform Canvas test run"
