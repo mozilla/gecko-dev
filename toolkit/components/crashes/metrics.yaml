@@ -540,6 +540,32 @@ crash:
     expires: never
     telemetry_mirror: h#PROCESS_CRASH_SUBMIT_ATTEMPT
 
+  submit_success:
+    type: dual_labeled_counter
+    description: >
+      The submission status when main/plugin/content crashes are submitted. 1 is
+      success, 0 is failure. Keyed on the CrashManager Crash.type.
+
+      This metric was generated to correspond to the Legacy Telemetry boolean
+      histogram PROCESS_CRASH_SUBMIT_SUCCESS.
+    dual_labels:
+      key:
+        description: The crash type.
+      category:
+        labels:
+          - "false"
+          - "true"
+        description: Boolean
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960567
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1960567
+    notification_emails:
+      - crash-reporting-wg@mozilla.org
+      - stability@mozilla.org
+    expires: never
+    telemetry_mirror: PROCESS_CRASH_SUBMIT_SUCCESS
+
 crash.windows:
   error_reporting:
     type: boolean

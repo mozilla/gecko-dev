@@ -1728,11 +1728,7 @@ CrashStore.prototype = Object.freeze({
 
     submission.responseDate = date;
     submission.result = result;
-    // Needs bug 1657470 (New Metric Type: "Keyed Categorical") before
-    // this can be migrated to Glean.
-    Services.telemetry
-      .getKeyedHistogramById("PROCESS_CRASH_SUBMIT_SUCCESS")
-      .add(crash.type, result == "ok");
+    Glean.crash.submitSuccess.get(crash.type, result == "ok").add(1);
     return true;
   },
 
