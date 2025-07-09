@@ -344,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">وورگشتن و نومگه ٱسلی</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">بستن بلگه نومگه ٱسلی</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">بستن بلگه نومگه ٱسلی</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">هیاری</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">تینا چن سانیه تۊل اکشه. هر سا خاستین ترین آلشتس کۊنین.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">رڌ کردن</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">رڌ کردن</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1243,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">یو Mozilla ن هیاری اده تا منتورا رۊزووه ن بشماره.</string>
   <string name="preferences_daily_usage_ping_learn_more">زبار پینگ و کار گرؽڌن رۊزووه قلوه دووسته بۊبن</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">و هالت خوتکار گوزارشا خراوی ن بفشنین</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">و هالت خوتکار گوزارشا خراوی ن بفشنین</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">یو و ایما هیاری اده تا موشکلا گشت گر ن تشخیس دیم وو رفع کۊنیم. گوزارشا گاشڌ داده یل سیخومی یا هساس ایسا ن منسووݩ داشته بۊن.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">یو و ایما هیاری اده تا موشکلا گشت گر ن تشخیس دیم وو رفع کۊنیم. گوزارشا گاشڌ داده یل سیخومی یا هساس ایسا ن منسووݩ داشته بۊن.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">زبار گوزارشا خراوی قلوه دووسته بۊین</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1266,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">زبار داده یل بازاریابی قلوه دووسته بۊین</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">زبار گوزارشا خراوی قلوه دووسته بۊین</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">زبار گوزارشا خراوی قلوه دووسته بۊین</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">خۊندنیا</string>
   <!-- Summary for studies preferences -->
@@ -2974,11 +2974,7 @@
   <string name="synced_tabs_expand_group">بولند کردن بونکۊ بلگه یل هوم گوم وابیڌه</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">کۊتال کردن بونکۊ بلگه یل هوم گوم وابیڌه</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">و هندا موجاز ر نهنگ رسیڌین</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">سی ٱووردن ر نهنگی نۊ، یکی ن پاک کۊنین. بزنین ری وبگه، واڌارنین وو وورداشتن ن پسند کۊنین.</string>
@@ -3370,9 +3366,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">ایمن</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">ایمن</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">ایمن نؽ</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">ایمن نؽ</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">ویرت وا ای وبگه بۊ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3436,7 +3432,7 @@
   <string name="connection_security_panel_not_secure">منپیز ن ٱمن</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">تاییڌ وابیڌه و دست %s</string>
   <!--

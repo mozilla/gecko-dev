@@ -2289,11 +2289,7 @@
   <string name="synced_tabs_expand_group">ٹیباں کوں ہم وقت کرݨ کیتے گروپ کھنڈاؤ</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">ٹیباں کوں ہم وقت کرݨ کیتے گروپ کٹھے کرو</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">شاٹ کٹ حد پوری تھی ڳئی</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">نواں شاٹ کٹ شامل کرݨ کیتے، ہک ہٹاؤ۔ ٹچ کرتے، سائٹ قاٻو کرو تے ہٹاؤ چݨو۔</string>

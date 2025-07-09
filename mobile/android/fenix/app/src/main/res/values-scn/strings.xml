@@ -344,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Torna ô minù principali</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Chiuji u minù principali</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Chiuji u minù principali</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Ajutu</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Cci voli quarchi sicunnu, e u po\' canciari quann\'è-è.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Leva</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Leva</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1243,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">Chistu ajuta Mozilla a fari na stima di l’utenti attivi.</string>
   <string name="preferences_daily_usage_ping_learn_more">Cchiù nfurmazzioni supra ô ping d’usu nnô jornu</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Manna ’n autumàticu i signalijazzioni di scasciu</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Manna ’n autumàticu i signalijazzioni di scasciu</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Chistu n’ajuta a diagnusticari e abbirsari i prubblemi dû navicaturi. I papelli ponnu cuntèniri dati pirsunali o sinzìbbili.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Chistu n’ajuta a diagnusticari e abbirsari i prubblemi dû navicaturi. I papelli ponnu cuntèniri dati pirsunali o sinzìbbili.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Cchiù nfurmazzioni supra ê signalijazzioni di scasciu</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1266,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Cchiù nfurmazzioni supra ê dati di màrketing</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Cchiù nfurmazzioni supra ê signalijazzioni di scasciu</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Cchiù nfurmazzioni supra ê signalijazzioni di scasciu</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Studi</string>
   <!-- Summary for studies preferences -->
@@ -2970,11 +2970,7 @@
   <string name="synced_tabs_expand_group">Allarga gruppu dî schedi sincrunizzati</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Cumprimi gruppu dî schedi sincrunizzati</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Agghicasti ô nùmmaru màssimu d’accurzi</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">P i jùnciri n’accurzu novu, n’hâ livari unu. Tocca e teni ammaccatu u situ e cancèllalu.</string>
@@ -3366,9 +3362,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Sicuru</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Sicuru</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Nun sicuru</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Nun sicuru</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Stai accura nna stu situ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3432,7 +3428,7 @@
   <string name="connection_security_panel_not_secure">Cunnissioni nun sicura</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Virificata di %s</string>
   <!--

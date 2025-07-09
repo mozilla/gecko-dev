@@ -344,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ወደ ዋናው ምናሌ ተመለስ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">ዋናውን የምናሌ ገፅ ዝጋ</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">ዋናውን የምናሌ ገፅ ዝጋ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">እገዛ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">ሰከንዶች ይወስዳል። በማንኛውም ጊዜ ይቀይሩ።</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">አሰናብት</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">አሰናብት</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1100,6 +1100,22 @@
   <string name="alternative_app_icon_option_gradient_twilight">ድንግዝግዝ</string>
   <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
   <string name="alternative_app_icon_option_gradient_midnight">እኩለ ሌሊት</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">ሰሜናዊ ብርሃን</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">ሬትሮ 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Retro 2017</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">በፒክሰል የተሰራ</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">ዝቅተኛ</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">ኩራት</string>
+  <!-- Title for the "Cute" themed alternative app icon variant in the icon picker screen. The app icon features a playful design with an adorable aesthetic. -->
+  <string name="alternative_app_icon_option_cute">ቆንጆ</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">ሞሞ</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo_subtitle">በ @heyheymomodraws የተፈጠረ</string>
   <!-- Title for the "Solid colors" group of alternative app icon variants in the icon picker screen. This group contains icons with flat, uniform color backgrounds. -->
@@ -1227,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">ይህ ሞዚላ ንቁ ተጠቃሚዎችን ለመገመት ይረዳል።</string>
   <string name="preferences_daily_usage_ping_learn_more">ስለ ዕለታዊ አጠቃቀም ደወል የበለጠ ይረዱ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">የብልሽት ሪፖርቶችን በራስ-ሰር ይላኩ</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">የብልሽት ሪፖርቶችን በራስ-ሰር ይላኩ</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">ይህ በአሳሹ ላይ ችግሮችን እንድንመረምር እና እንድናስተካክል ይረዳናል። ሀተታዎች ግላዊ ወይም ሚስጥራዊ መረጃዎችን ሊያካትቱ ይችላሉ።</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">ይህ በአሳሹ ላይ ችግሮችን እንድንመረምር እና እንድናስተካክል ይረዳናል። ሀተታዎች ግላዊ ወይም ሚስጥራዊ መረጃዎችን ሊያካትቱ ይችላሉ።</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">ስለብልሽት ሪፖርቶች የበለጠ ይረዱ</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1250,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ስለ ግብይት ውሂብ የበለጠ ይወቁ</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ስለብልሽት ሪፖርቶች የበለጠ ይረዱ</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">ስለብልሽት ሪፖርቶች የበለጠ ይረዱ</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">ጥናቶች</string>
   <!-- Summary for studies preferences -->
@@ -1776,6 +1792,10 @@
   <string name="tab_crash_restore">ትርን ወደነበረበት መልስ</string>
   <!-- Unsubmitted crash dialog title, %s is the name of the app (for example "Firefox"). -->
   <string name="unsubmitted_crash_dialog_title">%s እንደገና መጀመር ነበረበት</string>
+  <!-- Single unsubmitted crash matching remote settings. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crash_requested_by_devs_dialog_title">እየተመረመሩ ካሉ ብልሽቶች ጋር የተያያዘ ያልተላከ የብልሽት ሪፖርት አለዎት። እሱን መላክ %1$sን እንድናሻሽል ይረዳናል። ይህን ማሳወቂያ መዝጋት ይህንን ሪፖርት ችላ ይለዋል።</string>
+  <!-- Multiple unsubmitted crashes matching remote settings. %1$d is the number of unsent crash reports, %2$s is the name of the app (for example "Firefox"). -->
+  <string name="unsubmitted_crashes_requested_by_devs_dialog_title">እየተመረመሩ ካሉ ብልሽቶች ጋር የተያያዙ ያልተላኩ የብልሽት ሪፖርቶች አሉዎት (%1$d) ። እነሱን መላክ %2$sን እንድናሻሽል ይረዳናል። ይህን ማሳወቂያ መዝጋት እነዚህን ሪፖርቶች ችላ ይላቸዋል።</string>
   <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
   <string name="unsubmitted_crash_dialog_checkbox_label">የብልሽት ሪፖርቶችን በራስ-ሰር ይላኩ</string>
   <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
@@ -2455,6 +2475,14 @@
     Enhanced tracking protection exception preference icon for ETP settings.
   -->
   <string name="preference_etp_exceptions_icon_description">የተሻሻለ የመከታተያ ጥበቃ ልዩ ምርጫ አዶ</string>
+  <!--
+    DNS over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS በ HTTPS ላይ</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">የጎራ ስም ስርዓት (DNS) በ HTTPS ላይ የእርስዎን ጥያቄ የጎራ ስም በተመሳጠረ ግንኙነት ይልካል፣ ደህንነቱ የተጠበቀ DNS ያቀርባል እና የትኛውን ድህረ ገጽ መድረስ እንዳለብዎ ለሌሎች ለማየት አስቸጋሪ ያደርገዋል። %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">የበለጠ ለማወቅ</string>
   <!-- Content description for the "Exceptions" button -->
@@ -2465,12 +2493,26 @@
   <string name="preference_doh_add_site_description">ጣቢያ ያክሉ</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">ነባሪ ጥበቃ</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s የእርስዎን ግላዊነት ለመጠበቅ ደህንነቱ የተጠበቀ DNS እንዲጠቀሙ ይወስናል።</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">የመረጡትን አቅራቢ ይጠቀሙ</string>
+  <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_2">ደህንነቱ በተጠበቀው የ DNS አቅራቢ ላይ ችግር ካለ ነባሪውን የ DNS መፍታት ይጠቀሙ</string>
+  <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_3">ከተቻለ የአካባቢ አቅራቢን ይጠቀሙ። %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">VPN፣ የወላጅ ቁጥጥር ወይም የድርጅት ፖሊሲዎች ንቁ ሲሆኑ ያጥፉ</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">አውታረ መረብ ለ%1$s ደህንነቱ የተጠበቀ DNS መጠቀም እንደሌለበት ሲነግር ያጥፉ። %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">ጥበቃ መጨመር</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">ደህንነቱ የተጠበቀ DNS መቼ መጠቀም እንዳለቦት ይቆጣጠራሉ እና አቅራቢዎን ይምረጡ።</string>
   <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection_info_1">የመረጡትን አቅራቢ ይጠቀሙ</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">ደህንነቱ በተጠበቀ DNS ላይ ችግር ካለ ብቻ ነባሪውን የ DNS መፍታት ይጠቀሙ</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">ከፍተኛ ጥበቃ</string>
   <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
@@ -2922,11 +2964,7 @@
   <string name="synced_tabs_expand_group">የተመሳሰሉ ትሮችን ቡድን ዘርጋ</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">የተመሳሰሉ የትሮች ቡድን ሰብስብ</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">የአቋራጭ ገደብ ላይ ደርሷል</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">አዲስ አቋራጭ ለመጨመር አንዱን ያስወግዱ። ድረ-ገፁን ነክተው ይያዙ እና አስወግድ የሚለውን ይምረጡ።</string>
@@ -3318,9 +3356,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">ደህንነቱ የተጠበቀ</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">ደህንነቱ የተጠበቀ</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">ደህንነቱ የተጠበቀ አይደለም</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">ደህንነቱ የተጠበቀ አይደለም</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">በዚህ ድረ-ገፅ ላይ ይጠንቀቁ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3384,7 +3422,7 @@
   <string name="connection_security_panel_not_secure">ግንኙነት ደህንነቱ የተጠበቀ አይደለም</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">በ%s የተረጋገጠ</string>
   <!--
@@ -3539,6 +3577,18 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Glean ማረም መሳሪያዎች</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">የቤት ክልል</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">የአሁኑ ክልል</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">የቤት ክልልን ይሻሩ</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">የአሁኑን ክልል ይሻሩ</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">የቤት እና የአሁኑን ክልል ይሽሩ</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">የቤት ክልልን በቋሚነት ይሻሩ</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3599,10 +3649,28 @@
   <string name="setup_checklist_subtitle_3_steps_initial_state">%1$sን ለምርጥ የአሰሳ ተሞክሮ ለማዘጋጀት እነዚህን 3 ደረጃዎች ያጠናቅቁ።</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_3_steps_first_step">ጥሩ ጅምር! ከ3 ደረጃዎች 1 ጨርሰዋል።</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">ሊደርሱ ነው! ሁለት ደረጃዎች ተጠናቅቀዋል እና 1 ቀርቷል።</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">ሁሉንም 3 ደረጃዎች ጨርሰዋል። በ%1$s ፍጥነት፣ ግላዊነት እና ደህንነት ይደሰቱ።</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">ለምርጥ የአሰሳ ተሞክሮ %1$sን ለማዘጋጀት ሁሉንም 6 ደረጃዎች ያጠናቅቁ።</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">ጥሩ ጅምር! ከ6 ደረጃዎች 1 ጨርሰዋል።</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">ከ6 ደረጃዎች 2ቱን ጨርሰዋል። ታላቅ እድገት!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">ግማሽ መንገድ ላይ ነዎት! ሶስት እርከኖች ተጠናቅቀዋል እና 3 ይቀርዎታል።</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fourth_step">4 ደረጃዎች ገብተዋል። 2 ተጨማሪ ብቻ ነው የቀረው!</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fifth_step">ሊደርሱ ነው! ከመጨረሻው መስመር 1 እርምጃ ብቻ ይቀርዎታል።</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">ሁሉንም 6 የማዋቀር ደረጃዎች ጨርሰዋል። በ%1$s ፍጥነት፣ ግላዊነት እና ደህንነት ይደሰቱ።</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3617,12 +3685,18 @@
   <string name="setup_checklist_task_toolbar_selection">የመሳሪያ አሞሌ አቀማመጥን ይምረጡ</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions">ቅጥያዎችን ያስሱ</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">የፍለጋ መግብርን ጫን</string>
   <!--
     ===== Setup checklist feature: Group titles =====
 
     The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="setup_checklist_group_essentials">%1$s አስፈላጊ ነገሮች</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">የእርስዎን %1$s ያብጁ</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">አጋዥ መሳሪያዎች</string>
   <!--
     ===== Setup checklist feature: Button =====
 

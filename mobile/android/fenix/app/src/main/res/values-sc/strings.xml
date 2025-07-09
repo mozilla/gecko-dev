@@ -332,7 +332,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Torra a su menù printzipale</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Serra su pannellu de su menù printzipale</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Serra su pannellu de su menù printzipale</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Agiudu</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -406,7 +406,7 @@
   -->
   <string name="browser_menu_default_banner_title">Cunfigura %1$s comente predefinidu</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Iscarta</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Iscarta</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1065,7 +1065,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Àteras informatziones</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Àteras informatziones in pitzus de is informes de faddinas</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Àteras informatziones in pitzus de is informes de faddinas</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Istùdios</string>
   <!-- Summary for studies preferences -->
@@ -2517,11 +2517,7 @@
   <string name="synced_tabs_expand_group">Ismànnia su grupu de ischedas sincronizadas</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Mìnima su grupu de ischedas sincronizadas</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Lìmite de curtzadòrgios barigadu</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Pro agiùnghere unu curtzadòrgiu nou, boga·nde unu. Toca e mantene su situ, pustis seletziona boga.</string>
@@ -2886,9 +2882,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Seguru</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Seguru</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Non seguru</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Non seguru</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Tene contu in custu situ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->

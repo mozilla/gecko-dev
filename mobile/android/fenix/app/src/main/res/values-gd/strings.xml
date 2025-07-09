@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Air ais gun phrìomh-chlàr-taice</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">An siota airson am prìomh-chlàr-taice a dhùnadh</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">An siota airson am prìomh-chlàr-taice a dhùnadh</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Cobhair</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Cha toir e ach diog. Atharraich e uair sam bith.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Leig seachad</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Leig seachad</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1199,13 +1199,13 @@
   <string name="preferences_daily_usage_ping_description">Air an dòigh seo, is urrainn dha Mozilla tuairmse a dhèanamh air co mheud neach-cleachdaidh gnìomhach a th’ ann.</string>
   <string name="preferences_daily_usage_ping_learn_more">Barrachd fiosrachaidh mu phing a’ chleachdaidh làitheil</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Cuir aithisgean tuislidh gu fèin-obrachail</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Cuir aithisgean tuislidh gu fèin-obrachail</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Bidh e nas fhasa dhuinn mar seo diagnosachd a dhèanamh air duilgheasan sa bhrabhsair is an cur ceart. Dh’fhaoidte gum bi dàta pearsanta no dìomhair sna h-aithisgean seo.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Bidh e nas fhasa dhuinn mar seo diagnosachd a dhèanamh air duilgheasan sa bhrabhsair is an cur ceart. Dh’fhaoidte gum bi dàta pearsanta no dìomhair sna h-aithisgean seo.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Barrachd fiosrachaidh mun dàta mhargaideachd</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Barrachd fiosrachaidh mu na h-aithisgean tuislidh</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Barrachd fiosrachaidh mu na h-aithisgean tuislidh</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Rannsachadh</string>
   <!-- Summary for studies preferences -->
@@ -2542,11 +2542,7 @@
   <string name="synced_tabs_expand_group">Leudaich buidheann nan tabaichean sioncronaichte</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Co-theannaich buidheann nan tabaichean sioncronaichte</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Tha uiread a dh’ath-ghoiridean agad ’s a tha ceadaichte</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Airson ath-ghoirid ùr a chur ris, thoir tè eile air falbh an toiseach. Suath ris an làrach, cùm e is tagh “Thoir air falbh”.</string>

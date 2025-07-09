@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Tilbage til hovedmenuen</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Luk hovedmenuen</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Luk hovedmenuen</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Hjælp</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Tager sekunder. Skift når som helst.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Afvis</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Afvis</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1239,9 +1239,9 @@
   <string name="preferences_daily_usage_ping_description">Dette hjælper Mozilla med at vurdere antallet af aktive brugere.</string>
   <string name="preferences_daily_usage_ping_learn_more">Læs mere om ping for dagligt brug</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Send automatisk fejlrapporter</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Send automatisk fejlrapporter</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Dette hjælper os med at diagnosticere og løse problemer med browseren. Rapporter kan indeholde personlige eller følsomme data.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Dette hjælper os med at diagnosticere og løse problemer med browseren. Rapporter kan indeholde personlige eller følsomme data.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Kampagnemålingsdata</string>
   <!--
@@ -1252,7 +1252,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Læs mere om markedsføringsdata</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Læs mere om fejlrapporter</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Læs mere om fejlrapporter</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Undersøgelser</string>
   <!-- Summary for studies preferences -->
@@ -2944,11 +2944,7 @@
   <string name="synced_tabs_expand_group">Udvid gruppe med synkroniserede faneblade</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Sammenfold gruppe med synkroniserede faneblade</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Grænsen for genveje er nået</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Fjern en genvej for at erstatte den med en ny. Tryk og hold på websiden, og vælg så Fjern.</string>
@@ -3340,9 +3336,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Sikker</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Sikker</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Ikke sikker</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Ikke sikker</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Vær forsigtig på dette websted</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3406,7 +3402,7 @@
   <string name="connection_security_panel_not_secure">Forbindelsen er ikke sikker</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Bekræftet af %s</string>
   <!--

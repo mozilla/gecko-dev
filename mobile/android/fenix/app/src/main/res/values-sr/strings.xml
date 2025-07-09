@@ -2344,11 +2344,7 @@
   <string name="synced_tabs_expand_group">Проширите групу синхронизованих језичака</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Скупите групу синхронизованих језичака</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Ограничење пречица достигнуто</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Да бисте додали нову пречицу, уклоните једну постојећу. Додирните и држите прст над страницом па изаберите опцију за уклањање.</string>

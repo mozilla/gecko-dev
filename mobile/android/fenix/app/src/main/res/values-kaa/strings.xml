@@ -1638,11 +1638,7 @@
   <string name="synced_tabs_expand_group">Sáykeslestirilgen betler toparın keńeytiw</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Sáykeslestirilgen betler toparın qısqartıw</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Operativ buyrıqlar tolıp qaldı</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Jańa operativ buyrıq qosıw ushın birewin alıp taslań. Sayttı basıp turıń hám alıp taslawdi tańlań</string>

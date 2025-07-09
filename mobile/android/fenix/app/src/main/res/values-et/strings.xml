@@ -655,11 +655,11 @@
   <string name="preferences_daily_usage_ping_description">See aitab Mozillal aktiivsete kasutajate arvu \u0020hinnata.</string>
   <string name="preferences_daily_usage_ping_learn_more">Rohkem teavet igapäevasest kasutuspingust</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Vearaporteid saadetakse automaatselt</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Vearaporteid saadetakse automaatselt</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Need võimaldavad meil diagnoosida ja lahendada veebilehitseja probleeme. Aruanded võivad sisaldada isikuandmeid või tundlikke andmeid.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Need võimaldavad meil diagnoosida ja lahendada veebilehitseja probleeme. Aruanded võivad sisaldada isikuandmeid või tundlikke andmeid.</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Rohkem teavet vearaportitest</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Rohkem teavet vearaportitest</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Uuringud</string>
   <!-- Summary for studies preferences -->
@@ -1966,11 +1966,7 @@
   <string name="synced_tabs_expand_group">Laienda sünkroniseeritud kaartide grupp</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Ahenda sünkroniseeritud kaartide grupp</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Otseteede limiit on täis</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Uue otsetee lisamiseks tuleb üks olemasolev eemaldada. Puuduta ja hoia saidil pikemalt, seejärel vali eemaldamine.</string>

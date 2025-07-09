@@ -340,7 +340,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Негізгі мәзірге оралу</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Басты мәзір парағын жабу</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Басты мәзір парағын жабу</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Көмек</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -416,7 +416,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Бірнеше секундты алады. Кез келген уақытта өзгертуге болады.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Елемеу</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Елемеу</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1229,9 +1229,9 @@
   <string name="preferences_daily_usage_ping_description">Бұл Mozilla-ға белсенді пайдаланушылар санын бағалауға көмектеседі.</string>
   <string name="preferences_daily_usage_ping_learn_more">Күнделікті пайдалану пингі туралы көбірек білу</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Құлау хабарламаларын автоматты түрде жіберу</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Құлау хабарламаларын автоматты түрде жіберу</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Бұл бізге браузердегі ақауларды диагностикалауға және түзетуге мүмкіндік береді. Есептемелер жеке немесе сезімтал деректерді қамтуы мүмкін.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Бұл бізге браузердегі ақауларды диагностикалауға және түзетуге мүмкіндік береді. Есептемелер жеке немесе сезімтал деректерді қамтуы мүмкін.</string>
   <!-- Title Headers for data collection settings screen -->
   <string name="crash_reports_data_category">Құлау туралы хабарлар</string>
   <string name="usage_data_category">Қолдану деректері</string>
@@ -1250,7 +1250,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Маркетинг деректері туралы көбірек білу</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Құлау есептемелері туралы көбірек білу</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Құлау есептемелері туралы көбірек білу</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Зерттеулер</string>
   <!-- Summary for studies preferences -->
@@ -2952,11 +2952,7 @@
   <string name="synced_tabs_expand_group">Синхрондалған беттер тобын жазық қылу</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Синхрондалған беттер тобын бүктеу</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Жарлықтар саны шегіне жетті</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Жаңа жарлықты қосу үшін, біреуін өшіріңіз. Сайтқа басып, басулы ұстаңыз және өшіру таңдаңыз.</string>
@@ -3348,9 +3344,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Қауіпсіз</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Қауіпсіз</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Қауіпсіз емес</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Қауіпсіз емес</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Бұл сайтта абай болыңыз</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3414,7 +3410,7 @@
   <string name="connection_security_panel_not_secure">Байланыс қауіпсіз емес</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Расталды: %s</string>
   <!--

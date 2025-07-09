@@ -64,6 +64,8 @@
   -->
   <string name="private_browsing_placeholder_description_2" moz:removedIn="141" tools:ignore="UnusedResources">%1$s wisket jo syk- en browserskiednis sa gau as jo de tapassing ôfslute of alle priveeljepblêden slute. Hoewol dit jo net anonym makket foar websites of jo ynternetprovider, makket dit it makliker om wat jo online dogge privee te hâlden tsjinoer oaren dy’t dit apparaat brûke.</string>
   <string name="private_browsing_common_myths">Faaks hearde myten oer priveenavigaasje</string>
+  <!-- Text to be announced by the accessibility service to inform the user that the private browsing mode is currently active. -->
+  <string name="private_browsing_a11y_session_announcement">Priveenavigaasjesesje</string>
   <!--
     True Private Browsing Mode
 
@@ -342,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Werom nei haadmenu</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Haadmenuwurkblêd slute</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Haadmenuwurkblêd slute</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Help</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Nimt sekonden. Wizigje op elk momint.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Slute</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Slute</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1241,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">Dit helpt Mozilla om aktive brûkers te skatten.</string>
   <string name="preferences_daily_usage_ping_learn_more">Mear ynfo oer ping foar deistich gebrûk</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Automatysk ûngelokrapporten ferstjoere</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Automatysk ûngelokrapporten ferstjoere</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Dit helpt ús problemen mei de browser analysearjen en op te lossen. Rapporten kinne persoanlike of gefoelige gegevens befetsje.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Dit helpt ús problemen mei de browser analysearjen en op te lossen. Rapporten kinne persoanlike of gefoelige gegevens befetsje.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Mear ynfo oer ûngelokrapporten</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1264,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Mear ynfo oer marketinggegevens</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Mear ynfo oer ûngelokrapporten</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Mear ynfo oer ûngelokrapporten</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Undersiken</string>
   <!-- Summary for studies preferences -->
@@ -2675,6 +2677,10 @@
   <string name="add_login_navigate_back_button_content_description">Werom blêdzje</string>
   <!-- Content description, used by tools like screenreaders, to press on the save new login button. -->
   <string name="add_login_save_new_login_button_content_description">Nije oanmelding bewarje</string>
+  <!-- Content description, used by tools like screenreaders, to go back and exit the edit login view. -->
+  <string name="edit_login_navigate_back_button_content_description">Werom blêdzje</string>
+  <!-- Content description, used by tools like screenreaders, to press on the edit login button. -->
+  <string name="edit_login_button_content_description">Oanmelding bewurkje</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
   <string name="saved_login_open_site">Website iepenje yn browser</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
@@ -2968,11 +2974,7 @@
   <string name="synced_tabs_expand_group">Groep syngronisearre ljepblêden útklappe</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Groep syngronisearre ljepblêden ynklappe</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Fluchkeppelingslimyt berikt</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Smyt in fluchkeppeling fuort om in nije ta te foegjen. Hâld de website yndrukt en selektearje Fuortsmite.</string>
@@ -3364,9 +3366,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Befeilige</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Befeilige</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Net befeilige</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Net befeilige</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Wês foarsichtich op dizze website</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3430,7 +3432,7 @@
   <string name="connection_security_panel_not_secure">Ferbining net befeilige</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Ferifiearre troch: %s</string>
   <!--

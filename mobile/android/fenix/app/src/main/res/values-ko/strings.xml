@@ -344,7 +344,11 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">주 메뉴로 돌아가기</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">메인 메뉴 시트 닫기</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">메인 메뉴 시트 닫기</string>
+  <!-- Content description (not visible, for screen readers etc.) for the handle used to drag the main menu at the bottom of the screen. -->
+  <string name="browser_close_main_menu_handlebar_content_description">메뉴 닫기</string>
+  <!-- Content description (not visible, for screen readers etc.) for main menu navigation header. -->
+  <string name="browser_main_menu_content_description_navigation_header">네비게이션</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">도움말</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +424,11 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">몇 초 정도 걸립니다. 언제든지 바꿀 수 있습니다.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">닫기</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">닫기</string>
+  <!-- Content description (not visible, for screen readers etc.) for the button that dismisses the set as default banner in the menu -->
+  <string name="browser_menu_default_banner_dismiss_promotion">프로모션 닫기</string>
+  <!-- Content description (not visible, for screen readers etc.) for recommended extensions in main menu -->
+  <string name="browser_menu_recommended_extensions_content_description">추가 정보</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1243,9 +1251,9 @@
   <string name="preferences_daily_usage_ping_description">이 정보는 Mozilla가 활성 사용자를 예측하는 데 도움이 됩니다.</string>
   <string name="preferences_daily_usage_ping_learn_more">일일 사용량 핑에 대해 더 알아보기</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">자동으로 충돌 보고서 보내기</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">자동으로 충돌 보고서 보내기</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">브라우저의 문제를 진단하고 해결하는 데 도움이 됩니다. 보고서에는 개인 정보나 민감한 정보가 포함되어 있을 수 있습니다.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">브라우저의 문제를 진단하고 해결하는 데 도움이 됩니다. 보고서에는 개인 정보나 민감한 정보가 포함되어 있을 수 있습니다.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">충돌 보고서에 대해 더 알아보기</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1266,7 +1274,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">마케팅 데이터에 대해 더 알아보기</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">충돌 보고서에 대해 더 알아보기</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">충돌 보고서에 대해 더 알아보기</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">연구</string>
   <!-- Summary for studies preferences -->
@@ -1746,6 +1754,8 @@
   <string name="webcompat_reporter_success_snackbar_text">신고가 전송됨</string>
   <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
   <string name="webcompat_reporter_dismiss_success_snackbar_text">닫기</string>
+  <!-- Placeholder text for the description field to prompt the user on what they should type. -->
+  <string name="webcompat_reporter_problem_description_placeholder_text">무슨 일이 있었나요? 무슨 일이 일어났어야 했나요?</string>
   <!--
     These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site.
 
@@ -2977,8 +2987,10 @@
   <!--
     Top Sites
 
-    Title text displayed in the dialog when shortcuts limit is reached.
+    Title text displayed for the shortcuts home screen section.
   -->
+  <string name="homepage_shortcuts_title">바로 가기</string>
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">바로 가기 한도에 도달됨</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">새 바로 가기를 추가하려면 하나를 삭제하세요. 사이트를 길게 터치하고 삭제를 선택하세요.</string>
@@ -3370,9 +3382,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">안전함</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">안전함</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">안전하지 않음</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">안전하지 않음</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">이 사이트를 조심하세요</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3436,7 +3448,7 @@
   <string name="connection_security_panel_not_secure">안전하지 않은 연결</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">%s이(가) 인증함</string>
   <!--

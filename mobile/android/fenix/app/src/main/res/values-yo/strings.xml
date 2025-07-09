@@ -1486,11 +1486,7 @@
   <string name="synced_tabs_expand_group">Fẹ́ àkójọpọ̀ àwọn táàbù tí wọ́n jọ́ ń ṣiṣẹ́ pọ̀</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Pa àwọn àkójọpọ̀ táàbù tí wọ́n jọ́ ń ṣiṣẹ́ pọ náà dé</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Ó ti dé ìwọ̀n ọ̀nà-àbùjá</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Láti ṣàfikún ọ̀nà-àbùjá tuntun, yọ ọ̀kan. Fọwọ́kàn kí o sì di sáìtì náà mú kí o sì yan ìyọkúrò.</string>

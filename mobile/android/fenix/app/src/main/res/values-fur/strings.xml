@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Torne al menù principâl</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Siere il menù principâl</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Siere il menù principâl</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Jutori</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Al puarte vie seconts. Cambie cuant che tu vûs.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Siere</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Siere</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1241,9 +1241,9 @@
   <string name="preferences_daily_usage_ping_description">Chest al permet a Mozilla di stimâ il numar di utents atîfs.</string>
   <string name="preferences_daily_usage_ping_learn_more">Plui informazions sul ping di utilizazion zornaliere</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Mande in automatic i rapuarts sui colàs</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Mande in automatic i rapuarts sui colàs</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Chest nus jude a fâ diagnosis e risolvi problemis cul navigadôr. Lis segnalazions a puedin includi dâts personâi o sensibii.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Chest nus jude a fâ diagnosis e risolvi problemis cul navigadôr. Lis segnalazions a puedin includi dâts personâi o sensibii.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Plui informazions su lis segnalazions dai colàs</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1264,7 +1264,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Altris informazions sui dâts di marketing</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Plui informazions su lis segnalazions dai colàs</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Plui informazions su lis segnalazions dai colàs</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Studis</string>
   <!-- Summary for studies preferences -->
@@ -2968,11 +2968,7 @@
   <string name="synced_tabs_expand_group">Slargje il grup des schedis sincronizadis</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Comprim il grup des schedis sincronizadis</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Rivât al limit pes scurtis</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Par zontâ une gnove scurte, tu ‘nd âs di gjavâ une. Tocje e ten fracât il sît e selezione gjave.</string>
@@ -3364,9 +3360,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Sigûr</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Sigûr</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">No sigûr</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">No sigûr</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Sta atent su chest sît</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3430,7 +3426,7 @@
   <string name="connection_security_panel_not_secure">Conession no sigure</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Verificade di %s</string>
   <!--

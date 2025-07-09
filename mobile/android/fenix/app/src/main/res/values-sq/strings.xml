@@ -338,7 +338,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Mbrapsht te menuja kryesore</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Mbyllni fletën e menusë kryesore</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Mbyllni fletën e menusë kryesore</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Ndihmë</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -1186,9 +1186,9 @@
   <string name="preferences_daily_usage_ping_description">Kjo e ndihmon Mozilla-n të hamendësojë numrin e përdoruesve aktivë.</string>
   <string name="preferences_daily_usage_ping_learn_more">Mësoni më tepër ping të përditshëm përdorimi</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Dërgo vetvetiu njoftime vithisjesh</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Dërgo vetvetiu njoftime vithisjesh</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Kjo na ndihmon të diagnostikojmë dhe ndreqim probleme me shfletuesin. Raportet mund të përfshijnë të dhëna personale, ose rezervat.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Kjo na ndihmon të diagnostikojmë dhe ndreqim probleme me shfletuesin. Raportet mund të përfshijnë të dhëna personale, ose rezervat.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Të dhëna matjesh fushatash</string>
   <!--
@@ -1199,7 +1199,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Mësoni më tepër rreth të dhënash marketingu</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Mësoni më tepër rreth njoftimesh vithisjesh</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Mësoni më tepër rreth njoftimesh vithisjesh</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Studime</string>
   <!-- Summary for studies preferences -->
@@ -2836,11 +2836,7 @@
   <string name="synced_tabs_expand_group">Zgjeroje grupin e skedave të njëkohësuara</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Tkurre grupin e skedave të njëkohësuara</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">U mbërrit në kufi shkurtoresh</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Që të shtoni një shkurtore të re, hiqni një të tillë. Prekeni dhe mbajeni të shtypur sajtin dhe përzgjidhni Hiqe.</string>
@@ -3232,9 +3228,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">I siguruar</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">I siguruar</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">I pasiguruar</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">I pasiguruar</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Hapni sytë në këtë sajt</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3298,7 +3294,7 @@
   <string name="connection_security_panel_not_secure">Lidhje jo e siguruar</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Verifikuar nga %s</string>
   <!--

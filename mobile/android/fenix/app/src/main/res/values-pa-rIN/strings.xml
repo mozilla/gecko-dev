@@ -340,7 +340,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">ਮੁੱਖ ਮੇਨੂ ਉੱਤੇ ਵਾਪਸ ਜਾਓ</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">ਮੁੱਖ ਮੇਨੂ ਸ਼ੀਟ ਨੂੰ ਬੰਦ ਕਰੋ</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">ਮੁੱਖ ਮੇਨੂ ਸ਼ੀਟ ਨੂੰ ਬੰਦ ਕਰੋ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">ਮਦਦ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -416,7 +416,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">ਸਕਿੰਟ ਕੁ ਹੀ ਲੱਗਦੇ ਹਨ। ਕਦੇ ਵੀ ਬਦਲ ਲਿਓ।</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">ਖ਼ਾਰਜ ਕਰੋ</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">ਖ਼ਾਰਜ ਕਰੋ</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1207,9 +1207,9 @@
   <string name="preferences_daily_usage_ping_description">ਇਹ Mozilla ਨੂੰ ਸਰਗਰਮ ਵਰਤੋਂਕਾਰਾਂ ਦਾ ਅੰਦਾਜ਼ਾ ਲਾਉਣ ਲਈ ਮਦਦ ਕਰਦਾ ਹੈ।</string>
   <string name="preferences_daily_usage_ping_learn_more">ਰੋਜ਼ਾਨਾ ਵਰਤੋਂ ਪਿੰਗ ਬਾਰੇ ਹੋਰ ਜਾਣੋ</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">ਕਰੈਸ਼ ਰਿਪੋਰਟਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਭੇਜੋ</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">ਕਰੈਸ਼ ਰਿਪੋਰਟਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਭੇਜੋ</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">ਇਹ ਸਾਨੂੰ ਬਰਾਊਜ਼ਰ ਦੀ ਜਾਂਚ ਪੜਤਾਲ ਕਰਨ ਅਤੇ ਮਸਲਿਆਂ ਨੂੰ ਠੀਕ ਕਰਨ ਮਦਦ ਕਰਦੀਆਂ ਹਨ। ਰਿਪੋਰਟਾਂ ਵਿੱਚ ਨਿੱਜੀ ਜਾਂ ਸੰਵੇਦਨਸ਼ੀਲ ਡਾਟਾ ਸ਼ਾਮਲ ਹੋ ਸਕਦਾ ਹੈ।</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">ਇਹ ਸਾਨੂੰ ਬਰਾਊਜ਼ਰ ਦੀ ਜਾਂਚ ਪੜਤਾਲ ਕਰਨ ਅਤੇ ਮਸਲਿਆਂ ਨੂੰ ਠੀਕ ਕਰਨ ਮਦਦ ਕਰਦੀਆਂ ਹਨ। ਰਿਪੋਰਟਾਂ ਵਿੱਚ ਨਿੱਜੀ ਜਾਂ ਸੰਵੇਦਨਸ਼ੀਲ ਡਾਟਾ ਸ਼ਾਮਲ ਹੋ ਸਕਦਾ ਹੈ।</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">ਮੁਹਿੰਮ ਮਾਪ ਬਾਰੇ ਡਾਟਾ</string>
   <!--
@@ -1220,7 +1220,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">ਮਾਰਕੀਟਿੰਗ ਡਾਟੇ ਬਾਰੇ ਹੋਰ ਸਿੱਖੋ</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ਕਰੈਸ਼ ਰਿਪੋਰਟਾਂ ਬਾਰੇ ਹੋਰ ਜਾਣੋ</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">ਕਰੈਸ਼ ਰਿਪੋਰਟਾਂ ਬਾਰੇ ਹੋਰ ਜਾਣੋ</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">ਅਧਿਐਨ</string>
   <!-- Summary for studies preferences -->
@@ -2888,11 +2888,7 @@
   <string name="synced_tabs_expand_group">ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ ਦਾ ਗਰੁੱਪ ਫੈਲਾਓ</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">ਸਿੰਕ ਕੀਤੀਆਂ ਟੈਬਾਂ ਦਾ ਗਰੁੱਪ ਸਮੇਟੋ</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">ਸ਼ਾਰਟਕੱਟ ਦੀ ਲਿਮਟ ਅੱਪੜੀ</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">ਨਵਾਂ ਸ਼ਾਰਟਕੱਟ ਜੋੜਨ ਲਈ ਪਹਿਲਾਂ ਇੱਕ ਨੂੰ ਹਟਾਓ। ਸਾਈਟ ਨੂੰ ਛੂਹ ਕੇ ਰੱਖੋ ਤੇ ਹਟਾਓ ਨੂੰ ਚੁਣੋ।</string>
@@ -3284,9 +3280,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">ਸੁਰੱਖਿਅਤ</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">ਸੁਰੱਖਿਅਤ</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">ਸੁਰੱਖਿਅਤ ਨਹੀਂ</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">ਸੁਰੱਖਿਅਤ ਨਹੀਂ</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">ਇਸ ਸਾਈਟ ਤੋਂ ਸਾਵਧਾਨ ਰਹੋ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3350,7 +3346,7 @@
   <string name="connection_security_panel_not_secure">ਕਨੈਕਸ਼ਨ ਸੁਰੱਖਿਅਤ ਨਹੀਂ ਹੈ</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">%s ਵਲੋਂ ਤਸਦੀਕ ਕੀਤਾ</string>
   <!--

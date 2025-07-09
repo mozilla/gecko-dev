@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">メインメニューに戻る</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">メインメニューシートを閉じます</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">メインメニューシートを閉じます</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">ヘルプ</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">すぐに完了。いつでも変更できます。</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">閉じる</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">閉じる</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1241,9 +1241,9 @@
   <string name="preferences_daily_usage_ping_description">これは Mozilla がアクティブユーザー数を推定するのに役立ちます。</string>
   <string name="preferences_daily_usage_ping_learn_more">日ごとの使用状況データについての詳細</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">クラッシュレポートを自動的に送信する</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">クラッシュレポートを自動的に送信する</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">これはブラウザーの問題の診断と修正に役立てられます。レポートには個人情報や機密性の高い情報が含まれる場合があります。</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">これはブラウザーの問題の診断と修正に役立てられます。レポートには個人情報や機密性の高い情報が含まれる場合があります。</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">クラッシュレポートについて詳細</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1264,7 +1264,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">マーケティングデータについての詳細</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">クラッシュレポートについて詳細</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">クラッシュレポートについて詳細</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">調査</string>
   <!-- Summary for studies preferences -->
@@ -2964,11 +2964,7 @@
   <string name="synced_tabs_expand_group">同期したタブのグループを展開します</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">同期したタブのグループを折りたたみます</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">ショートカット数の上限に達しました</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">新しいショートカットを追加するには、いずれかを削除してください。サイトを長押しして削除を選択します。</string>
@@ -3360,9 +3356,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">安全です</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">安全です</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">安全でない</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">安全でない</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">このサイトでは注意してください</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3426,7 +3422,7 @@
   <string name="connection_security_panel_not_secure">安全でない接続</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">認証局: %s</string>
   <!--

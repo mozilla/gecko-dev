@@ -2166,11 +2166,7 @@
   <string name="synced_tabs_expand_group">دؤنگل ائدیلمیش تاغلارین گروهونو گئنیش‌لت</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">دؤنگل ائدیلمیش تاغلارین گروهونو ییغ</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">شورتکات حددینه یئتیردیز</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">بیر شورتکات آرتیرماق اوچون بیرینی قالدیرین. سایتا توخونوب باسیلیْ توتون و قالدیریْ سئچین</string>

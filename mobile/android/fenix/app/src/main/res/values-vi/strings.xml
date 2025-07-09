@@ -342,7 +342,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Quay lại menu chính</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Đóng bảng menu chính</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Đóng bảng menu chính</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Trợ giúp</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -418,7 +418,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Chỉ mất vài giây. Có thể thay đổi bất cứ lúc nào.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Bỏ qua</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Bỏ qua</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1239,9 +1239,9 @@
   <string name="preferences_daily_usage_ping_description">Điều này giúp Mozilla ước tính số người dùng đang hoạt động.</string>
   <string name="preferences_daily_usage_ping_learn_more">Tìm hiểu thêm về ping sử dụng hàng ngày</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Tự động gửi báo cáo sự cố</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Tự động gửi báo cáo sự cố</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Điều này giúp chúng tôi chẩn đoán và khắc phục sự cố với trình duyệt. Báo cáo có thể bao gồm dữ liệu cá nhân hoặc nhạy cảm.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Điều này giúp chúng tôi chẩn đoán và khắc phục sự cố với trình duyệt. Báo cáo có thể bao gồm dữ liệu cá nhân hoặc nhạy cảm.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">Dữ liệu đo lường chiến dịch</string>
   <!--
@@ -1252,7 +1252,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Tìm hiểu thêm về dữ liệu tiếp thị</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Tìm hiểu thêm về báo cáo sự cố</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Tìm hiểu thêm về báo cáo sự cố</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Nghiên cứu</string>
   <!-- Summary for studies preferences -->
@@ -2952,11 +2952,7 @@
   <string name="synced_tabs_expand_group">Mở rộng nhóm thẻ đã đồng bộ hóa</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Thu gọn nhóm thẻ đã đồng bộ hóa</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Đã đạt đến giới hạn lối tắt</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Để thêm một lối tắt mới, hãy xóa một lối tắt. Nhấn và giữ trang web và chọn xóa.</string>
@@ -3348,9 +3344,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">An toàn</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">An toàn</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Không an toàn</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Không an toàn</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Hãy cẩn thận trên trang web này</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3414,7 +3410,7 @@
   <string name="connection_security_panel_not_secure">Kết nối không an toàn</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Đã xác minh bởi %s</string>
   <!--

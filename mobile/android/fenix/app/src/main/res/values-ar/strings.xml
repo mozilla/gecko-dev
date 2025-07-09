@@ -914,7 +914,7 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">اطّلع على المزيد</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">تعرف على المزيد حول تقارير الأعطال</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">تعرف على المزيد حول تقارير الأعطال</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">الدراسات</string>
   <!-- Summary for studies preferences -->
@@ -2127,11 +2127,7 @@
   <string name="synced_tabs_expand_group">وسِّع مجموعة الألسنة المزامنة</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">اطو مجموعة الألسنة المزامنة</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">وصلت إلى أقصى حدّ للاختصارات</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">لإضافة اختصار جديد، أزِل واحدًا. اضغط مطولًا على الموقع واختر أزِل.</string>

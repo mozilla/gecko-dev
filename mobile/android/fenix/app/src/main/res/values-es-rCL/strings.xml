@@ -344,7 +344,7 @@
   <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
   <string name="browser_menu_back_button_content_description" moz:removedIn="141" tools:ignore="UnusedResources">Volver al menú principal</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar main menu. -->
-  <string name="browser_main_menu_handlebar_content_description">Cerrar la hoja del menú principal</string>
+  <string name="browser_main_menu_handlebar_content_description" moz:removedIn="142" tools:ignore="UnusedResources">Cerrar la hoja del menú principal</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu help button. -->
   <string name="browser_main_menu_content_description_help_button">Ayuda</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
@@ -420,7 +420,7 @@
   <!-- Label text within the set as default banner -->
   <string name="browser_menu_default_banner_subtitle">Toma segundos. Cámbialo en cualquier momento.</string>
   <!-- Content description for the button that dismisses the set as default banner in the menu -->
-  <string name="browser_menu_default_banner_dismiss">Ocultar</string>
+  <string name="browser_menu_default_banner_dismiss" moz:removedIn="142" tools:ignore="UnusedResources">Ocultar</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -1243,9 +1243,9 @@
   <string name="preferences_daily_usage_ping_description">Esto ayuda a Mozilla a estimar los usuarios activos.</string>
   <string name="preferences_daily_usage_ping_learn_more">Aprender más sobre el ping de uso diario</string>
   <!-- Preference switch title for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_title">Enviar automáticamente reportes de fallos</string>
+  <string name="preferences_automatically_send_crashes_title" tools:ignore="UnusedResources" moz:removedIn="142">Enviar automáticamente reportes de fallos</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Esto nos ayuda a diagnosticar y solucionar problemas con el navegador. Los informes pueden incluir datos personales o confidenciales.</string>
+  <string name="preferences_automatically_send_crashes_description" tools:ignore="UnusedResources" moz:removedIn="142">Esto nos ayuda a diagnosticar y solucionar problemas con el navegador. Los informes pueden incluir datos personales o confidenciales.</string>
   <!-- Text for sumo link to learn more about crash reports in data collection screen -->
   <string name="preferences_crashes_learn_more">Aprender más sobre los reportes de fallos</string>
   <!-- Title Headers for data collection settings screen -->
@@ -1266,7 +1266,7 @@
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">Aprender más sobre los datos de marketing</string>
   <!-- Learn more link for crash reporting preference -->
-  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Aprender más sobre los informes de fallos</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more" tools:ignore="UnusedResources" moz:removedIn="142">Aprender más sobre los informes de fallos</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Estudios</string>
   <!-- Summary for studies preferences -->
@@ -2974,11 +2974,7 @@
   <string name="synced_tabs_expand_group">Expandir grupo de pestañas sincronizadas</string>
   <!-- Content description for collapsing a group of synced tabs. -->
   <string name="synced_tabs_collapse_group">Contraer grupo de pestañas sincronizadas</string>
-  <!--
-    Top Sites
-
-    Title text displayed in the dialog when shortcuts limit is reached.
-  -->
+  <!-- Title text displayed in the dialog when shortcuts limit is reached. -->
   <string name="shortcut_max_limit_title">Límite de accesos directos alcanzado</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
   <string name="shortcut_max_limit_content">Para añadir un nuevo acceso directo, elimina uno. Toca y mantén presionado el sitio y selecciona eliminar.</string>
@@ -3370,9 +3366,9 @@
 
     Text for the protection panel header when the site is secure.
   -->
-  <string name="protection_panel_header_secure">Seguro</string>
+  <string name="protection_panel_header_secure" moz:removedIn="142" tools:ignore="UnusedResources">Seguro</string>
   <!-- Text for the protection panel header when the site is not secure. -->
-  <string name="protection_panel_header_not_secure">Inseguro</string>
+  <string name="protection_panel_header_not_secure" moz:removedIn="142" tools:ignore="UnusedResources">Inseguro</string>
   <!-- Title text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_title">Ten cuidado en este sitio</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
@@ -3436,7 +3432,7 @@
   <string name="connection_security_panel_not_secure">Conexión no segura</string>
   <!--
     Text for the connection security panel to indicate who the certificate was verified by.
-    %s is a placeholder for the name of the certificate authority that verified the ticket
+    %s is a placeholder for the name of the certificate authority that issued the certificate.
   -->
   <string name="connection_security_panel_verified_by">Verificado por %s</string>
   <!--
